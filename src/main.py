@@ -414,5 +414,32 @@ def autosearch(keywords, limit):
         console.print("4. Run: py -m src.main batch --file jobs.txt --v2")
 
 
+@cli.command()
+@click.option('--target', '-t', default=20, help='Target number of applications')
+def fullauto(target):
+    """🚀 FULL AUTO - Completely automated job search + apply (Elena-optimized)"""
+    import asyncio
+    from .auto_apply_full import run_full_auto
+    
+    console.print(Panel.fit(
+        "[bold cyan]🤖 FULL AUTOMATION MODE 🤖[/bold cyan]\n\n"
+        "[green]Based on your REAL profile:[/green]\n"
+        "  • PayPal Subscriptions LIVE\n"
+        "  • 19 countries reach\n"
+        "  • 2 live AI agents\n"
+        "  • Web3 + AI combo\n\n"
+        "[yellow]Targets:[/yellow]\n"
+        "  • Y Combinator startups\n"
+        "  • AngelList founding roles\n"
+        "  • Web3 + AI companies\n"
+        "  • Founding Engineer positions\n\n"
+        "[dim]Opening searches, finding jobs, generating materials...[/dim]",
+        border_style="cyan"
+    ))
+    console.print()
+    
+    asyncio.run(run_full_auto(target))
+
+
 if __name__ == "__main__":
     cli()
