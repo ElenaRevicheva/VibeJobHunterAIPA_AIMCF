@@ -308,5 +308,34 @@ def autopilot(resume, count):
     asyncio.run(run_autopilot(resume, count))
 
 
+@cli.command()
+@click.option('--file', '-f', type=click.Path(exists=True), help='Text file with job URLs (one per line)')
+@click.argument('urls', nargs=-1)
+def batch(file, urls):
+    """⚡ BATCH APPLY - Maximum automation with job URLs"""
+    import asyncio
+    from .batch_apply import run_batch_apply
+    
+    # Load URLs from file or arguments
+    url_list = list(urls)
+    
+    if file:
+        with open(file, 'r') as f:
+            file_urls = [line.strip() for line in f if line.strip() and line.strip().startswith('http')]
+            url_list.extend(file_urls)
+    
+    if not url_list:
+        console.print("[red]❌ No URLs provided![/red]")
+        console.print("\n[yellow]Usage:[/yellow]")
+        console.print("  python -m src.main batch <url1> <url2> ...")
+        console.print("  python -m src.main batch --file jobs.txt")
+        console.print("\n[dim]Example:[/dim]")
+        console.print("  python -m src.main batch https://linkedin.com/jobs/view/123456")
+        return
+    
+    console.print(f"\n[cyan]Processing {len(url_list)} job URLs...[/cyan]\n")
+    asyncio.run(run_batch_apply(url_list))
+
+
 if __name__ == "__main__":
     cli()
