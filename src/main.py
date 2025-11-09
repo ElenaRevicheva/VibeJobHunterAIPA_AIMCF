@@ -25,15 +25,40 @@ def cli():
 
 
 @cli.command()
-@click.option('--resume', '-r', type=click.Path(exists=True), required=True, help='Path to resume PDF')
+@click.option('--resume', '-r', type=click.Path(exists=True), help='Path to resume PDF')
+@click.option('--elena', is_flag=True, help='Use pre-configured Elena profile (instant!)')
 @click.option('--name', '-n', help='Your full name')
 @click.option('--email', '-e', help='Your email address')
 @click.option('--location', '-l', help='Your location')
-def setup(resume, name, email, location):
+def setup(resume, elena, name, email, location):
     """Set up your profile"""
     console.print(Panel.fit("🚀 [bold blue]VibeJobHunter Setup[/bold blue]", border_style="blue"))
     
     profile_manager = ProfileManager()
+    
+    # NEW: Instant setup with Elena profile
+    if elena:
+        from .loaders import CandidateDataLoader
+        loader = CandidateDataLoader()
+        profile = loader.load_profile()
+        
+        if profile:
+            profile_manager.save_profile(profile)
+            console.print("\n[green]✓[/green] Profile loaded instantly from candidate data!")
+            console.print(f"\n[bold]Name:[/bold] {profile.name}")
+            console.print(f"[bold]Email:[/bold] {profile.email}")
+            console.print(f"[bold]Location:[/bold] {profile.location}")
+            console.print(f"[bold]Skills:[/bold] {len(profile.skills)} skills detected")
+            console.print(f"[bold]Experience:[/bold] {profile.experience_years} years")
+            console.print(f"\n[bold cyan]🚀 Ready to hunt! Run: python -m src.main batch --v2 <urls>[/bold cyan]")
+            return
+        else:
+            console.print("[red]❌ Could not load Elena profile. Using resume instead.[/red]\n")
+    
+    # Original resume parsing flow
+    if not resume:
+        console.print("[red]❌ Either --elena or --resume is required![/red]")
+        return
     
     with Progress(
         SpinnerColumn(),
@@ -260,41 +285,58 @@ def status():
 
 
 @cli.command()
-def followup():
-    """Show applications needing follow-up"""
+@click.option('--company', '-c', help='Get follow-up email template for specific company')
+def followup(company):
+    """Show applications needing follow-up and email templates"""
     console.print(Panel.fit("📬 [bold blue]Follow-up Required[/bold blue]", border_style="blue"))
     
-    app_manager = ApplicationManager()
-    apps = app_manager.get_applications_needing_followup()
+    from .enhancers import FollowUpScheduler
+    scheduler = FollowUpScheduler()
     
-    if not apps:
-        console.print("\n[green]✓[/green] No follow-ups needed!")
+    if company:
+        # Show email template for specific company
+        console.print(f"\n[bold]Email template for {company}:[/bold]\n")
+        # This would need to look up the application details
+        console.print("[yellow]Feature coming soon! For now, check your follow_up_schedule.json[/yellow]")
         return
     
-    console.print(f"\n[bold]{len(apps)} applications need follow-up:[/bold]\n")
+    # Show all pending follow-ups
+    pending = scheduler.get_pending_follow_ups()
     
-    for i, app in enumerate(apps, 1):
-        days_since = (app.updated_at - app.applied_date).days
-        console.print(f"{i}. [cyan]{app.company} - {app.job_title}[/cyan]")
-        console.print(f"   Applied: {app.applied_date.strftime('%Y-%m-%d')} ({days_since} days ago)")
-        console.print(f"   Status: {app.status.value}")
-        console.print(f"   Follow-ups sent: {app.follow_up_count}")
-        console.print()
+    if not pending:
+        console.print("\n[green]✓[/green] No follow-ups needed today!")
+        return
+    
+    console.print(f"\n[bold]{len(pending)} applications need follow-up:[/bold]\n")
+    
+    for i, item in enumerate(pending, 1):
+        console.print(f"{i}. [cyan]{item['company']} - {item['role']}[/cyan]")
+        console.print(f"   Applied: {item['applied_date'][:10]} ({item['days_since_apply']} days ago)")
+        console.print(f"   Status: {item['status']}")
+        
+        # Show email template
+        email = scheduler.get_follow_up_email_template(
+            item['company'], 
+            item['role'], 
+            item['days_since_apply']
+        )
+        console.print(f"\n[dim]{email[:200]}...[/dim]\n")
+    
+    console.print("[yellow]💡 Tip: Copy these email templates and send today for best response rate![/yellow]")
 
 
 @cli.command()
-@click.option('--port', default=8000, help='Dashboard port')
-def dashboard(port):
-    """Launch web dashboard"""
-    console.print(Panel.fit("🌐 [bold blue]Launching Dashboard[/bold blue]", border_style="blue"))
-    console.print(f"\n[bold]Dashboard will be available at:[/bold] http://localhost:{port}")
-    console.print("[yellow]Press Ctrl+C to stop[/yellow]\n")
+@click.option('--export', '-e', is_flag=True, help='Export summary to file')
+def dashboard(export):
+    """Show job hunt tracking dashboard"""
+    from .dashboard import JobHuntTracker
     
-    import uvicorn
-    from .api.app import create_app
+    tracker = JobHuntTracker()
+    tracker.show_dashboard()
     
-    app = create_app()
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    if export:
+        filepath = tracker.export_summary(tracker._load_applications())
+        console.print(f"\n[green]✓ Summary exported to {filepath}[/green]")
 
 
 @cli.command()

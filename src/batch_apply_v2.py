@@ -26,6 +26,7 @@ from .utils import retry_async, get_logger
 from .utils.progress_saver import BatchProgressTracker
 from .filters import CriteriaMatcher, RedFlagDetector
 from .templates import ResumeFormatter, CoverLetterFormatter
+from .enhancers import PortfolioIntegrator, InterviewPrepGenerator, FollowUpScheduler
 
 console = Console()
 
@@ -48,6 +49,11 @@ class BatchApplyAgentV2:
         self.red_flag_detector = RedFlagDetector()
         self.resume_formatter = ResumeFormatter()
         self.cover_formatter = CoverLetterFormatter()
+        
+        # NEW: Portfolio, interview prep, and follow-ups
+        self.portfolio = PortfolioIntegrator()
+        self.interview_prep = InterviewPrepGenerator()
+        self.follow_up_scheduler = FollowUpScheduler()
     
     @retry_async(max_attempts=2, delay=1.0)
     async def process_url(self, url: str):
@@ -242,14 +248,25 @@ class BatchApplyAgentV2:
                     resume = self.resume_formatter.format_resume(profile, job)
                     cover_letter = self.cover_formatter.format_cover_letter(profile, job)
                     
+                    # Enhance with portfolio demos and links
+                    resume = self.portfolio.enhance_resume_with_portfolio(resume, job)
+                    cover_letter = self.portfolio.enhance_cover_letter_with_demo(cover_letter)
+                    
+                    # Generate interview prep package
+                    prep_file = self.interview_prep.generate_prep_package(profile, job)
+                    
                     application = self.app_manager.create_application(job, resume, cover_letter)
                     
                     applications.append({
                         'job': job,
                         'application': application,
                         'resume_path': self.content_gen.resumes_dir / f"{job.company}_{job.id[:8]}.md".replace(" ", "_"),
-                        'cover_letter_path': self.content_gen.cover_letters_dir / f"{job.company}_{job.id[:8]}_cover.txt".replace(" ", "_")
+                        'cover_letter_path': self.content_gen.cover_letters_dir / f"{job.company}_{job.id[:8]}_cover.txt".replace(" ", "_"),
+                        'prep_file': prep_file
                     })
+                    
+                    # Schedule follow-up for 3 days
+                    self.follow_up_scheduler.schedule_follow_up(application, days=3)
                 except Exception as e:
                     self.logger.error(f"Failed to generate materials for {job.company}: {e}")
                     progress.update(task, description=f"⚠️ Error: {job.company}", advance=1)
@@ -289,6 +306,7 @@ class BatchApplyAgentV2:
         console.print(f"\n[bold]📁 All files saved to:[/bold]")
         console.print(f"   Resumes: {self.content_gen.resumes_dir}")
         console.print(f"   Cover Letters: {self.content_gen.cover_letters_dir}")
+        console.print(f"   Interview Prep: interview_prep/")
         console.print(f"   Logs: {self.settings.base_dir / 'logs'}")
         
         console.print("\n[yellow]→ Go through each browser tab and submit![/yellow]")
