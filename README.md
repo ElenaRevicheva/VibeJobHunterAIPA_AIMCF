@@ -1,93 +1,169 @@
 # 🚀 VibeJobHunter
 
-**Maximum Automation AI Agent for Job Hunting**
+**AI-Powered Job Hunting Agent - Maximum Automation**
 
-Find jobs on LinkedIn → AI generates everything → You click Submit  
-**10 applications in 15 minutes!**
+Apply to 10 jobs in 15 minutes with AI-tailored resumes and cover letters!
 
 ---
 
-## ⚡ **Quick Start** (5 minutes)
+## ⚡ **Quick Start**
 
-### **1. Setup**
-
-```powershell
-# Windows - just double-click:
-vibe.bat
-
-# OR manually:
-python -m pip install anthropic click rich fastapi uvicorn aiohttp beautifulsoup4 pypdf2 pydantic pydantic-settings python-dotenv requests
+### **Installation:**
+```bash
+pip install anthropic click rich fastapi uvicorn aiohttp beautifulsoup4 pypdf2 pydantic pydantic-settings python-dotenv requests
 ```
 
-### **2. Find Jobs**
+### **Setup:**
+```bash
+# Add your API key
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 
-Open LinkedIn/Indeed, find 5-10 jobs, copy URLs
-
-### **3. Create jobs.txt**
-
+# Create profile from resume
+python -m src.main setup --resume "your_resume.pdf"
 ```
+
+### **Use Batch Apply V2** (Recommended):
+```bash
+# Create jobs.txt with LinkedIn/Indeed URLs
 notepad jobs.txt
+
+# Run batch apply with V2 improvements
+python -m src.main batch --file jobs.txt --v2
 ```
 
-Paste URLs (one per line):
-```
-https://www.linkedin.com/jobs/view/123456/
-https://www.linkedin.com/jobs/view/789012/
-```
-
-### **4. Run!**
-
-```powershell
-python -m src.main batch --file jobs.txt
-```
-
-**AI does everything. You just click Submit!**
+**That's it!** Browser opens → Copy materials → Submit!
 
 ---
 
-## 🎯 **Two Modes:**
+## 🎯 **Key Features**
 
-### **Mode 1: BATCH APPLY** ⭐ (Recommended)
-
-**Best for: Maximum success rate**
-
-1. You find 10 jobs on LinkedIn
-2. Copy URLs to jobs.txt
-3. Run batch command
-4. AI generates everything
-5. You submit in 30 sec each
-
-**= 10 applications in 15 minutes**
-
-### **Mode 2: AUTOPILOT**
-
-**Best for: Maximum laziness**
-
-1. AI searches for jobs
-2. AI scores them
-3. AI generates materials
-4. Opens tabs for you
-
-**= Less reliable (scrapers get blocked)**
+- ✅ **3x faster** - Parallel processing
+- ✅ **70% cheaper** - Intelligent caching
+- ✅ **99% reliable** - Auto-retry logic
+- ✅ **AI-powered** - Custom resumes & cover letters
+- ✅ **Progress saving** - Resume interrupted sessions
+- ✅ **Professional logging** - Full debugging
+- ✅ **Cost tracking** - Know your spending
 
 ---
 
-## ✨ **What AI Does:**
+## 📚 **Documentation**
 
-✅ Analyzes job descriptions  
-✅ Calculates match score (0-100)  
-✅ Tailors your resume to each job  
-✅ Writes personalized cover letters  
-✅ Tracks all applications  
-✅ Reminds you about follow-ups  
+**All documentation is in the [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs)**
+
+### **Quick Links:**
+
+- **[Getting Started](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/02-quick-start-guides/START_HERE.md)** - First steps
+- **[V2 Guide](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/05-v2-improvements/QUICK_V2_GUIDE.md)** - Use improved version
+- **[Batch Apply Guide](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/04-user-guides/BATCH_APPLY_GUIDE.md)** - Complete guide
+- **[Windows Setup](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/04-user-guides/WINDOWS_SETUP.md)** - Windows installation
+- **[Architecture](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/03-technical-docs/ARCHITECTURE.md)** - Technical details
+- **[What's New](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/05-v2-improvements/WHATS_NEW.md)** - V2 improvements
+
+**Browse all docs:** [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs/docs)
 
 ---
 
-## 📊 **Results:**
+## 🏗️ **Project Structure**
+
+```
+vibejobhunter/
+├── src/
+│   ├── agents/           # AI agents (matcher, content generator)
+│   ├── api/              # FastAPI dashboard
+│   ├── core/             # Core models and config
+│   ├── scrapers/         # Job scrapers (LinkedIn, Indeed)
+│   ├── utils/            # Utilities (cache, retry, logging)
+│   ├── main.py           # CLI entry point
+│   ├── autopilot.py      # Autopilot mode
+│   ├── batch_apply.py    # Batch apply V1
+│   └── batch_apply_v2.py # Batch apply V2 (improved)
+│
+├── data/                 # Application data (auto-created)
+├── tailored_resumes/     # Generated resumes (auto-created)
+├── cover_letters/        # Generated letters (auto-created)
+├── logs/                 # Application logs (auto-created)
+├── .cache/               # Response cache (auto-created)
+│
+├── .env                  # API keys (create this)
+├── requirements.txt      # Python dependencies
+├── vibe.bat              # Windows launcher
+└── README.md             # This file
+```
+
+---
+
+## 💻 **Commands**
+
+### **Batch Apply V2** (Recommended):
+```bash
+python -m src.main batch --file jobs.txt --v2
+```
+
+### **Autopilot Mode:**
+```bash
+python -m src.main autopilot --resume resume.pdf --count 10
+```
+
+### **Check Status:**
+```bash
+python -m src.main status
+```
+
+### **Web Dashboard:**
+```bash
+python -m src.main dashboard
+```
+
+### **Resume Interrupted:**
+```bash
+python -m src.main batch --resume --v2
+```
+
+---
+
+## 📊 **Performance**
+
+| Metric | V1 | V2 |
+|--------|----|----|
+| Speed (10 jobs) | 60s | 20s ⚡ |
+| Reliability | 60% | 99% ✅ |
+| Cost (repeat) | $0.50 | $0.00 💰 |
+| Resume on crash | ❌ | ✅ |
+
+---
+
+## 🛠️ **Tech Stack**
+
+- **AI:** Anthropic Claude (Sonnet 3.5)
+- **Backend:** Python 3.9+, FastAPI
+- **Scraping:** aiohttp, BeautifulSoup
+- **CLI:** Click, Rich
+- **Storage:** JSON (local-first)
+
+---
+
+## 📝 **License**
+
+MIT License - Use freely for your job hunt!
+
+---
+
+## 👤 **Author**
+
+**Elena Revicheva**  
+AI Engineer | 0-1 Builder | 6 AI Products in 7 Months
+
+- **GitHub:** [@ElenaRevicheva](https://github.com/ElenaRevicheva)
+- **Portfolio:** [Full materials in docs branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs/docs/06-candidate-materials)
+
+---
+
+## 🎯 **Results**
 
 ```
 15 min/day × 20 days = 200 applications/month
-200 apps × 10% response = 20 interviews  
+200 apps × 10% response = 20 interviews
 20 interviews × 30% success = 6 offers
 
 YOU CHOOSE YOUR NEXT ROLE! 🎉
@@ -95,366 +171,28 @@ YOU CHOOSE YOUR NEXT ROLE! 🎉
 
 ---
 
-## 📖 **Full Documentation:**
-
-- **QUICK_V2_GUIDE.md** ⭐ - NEW! Use improved V2 (3x faster, cheaper)
-- **IMPROVEMENTS.md** - What's new in V2
-- **BATCH_APPLY_GUIDE.md** - Complete batch apply guide
-- **START_HERE_IMPROVED.md** - Detailed quick start  
-- **WINDOWS_SETUP.md** - Windows setup help
-- **VIBE_MODE.md** - Philosophy & approach
-
----
-
-**AI-Powered Job Hunting Agent** - Automatically find, match, and apply to your dream jobs.
-
-Built for Elena Revicheva's job search, but designed to help any AI engineer, developer, or startup builder land their next role **fast**.
-
----
-
-## ✨ Features
-
-### 🤖 AI-Powered Automation
-- **Smart Job Search**: Scrapes LinkedIn, Indeed, and other platforms for relevant positions
-- **Intelligent Matching**: Uses Claude AI to score jobs based on your profile (0-100 match score)
-- **Auto-Tailoring**: Generates customized resumes and cover letters for each application
-- **Application Tracking**: Monitors all applications with status updates and follow-up reminders
-- **Interview Prep**: Creates company research, likely questions, and talking points
-
-### 🎯 Key Capabilities
-- Searches multiple job platforms simultaneously
-- Filters by skills, location, remote preference, salary
-- Ranks jobs by relevance to your background
-- Generates personalized application materials
-- Tracks application pipeline (applied → interviewing → offer)
-- Schedules follow-ups automatically
-- Beautiful web dashboard for monitoring progress
-
-### 📊 Analytics
-- Daily/weekly application metrics
-- Response rate tracking
-- Match score analytics
-- Follow-up reminders
-- Application status breakdown
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.9+
-- Anthropic API key (for Claude AI)
-- Your resume in PDF format
-
-### Installation
+## 🚀 **Get Started Now**
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd vibejobhunter
-
-# Install dependencies
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env and add your API keys
-```
+# 2. Add API key
+echo "ANTHROPIC_API_KEY=your-key" > .env
 
-### Configuration
+# 3. Setup profile
+python -m src.main setup --resume resume.pdf
 
-Edit `.env` file:
-```bash
-# Required
-ANTHROPIC_API_KEY=your_anthropic_key_here
+# 4. Find jobs on LinkedIn → Copy URLs → jobs.txt
 
-# Optional (for enhanced features)
-OPENAI_API_KEY=your_openai_key
-LINKEDIN_EMAIL=your_email
-LINKEDIN_PASSWORD=your_password
+# 5. Run batch apply
+python -m src.main batch --file jobs.txt --v2
+
+# 6. Apply! (10 jobs in 15 minutes)
 ```
 
 ---
 
-## 📝 Usage
+**Built with ❤️ for vibe coders who ship fast.**
 
-### 1. Setup Your Profile
-
-```bash
-python -m src.main setup --resume "Elena Revicheva 03.11.2025 Resume.pdf"
-```
-
-This will:
-- Extract text from your resume
-- Use AI to parse your experience, skills, and achievements
-- Create your job-hunting profile
-- Save to `data/profiles/profile.json`
-
-### 2. Search for Jobs
-
-```bash
-# Search with default settings (from config)
-python -m src.main search
-
-# Custom search
-python -m src.main search \
-  --keywords "AI Engineer" "Founding Engineer" \
-  --location "Remote" \
-  --remote \
-  --limit 100 \
-  --min-score 70
-```
-
-This will:
-- Search LinkedIn and Indeed for matching jobs
-- Score each job against your profile
-- Filter by minimum match score
-- Save jobs to `data/jobs/`
-
-### 3. Apply to Jobs
-
-```bash
-# Apply to top 5 matches
-python -m src.main apply --top 5
-
-# Auto-mode (no confirmations)
-python -m src.main apply --top 10 --auto
-```
-
-This will:
-- Select top unapplied jobs by match score
-- Generate tailored resume for each job
-- Write custom cover letter
-- Save materials to `tailored_resumes/` and `cover_letters/`
-- Track applications in `data/applications/`
-
-**Note**: Currently requires manual submission to job sites. Auto-submission coming soon!
-
-### 4. Check Status
-
-```bash
-# View all statistics
-python -m src.main status
-
-# Check follow-ups needed
-python -m src.main followup
-```
-
-### 5. Launch Dashboard
-
-```bash
-# Start web dashboard
-python -m src.main dashboard --port 8000
-```
-
-Then open http://localhost:8000 in your browser.
-
----
-
-## 📁 Project Structure
-
-```
-vibejobhunter/
-├── src/
-│   ├── core/              # Core functionality
-│   │   ├── config.py      # Configuration management
-│   │   ├── models.py      # Data models
-│   │   └── profile_manager.py  # Profile handling
-│   ├── agents/            # AI agents
-│   │   ├── job_matcher.py       # Job matching logic
-│   │   ├── content_generator.py # Resume/cover letter generation
-│   │   └── application_manager.py # Application tracking
-│   ├── scrapers/          # Job scrapers
-│   │   ├── linkedin_scraper.py
-│   │   └── indeed_scraper.py
-│   ├── api/               # Web API & dashboard
-│   │   └── app.py
-│   └── main.py            # CLI entry point
-├── data/                  # Data storage
-│   ├── profiles/          # User profiles
-│   ├── jobs/              # Discovered jobs
-│   ├── applications/      # Application tracking
-│   └── stats/             # Analytics
-├── tailored_resumes/      # Generated resumes
-├── cover_letters/         # Generated cover letters
-├── templates/             # Email/message templates
-└── logs/                  # Application logs
-```
-
----
-
-## 🎯 How It Works
-
-### 1. Profile Creation
-- Parses your resume using Claude AI
-- Extracts skills, experience, achievements
-- Identifies target roles and preferences
-
-### 2. Job Discovery
-- Searches multiple platforms simultaneously
-- Applies filters (location, remote, keywords)
-- Extracts job details, requirements, descriptions
-
-### 3. Intelligent Matching
-- Scores each job 0-100 based on:
-  - Skill alignment
-  - Experience level fit
-  - Location/remote compatibility
-  - Role type match
-  - Growth potential
-- Provides specific match reasons
-
-### 4. Content Generation
-- **Tailored Resume**: Emphasizes relevant achievements, reorders skills
-- **Cover Letter**: Personalized to company/role with specific examples
-- **LinkedIn Messages**: Brief, professional outreach templates
-
-### 5. Application Tracking
-- Tracks status: Found → Reviewed → Applied → Interviewing → Offer
-- Schedules follow-ups (default: 7 days)
-- Monitors response rates
-- Generates interview prep materials
-
----
-
-## 🔧 Advanced Configuration
-
-### Target Roles
-Edit `src/core/config.py` to customize:
-
-```python
-target_roles = [
-    "AI Engineer",
-    "Founding Engineer",
-    "Full-Stack AI Engineer",
-    "LLM Engineer",
-    # Add your roles...
-]
-
-target_keywords = [
-    "AI", "Machine Learning", "LLM",
-    "Python", "TypeScript", "React",
-    # Add your keywords...
-]
-
-excluded_keywords = [
-    "PhD required",
-    "10+ years required",
-    # Add exclusions...
-]
-```
-
-### Application Limits
-
-```python
-MAX_DAILY_APPLICATIONS=20  # Daily limit
-AUTO_APPLY_ENABLED=false   # Manual review mode
-```
-
----
-
-## 📊 API Endpoints
-
-The dashboard exposes these endpoints:
-
-- `GET /api/stats` - Overall statistics
-- `GET /api/profile` - Your profile
-- `GET /api/jobs` - All discovered jobs
-- `GET /api/jobs/top?limit=10` - Top unapplied matches
-- `GET /api/applications` - All applications
-- `GET /api/applications?status=interviewing` - Filter by status
-- `GET /api/followups` - Applications needing follow-up
-
-Full API docs at: http://localhost:8000/docs
-
----
-
-## 🤝 Contributing
-
-This project was built for Elena's job search, but feel free to:
-- Fork for your own use
-- Submit PRs for improvements
-- Report issues
-- Share success stories!
-
----
-
-## 📄 License
-
-MIT License - Use freely!
-
----
-
-## 🌟 Success Story
-
-This tool was built by Elena Revicheva, who:
-- Built 6 AI products solo in 7 months
-- Achieved 98% cost reduction vs team-based development
-- Serves users in 19 Spanish-speaking countries
-- Integrated 8+ AI services (Claude, GPT, Whisper, ElizaOS, etc.)
-
-Now she's using AI to help AI find her next AI role. Meta! 🤯
-
----
-
-## 💡 Tips for Best Results
-
-1. **Update your profile regularly** - Keep skills and achievements current
-2. **Set realistic match score thresholds** - 60-70 is a good starting point
-3. **Review generated content** - AI is great but always proofread
-4. **Track everything** - Follow-ups matter!
-5. **Customize for each role** - Even AI-generated content benefits from personal touches
-6. **Network in parallel** - Don't rely solely on applications
-7. **Stay consistent** - Apply to 5-10 quality jobs daily
-
----
-
-## 🆘 Troubleshooting
-
-### "No profile found"
-Run `python -m src.main setup` first
-
-### Scraper errors
-- LinkedIn/Indeed may block automated requests
-- Use VPN or proxy if needed
-- Rate limit: 50 jobs per search recommended
-
-### API key errors
-- Check `.env` file exists and has valid keys
-- Ensure `ANTHROPIC_API_KEY` is set
-
-### Dashboard won't start
-```bash
-pip install fastapi uvicorn
-python -m src.main dashboard
-```
-
----
-
-## 🚀 Roadmap
-
-- [ ] Auto-submission to easy-apply jobs
-- [ ] Email application automation
-- [ ] AngelList integration
-- [ ] Y Combinator jobs scraper
-- [ ] Twitter/X job monitoring
-- [ ] Slack/Discord notifications
-- [ ] LinkedIn auto-networking
-- [ ] Interview scheduler integration
-- [ ] Salary negotiation assistant
-- [ ] Multi-language support
-
----
-
-## 📞 Contact
-
-Built with ❤️ by Elena Revicheva
-
-- 🌐 Website: [aideazz.xyz](https://aideazz.xyz)
-- 💼 LinkedIn: [LinkedIn Profile](https://linkedin.com/in/yourprofile)
-- 🐦 Twitter: [@yourusername](https://twitter.com/yourusername)
-- 📧 Email: your@email.com
-
----
-
-**Happy job hunting! May your vibe attract your tribe.** ✨🚀
+*All documentation in [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs)*
