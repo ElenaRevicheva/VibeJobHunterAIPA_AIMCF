@@ -297,5 +297,16 @@ def dashboard(port):
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 
+@cli.command()
+@click.option('--resume', '-r', type=click.Path(exists=True), required=True, help='Path to resume PDF')
+@click.option('--count', '-c', default=10, help='Number of jobs to apply to')
+def autopilot(resume, count):
+    """🚀 AUTOPILOT MODE - Full automation for vibe coders"""
+    import asyncio
+    from .autopilot import run_autopilot
+    
+    asyncio.run(run_autopilot(resume, count))
+
+
 if __name__ == "__main__":
     cli()
