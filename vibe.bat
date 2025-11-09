@@ -5,8 +5,13 @@ REM One command to get hired
 cls
 echo.
 echo ========================================
-echo   VIBE JOB HUNTER - AUTOPILOT MODE
+echo   VIBE JOB HUNTER - MAXIMUM AUTOMATION
 echo ========================================
+echo.
+echo [1] AUTOPILOT - Auto-search jobs
+echo [2] BATCH APPLY - Apply to jobs YOU find (RECOMMENDED)
+echo.
+set /p MODE="Choose mode (1 or 2): "
 echo.
 
 REM Check Python
