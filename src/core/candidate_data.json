@@ -1,25 +1,42 @@
 {
   "candidate": {
     "name": "Elena Revicheva",
-    "title": "AI Engineer & Founder | Former Chief Legal Officer",
-    "tagline": "Solo-built 6 production AI apps in 7 months with 98% cost reduction",
-    "location": "Panama (Remote globally)",
-    "languages": ["English (Fluent)", "Spanish (Fluent)", "Russian (Native)"],
+    "title": "AI-First Engineer & Founder | Building Emotionally Intelligent AI",
+    "tagline": "2 live AI agents with paying users in 19 countries | Ex-CEO | Web3 Native",
+    "location": "Panama City, Panama (Remote globally)",
+    "languages": ["Russian (Native)", "English (Fluent)", "Spanish (Intermediate)", "French (Elementary)"],
     "contact": {
       "email": "aipa@aideazz.xyz",
+      "whatsapp": "https://wa.me/50766623757",
+      "telegram": "https://t.me/your_telegram",
       "website": "https://aideazz.xyz",
+      "portfolio": "https://aideazz.xyz/card",
       "demo": "https://wa.me/50766623757",
       "linkedin": "linkedin.com/in/elenarevicheva",
-      "github": "ADD_YOUR_GITHUB_HANDLE"
+      "github": "ElenaRevicheva",
+      "ens": "aideazz.eth"
+    },
+    "real_traction": {
+      "live_products": 2,
+      "paying_customers": true,
+      "countries_reached": 19,
+      "revenue_model": "PayPal Subscriptions (LIVE) + Crypto (testing)",
+      "uptime": "99%+",
+      "status": "REVENUE GENERATING"
     }
   },
 
   "target_roles": [
-    "Senior AI Engineer",
-    "Senior Full-Stack Engineer (AI focus)",
-    "Founding Engineer",
-    "AI Product Engineer",
-    "Technical Co-Founder (with equity)"
+    "Founding Engineer (with equity 0.5-3%)",
+    "AI Product Manager",
+    "Full-Stack AI Engineer",
+    "LLM Engineer",
+    "AI Solutions Architect",
+    "AI Growth Engineer",
+    "Technical Co-Founder (equity-heavy)",
+    "AI Product Engineer (0→1)",
+    "Senior AI Engineer (early-stage startup)",
+    "Web3 + AI Engineer"
   ],
 
   "target_compensation": {
@@ -36,134 +53,218 @@
   },
 
   "executive_experience": {
-    "title": "Chief Legal Officer & IT Executive",
-    "company": "Algom LLC (Energy & Technology)",
-    "duration": "7 years",
-    "achievements": [
-      "Led digital transformation initiatives",
-      "Built and managed cross-functional teams",
-      "Strategic planning and execution",
-      "Risk management and compliance",
-      "Negotiated partnerships and contracts"
-    ]
+    "ceo_clo": {
+      "title": "Deputy CEO & Chief Legal Officer",
+      "company": "JSC E-GOV OPERATOR (E-Government Russia)",
+      "duration": "2011-2018 (7 years)",
+      "achievements": [
+        "Led regional digital transformation for public services",
+        "Managed IT, HR, legal, and compliance departments",
+        "Built and led cross-functional teams",
+        "Strategic planning and execution at C-suite level",
+        "Presidential Program for Executive Management (RANEPA, Moscow 2015)",
+        "Internship: Nyskapingsparken Innovation Park, Bergen, Norway"
+      ]
+    },
+    "operational_cofounder": {
+      "title": "Operational Co-Founder",
+      "company": "OmniBazaar Marketplace (startup)",
+      "duration": "2024-2025",
+      "achievements": [
+        "Structured DAO LLC (Marshall Islands)",
+        "Designed tokenomics and governance model",
+        "Built decentralized marketplace framework",
+        "Web3 and DAO architecture"
+      ]
+    },
+    "deputy_ceo_bizdev": {
+      "title": "Deputy CEO (Business Development)",
+      "company": "Fundery LLC (Blockchain/ICO)",
+      "duration": "2017-2018",
+      "achievements": [
+        "ICO compliance and investor relations",
+        "Blockchain boom era experience",
+        "Strategic partnerships"
+      ]
+    }
   },
 
   "technical_skills": {
-    "coding_experience": "50,000+ lines of code",
+    "coding_experience": "50,000+ lines of production code",
     "applications_built": 6,
+    "live_ai_agents": 2,
     "production_timeline": "7 months",
-    "languages": ["TypeScript", "Python", "JavaScript", "SQL", "HTML/CSS"],
-    "frameworks": ["React", "Next.js", "Node.js", "Express"],
-    "ai_integrations": [
-      "OpenAI API",
-      "Anthropic Claude",
-      "Google Gemini",
-      "OpenRouter",
-      "Perplexity",
-      "ElevenLabs (Voice AI)",
-      "AssemblyAI (Speech-to-Text)",
-      "Meta Llama"
-    ],
+    "paying_customers": true,
+    "languages": ["Python", "TypeScript", "JavaScript", "SQL", "HTML/CSS"],
+    "frameworks": ["React", "Flask", "Node.js", "Vite", "Next.js"],
+    "ai_ml": ["GPT", "Claude", "Whisper", "TTS", "MCP", "LangChain", "ElizaOS", "HeyGen"],
+    "web3": ["Polygon", "Thirdweb", "MetaMask", "IPFS", "DAO Design", "ENS (aideazz.eth)"],
+    "infrastructure": ["PostgreSQL", "Supabase", "Docker", "Railway", "Vercel"],
+    "frontend": ["Tailwind CSS", "shadcn/ui", "Framer Motion", "i18next (bilingual)"],
+    "apis": ["WhatsApp", "Telegram", "PayPal", "Twitter", "CCXT (crypto trading)"],
     "databases": ["MongoDB", "PostgreSQL", "Supabase"],
-    "tools": ["Git", "GitHub", "Docker", "Vercel", "Railway"],
-    "methodologies": ["Agile", "Solo-founder MVP development", "Rapid prototyping"]
+    "tools": ["Git", "GitHub", "Docker", "Railway", "Vercel"],
+    "methodologies": ["Solo-founder MVP", "0→1 building", "Rapid prototyping", "Capital-efficient dev"],
+    "certifications": [
+      "Polkadot Blockchain Academy PBA-X Wave #3 (2025)",
+      "How-To-DAO Cohort Graduate (2025)",
+      "Blockchain Regulation, MGIMO (Moscow, 2017)"
+    ]
   },
 
   "applications_portfolio": [
     {
-      "name": "AIP@ (AI Personal Assistant)",
-      "description": "WhatsApp-based AI assistant with voice capabilities",
-      "tech_stack": ["TypeScript", "OpenAI", "ElevenLabs", "AssemblyAI", "MongoDB"],
-      "status": "Live",
-      "demo": "wa.me/50766623757",
+      "name": "EspaLuz - AI Spanish Tutor",
+      "description": "Bilingual AI tutor bridging expats and locals (EN↔ES). Emotionally intelligent, persistent memory.",
+      "tech_stack": ["Python", "Claude", "GPT", "OCR", "TTS", "Whisper", "PostgreSQL", "WhatsApp API", "Telegram API"],
+      "status": "LIVE with PAYING USERS",
+      "traction": {
+        "platforms": ["WhatsApp", "Telegram", "SaaS Web App"],
+        "countries": 19,
+        "revenue": "PayPal Subscriptions ACTIVE",
+        "users": "Spanish-speaking countries across LATAM"
+      },
+      "demo": "https://wa.me/50766623757",
+      "links": {
+        "whatsapp": "WhatsApp Bot LIVE",
+        "telegram": "Telegram Bot LIVE",
+        "webapp": "SaaS Web App LIVE"
+      },
       "achievements": [
-        "Integrated 8+ AI models",
-        "Voice conversation capability",
-        "Context-aware responses",
-        "Multi-language support"
+        "Paying users in 19 countries",
+        "PayPal subscriptions live",
+        "Bilingual EN↔ES architecture",
+        "Persistent emotional memory",
+        "OCR, TTS, voice synthesis integrated",
+        "99%+ uptime"
       ]
     },
     {
-      "name": "EspaLuz (Language Learning Platform)",
-      "description": "AI-powered Spanish learning for Russian speakers",
-      "tech_stack": ["React", "Node.js", "OpenAI", "MongoDB"],
-      "status": "Live",
-      "market": "Russia (150M potential users)",
+      "name": "ALGOM Alpha - AI Crypto Mentor",
+      "description": "Autonomous AI agent teaching safe trading + digital literacy via paper trading on X",
+      "tech_stack": ["Node.js", "ElizaOS", "CCXT", "Twitter API", "autonomous agents"],
+      "status": "LIVE on X (Twitter)",
+      "demo": "https://x.com/algom_alpha",
       "achievements": [
-        "Built for underserved market",
-        "AI-generated lessons",
-        "Cultural context integration",
-        "Gamification features"
+        "Autonomous agent on Twitter",
+        "Paper trading demonstration",
+        "Digital literacy education",
+        "24/7 autonomous operation"
       ]
     },
     {
-      "name": "ATUONA (AI Business Assistant)",
-      "description": "Comprehensive business management platform",
-      "tech_stack": ["Next.js", "TypeScript", "Supabase", "OpenAI"],
-      "status": "Live",
-      "features": [
-        "Task management",
-        "Document analysis",
-        "Business insights",
-        "Workflow automation"
+      "name": "EspaLuz Influencer Bot",
+      "description": "Automates AI content generation and Buffer posting to LinkedIn + Instagram",
+      "tech_stack": ["Python", "GPT", "Buffer API", "LinkedIn API", "Instagram API"],
+      "status": "LIVE",
+      "achievements": [
+        "Automated content generation",
+        "Multi-platform posting",
+        "Social media automation"
       ]
     },
     {
-      "name": "ALGOM (Energy Sector Platform)",
-      "description": "Internal business management system",
-      "tech_stack": ["React", "Node.js", "PostgreSQL"],
-      "status": "Live (Internal)",
-      "impact": "Streamlined operations for energy company"
+      "name": "Atuona NFT Gallery",
+      "description": "Mindfulness-driven NFT poetry drops on Polygon blockchain",
+      "tech_stack": ["React", "Thirdweb SDK", "Polygon", "IPFS", "Web3"],
+      "status": "LIVE",
+      "demo": "https://atuona.xyz",
+      "achievements": [
+        "NFT minting on Polygon",
+        "IPFS decentralized storage",
+        "Thirdweb integration",
+        "Web3 + Art fusion"
+      ]
     },
     {
-      "name": "Additional Applications",
-      "description": "2 more production apps in portfolio",
-      "status": "Live",
-      "note": "Total: 6 production applications"
+      "name": "AIdeazz Main Website - Ecosystem Platform",
+      "description": "Bilingual (EN/ES) responsive UX showcasing AIdeazz ecosystem",
+      "tech_stack": ["React", "Tailwind CSS", "Framer Motion", "i18next"],
+      "status": "LIVE",
+      "demo": "https://aideazz.xyz",
+      "achievements": [
+        "Professional bilingual UX",
+        "Responsive design",
+        "Ecosystem hub",
+        "Modern animations"
+      ]
+    },
+    {
+      "name": "AIdeazz Digital Business Card",
+      "description": "Interactive portfolio showcasing all products",
+      "tech_stack": ["React", "Tailwind", "Modern UI/UX"],
+      "status": "LIVE",
+      "demo": "https://aideazz.xyz/card"
     }
   ],
 
   "unique_value_propositions": [
     {
+      "title": "LIVE Products with Paying Users",
+      "description": "2 live AI agents with revenue in 19 countries",
+      "metric": "PayPal Subscriptions ACTIVE | Not just a demo, real business",
+      "proof": "Try: wa.me/50766623757"
+    },
+    {
       "title": "Speed of Execution",
-      "description": "Built 6 production apps in 7 months",
-      "metric": "10x faster than traditional teams"
+      "description": "6 production apps in 7 months (solo!)",
+      "metric": "10x faster than traditional teams",
+      "proof": "All live and testable"
     },
     {
       "title": "Capital Efficiency",
-      "description": "Built comprehensive platform for <$15K",
-      "metric": "98% cost reduction vs $950K traditional budget",
-      "calculation": "$15K vs $950K (outsourced estimate)"
+      "description": "Built revenue-generating platform for <$15K",
+      "metric": "98% cost reduction vs $900K traditional budget",
+      "calculation": "$15K vs $900K (outsourced estimate)"
     },
     {
-      "title": "Strategic + Technical Hybrid",
-      "description": "7 years C-suite experience + full-stack engineering",
-      "advantage": "Understands business strategy AND can build it"
+      "title": "Strategic + Technical Hybrid (Unicorn Combo)",
+      "description": "7 years C-suite (Deputy CEO, CLO) + Full-Stack AI Engineer",
+      "advantage": "Understands business strategy, governance, AND can build it",
+      "proof": "E-Government transformation + 6 live products"
     },
     {
-      "title": "Founder-Market Fit",
-      "description": "Lived the problem (Russia → Panama journey)",
-      "advantage": "Built products solving real pain points"
+      "title": "Web3 Native + AI Pioneer",
+      "description": "DAO/tokenomics + AI agents + autonomous trading",
+      "advantage": "Bridges Web3 and AI - rare combination",
+      "proof": "ALGOM Alpha (live AI agent), Atuona NFT, DAO LLC structure"
+    },
+    {
+      "title": "Proven Founder Execution",
+      "description": "Not just 'can code' - built, deployed, marketed, got paying users",
+      "advantage": "0→1 builder: Vision → Build → Revenue",
+      "proof": "PayPal subscriptions live, 19 countries reach"
     },
     {
       "title": "Live Demo Advantage",
-      "description": "Can demonstrate working product immediately",
+      "description": "Can demonstrate working AI assistant immediately",
       "demo_link": "wa.me/50766623757",
-      "advantage": "Most candidates just talk, I can show"
+      "advantage": "Most candidates talk about what they'll build - I show what I've built"
+    },
+    {
+      "title": "Bilingual Market Expertise",
+      "description": "Built products for EN/ES/RU markets",
+      "advantage": "Can reach Spanish-speaking LATAM (600M+ people)",
+      "proof": "EspaLuz serving 19 Spanish-speaking countries"
     }
   ],
 
   "key_achievements_metrics": [
-    "50,000+ lines of code written",
-    "6 production applications deployed",
-    "8+ AI model integrations",
-    "7 months from idea to production",
-    "98% cost reduction vs traditional development",
-    "10x faster execution than typical teams",
-    "Built for <$15K vs $950K traditional budget",
-    "7 years of C-suite strategic experience",
-    "Bilingual product development (English/Spanish/Russian)",
-    "Solo-founder execution (strategy + design + code + deployment)"
+    "🔥 2 LIVE AI agents with PAYING USERS in 19 countries",
+    "💰 PayPal Subscriptions ACTIVE (revenue-generating business)",
+    "⚡ 6 production applications in 7 months (solo)",
+    "💻 50,000+ lines of production code",
+    "🤖 8+ AI integrations (Claude, GPT, Whisper, TTS, ElizaOS, HeyGen)",
+    "🌍 Users in 19 Spanish-speaking countries",
+    "🚀 98% cost reduction ($15K vs $900K traditional)",
+    "⏱️ 10x faster execution than traditional teams",
+    "👔 7 years C-suite experience (Deputy CEO, CLO at E-Government)",
+    "🏗️ Ex-Operational Co-Founder (DAO/tokenomics/governance)",
+    "🌐 Web3 Native (Polygon, IPFS, DAO LLC, ENS: aideazz.eth)",
+    "🗣️ Trilingual (Russian/English/Spanish) product development",
+    "🎓 Polkadot Blockchain Academy + How-To-DAO Graduate",
+    "📈 0→1 builder: Strategy → Build → Deploy → Revenue",
+    "🤝 Hybrid approach open: Role + Pre-seed investment for AIdeazz"
   ],
 
   "strategic_affiliations": [
@@ -235,12 +336,13 @@
   },
 
   "cover_letter_template": {
-    "opening": "I solo-built 6 production AI applications in 7 months, demonstrating both technical depth and execution speed. With 7 years of C-suite experience and 50K+ lines of code, I combine strategic thinking with hands-on engineering.",
-    "company_research": "[Research company and insert 2-3 sentences about why you're excited about THEIR specific mission/product/approach]",
-    "relevant_experience": "Most relevant to this role: [Pick 2-3 specific achievements that match their job description]",
-    "differentiation": "What makes me different: I can demonstrate a working product immediately (try: wa.me/50766623757). Most candidates talk about what they can build - I show what I've already built.",
-    "call_to_action": "I'd love to discuss how my combination of strategic experience and technical execution can help [Company] achieve [their specific goal]. Available for a call this week.",
-    "closing": "Best regards,\nElena Revicheva\nwa.me/50766623757 | aipa@aideazz.xyz | aideazz.xyz"
+    "opening": "I have 2 live AI agents with paying users in 19 countries — not a portfolio project, a real business. I combine 7 years of C-suite leadership (Deputy CEO, CLO at E-Government) with full-stack AI engineering to build products that generate revenue, not just demos.",
+    "company_research": "[Research company and insert 2-3 sentences about why you're excited about THEIR specific mission/product/approach. Show you understand their challenges and market.]",
+    "relevant_experience": "Most relevant to [Company]:\n• EspaLuz: Live AI tutor with PayPal subscriptions in 19 countries\n• ALGOM Alpha: Autonomous AI agent on X with 24/7 operation\n• 98% cost reduction through capital-efficient execution\n• [Add 1-2 more specific to their needs]",
+    "differentiation": "What makes me different:\n1. I have LIVE products with PAYING users (not just side projects)\n2. You can try my AI assistant right now: wa.me/50766623757\n3. I'm Web3 native (DAO, tokenomics, Polygon) + AI engineer (rare combo)\n4. I understand both strategy (7 years C-suite) and execution (50K+ lines of code)\n\nMost candidates talk about what they'll build. I show what I've already built and monetized.",
+    "hybrid_approach": "[Optional: If company is early-stage] I'm also open to a hybrid approach: joining as [Role] + providing pre-seed investment for AIdeazz parallel execution. This could create strategic alignment and shared upside.",
+    "call_to_action": "I'd love to discuss how my combination of founder-level execution, C-suite strategy, and AI engineering can help [Company] [their specific goal]. Available for a call this week.",
+    "closing": "Best regards,\nElena Revicheva\n💬 WhatsApp: wa.me/50766623757 (try the AI!)\n📧 Email: aipa@aideazz.xyz\n🌐 Portfolio: aideazz.xyz/card"
   },
 
   "email_templates": {
