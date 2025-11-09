@@ -68,6 +68,9 @@ class CandidateDataLoader:
                 portfolio_url=candidate.get('contact', {}).get('website', ''),
                 website_url=candidate.get('contact', {}).get('website', ''),
                 
+                # Resume path (from structured data, not file)
+                resume_path=str(self.data_file),
+                
                 # Skills and experience
                 skills=technical.get('languages', []) + technical.get('frameworks', []),
                 experience_years=7,  # From executive_experience
@@ -86,7 +89,6 @@ class CandidateDataLoader:
                 # Job preferences from target_roles
                 target_roles=data.get('target_roles', []),
                 target_locations=['Remote', 'US', 'Europe', 'LATAM'],
-                target_keywords=['AI', 'ML', 'TypeScript', 'Python', 'React', 'LLM'],
                 remote_only=False,
                 
                 # Languages
