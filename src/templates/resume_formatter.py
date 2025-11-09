@@ -1,5 +1,5 @@
 """
-Professional resume formatter using proven templates
+Professional resume formatter using Elena's FINAL polished template
 Generates ATS-optimized resumes matching Elena's style
 """
 from pathlib import Path
@@ -10,10 +10,15 @@ from ..core.models import Profile, JobPosting
 
 
 class ResumeFormatter:
-    """Format resumes using professional template"""
+    """Format resumes using Elena's FINAL professional template"""
     
     def __init__(self):
-        self.template_path = Path(__file__).parent / "resume_template.md"
+        # Use Elena's FINAL resume (from aideazz-private-docs)
+        self.template_path = Path(__file__).parent / "resume_final_elena.md"
+        
+        # Fallback to generic template if final not available
+        if not self.template_path.exists():
+            self.template_path = Path(__file__).parent / "resume_template.md"
     
     def format_resume(self, profile: Profile, job: JobPosting) -> str:
         """
