@@ -89,6 +89,8 @@ class JobPosting(BaseModel):
     # Match score
     match_score: float = 0.0
     match_reasons: List[str] = []
+    red_flags: List[str] = []
+    criteria_match: Optional[Dict[str, Any]] = None
     
     # Application tracking
     applied: bool = False
