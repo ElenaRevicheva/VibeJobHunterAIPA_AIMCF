@@ -24,6 +24,8 @@ from .agents.content_generator_v2 import ContentGeneratorV2
 from .scrapers import LinkedInScraper, IndeedScraper
 from .utils import retry_async, get_logger
 from .utils.progress_saver import BatchProgressTracker
+from .filters import CriteriaMatcher, RedFlagDetector
+from .templates import ResumeFormatter, CoverLetterFormatter
 
 console = Console()
 
@@ -40,6 +42,12 @@ class BatchApplyAgentV2:
         self.logger = get_logger(__name__, self.settings.base_dir / "logs")
         self.progress = BatchProgressTracker(self.settings.base_dir / "data")
         self.session_id = str(uuid.uuid4())[:8]
+        
+        # NEW: Smart matching and templates
+        self.criteria_matcher = CriteriaMatcher()
+        self.red_flag_detector = RedFlagDetector()
+        self.resume_formatter = ResumeFormatter()
+        self.cover_formatter = CoverLetterFormatter()
     
     @retry_async(max_attempts=2, delay=1.0)
     async def process_url(self, url: str):
@@ -162,26 +170,52 @@ class BatchApplyAgentV2:
         return jobs
     
     async def _score_jobs(self, profile, jobs):
-        """Score jobs with AI"""
-        console.print("[bold]Step 2/4: AI scoring jobs[/bold]\n")
+        """Score jobs with AI + smart filtering"""
+        console.print("[bold]Step 2/4: AI scoring + smart filtering[/bold]\n")
+        console.print("[dim]Using target criteria and red flag detection[/dim]\n")
         
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console
         ) as progress:
+            # AI scoring
             task = progress.add_task("🤖 AI analyzing matches...", total=None)
             jobs = await self.matcher.score_jobs(profile, jobs)
             progress.update(task, description="[green]✓ All jobs scored![/green]")
         
-        # Save jobs
+        # Smart filtering
+        console.print("\n[cyan]Applying target criteria and red flag detection...[/cyan]")
+        
+        filtered_jobs = []
         for job in jobs:
+            # Check red flags
+            has_flags, flags = self.red_flag_detector.scan_job(job)
+            job.red_flags = flags
+            
+            # Check criteria match
+            should_apply, criteria_score, reasons = self.criteria_matcher.evaluate_job(job)
+            
+            # Combine scores (AI + criteria)
+            job.match_score = (job.match_score + criteria_score) / 2
+            job.match_reasons = reasons + job.match_reasons
+            
+            # Only keep good matches without red flags
+            if should_apply and not has_flags:
+                filtered_jobs.append(job)
+            elif has_flags:
+                self.logger.info(f"Filtered out {job.company} due to red flags: {flags}")
+        
+        console.print(f"[green]✓ Filtered to {len(filtered_jobs)}/{len(jobs)} high-quality matches[/green]\n")
+        
+        # Save filtered jobs
+        for job in filtered_jobs:
             self.app_manager.save_job(job)
         
         # Show scores
-        self._display_scores(jobs)
+        self._display_scores(filtered_jobs)
         
-        return jobs
+        return filtered_jobs
     
     async def _generate_materials_parallel(self, profile, jobs):
         """Generate materials with parallel execution"""
@@ -204,9 +238,9 @@ class BatchApplyAgentV2:
                 progress.update(task, description=f"✍️ {job.company} - {job.title[:25]}...")
                 
                 try:
-                    # These use caching, so duplicates are fast
-                    resume = self.content_gen.tailor_resume(profile, job)
-                    cover_letter = self.content_gen.generate_cover_letter(profile, job)
+                    # Use professional templates for better quality
+                    resume = self.resume_formatter.format_resume(profile, job)
+                    cover_letter = self.cover_formatter.format_cover_letter(profile, job)
                     
                     application = self.app_manager.create_application(job, resume, cover_letter)
                     
