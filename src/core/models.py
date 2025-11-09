@@ -61,6 +61,9 @@ class Profile(BaseModel):
     max_salary: Optional[int] = None
     remote_only: bool = False
     
+    # Extended candidate data (for smart matching)
+    candidate_data: Optional[Dict[str, Any]] = None
+    
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
