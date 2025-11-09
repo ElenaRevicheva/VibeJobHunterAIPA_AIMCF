@@ -1,5 +1,109 @@
 # 🚀 VibeJobHunter
 
+**Maximum Automation AI Agent for Job Hunting**
+
+Find jobs on LinkedIn → AI generates everything → You click Submit  
+**10 applications in 15 minutes!**
+
+---
+
+## ⚡ **Quick Start** (5 minutes)
+
+### **1. Setup**
+
+```powershell
+# Windows - just double-click:
+vibe.bat
+
+# OR manually:
+python -m pip install anthropic click rich fastapi uvicorn aiohttp beautifulsoup4 pypdf2 pydantic pydantic-settings python-dotenv requests
+```
+
+### **2. Find Jobs**
+
+Open LinkedIn/Indeed, find 5-10 jobs, copy URLs
+
+### **3. Create jobs.txt**
+
+```
+notepad jobs.txt
+```
+
+Paste URLs (one per line):
+```
+https://www.linkedin.com/jobs/view/123456/
+https://www.linkedin.com/jobs/view/789012/
+```
+
+### **4. Run!**
+
+```powershell
+python -m src.main batch --file jobs.txt
+```
+
+**AI does everything. You just click Submit!**
+
+---
+
+## 🎯 **Two Modes:**
+
+### **Mode 1: BATCH APPLY** ⭐ (Recommended)
+
+**Best for: Maximum success rate**
+
+1. You find 10 jobs on LinkedIn
+2. Copy URLs to jobs.txt
+3. Run batch command
+4. AI generates everything
+5. You submit in 30 sec each
+
+**= 10 applications in 15 minutes**
+
+### **Mode 2: AUTOPILOT**
+
+**Best for: Maximum laziness**
+
+1. AI searches for jobs
+2. AI scores them
+3. AI generates materials
+4. Opens tabs for you
+
+**= Less reliable (scrapers get blocked)**
+
+---
+
+## ✨ **What AI Does:**
+
+✅ Analyzes job descriptions  
+✅ Calculates match score (0-100)  
+✅ Tailors your resume to each job  
+✅ Writes personalized cover letters  
+✅ Tracks all applications  
+✅ Reminds you about follow-ups  
+
+---
+
+## 📊 **Results:**
+
+```
+15 min/day × 20 days = 200 applications/month
+200 apps × 10% response = 20 interviews  
+20 interviews × 30% success = 6 offers
+
+YOU CHOOSE YOUR NEXT ROLE! 🎉
+```
+
+---
+
+## 📖 **Full Documentation:**
+
+- **BATCH_APPLY_GUIDE.md** - Complete batch apply guide
+- **START_HERE_IMPROVED.md** - Detailed quick start  
+- **WINDOWS_SETUP.md** - Windows setup help
+- **VIBE_MODE.md** - Philosophy & approach
+
+---
+
 **AI-Powered Job Hunting Agent** - Automatically find, match, and apply to your dream jobs.
 
 Built for Elena Revicheva's job search, but designed to help any AI engineer, developer, or startup builder land their next role **fast**.
