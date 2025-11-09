@@ -391,5 +391,28 @@ def batch(file, resume, v2, urls):
     asyncio.run(run_func(url_list if url_list else []))
 
 
+@cli.command()
+@click.option('--keywords', '-k', multiple=True, help='Search keywords (e.g., "Senior AI Engineer")')
+@click.option('--limit', '-l', default=20, help='Maximum jobs to find')
+def autosearch(keywords, limit):
+    """🤖 AUTO SEARCH - Attempt to automatically find jobs (experimental)"""
+    import asyncio
+    from .auto_search import run_auto_search
+    
+    console.print("[yellow]⚠️ This is experimental - automated scrapers may be blocked[/yellow]")
+    console.print("[dim]Manual search + batch apply is more reliable[/dim]\n")
+    
+    proceed = input("Continue anyway? (y/n): ").lower().strip()
+    
+    if proceed == 'y':
+        asyncio.run(run_auto_search(list(keywords), limit))
+    else:
+        console.print("\n[cyan]No problem! Use manual search instead:[/cyan]")
+        console.print("1. Go to: https://www.linkedin.com/jobs/")
+        console.print("2. Search for your roles")
+        console.print("3. Copy URLs to jobs.txt")
+        console.print("4. Run: py -m src.main batch --file jobs.txt --v2")
+
+
 if __name__ == "__main__":
     cli()
