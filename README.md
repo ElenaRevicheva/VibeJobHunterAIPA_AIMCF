@@ -97,6 +97,8 @@ YOU CHOOSE YOUR NEXT ROLE! 🎉
 
 ## 📖 **Full Documentation:**
 
+- **QUICK_V2_GUIDE.md** ⭐ - NEW! Use improved V2 (3x faster, cheaper)
+- **IMPROVEMENTS.md** - What's new in V2
 - **BATCH_APPLY_GUIDE.md** - Complete batch apply guide
 - **START_HERE_IMPROVED.md** - Detailed quick start  
 - **WINDOWS_SETUP.md** - Windows setup help
