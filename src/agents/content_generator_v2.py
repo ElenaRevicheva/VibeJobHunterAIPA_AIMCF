@@ -166,18 +166,38 @@ Focus on impact and results. Be concise yet compelling."""
 
     def _build_cover_letter_prompt(self, profile: Profile, job: JobPosting) -> str:
         """Build optimized cover letter generation prompt"""
-        return f"""Write a compelling, authentic cover letter.
+        
+        # Get role-specific talking points if available
+        talking_points_section = ""
+        if hasattr(job, 'talking_points') and job.talking_points:
+            talking_points_section = f"""
+
+ROLE-SPECIFIC TALKING POINTS (USE THESE!):
+{chr(10).join(job.talking_points)}
+"""
+        
+        return f"""Write a compelling, authentic cover letter for this SPECIFIC role type.
 
 CANDIDATE: {profile.name}
 Location: {profile.location}
-Experience: {profile.experience_years} years
+Experience: 7 years exec + 8 months hands-on AI engineering
 Languages: {', '.join(profile.languages)}
+
+🔥 UNIQUE VALUE PROPOSITIONS (MUST EMPHASIZE):
+• 2 LIVE AI agents with PAYING USERS in 19 countries
+• PayPal Subscriptions ACTIVE (revenue-generating, not just demo!)
+• Speed: 6 production apps in 7 months (10x faster than teams)
+• Cost: 98% reduction ($15K vs $900K traditional estimate)
+• Live Demo: wa.me/50766623757 (instant credibility!)
+• Bilingual: EN/ES dual-sided market expertise
+• Executive: Ex-CEO & CLO (strategic thinking + execution)
+• Unique: Web3 + AI combo (DAO design + LLM engineering)
 
 Top Achievements:
 {chr(10).join([f"• {ach}" for ach in profile.key_achievements[:3]])}
 
 Core Skills: {', '.join(profile.skills[:8])}
-
+{talking_points_section}
 TARGET POSITION:
 Company: {job.company}
 Role: {job.title}
@@ -189,16 +209,62 @@ Job Highlights:
 Requirements:
 {chr(10).join([f"• {req}" for req in job.requirements[:6]])}
 
-GUIDELINES:
-1. Opening: Strong hook showing genuine company knowledge
-2. Body: 2-3 specific, relevant achievements with metrics
-3. Fit: Why this role/company is perfect mutual match
-4. Personality: Show passion for AI and building
-5. Close: Clear call to action
-6. Tone: Professional yet warm and human
-7. Length: 300-400 words
+CRITICAL GUIDELINES FOR THIS COVER LETTER:
 
-Avoid clichés. Be specific. Show you researched the company."""
+1. OPENING (MUST use one of these hooks):
+   - "I built something similar to what you're doing - try it: wa.me/50766623757"
+   - "I saw {job.company} recently [specific news/launch] - congrats! Here's how I can help..."
+   - "Most candidates will show you their resume. I'll show you my live product: wa.me/50766623757"
+   
+2. BODY (Emphasize based on role):
+   - For Founding Engineer: "I've been a founding engineer on my own products - 2 live AI agents with paying users in 19 countries"
+   - For AI Product Manager: "As a solo founder, I handle product strategy AND engineering. 0→1 builder."
+   - For LLM Engineer: "EspaLuz uses Claude for emotional intelligence, GPT for structured tasks, with bilingual EN/ES support"
+   - For AI Solutions Architect: "Built complete AI architecture: voice (Whisper), text (Claude/GPT), memory (PostgreSQL), monetization (PayPal)"
+   - For AI Growth Engineer: "Organic reach to 19 countries through bilingual product + community. PayPal subs from zero to live in 7 months"
+
+3. TRACTION (Always include):
+   - 19 countries reach (proves PMF)
+   - PayPal subscriptions active (proves monetization)
+   - 98% cost reduction (proves efficiency)
+   - Live demo link (proves it's real)
+
+4. DIFFERENTIATION:
+   "Most candidates talk about what they'll build. I show what I've already built and monetized. 
+    You can try my AI assistant right now: wa.me/50766623757"
+
+5. CLOSE:
+   - Specific to company/role
+   - Clear CTA
+   - Mention demo link again
+   - "Available for a call this week"
+
+6. TONE: Confident builder, not desperate job seeker. You're evaluating mutual fit.
+
+7. LENGTH: 300-400 words MAX
+
+AVOID:
+- "I am writing to express my interest..." (instant rejection)
+- Generic praise without specifics
+- Apologizing for "non-traditional background" (it's a strength!)
+- Over-explaining the 7yr exec vs 8mo coding (focus on results)
+
+FORMAT:
+Hi [Name / Team],
+
+[Hook with demo link or specific company research]
+
+[2-3 paragraphs with metrics and specific achievements]
+
+[Why this specific role/company is perfect fit]
+
+[Close with CTA]
+
+Best regards,
+Elena Revicheva
+💬 Try my AI: wa.me/50766623757
+📧 aipa@aideazz.xyz
+🌐 aideazz.xyz"""
 
     def _save_resume(self, resume: str, job: JobPosting):
         """Save resume to file"""

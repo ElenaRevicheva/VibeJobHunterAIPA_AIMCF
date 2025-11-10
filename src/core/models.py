@@ -91,6 +91,7 @@ class JobPosting(BaseModel):
     match_reasons: List[str] = []
     red_flags: List[str] = []
     criteria_match: Optional[Dict[str, Any]] = None
+    talking_points: List[str] = []  # Specific talking points for this job
     
     # Application tracking
     applied: bool = False

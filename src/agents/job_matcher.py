@@ -6,6 +6,7 @@ from anthropic import Anthropic
 
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
+from .founding_engineer_scorer import FoundingEngineerScorer
 
 
 class JobMatcher:
@@ -14,12 +15,23 @@ class JobMatcher:
     def __init__(self):
         self.settings = get_settings()
         self.ai = Anthropic(api_key=self.settings.anthropic_api_key)
+        self.founding_scorer = FoundingEngineerScorer()
     
     def calculate_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
         """
         Calculate match score between profile and job
         Returns: (score, reasons)
         """
+        
+        # FIRST: Check if this is a high-priority founding engineer role
+        founding_score, strengths, talking_points = self.founding_scorer.calculate_founding_fit_score(job, profile)
+        
+        # If high score from founding scorer, boost the AI scoring
+        is_high_priority = founding_score > 60
+        
+        # Add talking points to job metadata for later use
+        job.talking_points = talking_points
+        
         prompt = f"""Analyze this job posting against the candidate's profile and provide:
 1. A match score from 0-100 (higher is better)
 2. 3-5 specific reasons why this is a good/bad match
@@ -28,7 +40,19 @@ class JobMatcher:
 Candidate Profile:
 - Name: {profile.name}
 - Location: {profile.location}
-- Experience: {profile.experience_years} years
+- Experience: {profile.experience_years} years TOTAL (7 years exec + 8 months hands-on AI/ML engineering)
+
+UNIQUE DIFFERENTIATORS (emphasize these!):
+- 🔥 2 LIVE AI agents with PAYING USERS in 19 countries
+- 💰 Revenue: PayPal Subscriptions ACTIVE (not just demo!)
+- ⚡ Speed: 6 production apps in 7 months (solo-built)
+- 💎 Cost: 98% reduction ($15K vs $900K traditional estimate)
+- 🤖 Tech: Claude, GPT, Whisper, TTS, OCR, ElizaOS, HeyGen
+- 🌎 Bilingual: EN/ES dual-sided market
+- 👔 Executive: Ex-CEO & CLO at E-Government (strategic thinking)
+- 🦄 Unique: Web3 + AI combination (DAO, tokenomics + LLM)
+- 💬 Live Demo: wa.me/50766623757 (instant credibility!)
+
 - Skills: {', '.join(profile.skills[:15])}
 - Key Achievements:
 {chr(10).join([f"  • {ach}" for ach in profile.key_achievements[:5]])}
@@ -59,6 +83,16 @@ Consider:
 - Company culture fit based on achievements
 - Growth potential
 - Role alignment with target roles
+
+SCORING PRIORITY FOR ELENA:
++30 points: Founding Engineer / AI Product Manager / LLM Engineer roles
++25 points: YC companies or Seed/Series A startups
++20 points: Mentions equity (0.5-3%)
++15 points: Values traction/PMF (she has 19 countries proof!)
++15 points: Fast-paced/builder culture (she ships 10x faster)
++10 points: Web3 + AI combination
+-20 points: Big corp (Google, Meta, etc.) - not her fit
+-15 points: Pure maintenance role - she's a 0→1 builder
 """
 
         try:
@@ -87,7 +121,18 @@ Consider:
             if aligned:
                 reasons.append(f"Aligned skills: {', '.join(aligned[:3])}")
             
-            return score, reasons
+            # BOOST score with founding engineer bonus
+            combined_score = (score * 0.7) + (founding_score * 0.3)  # 70% AI, 30% founding fit
+            
+            # Add founding engineer strengths to reasons
+            if strengths:
+                reasons.extend(strengths[:3])  # Top 3 strengths
+            
+            # Flag high-priority jobs
+            if self.founding_scorer.should_apply_immediately(job, combined_score):
+                reasons.insert(0, "🚨 HIGH PRIORITY - APPLY IMMEDIATELY!")
+            
+            return combined_score, reasons
         
         except Exception as e:
             print(f"Error calculating match score: {e}")
