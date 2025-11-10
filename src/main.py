@@ -441,5 +441,139 @@ def fullauto(target):
     asyncio.run(run_full_auto(target))
 
 
+@cli.command()
+@click.option('--interval', '-i', default=1, help='Hours between cycles')
+@click.option('--max-jobs', default=10, help='Max jobs to process per cycle')
+def autonomous(interval, max_jobs):
+    """
+    🤖 AUTONOMOUS MODE - The Ultimate Job Hunting Engine
+    
+    Runs 24/7, automatically finding jobs, researching companies,
+    contacting founders, and tracking responses.
+    
+    This is THE coolest job hunting tool on the planet! 🚀
+    """
+    console.print(Panel.fit(
+        "🤖 [bold cyan]AUTONOMOUS JOB HUNTING ENGINE[/bold cyan]\n"
+        "The most advanced AI-powered job search ever built",
+        border_style="cyan"
+    ))
+    
+    # Load profile
+    from .loaders import CandidateDataLoader
+    loader = CandidateDataLoader()
+    profile = loader.load_profile()
+    
+    if not profile:
+        console.print("[red]❌ Profile not found! Run: python -m src.main setup --elena[/red]")
+        return
+    
+    console.print(f"\n[bold]Profile:[/bold] {profile.name}")
+    console.print(f"[bold]Target Roles:[/bold] {', '.join(profile.target_roles[:3])}...")
+    console.print(f"[bold]Cycle Interval:[/bold] Every {interval} hour(s)")
+    console.print(f"[bold]Max Jobs/Cycle:[/bold] {max_jobs}")
+    
+    console.print("\n[yellow]📊 What this engine does:[/yellow]")
+    console.print("  1. 🔍 Monitors YC, Wellfound, Web3 Career for new jobs")
+    console.print("  2. 🔬 AI-powered company research")
+    console.print("  3. 👤 Finds founder contacts (LinkedIn/Email/Twitter)")
+    console.print("  4. ✍️  Generates hyper-personalized messages")
+    console.print("  5. 📤 Sends multi-channel outreach")
+    console.print("  6. 🔥 Tracks demo link clicks")
+    console.print("  7. 📧 Monitors responses & auto-schedules interviews")
+    console.print("  8. 📊 Real-time dashboard with metrics")
+    
+    console.print("\n[bold cyan]🚀 Starting autonomous mode...[/bold cyan]\n")
+    
+    # Initialize autonomous orchestrator
+    from .autonomous import AutonomousOrchestrator
+    orchestrator = AutonomousOrchestrator(profile)
+    
+    try:
+        # Run autonomous mode
+        asyncio.run(orchestrator.start_autonomous_mode(interval_hours=interval))
+    except KeyboardInterrupt:
+        console.print("\n\n[yellow]⏸️  Autonomous mode stopped by user[/yellow]")
+        
+        # Show stats
+        stats = orchestrator.get_stats()
+        console.print("\n[bold]📊 Session Stats:[/bold]")
+        console.print(f"  Jobs found: {stats['jobs_found']}")
+        console.print(f"  Companies researched: {stats['companies_researched']}")
+        console.print(f"  Messages sent: {stats['messages_sent']}")
+        console.print(f"  Demo clicks: {stats['demo_clicks']}")
+        console.print(f"  Responses: {stats['responses_received']}")
+        console.print(f"  Interviews scheduled: {stats['interviews_scheduled']}")
+        
+        console.print("\n[green]✅ Autonomous engine stopped gracefully[/green]")
+
+
+@cli.command()
+def autonomous_dashboard():
+    """
+    📊 View autonomous engine dashboard
+    
+    Shows real-time stats, hot leads, and pending actions
+    """
+    console.print(Panel.fit(
+        "📊 [bold cyan]AUTONOMOUS ENGINE DASHBOARD[/bold cyan]",
+        border_style="cyan"
+    ))
+    
+    from .autonomous import DemoTracker, MultiChannelSender, ResponseHandler
+    from .loaders import CandidateDataLoader
+    
+    # Load components
+    loader = CandidateDataLoader()
+    profile = loader.load_profile()
+    
+    demo_tracker = DemoTracker()
+    sender = MultiChannelSender()
+    response_handler = ResponseHandler(profile) if profile else None
+    
+    # Demo clicks
+    console.print("\n[bold]🔥 Demo Link Engagement:[/bold]")
+    demo_stats = demo_tracker.get_stats()
+    console.print(f"  Total clicks: {demo_stats['total_clicks']}")
+    console.print(f"  Clicks (7 days): {demo_stats['clicks_last_7_days']}")
+    console.print(f"  Hot leads: {demo_stats['hot_leads']}")
+    
+    # Hot leads table
+    hot_leads = demo_tracker.get_hot_leads()
+    if hot_leads:
+        console.print("\n[bold]💎 Hot Leads (High Engagement):[/bold]")
+        table = Table(show_header=True)
+        table.add_column("Company")
+        table.add_column("Score")
+        table.add_column("Signals")
+        
+        for lead in hot_leads[:5]:
+            table.add_row(
+                lead['company'],
+                str(lead['score']),
+                ', '.join(lead['signals'][:2])
+            )
+        
+        console.print(table)
+    
+    # Sent messages
+    console.print("\n[bold]📤 Outreach Stats:[/bold]")
+    sent_stats = sender.get_sent_stats()
+    console.print(f"  Total messages: {sent_stats['total_messages']}")
+    console.print(f"  LinkedIn: {sent_stats['by_channel']['linkedin']}")
+    console.print(f"  Email: {sent_stats['by_channel']['email']}")
+    console.print(f"  Twitter: {sent_stats['by_channel']['twitter']}")
+    
+    # Responses
+    if response_handler:
+        console.print("\n[bold]📧 Responses:[/bold]")
+        response_stats = response_handler.get_stats()
+        console.print(f"  Total responses: {response_stats['total_responses']}")
+        console.print(f"  Positive: {response_stats['by_sentiment']['positive']}")
+        console.print(f"  Interviews scheduled: {response_stats['scheduled_interviews']}")
+    
+    console.print("\n[green]✅ Dashboard updated[/green]")
+
+
 if __name__ == "__main__":
     cli()
