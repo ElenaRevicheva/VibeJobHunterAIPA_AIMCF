@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     twitter_access_token: Optional[str] = Field(default=None, alias="TWITTER_ACCESS_TOKEN")
     twitter_access_secret: Optional[str] = Field(default=None, alias="TWITTER_ACCESS_SECRET")
     
+    # Telegram Notifications
+    telegram_bot_token: Optional[str] = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
+    telegram_chat_id: Optional[str] = Field(default=None, alias="TELEGRAM_CHAT_ID")
+    
     # Email Settings
     email_address: Optional[str] = Field(default=None, alias="EMAIL_ADDRESS")
     email_password: Optional[str] = Field(default=None, alias="EMAIL_PASSWORD")
