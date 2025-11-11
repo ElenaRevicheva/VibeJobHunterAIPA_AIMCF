@@ -27,7 +27,8 @@ class JobMonitor:
     """
     
     def __init__(self):
-        self.cache = ResponseCache()
+        from pathlib import Path
+        self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         self.seen_jobs: Set[str] = set()
         self.last_check: Dict[str, datetime] = {}
         

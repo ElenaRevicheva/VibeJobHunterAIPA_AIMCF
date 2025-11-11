@@ -24,7 +24,8 @@ class FounderFinder:
     """
     
     def __init__(self):
-        self.cache = ResponseCache()
+        from pathlib import Path
+        self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         logger.info("👤 Founder Finder initialized")
     
     async def find_founder(self, company_name: str, company_intel: Dict[str, Any]) -> Optional[Dict[str, Any]]:

@@ -25,9 +25,10 @@ class MessageGenerator:
     """
     
     def __init__(self, profile: Profile):
+        from pathlib import Path
         self.profile = profile
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        self.cache = ResponseCache()
+        self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         logger.info("✍️ Message Generator initialized")
     
     async def generate_multi_channel_messages(

@@ -26,8 +26,9 @@ class CompanyResearcher:
     """
     
     def __init__(self):
+        from pathlib import Path
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        self.cache = ResponseCache()
+        self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         logger.info("🔬 Company Researcher initialized")
     
     async def research_company(self, company_name: str, company_url: str) -> Dict[str, Any]:
