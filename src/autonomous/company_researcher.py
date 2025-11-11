@@ -38,9 +38,9 @@ class CompanyResearcher:
         """
         logger.info(f"🔬 Researching {company_name}...")
         
-        # Check cache first
+        # Check cache first (skip cache for now - company_researcher uses different cache format)
         cache_key = f"company_research_{company_name.lower().replace(' ', '_')}"
-        cached = self.cache.get(cache_key)
+        cached = None  # TODO: Fix cache compatibility
         if cached and (datetime.now() - datetime.fromisoformat(cached.get('timestamp', datetime.now().isoformat()))).days < 7:
             logger.info(f"✅ Using cached research for {company_name}")
             return cached
