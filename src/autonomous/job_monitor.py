@@ -378,7 +378,7 @@ class JobMonitor:
                 parent = section.find_parent()
                 if parent:
                     items = parent.find_all('li')
-                        responsibilities.extend([item.text.strip() for item in items])
+                    responsibilities.extend([item.text.strip() for item in items])
         return responsibilities[:10]
     
     async def _search_hackernews_whoishiring(self, target_roles: List[str]) -> List[JobPosting]:
