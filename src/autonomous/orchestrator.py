@@ -352,10 +352,10 @@ class AutonomousOrchestrator:
         if self.telegram.enabled:
             await self.telegram.notify_startup_success()
             # Start polling in background for Railway logs
-            asyncio.create_task(self.telegram.start_polling())
+            import asyncio as aio
+            aio.create_task(self.telegram.start_polling())
         
         # Schedule daily summary at 8pm
-        import asyncio
         from datetime import datetime, time as dt_time
         
         async def send_daily_summary_at_8pm():
