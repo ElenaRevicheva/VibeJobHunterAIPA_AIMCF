@@ -24,9 +24,17 @@ def get_logger(name: str, log_dir: Path = None) -> logging.Logger:
     
     logger.setLevel(logging.INFO)
     
-    # Console handler with color support
+    # Console handler with UTF-8 encoding for Windows
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
+    
+    # Fix Windows emoji encoding issues
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except:
+            pass  # If reconfigure fails, continue anyway
+    
     console_format = logging.Formatter(
         '%(asctime)s | %(levelname)-8s | %(message)s',
         datefmt='%H:%M:%S'
