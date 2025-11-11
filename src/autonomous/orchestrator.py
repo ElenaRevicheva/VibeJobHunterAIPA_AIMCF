@@ -200,7 +200,7 @@ class AutonomousOrchestrator:
         from ..filters.criteria_matcher import CriteriaMatcher
         from ..filters.red_flag_detector import RedFlagDetector
         
-        matcher = JobMatcher(self.profile)
+        matcher = JobMatcher()
         criteria_matcher = CriteriaMatcher()
         red_flag_detector = RedFlagDetector()
         
