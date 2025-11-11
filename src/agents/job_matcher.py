@@ -155,50 +155,60 @@ SCORING PRIORITY FOR ELENA:
             return self._basic_match_score(profile, job)
     
     def _basic_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
-        """Simple keyword-based matching as fallback"""
+        """
+        Keyword-based matching (GENEROUS scoring for AI/Founding roles!)
+        Designed to score most relevant jobs 65-95 points
+        """
         score = 0.0
         reasons = []
         
-        # Check title match
-        job_title_lower = job.title.lower()
-        for target_role in profile.target_roles:
-            if target_role.lower() in job_title_lower:
-                score += 30
-                reasons.append(f"Title matches target role: {target_role}")
+        job_text = (job.title + " " + job.description).lower()
+        
+        # TARGET ROLES (50 points max)
+        role_matches = {
+            'founding engineer': 50, 'founding': 48,
+            'ai engineer': 45, 'ai product manager': 45, 'llm engineer': 45,
+            'full-stack ai': 45, 'machine learning engineer': 43, 'ml engineer': 43,
+            'ai solutions': 40, 'ai growth': 40,
+            'software engineer': 35, 'engineer': 28
+        }
+        
+        for keyword, points in role_matches.items():
+            if keyword in job_text:
+                score += points
+                reasons.append(f"✅ {keyword.title()}")
                 break
         
-        # Check skills match
-        profile_skills_lower = [s.lower() for s in profile.skills]
-        job_text_lower = (job.title + " " + job.description).lower()
+        # AI/ML TECH (35 points max)
+        tech_keywords = ['ai', 'llm', 'gpt', 'claude', 'ml', 'machine learning', 'python',
+                        'react', 'typescript', 'pytorch', 'nlp']
+        tech_found = [kw for kw in tech_keywords if kw in job_text]
+        if tech_found:
+            score += min(len(tech_found) * 3, 35)
+            reasons.append(f"✅ Tech: {', '.join(tech_found[:4])}")
         
-        matched_skills = []
-        for skill in profile_skills_lower:
-            if skill in job_text_lower:
-                matched_skills.append(skill)
+        # STARTUP SIGNALS (25 points max)  
+        startup_kw = ['startup', 'seed', 'equity', 'yc', '0-1', 'founding', 'early stage']
+        startup_found = [kw for kw in startup_kw if kw in job_text]
+        if startup_found:
+            score += min(len(startup_found) * 5, 25)
+            reasons.append(f"✅ Stage: {', '.join(startup_found[:2])}")
         
-        if matched_skills:
-            skill_score = min(40, len(matched_skills) * 5)
-            score += skill_score
-            reasons.append(f"Matched skills: {', '.join(matched_skills[:5])}")
-        
-        # Check location
-        if profile.remote_only and job.remote_allowed:
+        # REMOTE (15 points)
+        if job.remote_allowed or 'remote' in job_text:
             score += 15
-            reasons.append("Remote position available")
-        elif profile.location.lower() in job.location.lower():
-            score += 15
-            reasons.append(f"Location match: {profile.location}")
+            reasons.append("✅ Remote")
         
-        # Check keywords
-        matched_keywords = []
-        for keyword in self.settings.target_keywords:
-            if keyword.lower() in job_text_lower:
-                matched_keywords.append(keyword)
+        # SKILLS (20 points max)
+        skills_found = [s for s in profile.skills[:15] if s.lower() in job_text]
+        if skills_found:
+            score += min(len(skills_found) * 2, 20)
+            reasons.append(f"✅ Skills: {', '.join(skills_found[:3])}")
         
-        if matched_keywords:
-            keyword_score = min(15, len(matched_keywords) * 2)
-            score += keyword_score
-            reasons.append(f"Key technologies: {', '.join(matched_keywords[:3])}")
+        # Minimum score
+        if not reasons:
+            score = 50
+            reasons.append("Basic match")
         
         return min(score, 100), reasons
     
