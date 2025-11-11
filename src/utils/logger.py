@@ -49,3 +49,17 @@ def get_logger(name: str, log_dir: Path = None) -> logging.Logger:
         logger.addHandler(file_handler)
     
     return logger
+
+
+def setup_logger(name: str) -> logging.Logger:
+    """
+    Setup logger (alias for get_logger for autonomous engine)
+    
+    Args:
+        name: Logger name
+    
+    Returns:
+        Configured logger
+    """
+    log_dir = Path("logs")
+    return get_logger(name, log_dir)
