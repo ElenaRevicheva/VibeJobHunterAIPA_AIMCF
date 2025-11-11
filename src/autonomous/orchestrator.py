@@ -206,22 +206,28 @@ class AutonomousOrchestrator:
         
         scored_jobs = []
         for job in jobs:
-            # Score the job (note: profile comes FIRST, then job, and it's NOT async)
-            score, reasons = matcher.calculate_match_score(self.profile, job)
-            job.match_score = score
-            job.match_reasons = reasons
+            try:
+                # Score the job (note: profile comes FIRST, then job, and it's NOT async)
+                score, reasons = matcher.calculate_match_score(self.profile, job)
+                job.match_score = score
+                job.match_reasons = reasons
+                
+                # Check criteria
+                criteria_match = criteria_matcher.evaluate_job(job)
+                job.criteria_match = criteria_match
+                
+                # Check red flags
+                has_flags, red_flags = red_flag_detector.scan_job(job)
+                job.red_flags = red_flags
+                
+                # Only keep high-scoring jobs without major red flags
+                if score >= 70 and not any('MAJOR' in flag for flag in red_flags):
+                    scored_jobs.append(job)
             
-            # Check criteria
-            criteria_match = criteria_matcher.evaluate_job(job)
-            job.criteria_match = criteria_match
-            
-            # Check red flags
-            has_flags, red_flags = red_flag_detector.scan_job(job)
-            job.red_flags = red_flags
-            
-            # Only keep high-scoring jobs without major red flags
-            if score >= 70 and not any('MAJOR' in flag for flag in red_flags):
-                scored_jobs.append(job)
+            except Exception as e:
+                logger.debug(f"Failed to score job {job.title} at {job.company}: {e}")
+                # Skip jobs that fail scoring
+                continue
         
         # Sort by score
         scored_jobs.sort(key=lambda x: x.match_score, reverse=True)
