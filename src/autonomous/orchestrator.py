@@ -206,8 +206,8 @@ class AutonomousOrchestrator:
         
         scored_jobs = []
         for job in jobs:
-            # Score the job
-            score, reasons = await matcher.calculate_match_score(job, self.profile)
+            # Score the job (note: profile comes FIRST, then job)
+            score, reasons = await matcher.calculate_match_score(self.profile, job)
             job.match_score = score
             job.match_reasons = reasons
             
