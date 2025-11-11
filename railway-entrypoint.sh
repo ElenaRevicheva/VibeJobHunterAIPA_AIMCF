@@ -30,7 +30,11 @@ echo ""
 # Start autonomous mode
 echo "🚀 Starting autonomous mode..."
 echo "   Interval: ${AUTONOMOUS_INTERVAL:-1} hour(s)"
-echo "   Telegram: ${TELEGRAM_ENABLED:-disabled}"
+if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+    echo "   Telegram: ENABLED ✅"
+else
+    echo "   Telegram: disabled (set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to enable)"
+fi
 echo ""
 
 # Run autonomous mode with interval from env var (default 1 hour)
