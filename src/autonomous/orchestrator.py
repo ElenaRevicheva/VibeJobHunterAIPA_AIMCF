@@ -216,7 +216,7 @@ class AutonomousOrchestrator:
             job.criteria_match = criteria_match
             
             # Check red flags
-            red_flags = red_flag_detector.scan_posting(job)
+            has_flags, red_flags = red_flag_detector.scan_job(job)
             job.red_flags = red_flags
             
             # Only keep high-scoring jobs without major red flags
