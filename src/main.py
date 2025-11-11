@@ -442,7 +442,7 @@ def fullauto(target):
 
 
 @cli.command()
-@click.option('--interval', '-i', default=1, help='Hours between cycles')
+@click.option('--interval', '-i', default=1, type=float, help='Hours between cycles (can be decimal, e.g. 0.5 for 30 min)')
 @click.option('--max-jobs', default=10, help='Max jobs to process per cycle')
 def autonomous(interval, max_jobs):
     """
