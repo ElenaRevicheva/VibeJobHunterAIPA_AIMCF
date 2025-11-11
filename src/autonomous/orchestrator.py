@@ -41,8 +41,12 @@ class AutonomousOrchestrator:
     9. Follow up intelligently
     """
     
-    def __init__(self, profile: Profile):
+    def __init__(self, profile: Profile, telegram_enabled: bool = True):
         self.profile = profile
+        
+        # Initialize Telegram notifier
+        from ..notifications import TelegramNotifier
+        self.telegram = TelegramNotifier()
         
         # Initialize all agents
         self.job_monitor = JobMonitor()
@@ -69,6 +73,10 @@ class AutonomousOrchestrator:
         self.data_dir.mkdir(exist_ok=True)
         
         logger.info("🚀 Autonomous Orchestrator initialized!")
+        
+        # Send startup notification
+        if self.telegram.enabled:
+            asyncio.create_task(self.telegram.notify_startup_success())
     
     async def run_autonomous_cycle(self):
         """
@@ -97,6 +105,11 @@ class AutonomousOrchestrator:
             logger.info("🎯 [2/7] Filtering & scoring jobs...")
             top_jobs = await self._filter_and_score(new_jobs)
             logger.info(f"✅ {len(top_jobs)} high-priority jobs identified")
+            
+            # Notify about hot jobs (score >85)
+            for job in top_jobs:
+                if job.match_score >= 85:
+                    await self.telegram.notify_hot_job(job)
             
             # STEP 3: Research companies (parallel)
             logger.info("🔬 [3/7] Researching companies...")
@@ -131,10 +144,35 @@ class AutonomousOrchestrator:
             logger.info(f"🔥 {len(demo_clicks)} demo link clicks!")
             self.stats['demo_clicks'] += len(demo_clicks)
             
+            # Notify about demo clicks
+            for click in demo_clicks:
+                await self.telegram.notify_demo_click(
+                    company=click.get('company', 'Unknown'),
+                    founder_name=click.get('founder_name'),
+                    source=click.get('source_channel')
+                )
+            
             # Auto-schedule interviews
             interviews = await self.response_handler.auto_schedule_interviews(responses)
             logger.info(f"📅 {len(interviews)} interviews auto-scheduled!")
             self.stats['interviews_scheduled'] += len(interviews)
+            
+            # Notify about new responses
+            for response in responses:
+                await self.telegram.notify_response_received(
+                    company=response.get('company', 'Unknown'),
+                    founder_name=response.get('founder_name', 'Founder'),
+                    sentiment=response.get('sentiment', 'neutral')
+                )
+            
+            # Notify about scheduled interviews
+            for interview in interviews:
+                from datetime import datetime
+                await self.telegram.notify_interview_scheduled(
+                    company=interview.get('company', 'Unknown'),
+                    date=datetime.fromisoformat(interview.get('timestamp', datetime.now().isoformat())),
+                    founder_name=interview.get('founder_name')
+                )
             
             # Save cycle results
             await self._save_cycle_results({
@@ -152,8 +190,13 @@ class AutonomousOrchestrator:
             logger.info(f"📊 Session Stats: {self.stats}")
             logger.info("=" * 60)
             
+            # Send cycle completion notification
+            await self.telegram.notify_cycle_complete(self.stats)
+            
         except Exception as e:
             logger.error(f"❌ Error in autonomous cycle: {e}", exc_info=True)
+            # Notify about errors
+            await self.telegram.notify_error(str(e))
     
     async def _filter_and_score(self, jobs: List[JobPosting]) -> List[JobPosting]:
         """Filter and score jobs by priority"""
@@ -308,6 +351,34 @@ class AutonomousOrchestrator:
         """
         self.is_running = True
         logger.info(f"🚀 AUTONOMOUS MODE STARTED (running every {interval_hours} hour(s))")
+        
+        # Schedule daily summary at 8pm
+        import asyncio
+        from datetime import datetime, time as dt_time
+        
+        async def send_daily_summary_at_8pm():
+            """Send daily summary at 8pm"""
+            while self.is_running:
+                now = datetime.now()
+                target_time = now.replace(hour=20, minute=0, second=0, microsecond=0)
+                
+                # If past 8pm today, schedule for tomorrow
+                if now.hour >= 20:
+                    target_time += timedelta(days=1)
+                
+                # Sleep until 8pm
+                wait_seconds = (target_time - now).total_seconds()
+                if wait_seconds > 0:
+                    await asyncio.sleep(wait_seconds)
+                
+                # Send summary
+                await self.telegram.send_daily_summary(self.stats)
+                
+                # Wait a bit to avoid sending again immediately
+                await asyncio.sleep(60)
+        
+        # Start daily summary task
+        asyncio.create_task(send_daily_summary_at_8pm())
         
         while self.is_running:
             try:

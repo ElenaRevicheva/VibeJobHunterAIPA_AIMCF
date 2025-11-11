@@ -1,0 +1,67 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Local data (will be created fresh)
+autonomous_data/
+logs/
+tailored_resumes/
+cover_letters/
+data/
+cache/
+
+# Windows
+*.bat
+Thumbs.db
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Environment (use Railway secrets instead)
+.env
+.env.*
+!.env.example
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Node (if any)
+node_modules/
+package-lock.json
+yarn.lock
