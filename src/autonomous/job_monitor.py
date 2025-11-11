@@ -16,6 +16,7 @@ from pathlib import Path
 from ..core.models import JobPosting, JobSource
 from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
+from .target_companies import get_all_target_companies
 
 logger = setup_logger(__name__)
 
@@ -73,11 +74,18 @@ class JobMonitor:
         
         all_jobs = []
         
-        # Search all sources in parallel
+        # Search ALL sources in parallel (10+ job boards!)
         tasks = [
             self._search_ycombinator(target_roles),
             self._search_wellfound(target_roles),
             self._search_web3career(target_roles),
+            self._search_hackernews_whoishiring(target_roles),
+            self._search_remoteok(target_roles),
+            self._search_weworkremotely(target_roles),
+            self._search_remotecom(target_roles),
+            self._search_twitter_jobs(target_roles),
+            self._search_greenhouse_boards(target_roles),
+            self._search_workable_boards(target_roles),
         ]
         
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -370,5 +378,387 @@ class JobMonitor:
                 parent = section.find_parent()
                 if parent:
                     items = parent.find_all('li')
-                    responsibilities.extend([item.text.strip() for item in items])
+                        responsibilities.extend([item.text.strip() for item in items])
         return responsibilities[:10]
+    
+    async def _search_hackernews_whoishiring(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search Hacker News Who's Hiring threads
+        Updated monthly, lots of startup jobs!
+        """
+        logger.info("🔍 Searching Hacker News Who's Hiring...")
+        jobs = []
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # HN Algolia API for Who's Hiring threads
+                url = "https://hn.algolia.com/api/v1/search"
+                params = {
+                    'query': 'who is hiring',
+                    'tags': 'ask_hn',
+                    'hitsPerPage': 3
+                }
+                
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        for hit in data.get('hits', []):
+                            # Get comments (job postings)
+                            story_id = hit.get('objectID')
+                            comment_url = f"https://hn.algolia.com/api/v1/items/{story_id}"
+                            
+                            async with session.get(comment_url) as comment_response:
+                                if comment_response.status == 200:
+                                    comment_data = await comment_response.json()
+                                    
+                                    # Parse top-level comments (job postings)
+                                    for comment in comment_data.get('children', [])[:50]:
+                                        job = self._parse_hn_comment(comment)
+                                        if job:
+                                            jobs.append(job)
+        
+        except Exception as e:
+            logger.error(f"HN search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} Hacker News jobs")
+        return jobs
+    
+    def _parse_hn_comment(self, comment: Dict) -> Optional[JobPosting]:
+        """Parse HN Who's Hiring comment into job"""
+        try:
+            text = comment.get('text', '')
+            if not text or len(text) < 100:
+                return None
+            
+            # Check for AI/ML/Founding keywords
+            text_lower = text.lower()
+            if not any(kw in text_lower for kw in ['ai', 'ml', 'founding', 'engineer', 'llm', 'gpt']):
+                return None
+            
+            # Extract company name (usually in first line or bold)
+            lines = text.split('\n')
+            company = "Startup from HN"
+            for line in lines[:3]:
+                if line.strip():
+                    company = line.strip()[:100]
+                    break
+            
+            return JobPosting(
+                title="AI/Founding Engineer",
+                company=company,
+                location="Remote",
+                description=text[:1000],
+                source=JobSource.OTHER,
+                url=f"https://news.ycombinator.com/item?id={comment.get('id')}",
+                posted_date=datetime.now(),
+                remote_allowed=True,
+                requirements=[],
+                responsibilities=[]
+            )
+        except Exception as e:
+            logger.debug(f"Failed to parse HN comment: {e}")
+        
+        return None
+    
+    async def _search_remoteok(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search Remote OK (remote.co)
+        Great for remote AI jobs!
+        """
+        logger.info("🔍 Searching Remote OK...")
+        jobs = []
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Remote OK has a nice JSON API
+                url = "https://remoteok.com/api"
+                
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        # First item is metadata, skip it
+                        for item in data[1:30]:
+                            # Filter for AI/ML/Founding roles
+                            position = item.get('position', '').lower()
+                            tags = ' '.join(item.get('tags', [])).lower()
+                            
+                            if any(kw in position + tags for kw in ['ai', 'ml', 'founding', 'llm', 'engineer']):
+                                job = JobPosting(
+                                    title=item.get('position', 'Engineer'),
+                                    company=item.get('company', 'Remote Company'),
+                                    location='Remote',
+                                    description=item.get('description', '')[:1000],
+                                    source=JobSource.OTHER,
+                                    url=item.get('url', f"https://remoteok.com/remote-jobs/{item.get('id')}"),
+                                    posted_date=datetime.now(),
+                                    salary_range=f"${item.get('salary_min', 0)}-${item.get('salary_max', 0)}" if item.get('salary_min') else None,
+                                    remote_allowed=True,
+                                    requirements=[],
+                                    responsibilities=[]
+                                )
+                                jobs.append(job)
+        
+        except Exception as e:
+            logger.error(f"Remote OK search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} Remote OK jobs")
+        return jobs
+    
+    async def _search_weworkremotely(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search WeWorkRemotely
+        Premium remote job board
+        """
+        logger.info("🔍 Searching WeWorkRemotely...")
+        jobs = []
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = "https://weworkremotely.com/categories/remote-programming-jobs"
+                
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        
+                        # Parse job listings
+                        job_listings = soup.find_all('li', class_='feature')
+                        
+                        for listing in job_listings[:15]:
+                            try:
+                                title_elem = listing.find('span', class_='title')
+                                company_elem = listing.find('span', class_='company')
+                                link_elem = listing.find('a')
+                                
+                                if title_elem and company_elem and link_elem:
+                                    title = title_elem.text.strip()
+                                    company = company_elem.text.strip()
+                                    url = "https://weworkremotely.com" + link_elem['href']
+                                    
+                                    # Filter for AI roles
+                                    if any(kw in title.lower() for kw in ['ai', 'ml', 'founding', 'engineer', 'llm']):
+                                        jobs.append(JobPosting(
+                                            title=title,
+                                            company=company,
+                                            location='Remote',
+                                            description=f"Remote position at {company}",
+                                            source=JobSource.OTHER,
+                                            url=url,
+                                            posted_date=datetime.now(),
+                                            remote_allowed=True,
+                                            requirements=[],
+                                            responsibilities=[]
+                                        ))
+                            except Exception as e:
+                                logger.debug(f"Failed to parse WWR listing: {e}")
+        
+        except Exception as e:
+            logger.error(f"WeWorkRemotely search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} WeWorkRemotely jobs")
+        return jobs
+    
+    async def _search_remotecom(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search Remote.com
+        Another quality remote job board
+        """
+        logger.info("🔍 Searching Remote.com...")
+        jobs = []
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = "https://remote.com/jobs/developer"
+                
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        
+                        # Parse job cards
+                        job_cards = soup.find_all('div', class_='job-card')
+                        
+                        for card in job_cards[:10]:
+                            try:
+                                title = card.find('h2').text.strip() if card.find('h2') else "Engineer"
+                                company = card.find('span', class_='company').text.strip() if card.find('span', 'company') else "Remote Company"
+                                url_elem = card.find('a')
+                                url = "https://remote.com" + url_elem['href'] if url_elem else ""
+                                
+                                if any(kw in title.lower() for kw in ['ai', 'ml', 'founding', 'engineer']):
+                                    jobs.append(JobPosting(
+                                        title=title,
+                                        company=company,
+                                        location='Remote',
+                                        description=f"Remote opportunity at {company}",
+                                        source=JobSource.OTHER,
+                                        url=url,
+                                        posted_date=datetime.now(),
+                                        remote_allowed=True,
+                                        requirements=[],
+                                        responsibilities=[]
+                                    ))
+                            except Exception as e:
+                                logger.debug(f"Failed to parse Remote.com card: {e}")
+        
+        except Exception as e:
+            logger.error(f"Remote.com search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} Remote.com jobs")
+        return jobs
+    
+    async def _search_twitter_jobs(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search Twitter/X for job posts
+        Many startups post jobs on Twitter!
+        """
+        logger.info("🔍 Searching Twitter/X for jobs...")
+        jobs = []
+        
+        # NOTE: This requires Twitter API access
+        # For now, provides search URLs that could be scraped
+        # TODO: Implement Twitter API v2 integration
+        
+        logger.info("✅ Twitter job search (API integration pending)")
+        return jobs
+    
+    async def _search_greenhouse_boards(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search companies using Greenhouse ATS
+        Many YC companies use Greenhouse!
+        """
+        logger.info("🔍 Searching Greenhouse job boards...")
+        jobs = []
+        
+        # Get curated list of AI companies using Greenhouse
+        target_companies = get_all_target_companies()
+        greenhouse_companies = target_companies['greenhouse']
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                for company in greenhouse_companies[:10]:  # Check first 10 per cycle
+                    try:
+                        url = f"https://boards.greenhouse.io/{company}"
+                        
+                        headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                        
+                        async with session.get(url, headers=headers, timeout=5) as response:
+                            if response.status == 200:
+                                html = await response.text()
+                                soup = BeautifulSoup(html, 'html.parser')
+                                
+                                # Parse job openings
+                                job_sections = soup.find_all('div', class_='opening')
+                                
+                                for job_elem in job_sections[:3]:
+                                    try:
+                                        link = job_elem.find('a')
+                                        if link:
+                                            title = link.text.strip()
+                                            job_url = link['href']
+                                            
+                                            if not job_url.startswith('http'):
+                                                job_url = f"https://boards.greenhouse.io{job_url}"
+                                            
+                                            jobs.append(JobPosting(
+                                                title=title,
+                                                company=company.title(),
+                                                location='Remote',
+                                                description=f"Position at {company}",
+                                                source=JobSource.COMPANY_WEBSITE,
+                                                url=job_url,
+                                                posted_date=datetime.now(),
+                                                remote_allowed=True,
+                                                requirements=[],
+                                                responsibilities=[]
+                                            ))
+                                    except Exception as e:
+                                        logger.debug(f"Failed to parse Greenhouse job: {e}")
+                    
+                    except Exception as e:
+                        logger.debug(f"Failed to check {company} Greenhouse: {e}")
+                    
+                    # Small delay between companies
+                    await asyncio.sleep(0.5)
+        
+        except Exception as e:
+            logger.error(f"Greenhouse search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} Greenhouse jobs")
+        return jobs
+    
+    async def _search_workable_boards(self, target_roles: List[str]) -> List[JobPosting]:
+        """
+        Search companies using Workable ATS
+        Another popular ATS for startups
+        """
+        logger.info("🔍 Searching Workable job boards...")
+        jobs = []
+        
+        # Get curated list of AI companies using Workable
+        target_companies = get_all_target_companies()
+        workable_companies = target_companies['workable']
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                for company in workable_companies[:3]:
+                    try:
+                        url = f"https://apply.workable.com/{company}/"
+                        
+                        headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                        
+                        async with session.get(url, headers=headers, timeout=5) as response:
+                            if response.status == 200:
+                                html = await response.text()
+                                soup = BeautifulSoup(html, 'html.parser')
+                                
+                                job_links = soup.find_all('a', href=lambda h: h and '/jobs/' in h)
+                                
+                                for link in job_links[:3]:
+                                    title = link.text.strip()
+                                    job_url = link['href']
+                                    
+                                    if not job_url.startswith('http'):
+                                        job_url = f"https://apply.workable.com{job_url}"
+                                    
+                                    jobs.append(JobPosting(
+                                        title=title,
+                                        company=company.title(),
+                                        location='Remote',
+                                        description=f"Position at {company}",
+                                        source=JobSource.COMPANY_WEBSITE,
+                                        url=job_url,
+                                        posted_date=datetime.now(),
+                                        remote_allowed=True,
+                                        requirements=[],
+                                        responsibilities=[]
+                                    ))
+                    
+                    except Exception as e:
+                        logger.debug(f"Failed to check {company} Workable: {e}")
+                    
+                    await asyncio.sleep(0.5)
+        
+        except Exception as e:
+            logger.error(f"Workable search failed: {e}")
+        
+        logger.info(f"✅ Found {len(jobs)} Workable jobs")
+        return jobs
