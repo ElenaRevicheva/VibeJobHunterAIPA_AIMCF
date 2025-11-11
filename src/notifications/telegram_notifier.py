@@ -26,6 +26,8 @@ class TelegramNotifier:
     """
     Telegram notification system for real-time job hunting alerts
     
+    Uses POLLING mode for better Railway log visibility!
+    
     Setup:
     1. Message @BotFather on Telegram
     2. Create a new bot: /newbot
@@ -37,7 +39,7 @@ class TelegramNotifier:
     
     def __init__(self, bot_token: Optional[str] = None, chat_id: Optional[str] = None):
         """
-        Initialize Telegram notifier
+        Initialize Telegram notifier with polling mode
         
         Args:
             bot_token: Telegram bot token (or set TELEGRAM_BOT_TOKEN env var)
@@ -49,15 +51,18 @@ class TelegramNotifier:
         self.chat_id = chat_id or os.getenv('TELEGRAM_CHAT_ID')
         
         self.enabled = bool(self.bot_token and self.chat_id)
+        self.polling_task = None
+        self.last_update_id = 0
         
         if self.enabled:
             # Import telegram library only if enabled
             try:
-                from telegram import Bot
+                from telegram import Bot, Update
                 from telegram.error import TelegramError
                 self.bot = Bot(token=self.bot_token)
+                self.Update = Update
                 self.TelegramError = TelegramError
-                logger.info("📱 Telegram notifications ENABLED")
+                logger.info("📱 Telegram notifications ENABLED (polling mode)")
             except ImportError:
                 logger.warning("⚠️ python-telegram-bot not installed. Run: pip install python-telegram-bot")
                 self.enabled = False
@@ -335,6 +340,62 @@ Something went wrong with the autonomous engine:
             return "• Use your live demo: wa.me/50766623757"
         return "\n".join([f"• {point}" for point in points])
     
+    async def start_polling(self):
+        """
+        Start polling for incoming messages (for Railway log visibility)
+        This runs in background and logs activity to Railway console
+        """
+        if not self.enabled:
+            return
+        
+        logger.info("🔄 Starting Telegram polling (for Railway logs)...")
+        
+        while True:
+            try:
+                # Get updates from Telegram
+                updates = await asyncio.to_thread(
+                    self.bot.get_updates,
+                    offset=self.last_update_id + 1,
+                    timeout=30
+                )
+                
+                for update in updates:
+                    self.last_update_id = update.update_id
+                    
+                    if update.message and update.message.text:
+                        # Log received messages in Railway
+                        logger.info(f"📱 Telegram message received: {update.message.text}")
+                        
+                        # Handle simple commands
+                        text = update.message.text.lower()
+                        
+                        if text == '/start':
+                            await self.send_message("👋 <b>VibeJobHunter Bot Started!</b>\n\nYou'll receive job hunting notifications here!")
+                        
+                        elif text == '/status':
+                            await self.send_message(f"🤖 <b>Bot Status:</b> Running\n📊 Messages sent today: {self.sent_today}")
+                        
+                        elif text == '/help':
+                            await self.send_message("""📚 <b>Available Commands:</b>
+
+/start - Start the bot
+/status - Check bot status
+/help - Show this help
+
+The bot will automatically send you:
+🔥 Hot jobs (score >85)
+💎 Demo clicks
+📧 Responses
+📅 Interviews
+📊 Daily summaries (8pm)""")
+                
+                # Small delay between polls (Railway-friendly)
+                await asyncio.sleep(2)
+                
+            except Exception as e:
+                logger.error(f"❌ Telegram polling error: {e}")
+                await asyncio.sleep(5)  # Wait before retry
+    
     async def test_connection(self) -> bool:
         """
         Test Telegram connection
@@ -356,6 +417,11 @@ You'll receive real-time alerts for:
 📧 Responses
 📅 Interviews
 📊 Daily summaries
+
+<b>Commands:</b>
+/start - Start bot
+/status - Check status
+/help - Show help
 
 <i>Test successful! Ready to find your dream job! 🚀</i>
 """

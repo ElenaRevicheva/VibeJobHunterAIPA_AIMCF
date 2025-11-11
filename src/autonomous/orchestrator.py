@@ -74,9 +74,14 @@ class AutonomousOrchestrator:
         
         logger.info("🚀 Autonomous Orchestrator initialized!")
         
-        # Send startup notification
+        # Send startup notification and start polling
         if self.telegram.enabled:
-            asyncio.create_task(self.telegram.notify_startup_success())
+            async def startup_tasks():
+                await self.telegram.notify_startup_success()
+                # Start polling in background for Railway logs
+                asyncio.create_task(self.telegram.start_polling())
+            
+            asyncio.create_task(startup_tasks())
     
     async def run_autonomous_cycle(self):
         """
