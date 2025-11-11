@@ -219,9 +219,9 @@ class AutonomousOrchestrator:
                 has_flags, red_flags = red_flag_detector.scan_job(job)
                 job.red_flags = red_flags
                 
-                # Only keep high-scoring jobs without major red flags
-                if score >= 70 and not any('MAJOR' in flag for flag in red_flags):
-                    scored_jobs.append(job)
+            # Only keep decent-scoring jobs without major red flags (lowered to 60 for more matches!)
+            if score >= 60 and not any('MAJOR' in flag for flag in red_flags):
+                scored_jobs.append(job)
             
             except Exception as e:
                 logger.debug(f"Failed to score job {job.title} at {job.company}: {e}")
