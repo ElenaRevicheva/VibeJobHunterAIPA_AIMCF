@@ -163,7 +163,6 @@ class AutonomousOrchestrator:
             
             # Notify about scheduled interviews
             for interview in interviews:
-                from datetime import datetime
                 await self.telegram.notify_interview_scheduled(
                     company=interview.get('company', 'Unknown'),
                     date=datetime.fromisoformat(interview.get('timestamp', datetime.now().isoformat())),
