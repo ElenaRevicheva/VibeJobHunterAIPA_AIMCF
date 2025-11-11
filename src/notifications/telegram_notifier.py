@@ -91,13 +91,14 @@ class TelegramNotifier:
             return False
         
         try:
-            await asyncio.to_thread(
-                self.bot.send_message,
+            # Use async version of send_message
+            await self.bot.send_message(
                 chat_id=self.chat_id,
                 text=text,
                 parse_mode=parse_mode
             )
             self.sent_today += 1
+            logger.info(f"📱 Telegram notification sent ({self.sent_today} today)")
             return True
         
         except Exception as e:
@@ -352,11 +353,11 @@ Something went wrong with the autonomous engine:
         
         while True:
             try:
-                # Get updates from Telegram
-                updates = await asyncio.to_thread(
-                    self.bot.get_updates,
+                # Get updates from Telegram (async version)
+                updates = await self.bot.get_updates(
                     offset=self.last_update_id + 1,
-                    timeout=30
+                    timeout=10,
+                    allowed_updates=["message"]
                 )
                 
                 for update in updates:
