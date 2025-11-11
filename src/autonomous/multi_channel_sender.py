@@ -28,7 +28,7 @@ class MultiChannelSender:
     """
     
     def __init__(self):
-        self.rate_limiter = RateLimiter(max_calls_per_minute=20)  # Approx 20 per hour
+        self.rate_limiter = RateLimiter(max_calls=20, period=3600)  # 20 per hour
         self.sent_log_file = Path("autonomous_data/sent_messages.json")
         self.sent_log_file.parent.mkdir(exist_ok=True)
         
