@@ -44,9 +44,13 @@ class AutonomousOrchestrator:
     def __init__(self, profile: Profile, telegram_enabled: bool = True):
         self.profile = profile
         
-        # Initialize Telegram notifier
+        # Initialize Telegram notifier (job search notifications)
         from ..notifications import TelegramNotifier
         self.telegram = TelegramNotifier()
+        
+        # Initialize LinkedIn CMO (separate from job search)
+        from ..notifications import LinkedInCMO
+        self.linkedin_cmo = LinkedInCMO()
         
         # Initialize all agents
         self.job_monitor = JobMonitor()
@@ -344,6 +348,32 @@ class AutonomousOrchestrator:
         with open(results_file, 'w') as f:
             json.dump(cycle_data, f, indent=2)
     
+    async def check_linkedin_schedule(self):
+        """
+        Check if it's time to post to LinkedIn
+        
+        Posts Mon/Wed/Fri at 10 AM
+        Alternates EN/ES (Mon=EN, Wed=ES, Fri=EN)
+        """
+        if not self.linkedin_cmo.enabled:
+            return
+        
+        now = datetime.now()
+        day = now.strftime("%A")  # Monday, Wednesday, Friday
+        hour = now.hour
+        
+        # Post Mon/Wed/Fri at 10 AM
+        if hour == 10 and day in ["Monday", "Wednesday", "Friday"]:
+            # Alternate EN/ES
+            language = "en" if day in ["Monday", "Friday"] else "es"
+            
+            logger.info(f"📱 LinkedIn CMO: Posting {language.upper()} content ({day})")
+            
+            await self.linkedin_cmo.post_to_linkedin(
+                post_type="random",
+                language=language
+            )
+    
     async def start_autonomous_mode(self, interval_hours: int = 1):
         """
         🚀 START AUTONOMOUS MODE
@@ -391,6 +421,9 @@ class AutonomousOrchestrator:
             try:
                 # Run one cycle
                 await self.run_autonomous_cycle()
+                
+                # Check LinkedIn posting schedule (Mon/Wed/Fri at 10 AM)
+                await self.check_linkedin_schedule()
                 
                 # Wait for next cycle
                 logger.info(f"😴 Sleeping for {interval_hours} hour(s)...")
