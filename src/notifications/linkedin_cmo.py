@@ -38,13 +38,25 @@ class LinkedInCMO:
         Args:
             make_webhook_url: Make.com webhook URL for LinkedIn posting
         """
+        # 🔥 SUPER OBVIOUS STARTUP BANNER 🔥
+        logger.info("=" * 60)
+        logger.info("🚀✨ LINKEDIN CMO INITIALIZING ✨🚀")
+        logger.info("🎯 AI-Powered Content Generation for Job Hunting + Fundraising")
+        logger.info("🌍 Bilingual EN/ES | 📅 Posts Mon/Wed/Fri at 10 AM")
+        logger.info("=" * 60)
+        
         self.make_webhook_url = make_webhook_url or os.getenv('MAKE_WEBHOOK_URL_LINKEDIN')
         self.enabled = bool(self.make_webhook_url)
         
         if self.enabled:
-            logger.info("📱 LinkedIn CMO ENABLED (via Make.com)")
+            logger.info("✅ LinkedIn CMO ENABLED (via Make.com)")
+            logger.info(f"🔗 Webhook: {self.make_webhook_url[:50]}...")
         else:
-            logger.info("📱 LinkedIn CMO DISABLED (set MAKE_WEBHOOK_URL_LINKEDIN to enable)")
+            logger.warning("⚠️ LinkedIn CMO DISABLED - Add MAKE_WEBHOOK_URL_LINKEDIN to enable")
+            logger.info("📝 Without webhook: Can generate content but won't post")
+        
+        logger.info("🎉 LinkedIn CMO Ready! Monitoring schedule for posting...")
+        logger.info("=" * 60)
     
     # BILINGUAL CONTENT TEMPLATES
     # Based on Elena's resume - HIGH VALUE, NO BEGGING
