@@ -1,0 +1,4 @@
+# Railway deployment trigger
+# This file forces Railway to redeploy with latest LinkedIn CMO code
+# Timestamp: 2025-11-22 20:56:00 UTC
+# Commit: b251fc2 (LinkedIn CMO complete with documentation)
