@@ -49,8 +49,12 @@ class AutonomousOrchestrator:
         self.telegram = TelegramNotifier()
         
         # Initialize LinkedIn CMO (separate from job search)
-        from ..notifications import LinkedInCMO
-        self.linkedin_cmo = LinkedInCMO()
+        try:
+            from ..notifications import LinkedInCMO
+            self.linkedin_cmo = LinkedInCMO()
+        except Exception as e:
+            logger.warning(f"⚠️ LinkedIn CMO not available: {e}")
+            self.linkedin_cmo = None
         
         # Initialize all agents
         self.job_monitor = JobMonitor()
@@ -355,7 +359,7 @@ class AutonomousOrchestrator:
         Posts Mon/Wed/Fri at 10 AM
         Alternates EN/ES (Mon=EN, Wed=ES, Fri=EN)
         """
-        if not self.linkedin_cmo.enabled:
+        if not self.linkedin_cmo or not self.linkedin_cmo.enabled:
             return
         
         now = datetime.now()
