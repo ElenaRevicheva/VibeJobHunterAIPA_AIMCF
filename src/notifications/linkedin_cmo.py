@@ -370,13 +370,15 @@ Ahora busco: Rol de Founding Engineer donde pueda traer esta velocidad 0→1 a t
         try:
             # Image URLs for LinkedIn CMO posts (hosted on GitHub)
             # Images uploaded to repository: image_1.png and image_1.1.png
+            # image_1.png = English posts (Mon/Fri)
+            # image_1.1.png = Spanish posts (Wednesday)
             image_urls = {
                 "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png",
+                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
                 "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png",
-                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png"
+                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
+                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png",  # Spanish (Wed)
+                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png"  # Spanish (Wed)
             }
             
             payload = {
