@@ -1,10 +1,16 @@
 # 🤖 VibeJobHunter - Autonomous Job Hunting Engine
 # Optimized for Railway.app deployment
+# v4.0 - AI CO-FOUNDER EDITION - Build: Nov 23, 2025 20:58 UTC
 
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
+
+# Cache buster for Railway - forces fresh rebuild
+ENV BUILD_VERSION=4.0_AI_COFOUNDER
+ENV BUILD_TIMESTAMP=20251123_205800
+ENV GIT_COMMIT=f288ea3
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
