@@ -29,6 +29,18 @@ import anthropic
 
 logger = logging.getLogger(__name__)
 
+# 🔥 VERSION MARKER - If Railway has cached old file, this won't show! 🔥
+LINKEDIN_CMO_VERSION = "4.0_AI_COFOUNDER"
+BUILD_TIMESTAMP = "2025-11-23_21:15_UTC"
+GIT_COMMIT_HASH = "11fc54d"
+
+# Log version IMMEDIATELY on module import (before class even loads!)
+logger.info("🔥" * 40)
+logger.info(f"📦 LINKEDIN CMO MODULE LOADING - VERSION {LINKEDIN_CMO_VERSION}")
+logger.info(f"🎯 BUILD: {BUILD_TIMESTAMP} | COMMIT: {GIT_COMMIT_HASH}")
+logger.info(f"🧠 AI CO-FOUNDER CAPABILITIES: Claude API Integration READY")
+logger.info("🔥" * 40)
+
 
 class LinkedInCMO:
     """
