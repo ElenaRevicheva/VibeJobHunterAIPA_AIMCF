@@ -369,8 +369,8 @@ class AutonomousOrchestrator:
         """
         Check if it's time to post to LinkedIn
         
-        Posts DAILY at 10 AM Panama time (UTC-5)
-        Railway runs in UTC, so we post at 15:00 UTC = 10:00 AM Panama
+        Posts DAILY at 11 AM Panama time (UTC-5)
+        Railway runs in UTC, so we post at 16:00 UTC = 11:00 AM Panama
         
         Alternates EN/ES by day:
         - Even days (Mon/Wed/Fri/Sun) = English + image_1.png
@@ -384,8 +384,8 @@ class AutonomousOrchestrator:
         day_number = now.weekday()  # Monday=0, Sunday=6
         hour = now.hour
         
-        # Post EVERY DAY at 15:00 UTC = 10:00 AM Panama time (UTC-5)
-        if hour == 15:
+        # Post EVERY DAY at 16:00 UTC = 11:00 AM Panama time (UTC-5)
+        if hour == 16:
             # Alternate language by day number
             # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
             language = "en" if day_number % 2 == 0 else "es"
