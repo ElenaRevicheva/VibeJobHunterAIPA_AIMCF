@@ -91,12 +91,23 @@ class LinkedInCMO:
         
         # AI Co-Founder capabilities
         if self.use_ai_generation:
-            logger.info("🧠 AI CO-FOUNDER MODE: Fresh content via Claude API ✅")
-            logger.info("💡 Strategic thinking, creative generation, performance-aware")
+            logger.info("=" * 75)
+            logger.info("🧠🔥 AI CO-FOUNDER MODE ACTIVATED! 🔥🧠")
+            logger.info("=" * 75)
+            logger.info("✅ Fresh content via Claude API (claude-3-5-sonnet-20241022)")
+            logger.info("💡 Strategic thinking | Creative generation | Performance-aware")
+            logger.info("🎯 Business intelligence | Goal-driven content | Adaptive strategy")
+            logger.info("🚀 This is NOT automation - this is PARTNERSHIP!")
+            logger.info("=" * 75)
+            logger.info("🤝 Elena (Human Co-Founder) + LinkedIn CMO (AI Co-Founder)")
+            logger.info("   Building AIdeazz together - the future of work!")
+            logger.info("=" * 75)
         else:
+            logger.info("⚠️" * 20)
             logger.info("📝 AIPA MODE: Using templates (add ANTHROPIC_API_KEY for Co-Founder mode)")
+            logger.info("⚠️" * 20)
         
-        logger.info("🎉 LinkedIn CMO Ready! Monitoring schedule for posting...")
+        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 11 AM Panama!")
         logger.info("=" * 75)
     
     # BILINGUAL CONTENT TEMPLATES
