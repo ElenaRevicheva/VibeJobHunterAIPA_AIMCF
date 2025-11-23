@@ -25,6 +25,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 import os
+import anthropic
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +53,14 @@ class LinkedInCMO:
     
     def __init__(self, make_webhook_url: Optional[str] = None):
         """
-        Initialize LinkedIn CMO
+        Initialize LinkedIn CMO AI Co-Founder
         
         Args:
             make_webhook_url: Make.com webhook URL for LinkedIn posting
         """
+        # Get API keys for AI Co-Founder capabilities
+        self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
+        self.use_ai_generation = bool(self.anthropic_api_key)  # True Co-Founder mode if API key exists
         # 🔥 AI CO-FOUNDER STARTUP BANNER 🔥
         logger.info("=" * 75)
         logger.info("   █████╗ ██╗     ██████╗ ██████╗       ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ")
@@ -85,8 +89,15 @@ class LinkedInCMO:
             logger.warning("⚠️ LinkedIn CMO DISABLED - Add MAKE_WEBHOOK_URL_LINKEDIN to enable")
             logger.info("📝 Without webhook: Can generate content but won't post")
         
+        # AI Co-Founder capabilities
+        if self.use_ai_generation:
+            logger.info("🧠 AI CO-FOUNDER MODE: Fresh content via Claude API ✅")
+            logger.info("💡 Strategic thinking, creative generation, performance-aware")
+        else:
+            logger.info("📝 AIPA MODE: Using templates (add ANTHROPIC_API_KEY for Co-Founder mode)")
+        
         logger.info("🎉 LinkedIn CMO Ready! Monitoring schedule for posting...")
-        logger.info("=" * 60)
+        logger.info("=" * 75)
     
     # BILINGUAL CONTENT TEMPLATES
     # Based on Elena's resume - HIGH VALUE, NO BEGGING
@@ -385,9 +396,85 @@ No busco trabajo. Construyo leverage.
         }
     }
     
+    async def generate_ai_cofounder_content(self, post_type: str, language: str) -> str:
+        """
+        AI CO-FOUNDER: Generate FRESH content using Claude API
+        
+        This is what makes it a Co-Founder, not just an AIPA!
+        Strategic thinking + creative generation + business intelligence
+        """
+        if not self.use_ai_generation:
+            # Fallback to templates if no API key (AIPA mode)
+            return None
+        
+        try:
+            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            
+            # Elena's profile context
+            profile_context = """
+Elena Revicheva - AI-First Engineer & Founder
+• Ex-CEO & CLO in E-Government (Russia) 
+• Built 9 AI products in 7 months solo for <$15K
+• 5 AIPAs running 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
+• Users in 19 countries, bilingual (EN/ES)
+• Tech: Python, TypeScript, React, Claude, GPT-4, Railway, Fleek
+• Portfolio: EspaLuz AI Tutor, ALGOM Alpha, ATUONA NFTs, VibeJobHunter
+• Building AIdeazz.xyz with AI Co-Founders (not just AI tools!)
+"""
+            
+            # Strategic goals based on post type
+            goals = {
+                "open_to_work": "Attract founding engineer roles + strategic collaborations. Show founder mindset, not job seeker. Emphasize Ex-CEO background + AI Co-Founder concept. POWERFUL tone, full dignity.",
+                "technical_showcase": "Demonstrate technical depth - 5 AIPAs running autonomously. Show AI Co-Founder concept in action. Position as builder who ships fast.",
+                "transformation_story": "CEO → Founder journey. Emphasize urgency + AI-assisted vibe coding. Show AI Co-Founders enable solo building at team speed.",
+                "seeking_funding": "Pitch AIdeazz pre-seed ($100K-500K). Emphasize AI Co-Founder differentiation, not just AI tools. Show traction: 9 products, users in 19 countries."
+            }
+            
+            prompt = f"""You are LinkedIn CMO, an AI Co-Founder (not just an assistant) for AIdeazz.
+
+CONTEXT:
+{profile_context}
+
+YOUR ROLE: Strategic AI partner who thinks about business goals, generates creative content, and builds founder brand.
+
+TASK: Generate a {language.upper()} LinkedIn post for: {post_type}
+
+GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities')}
+
+REQUIREMENTS:
+- Powerful, confident tone (founder, NOT job seeker)
+- Mention AI Co-Founders concept (building WITH AI, not just using tools)
+- Include specific numbers: 9 AI products, 5 AIPAs, <$15K budget, 19 countries
+- Bilingual architecture emphasis
+- Ex-CEO/CLO background = business + technical
+- Links: wa.me/50766623757, x.com/reviceva, atuona.xyz
+- Language: {'English' if language == 'en' else 'Spanish'}
+- Length: 250-350 words
+- End with relevant hashtags (4-6)
+
+Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
+
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=800,
+                temperature=0.8,  # Creative but not random
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }]
+            )
+            
+            content = response.content[0].text.strip()
+            logger.info(f"🧠 AI Co-Founder generated FRESH {language.upper()} content ({len(content)} chars)")
+            return content
+            
+        except Exception as e:
+            logger.error(f"AI Co-Founder generation failed: {e}")
+            return None  # Fall back to templates
+    
     def generate_linkedin_post(self, post_type: str = "random", language: str = "random") -> Dict[str, str]:
         """
-        Generate a LinkedIn post
+        Generate a LinkedIn post (AI Co-Founder or template fallback)
         
         Args:
             post_type: Type of post ("open_to_work", "technical_showcase", etc.) or "random"
@@ -400,24 +487,40 @@ No busco trabajo. Construyo leverage.
         if language == "random":
             language = random.choice(["en", "es"])
         
-        # Get posts for selected language
-        if language == "en":
-            posts = self.LINKEDIN_POSTS_EN
-        else:
-            posts = self.LINKEDIN_POSTS_ES
-        
         # Choose post type
         if post_type == "random":
-            post_type = random.choice(list(posts.keys()))
+            available_types = list(self.LINKEDIN_POSTS_EN.keys() if language == "en" else self.LINKEDIN_POSTS_ES.keys())
+            post_type = random.choice(available_types)
         
-        post_data = posts.get(post_type, posts[list(posts.keys())[0]])
+        # Try AI Co-Founder generation first (if enabled)
+        ai_content = None
+        if self.use_ai_generation:
+            import asyncio
+            try:
+                # Run async function
+                loop = asyncio.get_event_loop()
+                ai_content = loop.run_until_complete(self.generate_ai_cofounder_content(post_type, language))
+            except:
+                ai_content = None
+        
+        # Use AI-generated content if available, otherwise fall back to templates
+        if ai_content:
+            content = ai_content
+            logger.info("🧠 Using AI Co-Founder generated content")
+        else:
+            # Fallback to templates (AIPA mode)
+            posts = self.LINKEDIN_POSTS_EN if language == "en" else self.LINKEDIN_POSTS_ES
+            post_data = posts.get(post_type, posts[list(posts.keys())[0]])
+            content = post_data["content"]
+            logger.info("📝 Using template content (AIPA mode)")
         
         return {
-            "content": post_data["content"],
+            "content": content,
             "language": language,
             "type": post_type,
             "timestamp": datetime.now().isoformat(),
-            "author": "Elena Revicheva"
+            "author": "Elena Revicheva",
+            "ai_generated": bool(ai_content)
         }
     
     async def send_to_make_com(self, post_content: Dict[str, str]) -> bool:
