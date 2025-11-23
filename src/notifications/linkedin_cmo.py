@@ -257,19 +257,21 @@ Live products to try:
     
     LINKEDIN_POSTS_ES = {
         "busco_trabajo": {
-            "content": """🚀 Después de construir 6 productos de IA en 7 meses (2 agentes autónomos en vivo), estoy lista para mi próximo capítulo.
+            "content": """🚀 Después de construir 9 productos de IA en 7 meses (5 AIPAs autónomos funcionando 24/7), estoy lista para mi próximo capítulo.
 
 Lo que aporto a tu startup de IA:
 • Ejecución 0→1: Visión → Diseño → Desarrollo → Implementación → Crecimiento
 • 98% de eficiencia de costos: Construí un portafolio de $900K por <$15K
+• 5 AIPAs desplegados: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
 • IA bilingüe (EN/ES): Usuarios en 19 países
 • Dominio multi-stack: Python, TypeScript, Node.js, React
 • 8+ integraciones de IA: Claude, GPT-4, Whisper, ElizaOS, HeyGen
 
-Productos en vivo que puedes probar AHORA MISMO:
-• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp)
-• ALGOM Alpha: x.com/reviceva (educación cripto autónoma)
-• ATUONA NFTs: atuona.xyz (poesía en blockchain Polygon)
+AIPAs en vivo que puedes probar AHORA MISMO:
+• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp - autónomo)
+• ALGOM Alpha: x.com/reviceva (agente cripto autónomo)
+• EspaLuz Web: espaluz.aideazz.xyz (plataforma SaaS)
+• ATUONA NFTs: atuona.xyz (poesía en Polygon)
 
 Buscando: Roles de Founding Engineer / AI Engineer / Product Builder en startups de IA en fase inicial.
 
@@ -283,7 +285,7 @@ Stack técnico: Python · TypeScript · React · Claude · GPT-4 · Railway · F
         
         "historia_transformacion": {
             "content": """Hace 7 meses: Ejecutiva de alto nivel en E-Gobierno, CERO experiencia en programación
-Hoy: 6 productos de IA en vivo, 2 agentes autónomos, usuarios en 19 países
+Hoy: 9 productos de IA en vivo, 5 AIPAs autónomos, usuarios en 19 países
 
 El camino no fue tradicional—fue NECESARIO.
 
@@ -293,18 +295,22 @@ El camino no fue tradicional—fue NECESARIO.
 ❌ Sin financiamiento (<$15K total)
 ✅ Solo visión, urgencia, y vibe coding asistido por IA
 
-Lo que lancé:
-• EspaLuz AI Tutor (WhatsApp + Telegram + Web SaaS)
-  → IA emocional bilingüe (EN/ES) para aprendizaje de idiomas
-  → Suscripciones PayPal ACTIVAS, pagos cripto en prueba
+Lo que lancé (9 productos de IA):
 
-• ALGOM Alpha (agente autónomo en X/Twitter)
-  → Enseña seguridad en trading cripto vía paper trading
-  → 180+ seguidores, publica autónomamente 24/7
+🤖 5 AIPAs (Asistentes Personales de IA Autónomos):
+• EspaLuz WhatsApp - Tutor de IA 24/7 (Railway)
+• EspaLuz Telegram - Tutor de IA 24/7 (Railway)
+• EspaLuz Influencer - Automatización de contenido (Railway)
+• ALGOM Alpha - Agente de trading cripto (Railway, 180+ seguidores)
+• VibeJobHunter - Automatización de búsqueda de empleo (Railway)
 
-• ATUONA NFT Gallery (blockchain Polygon)
-  → NFTs de poesía con enfoque mindfulness
-  → 45 lanzamientos en vivo, integración MetaMask
+🚀 4 Otros Productos de IA:
+• EspaLuz Web SaaS - Plataforma de tutoría (Lovable.dev)
+• ATUONA NFT Gallery - Poesía en Polygon (Fleek)
+• AIdeazz Website - Showcase del ecosistema (Fleek)
+• AIdeazz Docs - Documentación completa (GitHub)
+
+¡Todos desplegados, todos en vivo, todos autónomos!
 
 Stack técnico que aprendí:
 • Lenguajes: Python, TypeScript, JavaScript, SQL
