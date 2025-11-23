@@ -355,7 +355,7 @@ Ahora busco: Rol de Founding Engineer donde pueda traer esta velocidad 0→1 a t
         """
         Send LinkedIn post to Make.com webhook
         
-        Make.com will handle: Formatting → Buffer → LinkedIn posting
+        Make.com will handle: Formatting → Buffer → LinkedIn + Instagram posting
         
         Args:
             post_content: Dict with content, language, type
@@ -368,13 +368,36 @@ Ahora busco: Rol de Founding Engineer donde pueda traer esta velocidad 0→1 a t
             return False
         
         try:
+            # Image URLs for LinkedIn CMO posts (hosted on GitHub)
+            # Replace with your actual image URLs after uploading to GitHub
+            image_urls = {
+                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.jpg",
+                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.jpg",
+                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.jpg",
+                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.jpg",
+                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.jpg",
+                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.jpg"
+            }
+            
             payload = {
                 "platform": "linkedin",
                 "content": post_content["content"],
+                "text": post_content["content"],  # For Make.com compatibility
                 "language": post_content["language"],
                 "post_type": post_content["type"],
                 "timestamp": post_content["timestamp"],
-                "author": post_content["author"]
+                "author": post_content["author"],
+                # Add image URL based on post type
+                "imageURL": image_urls.get(post_content["type"], ""),
+                "videoURL": "",  # Future: Add video support
+                # Make.com scenario compatibility fields
+                "hook": "LinkedIn CMO Automated Post",
+                "audience": "Tech Professionals & Founders",
+                "emotional_state": "Ambitious",
+                "target_market": "AI Startups",
+                "viral_potential": "High",
+                "instagram_focus": "Professional Growth",
+                "linkedin_focus": "Career & Networking"
             }
             
             response = requests.post(
