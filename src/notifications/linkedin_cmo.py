@@ -77,29 +77,32 @@ class LinkedInCMO:
     
     LINKEDIN_POSTS_EN = {
         "open_to_work": {
-            "content": """🚀 After building 9 AI products in 7 months (5 autonomous AIPAs running 24/7), I'm ready for my next chapter.
+            "content": """I just deployed my 5th autonomous AIPA (AI Personal Assistant) running 24/7 in production.
 
-What I bring to your AI startup:
-• 0→1 execution: Vision → Design → Build → Deploy → Growth
+9 AI products built solo in 7 months. Ex-CEO/CLO turned founder + vibecoder.
+
+What I've proven:
+• 0→1 execution at startup speed (Vision → Live product in weeks)
 • 98% cost efficiency: Built $900K portfolio for <$15K
-• 5 AIPAs deployed: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
-• Bilingual AI (EN/ES): Users in 19 countries
-• Multi-stack mastery: Python, TypeScript, Node.js, React
-• 8+ AI integrations: Claude, GPT-4, Whisper, ElizaOS, HeyGen
+• 5 AIPAs running autonomously: VibeJobHunter, ALGOM Alpha, EspaLuz (3 variants)
+• Bilingual AI architecture (EN/ES): Users in 19 countries
+• Full-stack solo: Python, TypeScript, React, Claude, GPT-4
 
-Live AIPAs you can try RIGHT NOW:
-• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp - autonomous)
-• ALGOM Alpha: x.com/reviceva (autonomous crypto agent)
-• EspaLuz Web: espaluz.aideazz.xyz (SaaS platform)
-• ATUONA NFTs: atuona.xyz (poetry on Polygon)
+Live products to test:
+• wa.me/50766623757 - EspaLuz AI Tutor (WhatsApp AIPA)
+• x.com/reviceva - ALGOM Alpha (autonomous crypto agent)
+• atuona.xyz - ATUONA NFT Gallery (poetry on Polygon)
+• espaluz.aideazz.xyz - EspaLuz Web (SaaS platform)
 
-Looking for: Founding Engineer / AI Engineer / Product Builder roles at early-stage AI startups.
+Open to founding engineer roles + strategic collaborations with AI startups building 0→1 products.
 
-Why hire me? I don't just code—I ship FAST, deploy autonomously, and turn vision into live products.
+Not looking to be "just another hire." I'm a builder who ships fast, thinks like a founder, and turns vision into production.
 
-Tech stack: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
+Ex-CEO/CLO background = I understand business, not just code.
 
-#OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring""",
+Tech: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
+
+#AI #FoundingEngineer #BuildInPublic #Autonomous #AIProducts""",
             "hashtags": "#OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring"
         },
         
@@ -150,16 +153,23 @@ What autonomous AI systems are YOU building?
         },
         
         "transformation_story": {
-            "content": """7 months ago: C-suite executive in E-Government, ZERO coding experience
-Today: 9 live AI products, 5 autonomous AIPAs, users in 19 countries
+            "content": """From C-suite executive to AI founder in 7 months.
 
-The journey wasn't traditional—it was NECESSARY.
+7 months ago: CEO & CLO in E-Government (Russia), ZERO coding experience
+Today: 9 live AI products, 5 autonomous AIPAs running 24/7, users in 19 countries
 
-❌ No CS degree
-❌ No technical background  
-❌ No team
-❌ No funding (<$15K total)
-✅ Just vision, urgency, and AI-assisted vibe coding
+This wasn't a "career pivot" — it was a complete rebuild.
+
+What I started with:
+• Ex-CEO/CLO credentials (but no technical background)
+• M.A. in Social Psychology (understanding humans, not machines)
+• <$15K budget (no funding, no team)
+• Urgency (relocated to Panama, had to rebuild from zero)
+
+What I built:
+✅ 9 AI products (full-stack, solo)
+✅ 5 AIPAs running autonomously 24/7
+✅ AI-assisted vibe coding (urgency + AI = execution speed)
 
 What I shipped (9 AI products):
 
@@ -188,13 +198,17 @@ Tech stack I learned:
 KEY INSIGHT:
 You don't need a team to build—you need AI agents working FOR you.
 
-I went from executive to engineer because I HAD to. Relocated to Panama, rebuilt from zero, and discovered that urgency + AI = unstoppable execution.
+The insight: You don't need a CS degree to build AI products. You need founder-level urgency + AI tooling + relentless execution.
 
-Now seeking: Founding Engineer role where I can bring this 0→1 speed to your AI startup.
+I went from executive to engineer because I HAD to. Relocated to Panama, rebuilt from zero, and discovered that vision + urgency + AI = unstoppable.
+
+Now open to: Founding Engineer roles where I bring this 0→1 speed + founder mindset to early-stage AI startups.
+
+Not job hunting. Building leverage.
 
 What's YOUR transformation story?
 
-#BuildInPublic #CareerTransition #AIEngineering #SoloFounder #OpenToWork""",
+#BuildInPublic #FounderJourney #AIEngineering #SoloFounder #VibeCoding""",
             "hashtags": "#BuildInPublic #CareerTransition #AIEngineering #SoloFounder #OpenToWork"
         },
         
@@ -257,43 +271,53 @@ Live products to try:
     
     LINKEDIN_POSTS_ES = {
         "busco_trabajo": {
-            "content": """🚀 Después de construir 9 productos de IA en 7 meses (5 AIPAs autónomos funcionando 24/7), estoy lista para mi próximo capítulo.
+            "content": """Acabo de desplegar mi 5to AIPA (Asistente Personal de IA) autónomo funcionando 24/7 en producción.
 
-Lo que aporto a tu startup de IA:
-• Ejecución 0→1: Visión → Diseño → Desarrollo → Implementación → Crecimiento
-• 98% de eficiencia de costos: Construí un portafolio de $900K por <$15K
-• 5 AIPAs desplegados: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
-• IA bilingüe (EN/ES): Usuarios en 19 países
-• Dominio multi-stack: Python, TypeScript, Node.js, React
-• 8+ integraciones de IA: Claude, GPT-4, Whisper, ElizaOS, HeyGen
+9 productos de IA construidos en solitario en 7 meses. Ex-CEO/CLO convertida en fundadora + vibecoder.
 
-AIPAs en vivo que puedes probar AHORA MISMO:
-• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp - autónomo)
-• ALGOM Alpha: x.com/reviceva (agente cripto autónomo)
-• EspaLuz Web: espaluz.aideazz.xyz (plataforma SaaS)
-• ATUONA NFTs: atuona.xyz (poesía en Polygon)
+Lo que he demostrado:
+• Ejecución 0→1 a velocidad startup (Visión → Producto en vivo en semanas)
+• 98% de eficiencia de costos: Construí portafolio de $900K por <$15K
+• 5 AIPAs funcionando autónomamente: VibeJobHunter, ALGOM Alpha, EspaLuz (3 variantes)
+• Arquitectura de IA bilingüe (EN/ES): Usuarios en 19 países
+• Full-stack sola: Python, TypeScript, React, Claude, GPT-4
 
-Buscando: Roles de Founding Engineer / AI Engineer / Product Builder en startups de IA en fase inicial.
+Productos en vivo para probar:
+• wa.me/50766623757 - EspaLuz AI Tutor (AIPA en WhatsApp)
+• x.com/reviceva - ALGOM Alpha (agente cripto autónomo)
+• atuona.xyz - ATUONA NFT Gallery (poesía en Polygon)
+• espaluz.aideazz.xyz - EspaLuz Web (plataforma SaaS)
 
-¿Por qué contratarme? No solo codifico—lanzo productos RÁPIDO y convierto visión en productos en vivo.
+Abierta a roles de founding engineer + colaboraciones estratégicas con startups de IA construyendo productos 0→1.
 
-Stack técnico: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek
+No busco ser "una contratación más." Soy una builder que lanza rápido, piensa como fundadora, y convierte visión en producción.
 
-#BuscoTrabajo #IngenieraIA #FoundingEngineer #IA #MachineLearning""",
+Background Ex-CEO/CLO = Entiendo el negocio, no solo el código.
+
+Tech: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
+
+#IA #FoundingEngineer #BuildInPublic #AutonomousAI #ProductosIA""",
             "hashtags": "#BuscoTrabajo #IngenieraIA #FoundingEngineer #IA #MachineLearning"
         },
         
         "historia_transformacion": {
-            "content": """Hace 7 meses: Ejecutiva de alto nivel en E-Gobierno, CERO experiencia en programación
-Hoy: 9 productos de IA en vivo, 5 AIPAs autónomos, usuarios en 19 países
+            "content": """De ejecutiva C-suite a fundadora de IA en 7 meses.
 
-El camino no fue tradicional—fue NECESARIO.
+Hace 7 meses: CEO & CLO en E-Gobierno (Rusia), CERO experiencia en programación
+Hoy: 9 productos de IA en vivo, 5 AIPAs autónomos funcionando 24/7, usuarios en 19 países
 
-❌ Sin título en Ciencias de la Computación
-❌ Sin experiencia técnica
-❌ Sin equipo
-❌ Sin financiamiento (<$15K total)
-✅ Solo visión, urgencia, y vibe coding asistido por IA
+Esto no fue un "cambio de carrera" — fue una reconstrucción completa.
+
+Con qué empecé:
+• Credenciales Ex-CEO/CLO (pero sin background técnico)
+• M.A. en Psicología Social (entendiendo humanos, no máquinas)
+• Presupuesto <$15K (sin financiamiento, sin equipo)
+• Urgencia (reubicada en Panamá, tenía que reconstruir desde cero)
+
+Lo que construí:
+✅ 9 productos de IA (full-stack, sola)
+✅ 5 AIPAs funcionando autónomamente 24/7
+✅ Vibe coding asistido por IA (urgencia + IA = velocidad de ejecución)
 
 Lo que lancé (9 productos de IA):
 
@@ -322,13 +346,17 @@ Stack técnico que aprendí:
 INSIGHT CLAVE:
 No necesitas un equipo para construir—necesitas agentes de IA trabajando PARA ti.
 
-Pasé de ejecutiva a ingeniera porque TENÍA que hacerlo. Me reubiqué en Panamá, reconstruí desde cero, y descubrí que urgencia + IA = ejecución imparable.
+El insight: No necesitas un título en CS para construir productos de IA. Necesitas urgencia nivel fundador + herramientas de IA + ejecución implacable.
 
-Ahora busco: Rol de Founding Engineer donde pueda traer esta velocidad 0→1 a tu startup de IA.
+Pasé de ejecutiva a ingeniera porque TENÍA que hacerlo. Me reubiqué en Panamá, reconstruí desde cero, y descubrí que visión + urgencia + IA = imparable.
+
+Ahora abierta a: Roles de Founding Engineer donde traigo esta velocidad 0→1 + mentalidad fundadora a startups de IA en fase inicial.
+
+No busco trabajo. Construyo leverage.
 
 ¿Cuál es TU historia de transformación?
 
-#BuildInPublic #TransiciónDeCarrera #IngenieríaIA #FundadoraSolo #BuscoTrabajo""",
+#BuildInPublic #JourneyFundadora #IngenieríaIA #FundadoraSolo #VibeCoding""",
             "hashtags": "#BuildInPublic #TransiciónDeCarrera #IngenieríaIA #FundadoraSolo #BuscoTrabajo"
         }
     }
