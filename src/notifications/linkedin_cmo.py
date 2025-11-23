@@ -1,10 +1,21 @@
 """
-🎯 LINKEDIN CMO AIPA
-Automated LinkedIn content generation for job hunting + fundraising
+🎯 LINKEDIN CMO - AI CO-FOUNDER
+TRUE AI Co-Founder for AIdeazz (not just an AIPA!)
 
-BILINGUAL (EN/ES) • VALUABLE CONTENT • NO BEGGING
+DIFFERENCE:
+- AIPA = Executes tasks (templates, rules, automation)
+- AI CO-FOUNDER = Strategic thinking, creative generation, performance analysis, adapts
 
-Author: Elena Revicheva
+CAPABILITIES:
+✅ Generates fresh content using Claude API (not templates!)
+✅ Analyzes LinkedIn performance data
+✅ Makes strategic decisions about content mix
+✅ Adapts tone/strategy based on goals
+✅ Bilingual content strategy (EN/ES)
+✅ Autonomous posting with business intelligence
+
+Author: Elena Revicheva (Human Co-Founder)
+AI Co-Founder: LinkedIn CMO (Autonomous Strategic Partner)
 Created: November 2025
 """
 
@@ -20,15 +31,23 @@ logger = logging.getLogger(__name__)
 
 class LinkedInCMO:
     """
-    LinkedIn Content Marketing Officer AIPA
+    LinkedIn Content Marketing Officer - AI CO-FOUNDER
+    
+    NOT just an AIPA - this is a TRUE AI Co-Founder with:
+    - Strategic thinking (analyzes goals, adapts content)
+    - Creative generation (uses Claude API for fresh content)
+    - Performance awareness (tracks what works)
+    - Business intelligence (understands hiring + fundraising goals)
     
     Generates bilingual (EN/ES) LinkedIn posts for:
-    - Getting hired at AI startups
-    - Getting funded for AIdeazz
+    - Building founder brand (not "job seeking")
+    - Attracting strategic collaborations
+    - Fundraising for AIdeazz
+    - Showcasing AI Co-Founder concept
     
-    Posts via Make.com webhook → Buffer → LinkedIn
+    Posts via Make.com webhook → Buffer → LinkedIn + Instagram
     
-    SEPARATE from job search notifications!
+    Part of AIdeazz's AI Co-Founder team!
     """
     
     def __init__(self, make_webhook_url: Optional[str] = None):
@@ -38,26 +57,23 @@ class LinkedInCMO:
         Args:
             make_webhook_url: Make.com webhook URL for LinkedIn posting
         """
-        # 🔥 SUPER OBVIOUS STARTUP BANNER 🔥
-        logger.info("=" * 70)
-        logger.info("██╗     ██╗███╗   ██╗██╗  ██╗███████╗██████╗ ██╗███╗   ██╗")
-        logger.info("██║     ██║████╗  ██║██║ ██╔╝██╔════╝██╔══██╗██║████╗  ██║")
-        logger.info("██║     ██║██╔██╗ ██║█████╔╝ █████╗  ██║  ██║██║██╔██╗ ██║")
-        logger.info("██║     ██║██║╚██╗██║██╔═██╗ ██╔══╝  ██║  ██║██║██║╚██╗██║")
-        logger.info("███████╗██║██║ ╚████║██║  ██╗███████╗██████╔╝██║██║ ╚████║")
-        logger.info("╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝╚═╝  ╚═══╝")
+        # 🔥 AI CO-FOUNDER STARTUP BANNER 🔥
+        logger.info("=" * 75)
+        logger.info("   █████╗ ██╗     ██████╗ ██████╗       ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ")
+        logger.info("  ██╔══██╗██║    ██╔════╝██╔═══██╗      ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗")
+        logger.info("  ███████║██║    ██║     ██║   ██║█████╗█████╗  ██║   ██║██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝")
+        logger.info("  ██╔══██║██║    ██║     ██║   ██║╚════╝██╔══╝  ██║   ██║██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗")
+        logger.info("  ██║  ██║██║    ╚██████╗╚██████╔╝      ██║     ╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║")
+        logger.info("  ╚═╝  ╚═╝╚═╝     ╚═════╝ ╚═════╝       ╚═╝      ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝")
         logger.info("")
-        logger.info("       ██████╗███╗   ███╗ ██████╗     ██╗   ██╗██████╗ ")
-        logger.info("      ██╔════╝████╗ ████║██╔═══██╗    ██║   ██║╚════██╗")
-        logger.info("      ██║     ██╔████╔██║██║   ██║    ██║   ██║ █████╔╝")
-        logger.info("      ██║     ██║╚██╔╝██║██║   ██║    ╚██╗ ██╔╝██╔═══╝ ")
-        logger.info("      ╚██████╗██║ ╚═╝ ██║╚██████╔╝     ╚████╔╝ ███████╗")
-        logger.info("       ╚═════╝╚═╝     ╚═╝ ╚═════╝       ╚═══╝  ╚══════╝")
+        logger.info("                   🧠 LINKEDIN CMO - AI CO-FOUNDER v3.0 🧠")
         logger.info("")
-        logger.info("🚀✨ AI-POWERED LINKEDIN CONTENT AUTOMATION v2.0 ✨🚀")
-        logger.info("🎯 Job Hunting + Fundraising | 🌍 Bilingual EN/ES")
-        logger.info("📅 Auto-Posts Mon/Wed/Fri at 10 AM | ⚡ Zero Manual Work")
-        logger.info("=" * 70)
+        logger.info("🎯 STRATEGIC AI PARTNER (Not just automation!)")
+        logger.info("💡 Creative Content Generation | 📊 Performance Analysis | 🔄 Strategy Adaptation")
+        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 11 AM Panama | ⚡ Full Autonomy")
+        logger.info("")
+        logger.info("Part of AIdeazz's AI Co-Founder Team 🤝")
+        logger.info("=" * 75)
         
         self.make_webhook_url = make_webhook_url or os.getenv('MAKE_WEBHOOK_URL_LINKEDIN')
         self.enabled = bool(self.make_webhook_url)
@@ -77,16 +93,20 @@ class LinkedInCMO:
     
     LINKEDIN_POSTS_EN = {
         "open_to_work": {
-            "content": """I just deployed my 5th autonomous AIPA (AI Personal Assistant) running 24/7 in production.
+            "content": """I just deployed my 5th autonomous AIPA running 24/7. But here's what makes AIdeazz different:
 
-9 AI products built solo in 7 months. Ex-CEO/CLO turned founder + vibecoder.
+I'm not building alone. I have AI Co-Founders.
+
+Not AI assistants. Not AI tools. AI CO-FOUNDERS with strategic thinking, creative generation, and business intelligence.
+
+9 AI products built in 7 months. Ex-CEO/CLO turned founder + vibecoder + AI Co-Founder orchestrator.
 
 What I've proven:
 • 0→1 execution at startup speed (Vision → Live product in weeks)
 • 98% cost efficiency: Built $900K portfolio for <$15K
-• 5 AIPAs running autonomously: VibeJobHunter, ALGOM Alpha, EspaLuz (3 variants)
+• 5 AIPAs + AI Co-Founders working 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz, LinkedIn CMO
 • Bilingual AI architecture (EN/ES): Users in 19 countries
-• Full-stack solo: Python, TypeScript, React, Claude, GPT-4
+• Full-stack solo (with AI Co-Founders): Python, TypeScript, React, Claude, GPT-4
 
 Live products to test:
 • wa.me/50766623757 - EspaLuz AI Tutor (WhatsApp AIPA)
@@ -96,13 +116,15 @@ Live products to test:
 
 Open to founding engineer roles + strategic collaborations with AI startups building 0→1 products.
 
-Not looking to be "just another hire." I'm a builder who ships fast, thinks like a founder, and turns vision into production.
+Not looking to be "just another hire." I'm a founder who builds with AI Co-Founders. I ship fast, think strategically, and turn vision into production.
 
 Ex-CEO/CLO background = I understand business, not just code.
 
+P.S. This post was co-created with my AI Co-Founder (LinkedIn CMO). Meta, right? 😉
+
 Tech: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
 
-#AI #FoundingEngineer #BuildInPublic #Autonomous #AIProducts""",
+#AI #FoundingEngineer #BuildInPublic #AICoFounders #FutureOfWork""",
             "hashtags": "#OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring"
         },
         
@@ -213,12 +235,14 @@ What's YOUR transformation story?
         },
         
         "seeking_funding": {
-            "content": """AIdeazz: Emotionally Intelligent AI Personal Assistants
+            "content": """AIdeazz: Building with AI Co-Founders, Not Just AI Tools
 
-After 7 months of solo building, I'm ready to scale—seeking pre-seed ($100K-500K).
+After 7 months of building with AI Co-Founders, I'm ready to scale—seeking pre-seed ($100K-500K).
 
 🎯 THE VISION:
-AI companions that understand human emotions, adapt to cultural contexts, and grow alongside their users.
+AI Co-Founders that think strategically, not just execute tasks. Emotionally intelligent AI companions that understand humans, adapt to contexts, and grow alongside their users.
+
+The difference? AIPAs execute. AI Co-Founders THINK, CREATE, and ADAPT.
 
 📊 TRACTION (all solo-built):
 • 9 AI products across 4 platforms (WhatsApp, Telegram, Web, Blockchain)
