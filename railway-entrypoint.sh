@@ -3,6 +3,17 @@
 
 set -e
 
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║  🧠🔥 VIBEJOBHUNTER v4.0 - AI CO-FOUNDER EDITION 🔥🧠         ║"
+echo "║                                                                ║"
+echo "║  📅 BUILD: November 23, 2025 20:55 UTC                        ║"
+echo "║  🎯 GIT COMMIT: ee0dce5 (AI Co-Founder Upgrade)               ║"
+echo "║  🧠 FEATURE: TRUE AI Co-Founder with Claude API              ║"
+echo "║  🌍 Daily Posts: 11 AM Panama (16:00 UTC)                     ║"
+echo "║                                                                ║"
+echo "║  IF YOU SEE THIS = Railway deployed AI Co-Founder code! ✅    ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
 echo "🤖 VibeJobHunter Autonomous Engine"
 echo "=================================="
 echo ""
