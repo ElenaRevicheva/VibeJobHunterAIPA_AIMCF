@@ -77,44 +77,54 @@ class LinkedInCMO:
     
     LINKEDIN_POSTS_EN = {
         "open_to_work": {
-            "content": """🚀 After building 6 AI products in 7 months (2 autonomous agents live), I'm ready for my next chapter.
+            "content": """🚀 After building 9 AI products in 7 months (5 autonomous AIPAs running 24/7), I'm ready for my next chapter.
 
 What I bring to your AI startup:
 • 0→1 execution: Vision → Design → Build → Deploy → Growth
 • 98% cost efficiency: Built $900K portfolio for <$15K
+• 5 AIPAs deployed: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
 • Bilingual AI (EN/ES): Users in 19 countries
 • Multi-stack mastery: Python, TypeScript, Node.js, React
 • 8+ AI integrations: Claude, GPT-4, Whisper, ElizaOS, HeyGen
 
-Live products you can try RIGHT NOW:
-• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp)
-• ALGOM Alpha: x.com/reviceva (autonomous crypto education)
-• ATUONA NFTs: atuona.xyz (poetry on Polygon blockchain)
+Live AIPAs you can try RIGHT NOW:
+• EspaLuz AI Tutor: wa.me/50766623757 (WhatsApp - autonomous)
+• ALGOM Alpha: x.com/reviceva (autonomous crypto agent)
+• EspaLuz Web: espaluz.aideazz.xyz (SaaS platform)
+• ATUONA NFTs: atuona.xyz (poetry on Polygon)
 
 Looking for: Founding Engineer / AI Engineer / Product Builder roles at early-stage AI startups.
 
-Why hire me? I don't just code—I ship FAST and turn vision into live products.
+Why hire me? I don't just code—I ship FAST, deploy autonomously, and turn vision into live products.
 
-Tech stack: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek
+Tech stack: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
 
 #OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring""",
             "hashtags": "#OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring"
         },
         
         "technical_showcase": {
-            "content": """How I deployed 2 autonomous AI agents that run 24/7 in production 🤖
+            "content": """How I deployed 5 autonomous AIPAs that run 24/7 in production 🤖
 
 THE CHALLENGE:
 Build AI agents that work WITHOUT human intervention—true autonomy.
 
-THE STACK:
+THE AIPA STACK:
 • ALGOM Alpha (X/Twitter): Node.js + ElizaOS + Claude + CCXT
   → Autonomous paper trading + educational content
   → 180+ followers, posting daily, zero manual work
 
+• VibeJobHunter: Python + Claude + Selenium + Make.com
+  → Autonomous job hunting + outreach automation
+  → Finds jobs, researches companies, sends personalized messages
+
 • EspaLuz Influencer (LinkedIn/IG): Python + GPT-4 + Buffer + Make.com
   → Automated content generation + multi-platform posting
   → Bilingual (EN/ES) emotional AI stories
+
+• EspaLuz WhatsApp + Telegram: Python + Claude + Twilio
+  → Autonomous AI tutors for language learning
+  → 24/7 emotional support, 19 countries
 
 THE SOLUTION:
 1. Railway for hosting (continuous deployment from GitHub)
@@ -141,7 +151,7 @@ What autonomous AI systems are YOU building?
         
         "transformation_story": {
             "content": """7 months ago: C-suite executive in E-Government, ZERO coding experience
-Today: 6 live AI products, 2 autonomous agents, users in 19 countries
+Today: 9 live AI products, 5 autonomous AIPAs, users in 19 countries
 
 The journey wasn't traditional—it was NECESSARY.
 
@@ -151,22 +161,22 @@ The journey wasn't traditional—it was NECESSARY.
 ❌ No funding (<$15K total)
 ✅ Just vision, urgency, and AI-assisted vibe coding
 
-What I shipped:
-• EspaLuz AI Tutor (WhatsApp + Telegram + Web SaaS)
-  → Bilingual (EN/ES) emotional AI for language learning
-  → PayPal subscriptions LIVE, crypto payments in testing
+What I shipped (9 AI products):
 
-• ALGOM Alpha (X/Twitter autonomous agent)
-  → Teaches crypto trading safety via paper trading
-  → 180+ followers, posts autonomously 24/7
+🤖 5 AIPAs (Autonomous AI Personal Assistants):
+• EspaLuz WhatsApp - AI Tutor running 24/7 (Railway)
+• EspaLuz Telegram - AI Tutor running 24/7 (Railway)
+• EspaLuz Influencer - Content automation (Railway)
+• ALGOM Alpha - Crypto trading agent (Railway, 180+ followers)
+• VibeJobHunter - Job hunting automation (Railway)
 
-• ATUONA NFT Gallery (Polygon blockchain)
-  → Mindfulness-driven poetry NFTs
-  → 45 drops live, MetaMask integration
+🚀 4 Other AI Products:
+• EspaLuz Web SaaS - AI Tutor platform (Lovable.dev)
+• ATUONA NFT Gallery - Poetry on Polygon (Fleek)
+• AIdeazz Website - Ecosystem showroom (Fleek)
+• AIdeazz Docs - Complete documentation (GitHub)
 
-• VibeJobHunter (CLI + Dashboard)
-  → AI-powered job application automation
-  → Batch apply to 10 jobs in 15 minutes
+All deployed, all live, all autonomous!
 
 Tech stack I learned:
 • Languages: Python, TypeScript, JavaScript, SQL
@@ -197,8 +207,9 @@ After 7 months of solo building, I'm ready to scale—seeking pre-seed ($100K-50
 AI companions that understand human emotions, adapt to cultural contexts, and grow alongside their users.
 
 📊 TRACTION (all solo-built):
-• 6 live products across 4 platforms (WhatsApp, Telegram, Web, Blockchain)
-• 2 autonomous AI agents running 24/7
+• 9 AI products across 4 platforms (WhatsApp, Telegram, Web, Blockchain)
+• 5 autonomous AIPAs running 24/7 (Railway + Lovable + Fleek)
+• VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
 • Users in 19 Spanish-speaking countries
 • PayPal subscriptions LIVE (early traction phase)
 • Tech: Python, TypeScript, React, Claude, GPT-4, ElizaOS
