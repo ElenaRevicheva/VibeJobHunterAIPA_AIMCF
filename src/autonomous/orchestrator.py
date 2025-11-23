@@ -369,22 +369,27 @@ class AutonomousOrchestrator:
         """
         Check if it's time to post to LinkedIn
         
-        Posts Mon/Wed/Fri at 10 AM
-        Alternates EN/ES (Mon=EN, Wed=ES, Fri=EN)
+        Posts DAILY at 10 AM
+        Alternates EN/ES by day:
+        - Even days (Mon/Wed/Fri/Sun) = English + image_1.png
+        - Odd days (Tue/Thu/Sat) = Spanish + image_1.1.png
         """
         if not self.linkedin_cmo or not self.linkedin_cmo.enabled:
             return
         
         now = datetime.now()
-        day = now.strftime("%A")  # Monday, Wednesday, Friday
+        day_name = now.strftime("%A")
+        day_number = now.weekday()  # Monday=0, Sunday=6
         hour = now.hour
         
-        # Post Mon/Wed/Fri at 10 AM
-        if hour == 10 and day in ["Monday", "Wednesday", "Friday"]:
-            # Alternate EN/ES
-            language = "en" if day in ["Monday", "Friday"] else "es"
+        # Post EVERY DAY at 10 AM
+        if hour == 10:
+            # Alternate language by day number
+            # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
+            language = "en" if day_number % 2 == 0 else "es"
+            image_name = "image_1.png" if language == "en" else "image_1.1.png"
             
-            logger.info(f"📱 LinkedIn CMO: Posting {language.upper()} content ({day})")
+            logger.info(f"📱 LinkedIn CMO: DAILY POST - {language.upper()} content ({day_name}) with {image_name}")
             
             await self.linkedin_cmo.post_to_linkedin(
                 post_type="random",
