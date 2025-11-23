@@ -56,11 +56,17 @@ class AutonomousOrchestrator:
         self.telegram = TelegramNotifier()
         
         # Initialize LinkedIn CMO (separate from job search)
+        logger.info("🔍 Attempting to load LinkedIn CMO...")
         try:
             from ..notifications import LinkedInCMO
+            logger.info("✅ LinkedInCMO class imported successfully")
             self.linkedin_cmo = LinkedInCMO()
+            logger.info("✅ LinkedInCMO initialized successfully")
         except Exception as e:
-            logger.warning(f"⚠️ LinkedIn CMO not available: {e}")
+            logger.error(f"❌❌❌ LINKEDIN CMO FAILED TO LOAD: {e}")
+            logger.error(f"❌ Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             self.linkedin_cmo = None
         
         # Initialize all agents
