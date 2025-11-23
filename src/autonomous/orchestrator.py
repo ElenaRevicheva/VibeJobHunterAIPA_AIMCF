@@ -42,6 +42,13 @@ class AutonomousOrchestrator:
     """
     
     def __init__(self, profile: Profile, telegram_enabled: bool = True):
+        # 🔥🔥🔥 DEPLOYMENT TEST v3.0 - If you see this, Railway deployed latest code! 🔥🔥🔥
+        logger.info("=" * 80)
+        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v3.0 - LINKEDIN CMO EDITION 🚀🎨")
+        logger.info("🔥 GIT COMMIT: 324436a | 📅 BUILD: Nov 23, 2025")
+        logger.info("✨ NEW FEATURE: LinkedIn CMO with ASCII Art Banner! ✨")
+        logger.info("=" * 80)
+        
         self.profile = profile
         
         # Initialize Telegram notifier (job search notifications)
