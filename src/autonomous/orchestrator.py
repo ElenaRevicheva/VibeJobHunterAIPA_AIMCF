@@ -400,23 +400,39 @@ class AutonomousOrchestrator:
             return
         
         now = datetime.now()
+        today = now.date()
         day_name = now.strftime("%A")
         day_number = now.weekday()  # Monday=0, Sunday=6
         hour = now.hour
+        minute = now.minute
+        
+        # Check if already posted today
+        if self.last_linkedin_post_date == today:
+            logger.debug(f"⏭️ LinkedIn CMO: Already posted today ({today}), skipping")
+            return
         
         # Post EVERY DAY at 16:00 UTC = 11:00 AM Panama time (UTC-5)
+        # Allow posting during 16:00-16:59 window (in case we miss exact minute)
         if hour == 16:
             # Alternate language by day number
             # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
             language = "en" if day_number % 2 == 0 else "es"
             image_name = "image_1.png" if language == "en" else "image_1.1.png"
             
-            logger.info(f"📱 LinkedIn CMO: DAILY POST - {language.upper()} content ({day_name}) with {image_name}")
+            logger.info(f"📱 LinkedIn CMO: DAILY POST TRIGGERED! 🚀")
+            logger.info(f"📅 Date: {today} ({day_name})")
+            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (11 AM Panama)")
+            logger.info(f"🌍 Language: {language.upper()}")
+            logger.info(f"🖼️ Image: {image_name}")
             
             await self.linkedin_cmo.post_to_linkedin(
                 post_type="random",
                 language=language
             )
+            
+            # Mark as posted today
+            self.last_linkedin_post_date = today
+            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 16:00 UTC")
     
     async def start_autonomous_mode(self, interval_hours: int = 1):
         """
