@@ -70,6 +70,7 @@ class AutonomousOrchestrator:
         logger.info("=" * 80)
         
         self.profile = profile
+        self.last_linkedin_post_date = None  # Track last posting date to prevent duplicates
         
         # Initialize Telegram notifier (job search notifications)
         from ..notifications import TelegramNotifier
