@@ -1,6 +1,0 @@
-FORCE RAILWAY REDEPLOY
-Timestamp: 2025-11-23 20:53:00
-Commit: 247338b (AI Co-Founder v3.0 with EPIC banner)
-
-Railway: Please deploy the AI Co-Founder code NOW!
-This file exists only to trigger deployment.
