@@ -390,8 +390,8 @@ class AutonomousOrchestrator:
         """
         Check if it's time to post to LinkedIn
         
-        Posts DAILY at 11 AM Panama time (UTC-5)
-        Railway runs in UTC, so we post at 16:00 UTC = 11:00 AM Panama
+        Posts DAILY at 3 PM Panama time (UTC-5)
+        Railway runs in UTC, so we post at 20:00 UTC = 3:00 PM Panama
         
         Alternates EN/ES by day:
         - Even days (Mon/Wed/Fri/Sun) = English + image_1.png
@@ -412,9 +412,9 @@ class AutonomousOrchestrator:
             logger.debug(f"⏭️ LinkedIn CMO: Already posted today ({today}), skipping")
             return
         
-        # Post EVERY DAY at 16:00 UTC = 11:00 AM Panama time (UTC-5)
-        # Allow posting during 16:00-16:59 window (in case we miss exact minute)
-        if hour == 16:
+        # Post EVERY DAY at 20:00 UTC = 3:00 PM Panama time (UTC-5)
+        # Allow posting during 20:00-20:59 window (in case we miss exact minute)
+        if hour == 20:
             # Alternate language by day number
             # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
             language = "en" if day_number % 2 == 0 else "es"
@@ -422,7 +422,7 @@ class AutonomousOrchestrator:
             
             logger.info(f"📱 LinkedIn CMO: DAILY POST TRIGGERED! 🚀")
             logger.info(f"📅 Date: {today} ({day_name})")
-            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (11 AM Panama)")
+            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (3 PM Panama)")
             logger.info(f"🌍 Language: {language.upper()}")
             logger.info(f"🖼️ Image: {image_name}")
             
@@ -433,7 +433,7 @@ class AutonomousOrchestrator:
             
             # Mark as posted today
             self.last_linkedin_post_date = today
-            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 16:00 UTC")
+            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 20:00 UTC (3 PM Panama)")
     
     async def start_autonomous_mode(self, interval_hours: int = 1):
         """

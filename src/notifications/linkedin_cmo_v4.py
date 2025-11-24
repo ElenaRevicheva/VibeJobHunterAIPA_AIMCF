@@ -121,7 +121,7 @@ class LinkedInCMO:
         logger.info("")
         logger.info("🎯 EMOTIONALLY INTELLIGENT AI (Not just functional tools!)")
         logger.info("💡 Creative Content Generation | 📊 Performance Analysis | 🔄 Strategy Adaptation")
-        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 11 AM Panama | ⚡ Full Autonomy")
+        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 3 PM Panama (20:00 UTC) | ⚡ Full Autonomy")
         logger.info("")
         logger.info("Part of AIdeazz's AI Co-Founder Team 🤝")
         logger.info("=" * 80)
