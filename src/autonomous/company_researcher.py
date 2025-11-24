@@ -201,7 +201,7 @@ class CompanyResearcher:
             
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",  # Updated to current model
                 max_tokens=1000,
                 messages=[{
                     "role": "user",
