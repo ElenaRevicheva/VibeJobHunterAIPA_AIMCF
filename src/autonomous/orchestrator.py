@@ -25,15 +25,22 @@ from .response_handler import ResponseHandler
 logger = setup_logger(__name__)
 
 # 🔥🔥🔥 MODULE VERSION - Logs on import! 🔥🔥🔥
-ORCHESTRATOR_VERSION = "4.0_AI_COFOUNDER_EDITION"
-ORCHESTRATOR_BUILD = "2025-11-23_21:28_UTC"
-ORCHESTRATOR_COMMIT = "fc6c997"
+ORCHESTRATOR_VERSION = "4.0_AI_COFOUNDER_FULL_STRATEGIC"
+ORCHESTRATOR_BUILD = "2025-11-23_21:36_UTC"
+ORCHESTRATOR_COMMIT = "bf5e131"
+
+print("\n" + "💥"*40)
+print("🚨 EMERGENCY DEPLOY: FULL AI CO-FOUNDER STRATEGIC CAPABILITIES! 🚨")
+print(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
+print(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
+print(f"🧠 ALL 4 CAPABILITIES: Performance + Learning + Strategy + Market")
+print("💥"*40 + "\n")
 
 logger.info("💥" * 35)
-logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - CACHE BUSTER TEST! 🚨🚨🚨")
+logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - FULL CAPABILITIES! 🚨🚨🚨")
 logger.info(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
 logger.info(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-logger.info(f"🧠 INCLUDES: LinkedIn CMO v4 with AI Co-Founder capabilities")
+logger.info(f"🧠 INCLUDES: LinkedIn CMO v4 with FULL AI Co-Founder capabilities")
 logger.info(f"🔥 IF YOU SEE THIS = Railway loaded FRESH orchestrator.py file!")
 logger.info("💥" * 35)
 

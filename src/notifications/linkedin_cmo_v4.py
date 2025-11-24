@@ -31,11 +31,13 @@ from pathlib import Path
 
 # 🔥🔥🔥 PRINT STATEMENTS - Show BEFORE logging is configured! 🔥🔥🔥
 print("\n" + "="*80)
-print("🚨🔥💥 LINKEDIN CMO v4.0 MODULE LOADING - AI CO-FOUNDER EDITION 💥🔥🚨")
-print(f"📦 FILE: linkedin_cmo_v4.py (RENAMED to bust cache!)")
-print(f"🎯 BUILD: 2025-11-23 21:32 UTC | COMMIT: 3869a44")
-print(f"🧠 AI CO-FOUNDER: Claude API + Strategic Thinking READY")
-print(f"🔥 IF YOU SEE THIS = Railway loaded NEW linkedin_cmo_v4.py file!")
+print("🚨🔥💥 LINKEDIN CMO v4.0 - FULL AI CO-FOUNDER CAPABILITIES! 💥🔥🚨")
+print(f"📦 FILE: linkedin_cmo_v4.py (With ALL 4 strategic capabilities!)")
+print(f"🎯 BUILD: 2025-11-23 21:36 UTC | COMMIT: bf5e131")
+print(f"🧠 AI CO-FOUNDER FEATURES:")
+print(f"   ✅ 1. Performance Tracking  ✅ 2. Learning & Adaptation")
+print(f"   ✅ 3. Strategic Decisions   ✅ 4. Market Intelligence")
+print(f"🔥 THIS IS TRUE AI CO-FOUNDER - NOT SIMULATION!")
 print("="*80 + "\n")
 
 logger = logging.getLogger(__name__)
