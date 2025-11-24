@@ -24,6 +24,19 @@ from .response_handler import ResponseHandler
 
 logger = setup_logger(__name__)
 
+# 🔥🔥🔥 MODULE VERSION - Logs on import! 🔥🔥🔥
+ORCHESTRATOR_VERSION = "4.0_AI_COFOUNDER_EDITION"
+ORCHESTRATOR_BUILD = "2025-11-23_21:28_UTC"
+ORCHESTRATOR_COMMIT = "fc6c997"
+
+logger.info("💥" * 35)
+logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - CACHE BUSTER TEST! 🚨🚨🚨")
+logger.info(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
+logger.info(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
+logger.info(f"🧠 INCLUDES: LinkedIn CMO v4 with AI Co-Founder capabilities")
+logger.info(f"🔥 IF YOU SEE THIS = Railway loaded FRESH orchestrator.py file!")
+logger.info("💥" * 35)
+
 
 class AutonomousOrchestrator:
     """
