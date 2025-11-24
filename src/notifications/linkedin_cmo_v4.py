@@ -625,10 +625,10 @@ Generate FRESH, creative content (not templates). Think strategically about what
         if self.use_ai_generation:
             import asyncio
             try:
-                # Run async function
-                loop = asyncio.get_event_loop()
-                ai_content = loop.run_until_complete(self.generate_ai_cofounder_content(post_type, language))
-            except:
+                # Run async function properly
+                ai_content = asyncio.run(self.generate_ai_cofounder_content(post_type, language))
+            except Exception as e:
+                logger.error(f"AI generation failed: {e}")
                 ai_content = None
         
         # Use AI-generated content if available, otherwise fall back to templates
