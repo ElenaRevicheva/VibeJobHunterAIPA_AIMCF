@@ -160,7 +160,7 @@ class LinkedInCMO:
             print("⚠️"*30 + "\n")
             logger.info("📝 AIPA MODE: Using templates")
         
-        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 11 AM Panama!")
+        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 3 PM Panama (20:00 UTC)!")
         logger.info("=" * 75)
         
         # Initialize performance tracking database
