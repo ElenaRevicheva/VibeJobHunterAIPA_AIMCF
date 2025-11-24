@@ -600,7 +600,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             logger.error(f"AI Co-Founder generation failed: {e}")
             return None  # Fall back to templates
     
-    def generate_linkedin_post(self, post_type: str = "random", language: str = "random") -> Dict[str, str]:
+    async def generate_linkedin_post(self, post_type: str = "random", language: str = "random") -> Dict[str, str]:
         """
         Generate a LinkedIn post (AI Co-Founder or template fallback)
         
@@ -624,17 +624,8 @@ Generate FRESH, creative content (not templates). Think strategically about what
         ai_content = None
         if self.use_ai_generation:
             try:
-                # Call async function directly - we're already in async context via post_to_linkedin
-                # Don't use asyncio.run() - it creates a new event loop
-                import asyncio
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Already in event loop - create task and wait
-                    task = asyncio.create_task(self.generate_ai_cofounder_content(post_type, language))
-                    ai_content = await task
-                else:
-                    # No loop running - safe to use run
-                    ai_content = asyncio.run(self.generate_ai_cofounder_content(post_type, language))
+                # We're in async context now - can use await directly
+                ai_content = await self.generate_ai_cofounder_content(post_type, language)
             except Exception as e:
                 logger.error(f"AI generation failed: {e}")
                 ai_content = None
@@ -945,7 +936,7 @@ Be specific and actionable."""
             logger.error(f"Market analysis failed: {e}")
             return {}
     
-    def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
+    async def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
         """
         Generate and post to LinkedIn (via Make.com)
         
