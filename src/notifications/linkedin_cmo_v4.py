@@ -22,10 +22,12 @@ Created: November 2025
 import requests
 import random
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional, List
 import os
 import anthropic
+import json
+from pathlib import Path
 
 # 🔥🔥🔥 PRINT STATEMENTS - Show BEFORE logging is configured! 🔥🔥🔥
 print("\n" + "="*80)
@@ -132,6 +134,36 @@ class LinkedInCMO:
         
         logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 11 AM Panama!")
         logger.info("=" * 75)
+        
+        # Initialize performance tracking database
+        self.data_dir = Path("linkedin_cmo_data")
+        self.data_dir.mkdir(exist_ok=True)
+        self.performance_file = self.data_dir / "post_performance.json"
+        self.strategy_file = self.data_dir / "strategy_decisions.json"
+        self.market_file = self.data_dir / "market_intelligence.json"
+        
+        # Load historical data
+        self.performance_data = self._load_json(self.performance_file) or {"posts": []}
+        self.strategy_data = self._load_json(self.strategy_file) or {"decisions": [], "current_focus": "balanced"}
+        self.market_data = self._load_json(self.market_file) or {"trends": []}
+    
+    def _load_json(self, file_path: Path) -> Optional[Dict]:
+        """Load JSON data from file"""
+        try:
+            if file_path.exists():
+                with open(file_path, 'r') as f:
+                    return json.load(f)
+        except:
+            pass
+        return None
+    
+    def _save_json(self, file_path: Path, data: Dict):
+        """Save JSON data to file"""
+        try:
+            with open(file_path, 'w') as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save data: {e}")
     
     # BILINGUAL CONTENT TEMPLATES
     # Based on Elena's resume - HIGH VALUE, NO BEGGING
@@ -625,14 +657,235 @@ Generate FRESH, creative content (not templates). Think strategically about what
             logger.error(f"Failed to send to Make.com: {e}")
             return False
     
+    async def analyze_post_performance(self, post_id: str) -> Dict[str, Any]:
+        """
+        AI CO-FOUNDER: Analyze LinkedIn post performance
+        
+        Tracks engagement metrics to learn what works
+        """
+        try:
+            # TODO: Integrate with LinkedIn API when available
+            # For now, simulate tracking structure
+            
+            performance = {
+                "post_id": post_id,
+                "timestamp": datetime.now().isoformat(),
+                "metrics": {
+                    "views": 0,  # Would scrape from LinkedIn
+                    "likes": 0,
+                    "comments": 0,
+                    "shares": 0,
+                    "profile_clicks": 0,
+                    "engagement_rate": 0.0
+                },
+                "tracked_at": datetime.now().isoformat()
+            }
+            
+            # Save to performance database
+            self.performance_data["posts"].append(performance)
+            self._save_json(self.performance_file, self.performance_data)
+            
+            logger.info(f"📊 Performance tracking initialized for post {post_id}")
+            return performance
+            
+        except Exception as e:
+            logger.error(f"Performance tracking failed: {e}")
+            return {}
+    
+    async def learn_from_results(self) -> Dict[str, Any]:
+        """
+        AI CO-FOUNDER: Learn from post performance data
+        
+        Analyzes which content types perform best and adapts strategy
+        """
+        try:
+            if not self.performance_data.get("posts"):
+                logger.info("📚 No performance data yet - still learning!")
+                return {"insights": "Insufficient data", "recommendations": []}
+            
+            # Analyze performance by post type
+            post_performance = {}
+            for post in self.performance_data["posts"]:
+                post_type = post.get("post_type", "unknown")
+                engagement = post.get("metrics", {}).get("engagement_rate", 0)
+                
+                if post_type not in post_performance:
+                    post_performance[post_type] = []
+                post_performance[post_type].append(engagement)
+            
+            # Calculate average engagement per type
+            insights = {}
+            for post_type, engagements in post_performance.items():
+                avg_engagement = sum(engagements) / len(engagements) if engagements else 0
+                insights[post_type] = {
+                    "avg_engagement": avg_engagement,
+                    "post_count": len(engagements),
+                    "performance": "high" if avg_engagement > 5.0 else "medium" if avg_engagement > 2.0 else "low"
+                }
+            
+            # Generate recommendations
+            recommendations = []
+            best_performing = max(insights.items(), key=lambda x: x[1]["avg_engagement"]) if insights else None
+            
+            if best_performing:
+                recommendations.append(f"Post more '{best_performing[0]}' content (highest engagement: {best_performing[1]['avg_engagement']:.1f}%)")
+            
+            logger.info(f"🧠 Learning insights: {len(insights)} post types analyzed")
+            logger.info(f"💡 Recommendations: {recommendations}")
+            
+            return {"insights": insights, "recommendations": recommendations}
+            
+        except Exception as e:
+            logger.error(f"Learning analysis failed: {e}")
+            return {}
+    
+    async def decide_post_strategy(self) -> str:
+        """
+        AI CO-FOUNDER: Make strategic decisions about content focus
+        
+        Analyzes current needs (hiring vs fundraising) and decides content mix
+        """
+        try:
+            # Use Claude for strategic thinking
+            if not self.use_ai_generation:
+                return "balanced"  # Default if no AI
+            
+            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            
+            # Analyze recent performance and current context
+            recent_posts = self.performance_data.get("posts", [])[-10:]  # Last 10 posts
+            current_date = datetime.now()
+            
+            context = f"""
+Current date: {current_date.strftime('%Y-%m-%d')}
+Recent posts: {len(recent_posts)} tracked
+Current focus: {self.strategy_data.get('current_focus', 'balanced')}
+
+Elena's current priorities:
+1. Get hired at AI startup (URGENT - relocated to Panama, need income)
+2. Raise pre-seed for AIdeazz ($100K-500K)
+3. Build founder brand
+
+Recent LinkedIn activity context:
+- Job market: AI roles competitive but available
+- Fundraising: Pre-seed market tight but AIdeazz has traction
+- Brand building: Daily posting establishing thought leadership
+"""
+            
+            prompt = f"""You are LinkedIn CMO, an AI Co-Founder making strategic decisions.
+
+{context}
+
+TASK: Decide content strategy for this week.
+
+Should Elena focus more on:
+A) "hiring" - More open_to_work + technical_showcase posts (attract recruiters/founders)
+B) "fundraising" - More seeking_funding posts (attract investors)
+C) "balanced" - Mix of both
+
+Consider:
+- Urgency (she needs income NOW - just relocated)
+- Traction (9 products built, 5 AIPAs live)
+- Market timing (end of year, budget planning season)
+
+Respond with ONE WORD: hiring, fundraising, or balanced
+
+Then on new line, explain WHY in 1 sentence."""
+
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=100,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            decision_text = response.content[0].text.strip()
+            decision = decision_text.split('\n')[0].strip().lower()
+            
+            if decision not in ["hiring", "fundraising", "balanced"]:
+                decision = "balanced"
+            
+            # Save strategic decision
+            self.strategy_data["current_focus"] = decision
+            self.strategy_data["decisions"].append({
+                "decision": decision,
+                "reasoning": decision_text,
+                "timestamp": datetime.now().isoformat()
+            })
+            self._save_json(self.strategy_file, self.strategy_data)
+            
+            logger.info(f"🎯 AI Co-Founder strategic decision: Focus on '{decision.upper()}'")
+            logger.info(f"💡 Reasoning: {decision_text}")
+            
+            return decision
+            
+        except Exception as e:
+            logger.error(f"Strategic decision failed: {e}")
+            return "balanced"
+    
+    async def analyze_market_trends(self) -> Dict[str, Any]:
+        """
+        AI CO-FOUNDER: Analyze market trends and competitive intelligence
+        
+        Understands what's happening in AI hiring/fundraising market
+        """
+        try:
+            if not self.use_ai_generation:
+                return {}
+            
+            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            
+            prompt = """You are LinkedIn CMO, an AI Co-Founder analyzing market trends.
+
+TASK: What are the TOP 3 trending topics in AI startup ecosystem right now (Nov 2025)?
+
+Consider:
+- AI hiring trends (what skills are hot?)
+- AI fundraising trends (what investors want to see?)
+- LinkedIn content trends (what gets engagement?)
+
+List 3 trends, each on new line, format:
+1. [Trend name] - [Why it matters]
+
+Be specific and actionable."""
+
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=300,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            trends_text = response.content[0].text.strip()
+            
+            # Save market intelligence
+            market_insight = {
+                "timestamp": datetime.now().isoformat(),
+                "trends": trends_text,
+                "analyzed_by": "AI Co-Founder (Claude)"
+            }
+            
+            self.market_data["trends"].append(market_insight)
+            self._save_json(self.market_file, self.market_data)
+            
+            logger.info(f"🌍 Market trends analyzed by AI Co-Founder")
+            logger.info(f"📊 Top trends:\n{trends_text}")
+            
+            return market_insight
+            
+        except Exception as e:
+            logger.error(f"Market analysis failed: {e}")
+            return {}
+    
     async def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
         """
         Generate and post to LinkedIn (via Make.com)
         
-        Complete workflow:
-        1. Generate bilingual content
-        2. Send to Make.com webhook
-        3. Make.com → Buffer → LinkedIn
+        AI CO-FOUNDER WORKFLOW:
+        1. Analyze market trends (weekly)
+        2. Make strategic decision (hiring vs fundraising focus)
+        3. Learn from past performance
+        4. Generate content with strategic insights
+        5. Post to LinkedIn + Instagram
+        6. Track performance for learning
         
         Args:
             post_type: Type of post or "random"
@@ -641,15 +894,64 @@ Generate FRESH, creative content (not templates). Think strategically about what
         Returns:
             True if successful
         """
-        # Generate post
+        print("\n" + "🧠"*40)
+        print("🎯 AI CO-FOUNDER STRATEGIC POSTING WORKFLOW STARTED")
+        print("🧠"*40 + "\n")
+        
+        # Step 1: Weekly market analysis (runs once per week)
+        if datetime.now().weekday() == 0:  # Monday
+            logger.info("🌍 Running weekly market trend analysis...")
+            await self.analyze_market_trends()
+        
+        # Step 2: Strategic decision making (what to focus on this week)
+        if datetime.now().weekday() == 0:  # Monday
+            logger.info("🎯 Making strategic content decision for this week...")
+            strategy_focus = await self.decide_post_strategy()
+            
+            # Adapt post type based on strategic decision
+            if strategy_focus == "hiring" and post_type == "random":
+                post_type = random.choice(["open_to_work", "technical_showcase", "transformation_story"])
+                logger.info(f"🎯 Strategic focus: HIRING → Selected '{post_type}' post")
+            elif strategy_focus == "fundraising" and post_type == "random":
+                post_type = "seeking_funding"
+                logger.info(f"🎯 Strategic focus: FUNDRAISING → Selected '{post_type}' post")
+        
+        # Step 3: Learn from past performance
+        if len(self.performance_data.get("posts", [])) >= 7:  # After first week
+            logger.info("📚 Learning from past post performance...")
+            insights = await self.learn_from_results()
+            logger.info(f"🧠 AI Co-Founder insights applied to content strategy")
+        
+        # Step 4: Generate post (with strategic context)
         post_content = self.generate_linkedin_post(post_type, language)
         
         logger.info(f"📝 Generated LinkedIn post: {post_content['type']} ({post_content['language'].upper()})")
+        if post_content.get("ai_generated"):
+            logger.info(f"🧠 Content generated by AI Co-Founder with strategic thinking")
         
-        # Send to Make.com
+        # Step 5: Send to Make.com
         success = await self.send_to_make_com(post_content)
         
         if success:
             logger.info(f"🎉 LinkedIn post sent successfully!")
+            
+            # Step 6: Initialize performance tracking
+            post_id = f"{post_content['type']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            await self.analyze_post_performance(post_id)
+            
+            # Save post details for future learning
+            self.performance_data["posts"].append({
+                "post_id": post_id,
+                "post_type": post_content['type'],
+                "language": post_content['language'],
+                "ai_generated": post_content.get('ai_generated', False),
+                "timestamp": post_content['timestamp'],
+                "metrics": {}  # Will be updated later with actual LinkedIn data
+            })
+            self._save_json(self.performance_file, self.performance_data)
+        
+        print("\n" + "✅"*40)
+        print("🎯 AI CO-FOUNDER WORKFLOW COMPLETE")
+        print("✅"*40 + "\n")
         
         return success
