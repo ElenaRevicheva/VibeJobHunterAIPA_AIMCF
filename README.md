@@ -554,16 +554,30 @@ vibejobhunter/
 
 **Built by Elena Revicheva:**
 - 9 AI products in 7 months
-- 5 AIPAs running 24/7
+- 5 AIPAs (Autonomous AI Agents) running 24/7
+- 4 AI Products (web apps + NFT gallery)
 - Ex-CEO/CLO turned AI founder + vibecoder
 - Building AIdeazz.xyz with AI Co-Founders
 
-**Live products:**
-- 🤖 VibeJobHunter (this repo) - Job automation + AI Co-Founder
-- 📚 EspaLuz AI Tutor - [wa.me/50766623757](https://wa.me/50766623757)
-- 🐉 ALGOM Alpha - [x.com/reviceva](https://x.com/reviceva)
-- 🎨 ATUONA NFTs - [atuona.xyz](https://atuona.xyz)
-- 🌐 EspaLuz Web - espaluz.aideazz.xyz
+**🤖 Live AIPAs (Autonomous AI Agents):**
+1. **VibeJobHunter** (this repo) - Job automation + LinkedIn CMO AI Co-Founder
+   - 🔗 See in action: [LinkedIn](https://linkedin.com/in/elenarevicheva) | [Instagram](https://www.instagram.com/elena_revicheva/)
+2. **ALGOM Alpha** - Web3 Trading AI on X
+   - 🔗 [x.com/reviceva](https://x.com/reviceva) | [GitHub](https://github.com/ElenaRevicheva/dragontrade-agent)
+3. **EspaLuz WhatsApp Tutor** - AI language tutor in WhatsApp
+   - 🔗 Try free: [wa.me/50766623757](https://wa.me/50766623757) | [GitHub](https://github.com/ElenaRevicheva/EspaLuzWhatsApp)
+4. **EspaLuz Telegram Tutor** - AI language tutor in Telegram
+   - 🔗 Try free: [t.me/EspaLuzFamily_bot](https://t.me/EspaLuzFamily_bot) | [GitHub](https://github.com/ElenaRevicheva/EspaLuzFamilybot)
+5. **EspaLuz Influencer Bot** - Automated marketing for EspaLuz
+   - 🔗 [t.me/Influencer_EspaLuz_bot](https://t.me/Influencer_EspaLuz_bot) | [GitHub](https://github.com/ElenaRevicheva/EspaLuz_Influencer)
+
+**🌐 Live AI Products (Web Apps):**
+1. **EspaLuz Web Tutor** - SaaS AI language learning platform
+   - 🔗 Try free: [espaluz-ai-language-tutor.lovable.app](https://espaluz-ai-language-tutor.lovable.app/) | [GitHub](https://github.com/ElenaRevicheva/ascent-saas-builder)
+2. **AIdeazz.xyz** - AI Agents Web3 Showroom + Business Portfolio
+   - 🔗 Explore: [aideazz.xyz](https://aideazz.xyz/) | [Business Card](https://aideazz.xyz/card) | [GitHub](https://github.com/ElenaRevicheva/aideazz)
+3. **ATUONA** - NFT Gallery for Russian Underground Poetry
+   - 🔗 Experience: [atuona.xyz](https://atuona.xyz) | [GitHub](https://github.com/ElenaRevicheva/atuona)
 
 ---
 
