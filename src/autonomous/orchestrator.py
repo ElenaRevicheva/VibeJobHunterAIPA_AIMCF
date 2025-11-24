@@ -478,13 +478,20 @@ class AutonomousOrchestrator:
         # Start daily summary task
         asyncio.create_task(send_daily_summary_at_8pm())
         
+        # Start separate LinkedIn posting check (runs every 10 minutes)
+        async def check_linkedin_frequently():
+            """Check LinkedIn schedule every 10 minutes to never miss posting window"""
+            while self.is_running:
+                await self.check_linkedin_schedule()
+                await asyncio.sleep(10 * 60)  # Check every 10 minutes
+        
+        asyncio.create_task(check_linkedin_frequently())
+        logger.info("🕒 LinkedIn posting check: Every 10 minutes (catches 20:00 UTC window)")
+        
         while self.is_running:
             try:
                 # Run one cycle
                 await self.run_autonomous_cycle()
-                
-                # Check LinkedIn posting schedule (Mon/Wed/Fri at 10 AM)
-                await self.check_linkedin_schedule()
                 
                 # Wait for next cycle
                 logger.info(f"😴 Sleeping for {interval_hours} hour(s)...")
