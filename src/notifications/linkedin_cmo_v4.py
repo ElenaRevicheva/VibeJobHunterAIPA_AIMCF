@@ -145,7 +145,7 @@ class LinkedInCMO:
             print("\n" + "="*75)
             print("🧠🔥 AI CO-FOUNDER MODE ACTIVATED! 🔥🧠")
             print("="*75)
-            print("✅ Fresh content via Claude API (claude-3-5-sonnet-20241022)")
+            print("✅ Fresh content via Claude API (claude-3-5-sonnet-latest)")
             print("💡 Strategic thinking | Creative generation | Performance-aware")
             print("🎯 Business intelligence | Goal-driven content | Adaptive strategy")
             print("🚀 This is NOT automation - this is PARTNERSHIP!")
@@ -583,7 +583,7 @@ REQUIREMENTS:
 Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-sonnet-latest",  # Use latest available model
                 max_tokens=800,
                 temperature=0.8,  # Creative but not random
                 messages=[{
@@ -855,7 +855,7 @@ Respond with ONE WORD: hiring, fundraising, or balanced
 Then on new line, explain WHY in 1 sentence."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-sonnet-latest",  # Use latest available model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -911,7 +911,7 @@ List 3 trends, each on new line, format:
 Be specific and actionable."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-sonnet-latest",  # Use latest available model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
