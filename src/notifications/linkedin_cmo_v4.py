@@ -178,20 +178,28 @@ I'm not building alone. I have AI Co-Founders.
 
 Not AI assistants. Not AI tools. AI CO-FOUNDERS with strategic thinking, creative generation, and business intelligence.
 
-9 AI products built in 7 months. Ex-CEO/CLO turned founder + vibecoder + AI Co-Founder orchestrator.
+9 AI products built in 7 months (5 AIPAs + 4 AI Products). Ex-CEO/CLO turned founder + vibecoder + AI Co-Founder orchestrator.
 
 What I've proven:
 • 0→1 execution at startup speed (Vision → Live product in weeks)
 • 98% cost efficiency: Built $900K portfolio for <$15K
-• 5 AIPAs + AI Co-Founders working 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz, LinkedIn CMO
+• 5 AIPAs working 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp, Telegram, Influencer)
+• 4 AI Products: EspaLuz Web, AIdeazz.xyz, ATUONA NFTs, Business Card AI
 • Bilingual AI architecture (EN/ES): Users in 19 countries
 • Full-stack solo (with AI Co-Founders): Python, TypeScript, React, Claude, GPT-4
 
-Live products to test:
-• wa.me/50766623757 - EspaLuz AI Tutor (WhatsApp AIPA)
-• x.com/reviceva - ALGOM Alpha (autonomous crypto agent)
-• atuona.xyz - ATUONA NFT Gallery (poetry on Polygon)
-• espaluz.aideazz.xyz - EspaLuz Web (SaaS platform)
+Live products to try for FREE:
+🤖 AIPAs:
+• wa.me/50766623757 - EspaLuz WhatsApp Tutor
+• t.me/EspaLuzFamily_bot - EspaLuz Telegram Tutor
+• x.com/reviceva - ALGOM Alpha (Web3 trading)
+• linkedin.com/in/elenarevicheva - This LinkedIn CMO is an AI Co-Founder!
+
+🌐 AI Products:
+• espaluz-ai-language-tutor.lovable.app - EspaLuz Web SaaS
+• aideazz.xyz - AI Agents Showroom
+• aideazz.xyz/card - AI Business Card
+• atuona.xyz - NFT Poetry Gallery
 
 Open to founding engineer roles + strategic collaborations with AI startups building 0→1 products.
 
@@ -363,9 +371,15 @@ Phase 1 (MVP) is DONE. Phase 2 (growth) needs:
 Interested? DM me or email: [your email]
 
 Live products to try:
-• wa.me/50766623757 (EspaLuz AI Tutor)
+🤖 AIPAs (try FREE):
+• wa.me/50766623757 (EspaLuz WhatsApp)
+• t.me/EspaLuzFamily_bot (EspaLuz Telegram)
 • x.com/reviceva (ALGOM Alpha)
-• atuona.xyz (ATUONA NFT Gallery)
+
+🌐 AI Products:
+• espaluz-ai-language-tutor.lovable.app (SaaS)
+• aideazz.xyz (Showroom + Business Card)
+• atuona.xyz (NFT Gallery)
 
 #PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising""",
             "hashtags": "#PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising"
@@ -385,10 +399,16 @@ Lo que he demostrado:
 • Arquitectura de IA bilingüe (EN/ES): Usuarios en 19 países
 • Full-stack sola: Python, TypeScript, React, Claude, GPT-4
 
-Productos en vivo para probar:
-• wa.me/50766623757 - EspaLuz AI Tutor (AIPA en WhatsApp)
-• x.com/reviceva - ALGOM Alpha (agente cripto autónomo)
-• atuona.xyz - ATUONA NFT Gallery (poesía en Polygon)
+Productos en vivo para probar GRATIS:
+🤖 AIPAs:
+• wa.me/50766623757 (EspaLuz WhatsApp)
+• t.me/EspaLuzFamily_bot (EspaLuz Telegram)
+• x.com/reviceva (ALGOM Alpha)
+
+🌐 Productos AI:
+• espaluz-ai-language-tutor.lovable.app (SaaS)
+• aideazz.xyz (Showroom + Tarjeta Digital)
+• atuona.xyz (Galería NFT)
 • espaluz.aideazz.xyz - EspaLuz Web (plataforma SaaS)
 
 Abierta a roles de founding engineer + colaboraciones estratégicas con startups de IA construyendo productos 0→1.
@@ -512,10 +532,10 @@ GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities')}
 REQUIREMENTS:
 - Powerful, confident tone (founder, NOT job seeker)
 - Mention AI Co-Founders concept (building WITH AI, not just using tools)
-- Include specific numbers: 9 AI products, 5 AIPAs, <$15K budget, 19 countries
+- Include specific numbers: 9 AI products (5 AIPAs + 4 AI Products), <$15K budget, 19+ countries
 - Bilingual architecture emphasis
 - Ex-CEO/CLO background = business + technical
-- Links: wa.me/50766623757, x.com/reviceva, atuona.xyz
+- Links: wa.me/50766623757, t.me/EspaLuzFamily_bot, x.com/reviceva, espaluz-ai-language-tutor.lovable.app, aideazz.xyz, atuona.xyz
 - Language: {'English' if language == 'en' else 'Spanish'}
 - Length: 250-350 words
 - End with relevant hashtags (4-6)
