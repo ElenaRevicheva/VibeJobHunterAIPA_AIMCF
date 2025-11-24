@@ -188,18 +188,18 @@ What I've proven:
 • Bilingual AI architecture (EN/ES): Users in 19 countries
 • Full-stack solo (with AI Co-Founders): Python, TypeScript, React, Claude, GPT-4
 
-Live products to try for FREE:
-🤖 AIPAs:
-• wa.me/50766623757 - EspaLuz WhatsApp Tutor
-• t.me/EspaLuzFamily_bot - EspaLuz Telegram Tutor
-• x.com/reviceva - ALGOM Alpha (Web3 trading)
-• linkedin.com/in/elenarevicheva - This LinkedIn CMO is an AI Co-Founder!
+🤖 AIPAs - Explore/Try 100% FREE:
+• wa.me/50766623757 - EspaLuz WhatsApp: Bilingual AIPA for expats & travelers to 19 Spanish-speaking countries
+• t.me/EspaLuzFamily_bot - EspaLuz Telegram: Bilingual AIPA for expats learning Spanish on the go
+• x.com/reviceva - ALGOM Alpha: Post-Scammer Era Crypto Coach for trading education (beginners)
+• linkedin.com/in/elenarevicheva & instagram.com/elena_revicheva - AI Marketing Co-Founder of AIdeazz posting daily!
+• t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA: Automated social media marketing
 
-🌐 AI Products:
-• espaluz-ai-language-tutor.lovable.app - EspaLuz Web SaaS
-• aideazz.xyz - AI Agents Showroom
-• aideazz.xyz/card - AI Business Card
-• atuona.xyz - NFT Poetry Gallery
+🌐 AI Products - Explore/Try 100% FREE:
+• espaluz-ai-language-tutor.lovable.app - SaaS: Family's First Emotionally Intelligent AI Language Coach
+• aideazz.xyz - Emotionally Intelligent AI Personal Assistants Showroom (official website)
+• aideazz.xyz/card - Business Card & Portfolio of AIdeazz Founder
+• atuona.xyz - NFT Gallery: Underground Russian Poetry on Polygon
 
 Open to founding engineer roles + strategic collaborations with AI startups building 0→1 products.
 
@@ -370,16 +370,18 @@ Phase 1 (MVP) is DONE. Phase 2 (growth) needs:
 
 Interested? DM me or email: [your email]
 
-Live products to try:
-🤖 AIPAs (try FREE):
-• wa.me/50766623757 (EspaLuz WhatsApp)
-• t.me/EspaLuzFamily_bot (EspaLuz Telegram)
-• x.com/reviceva (ALGOM Alpha)
+🤖 AIPAs - Try 100% FREE:
+• wa.me/50766623757 - EspaLuz WhatsApp: Bilingual AIPA for expats to 19 Spanish-speaking countries
+• t.me/EspaLuzFamily_bot - EspaLuz Telegram: On-the-go Spanish learning AIPA
+• x.com/reviceva - ALGOM Alpha: Post-Scammer Era Crypto Coach
+• t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
+• linkedin.com/in/elenarevicheva - AI Marketing Co-Founder posting!
 
-🌐 AI Products:
-• espaluz-ai-language-tutor.lovable.app (SaaS)
-• aideazz.xyz (Showroom + Business Card)
-• atuona.xyz (NFT Gallery)
+🌐 AI Products - Explore 100% FREE:
+• espaluz-ai-language-tutor.lovable.app - Family's First Emotionally Intelligent AI Language Coach
+• aideazz.xyz - Emotionally Intelligent AI Assistants Showroom
+• aideazz.xyz/card - Founder's Portfolio
+• atuona.xyz - Underground Russian Poetry NFT Gallery
 
 #PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising""",
             "hashtags": "#PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising"
@@ -399,17 +401,18 @@ Lo que he demostrado:
 • Arquitectura de IA bilingüe (EN/ES): Usuarios en 19 países
 • Full-stack sola: Python, TypeScript, React, Claude, GPT-4
 
-Productos en vivo para probar GRATIS:
-🤖 AIPAs:
-• wa.me/50766623757 (EspaLuz WhatsApp)
-• t.me/EspaLuzFamily_bot (EspaLuz Telegram)
-• x.com/reviceva (ALGOM Alpha)
+🤖 AIPAs - Prueba 100% GRATIS:
+• wa.me/50766623757 - EspaLuz WhatsApp: AIPA bilingüe para expatriados en 19 países hispanohablantes
+• t.me/EspaLuzFamily_bot - EspaLuz Telegram: AIPA para aprender español sobre la marcha
+• x.com/reviceva - ALGOM Alpha: Coach Cripto Post-Era de Estafas
+• t.me/Influencer_EspaLuz_bot - AIPA de SMM de EspaLuz
+• linkedin.com/in/elenarevicheva - ¡Co-Fundadora AI de Marketing publicando!
 
-🌐 Productos AI:
-• espaluz-ai-language-tutor.lovable.app (SaaS)
-• aideazz.xyz (Showroom + Tarjeta Digital)
-• atuona.xyz (Galería NFT)
-• espaluz.aideazz.xyz - EspaLuz Web (plataforma SaaS)
+🌐 Productos AI - Explora 100% GRATIS:
+• espaluz-ai-language-tutor.lovable.app - Primer Coach de Idiomas AI Emocionalmente Inteligente para Familias
+• aideazz.xyz - Showroom de Asistentes Personales AI Emocionalmente Inteligentes
+• aideazz.xyz/card - Portfolio de la Fundadora
+• atuona.xyz - Galería NFT de Poesía Rusa Underground
 
 Abierta a roles de founding engineer + colaboraciones estratégicas con startups de IA construyendo productos 0→1.
 
@@ -533,9 +536,20 @@ REQUIREMENTS:
 - Powerful, confident tone (founder, NOT job seeker)
 - Mention AI Co-Founders concept (building WITH AI, not just using tools)
 - Include specific numbers: 9 AI products (5 AIPAs + 4 AI Products), <$15K budget, 19+ countries
-- Bilingual architecture emphasis
-- Ex-CEO/CLO background = business + technical
-- Links: wa.me/50766623757, t.me/EspaLuzFamily_bot, x.com/reviceva, espaluz-ai-language-tutor.lovable.app, aideazz.xyz, atuona.xyz
+- Emphasize EMOTIONAL INTELLIGENCE in AI (not just functionality)
+- Bilingual architecture emphasis (EN/ES)
+- Ex-CEO/CLO background = business + technical strategic thinking
+- Key positioning: "Emotionally Intelligent AI" (AIdeazz differentiator)
+- Links with descriptions:
+  * wa.me/50766623757 - EspaLuz WhatsApp AIPA (bilingual coach for expats)
+  * t.me/EspaLuzFamily_bot - EspaLuz Telegram AIPA (on-the-go learning)
+  * x.com/reviceva - ALGOM Alpha (Post-Scammer Era Crypto Coach)
+  * t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
+  * linkedin.com/in/elenarevicheva - AI Marketing Co-Founder posting
+  * espaluz-ai-language-tutor.lovable.app - Family's First Emotionally Intelligent AI Language Coach
+  * aideazz.xyz - Emotionally Intelligent AI Assistants Showroom
+  * aideazz.xyz/card - Founder's Portfolio
+  * atuona.xyz - Underground Russian Poetry NFT Gallery
 - Language: {'English' if language == 'en' else 'Spanish'}
 - Length: 250-350 words
 - End with relevant hashtags (4-6)
