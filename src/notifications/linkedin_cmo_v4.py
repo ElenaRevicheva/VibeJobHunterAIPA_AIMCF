@@ -984,7 +984,7 @@ Be specific and actionable."""
             logger.info(f"🧠 AI Co-Founder insights applied to content strategy")
         
         # Step 4: Generate post (with strategic context)
-        post_content = self.generate_linkedin_post(post_type, language)
+        post_content = await self.generate_linkedin_post(post_type, language)
         
         logger.info(f"📝 Generated LinkedIn post: {post_content['type']} ({post_content['language'].upper()})")
         if post_content.get("ai_generated"):
