@@ -27,12 +27,21 @@ from typing import Dict, Any, Optional
 import os
 import anthropic
 
+# 🔥🔥🔥 PRINT STATEMENTS - Show BEFORE logging is configured! 🔥🔥🔥
+print("\n" + "="*80)
+print("🚨🔥💥 LINKEDIN CMO v4.0 MODULE LOADING - AI CO-FOUNDER EDITION 💥🔥🚨")
+print(f"📦 FILE: linkedin_cmo_v4.py (RENAMED to bust cache!)")
+print(f"🎯 BUILD: 2025-11-23 21:32 UTC | COMMIT: 3869a44")
+print(f"🧠 AI CO-FOUNDER: Claude API + Strategic Thinking READY")
+print(f"🔥 IF YOU SEE THIS = Railway loaded NEW linkedin_cmo_v4.py file!")
+print("="*80 + "\n")
+
 logger = logging.getLogger(__name__)
 
 # 🔥 VERSION MARKER - If Railway has cached old file, this won't show! 🔥
 LINKEDIN_CMO_VERSION = "4.0_AI_COFOUNDER"
-BUILD_TIMESTAMP = "2025-11-23_21:15_UTC"
-GIT_COMMIT_HASH = "11fc54d"
+BUILD_TIMESTAMP = "2025-11-23_21:32_UTC"
+GIT_COMMIT_HASH = "3869a44"
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🔥" * 40)
