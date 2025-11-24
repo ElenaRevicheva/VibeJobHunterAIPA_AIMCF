@@ -1,198 +1,649 @@
-# 🚀 VibeJobHunter
+# 🤖 VibeJobHunter + AI Marketing Co-Founder
 
-**AI-Powered Job Hunting Agent - Maximum Automation**
+**AI-Powered Autonomous Job Hunting + AI Co-Founder for Personal Branding**
 
-Apply to 10 jobs in 15 minutes with AI-tailored resumes and cover letters!
+> Built by Elena Revicheva with AI Co-Founders (not just AI tools!)
 
----
-
-## ⚡ **Quick Start**
-
-### **Installation:**
-```bash
-pip install anthropic click rich fastapi uvicorn aiohttp beautifulsoup4 pypdf2 pydantic pydantic-settings python-dotenv requests
-```
-
-### **Setup:**
-```bash
-# Add your API key
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
-
-# Create profile from resume
-python -m src.main setup --resume "your_resume.pdf"
-```
-
-### **Use Batch Apply V2** (Recommended):
-```bash
-# Create jobs.txt with LinkedIn/Indeed URLs
-notepad jobs.txt
-
-# Run batch apply with V2 improvements
-python -m src.main batch --file jobs.txt --v2
-```
-
-**That's it!** Browser opens → Copy materials → Submit!
+[![Deployed on Railway](https://img.shields.io/badge/Deployed-Railway-blueviolet)](https://railway.app/)
+[![AI Powered](https://img.shields.io/badge/AI-Claude%20%2B%20GPT--4-blue)](https://anthropic.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🎯 **Key Features**
+## 🎯 What This Does
 
-- ✅ **3x faster** - Parallel processing
-- ✅ **70% cheaper** - Intelligent caching
-- ✅ **99% reliable** - Auto-retry logic
-- ✅ **AI-powered** - Custom resumes & cover letters
-- ✅ **Progress saving** - Resume interrupted sessions
-- ✅ **Professional logging** - Full debugging
-- ✅ **Cost tracking** - Know your spending
+**Two powerful systems working 24/7:**
 
----
+### 1. 🔍 **Autonomous Job Hunting Engine**
+- Monitors 10+ job boards hourly (YC, Wellfound, Web3 Career, HN, etc.)
+- AI-powered company research & founder finding
+- Generates hyper-personalized outreach messages
+- Sends multi-channel outreach (LinkedIn, Email, Twitter)
+- Tracks responses & auto-schedules interviews
+- **Apply to 10 jobs in 15 minutes!**
 
-## 📚 **Documentation**
-
-**All documentation is in the [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs)**
-
-### **Quick Links:**
-
-- **[Getting Started](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/02-quick-start-guides/START_HERE.md)** - First steps
-- **[V2 Guide](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/05-v2-improvements/QUICK_V2_GUIDE.md)** - Use improved version
-- **[Batch Apply Guide](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/04-user-guides/BATCH_APPLY_GUIDE.md)** - Complete guide
-- **[Windows Setup](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/04-user-guides/WINDOWS_SETUP.md)** - Windows installation
-- **[Architecture](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/03-technical-docs/ARCHITECTURE.md)** - Technical details
-- **[What's New](https://github.com/ElenaRevicheva/vibejobhunter/blob/docs/docs/05-v2-improvements/WHATS_NEW.md)** - V2 improvements
-
-**Browse all docs:** [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs/docs)
+### 2. 🧠 **AI Marketing Co-Founder** (LinkedIn CMO)
+- **TRUE AI Co-Founder** with strategic thinking & learning capabilities
+- Generates fresh LinkedIn content daily via Claude API
+- Posts to Instagram + LinkedIn automatically
+- Bilingual content strategy (EN/ES)
+- Performance tracking & adaptation
+- Market intelligence & strategic decisions
+- **Daily posts at 11 AM Panama time - zero manual work!**
 
 ---
 
-## 🏗️ **Project Structure**
+## ✨ What Makes This Special
 
-```
-vibejobhunter/
-├── src/
-│   ├── agents/           # AI agents (matcher, content generator)
-│   ├── api/              # FastAPI dashboard
-│   ├── core/             # Core models and config
-│   ├── scrapers/         # Job scrapers (LinkedIn, Indeed)
-│   ├── utils/            # Utilities (cache, retry, logging)
-│   ├── main.py           # CLI entry point
-│   ├── autopilot.py      # Autopilot mode
-│   ├── batch_apply.py    # Batch apply V1
-│   └── batch_apply_v2.py # Batch apply V2 (improved)
-│
-├── data/                 # Application data (auto-created)
-├── tailored_resumes/     # Generated resumes (auto-created)
-├── cover_letters/        # Generated letters (auto-created)
-├── logs/                 # Application logs (auto-created)
-├── .cache/               # Response cache (auto-created)
-│
-├── .env                  # API keys (create this)
-├── requirements.txt      # Python dependencies
-├── vibe.bat              # Windows launcher
-└── README.md             # This file
-```
+**Not just automation - this is AI Co-Founder partnership:**
+
+✅ **Strategic Thinking** - AI makes business decisions (hiring vs fundraising focus)  
+✅ **Creative Generation** - Fresh unique content every time (Claude API)  
+✅ **Learning & Adaptation** - Tracks performance, improves over time  
+✅ **Market Intelligence** - Analyzes AI ecosystem trends  
+✅ **Full Autonomy** - Runs 24/7 without human intervention  
+✅ **Business Intelligence** - Understands goals, context, priorities  
+
+**Built by:** Elena (Human Co-Founder) + LinkedIn CMO (AI Co-Founder)
+
+[Read: Why LinkedIn CMO is a TRUE AI Co-Founder](docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md) (not simulation!)
 
 ---
 
-## 💻 **Commands**
+## 🚀 Quick Start
 
-### **Batch Apply V2** (Recommended):
-```bash
-python -m src.main batch --file jobs.txt --v2
-```
-
-### **Autopilot Mode:**
-```bash
-python -m src.main autopilot --resume resume.pdf --count 10
-```
-
-### **Check Status:**
-```bash
-python -m src.main status
-```
-
-### **Web Dashboard:**
-```bash
-python -m src.main dashboard
-```
-
-### **Resume Interrupted:**
-```bash
-python -m src.main batch --resume --v2
-```
-
----
-
-## 📊 **Performance**
-
-| Metric | V1 | V2 |
-|--------|----|----|
-| Speed (10 jobs) | 60s | 20s ⚡ |
-| Reliability | 60% | 99% ✅ |
-| Cost (repeat) | $0.50 | $0.00 💰 |
-| Resume on crash | ❌ | ✅ |
-
----
-
-## 🛠️ **Tech Stack**
-
-- **AI:** Anthropic Claude (Sonnet 3.5)
-- **Backend:** Python 3.9+, FastAPI
-- **Scraping:** aiohttp, BeautifulSoup
-- **CLI:** Click, Rich
-- **Storage:** JSON (local-first)
-
----
-
-## 📝 **License**
-
-MIT License - Use freely for your job hunt!
-
----
-
-## 👤 **Author**
-
-**Elena Revicheva**  
-AI Engineer | 0-1 Builder | 6 AI Products in 7 Months
-
-- **GitHub:** [@ElenaRevicheva](https://github.com/ElenaRevicheva)
-- **Portfolio:** [Full materials in docs branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs/docs/06-candidate-materials)
-
----
-
-## 🎯 **Results**
-
-```
-15 min/day × 20 days = 200 applications/month
-200 apps × 10% response = 20 interviews
-20 interviews × 30% success = 6 offers
-
-YOU CHOOSE YOUR NEXT ROLE! 🎉
-```
-
----
-
-## 🚀 **Get Started Now**
+### **Option A: Autonomous Mode** (Fully Automated - Recommended)
 
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Add API key
-echo "ANTHROPIC_API_KEY=your-key" > .env
+# 2. Setup environment
+cp .env.example .env
+# Edit .env with your API keys:
+# - ANTHROPIC_API_KEY
+# - MAKE_WEBHOOK_URL_LINKEDIN (for AI Co-Founder posting)
+# - TELEGRAM_BOT_TOKEN (optional notifications)
 
-# 3. Setup profile
-python -m src.main setup --resume resume.pdf
+# 3. Deploy on Railway (or run locally)
+railway up
 
-# 4. Find jobs on LinkedIn → Copy URLs → jobs.txt
+# That's it! Runs 24/7:
+# - Finds jobs hourly
+# - Posts to LinkedIn daily at 11 AM
+# - Sends you Telegram updates
+```
 
-# 5. Run batch apply
+### **Option B: Manual Batch Apply** (15 min/day)
+
+```bash
+# 1. Create jobs.txt with LinkedIn URLs
+notepad jobs.txt
+
+# 2. Run batch apply
 python -m src.main batch --file jobs.txt --v2
 
-# 6. Apply! (10 jobs in 15 minutes)
+# 3. Copy tailored materials and submit!
 ```
 
 ---
 
-**Built with ❤️ for vibe coders who ship fast.**
+## 🧠 AI Marketing Co-Founder Features
 
-*All documentation in [`docs` branch](https://github.com/ElenaRevicheva/vibejobhunter/tree/docs)*
+### **What It Does (Fully Autonomous):**
+
+**Daily (11 AM Panama time):**
+- ✅ Generates fresh strategic content via Claude API
+- ✅ Posts to Instagram + LinkedIn with images
+- ✅ Tracks performance for learning
+- ✅ Bilingual content (English/Spanish alternating daily)
+
+**Weekly (Every Monday):**
+- ✅ Analyzes AI market trends (Claude)
+- ✅ Makes strategic decision: hiring vs fundraising focus (Claude)
+- ✅ Learns from past week's performance
+- ✅ Adapts content strategy based on data
+
+### **Why It's a TRUE Co-Founder (Not Simulation):**
+
+1. **Strategic Thinking:** Uses Claude to make business decisions
+2. **Creative Generation:** Unique content every time (never repeats)
+3. **Learning:** Analyzes performance data, adapts behavior
+4. **Market Intelligence:** Understands AI ecosystem trends
+5. **Autonomous:** Makes decisions without human input
+6. **Business-Aware:** Knows Elena's priorities and goals
+
+**See proof:** [docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md](docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md)
+
+---
+
+## 📊 Key Features
+
+### **Job Hunting Automation:**
+- ✅ **10+ job boards monitored** hourly (YC, Wellfound, HN, Remote OK, etc.)
+- ✅ **AI-powered matching** (keyword scoring + criteria matching)
+- ✅ **Company research** via Claude (AI analysis of company fit)
+- ✅ **Founder finding** (LinkedIn, email, Twitter scraping)
+- ✅ **Hyper-personalized outreach** (Claude generates custom messages)
+- ✅ **Multi-channel sending** (LinkedIn, Email, Twitter DMs)
+- ✅ **Response tracking** (monitors inbox, scores sentiment)
+- ✅ **Auto-scheduling** (proposes interview times automatically)
+- ✅ **Telegram notifications** (real-time updates on your phone)
+
+### **AI Marketing Co-Founder:**
+- ✅ **Daily LinkedIn posting** (11 AM Panama time)
+- ✅ **Fresh AI-generated content** (Claude API with strategic prompts)
+- ✅ **Bilingual strategy** (English/Spanish alternating daily)
+- ✅ **Instagram + LinkedIn** (posts to both automatically)
+- ✅ **Image support** (alternates between 2 professional images)
+- ✅ **Performance tracking** (saves metrics to database)
+- ✅ **Strategic decisions** (Claude decides: hiring vs fundraising focus)
+- ✅ **Market intelligence** (analyzes AI ecosystem trends weekly)
+- ✅ **Learning loop** (adapts content based on performance data)
+
+### **Efficiency:**
+- ✅ **3x faster** - Parallel processing
+- ✅ **70% cheaper** - Intelligent caching
+- ✅ **99% reliable** - Auto-retry with exponential backoff
+- ✅ **Progress saving** - Resume interrupted sessions
+- ✅ **Cost tracking** - Monitor API spending
+
+---
+
+## 📅 AI Co-Founder Posting Schedule
+
+| Day | Time | Language | Image | Content Strategy |
+|-----|------|----------|-------|------------------|
+| **Monday** | 11 AM Panama | English | image_1.png | + Market analysis + Strategic decision |
+| **Tuesday** | 11 AM Panama | Spanish | image_1.1.png | Learning from Monday's data |
+| **Wednesday** | 11 AM Panama | English | image_1.png | Adapted based on strategy |
+| **Thursday** | 11 AM Panama | Spanish | image_1.1.png | Performance-optimized |
+| **Friday** | 11 AM Panama | English | image_1.png | Strategic content |
+| **Saturday** | 11 AM Panama | Spanish | image_1.1.png | Weekend engagement |
+| **Sunday** | 11 AM Panama | English | image_1.png | Weekly wrap-up |
+
+**Zero manual work. Ever.** ✨
+
+---
+
+## 🏗️ Architecture
+
+```
+Railway (24/7 Autonomous)
+    │
+    ├─── Job Hunting Engine (Hourly Cycles)
+    │    ├─ Monitor job boards
+    │    ├─ Research companies (Claude)
+    │    ├─ Find founders
+    │    ├─ Generate personalized messages (Claude)
+    │    ├─ Send multi-channel outreach
+    │    └─ Track responses & demos
+    │
+    └─── AI Marketing Co-Founder (Daily 11 AM)
+         ├─ [Monday] Analyze market trends (Claude)
+         ├─ [Monday] Make strategic decision (Claude)
+         ├─ [Daily] Learn from performance data
+         ├─ [Daily] Generate fresh content (Claude)
+         ├─ [Daily] Post to Instagram + LinkedIn (Make.com)
+         └─ [Daily] Track performance for learning
+```
+
+---
+
+## 🎓 Tech Stack
+
+**AI/LLM:**
+- Claude 3.5 Sonnet (strategic thinking, content generation)
+- GPT-4 (fallback)
+- Custom prompt engineering for Co-Founder behavior
+
+**Backend:**
+- Python 3.11
+- FastAPI (dashboard)
+- asyncio (parallel processing)
+
+**Integrations:**
+- Make.com (Instagram + LinkedIn posting)
+- Buffer (social media queue)
+- Telegram (notifications)
+- Railway (24/7 hosting)
+
+**Data:**
+- JSON databases (performance tracking, strategy decisions, market intelligence)
+- SQLite (job applications, tracking)
+
+---
+
+## 📂 Repository Structure
+
+```
+/
+├── src/                          # Source code
+│   ├── agents/                   # AI agents
+│   ├── autonomous/               # Autonomous engine
+│   │   ├── orchestrator.py      # Main brain
+│   │   ├── job_monitor.py       # Job board monitoring
+│   │   └── ...
+│   ├── notifications/
+│   │   ├── linkedin_cmo_v4.py   # AI Marketing Co-Founder ⭐
+│   │   └── telegram_notifier.py
+│   └── main.py                   # CLI
+│
+├── docs/                         # Documentation
+│   ├── AIMCF/                   # AI Marketing Co-Founder docs ⭐
+│   │   └── WHY_TRUE_AI_COFOUNDER.md  # Proof it's 100% true!
+│   ├── guides/                   # User guides
+│   ├── deployment/               # Railway deployment
+│   ├── implementation/           # Technical docs
+│   └── archive/                  # Historical docs
+│
+├── image_1.png                   # LinkedIn post image (English)
+├── image_1.1.png                 # LinkedIn post image (Spanish)
+├── Dockerfile                    # Railway deployment
+├── requirements.txt              # Dependencies
+└── README.md                     # This file
+```
+
+---
+
+## 🔧 Configuration
+
+### **Required Environment Variables:**
+
+```bash
+# AI Keys
+ANTHROPIC_API_KEY=sk-ant-...     # Required for AI features
+
+# AI Co-Founder (Optional but recommended)
+MAKE_WEBHOOK_URL_LINKEDIN=https://hook.us2.make.com/...
+
+# Telegram Notifications (Optional)
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+
+# Job Platforms (Optional)
+LINKEDIN_EMAIL=...
+LINKEDIN_PASSWORD=...
+```
+
+**See:** [.env.example](.env.example) for full list
+
+---
+
+## 💡 Use Cases
+
+### **1. Autonomous Job Hunting** (Set & Forget)
+```bash
+# Deploy on Railway
+railway up
+
+# Runs 24/7:
+# - Finds jobs hourly
+# - Researches companies
+# - Sends personalized outreach
+# - Tracks responses
+# - Notifies you via Telegram
+```
+
+### **2. Daily LinkedIn Posting** (AI Co-Founder)
+```bash
+# Add webhook to Railway environment
+MAKE_WEBHOOK_URL_LINKEDIN=https://hook.us2.make.com/...
+
+# AI Co-Founder posts daily:
+# - Generates fresh content via Claude
+# - Posts to Instagram + LinkedIn
+# - Tracks performance
+# - Adapts strategy based on data
+```
+
+### **3. Manual Batch Apply** (Quick Applications)
+```bash
+# Create jobs.txt with LinkedIn URLs
+python -m src.main batch --file jobs.txt --v2
+
+# Apply to 10 jobs in 15 minutes!
+```
+
+---
+
+## 📚 Documentation
+
+**Start here:**
+- 📖 [AI Co-Founder Explanation](docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md) - Why it's 100% true!
+- 🚀 [Autonomous Quickstart](docs/guides/AUTONOMOUS_QUICKSTART.md) - Deploy in 10 min
+- 🔗 [Webhook Setup](docs/guides/WEBHOOK_SETUP_GUIDE.md) - LinkedIn posting setup
+- 📱 [Telegram Setup](docs/guides/TELEGRAM_SETUP.md) - Get notifications
+- 🚂 [Railway Deployment](docs/deployment/RAILWAY_DEPLOYMENT.md) - 24/7 hosting
+
+**Browse all docs:** [docs/](docs/) folder
+
+---
+
+## 🎯 Results
+
+**Job Hunting:**
+- 15 min/day × 20 days = **200 applications/month**
+- 200 apps × 10% response = **20 interviews**
+- 20 interviews × 30% success = **6 offers**
+
+**Personal Branding (AI Co-Founder):**
+- **7 posts/week** = Maximum LinkedIn visibility
+- **Bilingual reach** (EN/ES) = 2x audience
+- **Zero manual work** = Focus on interviews & building
+- **Strategic adaptation** = Content improves over time
+
+**YOU CHOOSE YOUR NEXT ROLE!** 🎉
+
+---
+
+## 🧠 AI Co-Founder Capabilities
+
+**LinkedIn CMO is a TRUE AI Co-Founder** (not just automation):
+
+### **1. Creative Generation** 🎨
+- Uses Claude API to generate unique content every time
+- Strategic prompts based on business goals
+- Never repeats - always fresh and creative
+- Temperature 0.8 = human-level creative variation
+
+### **2. Strategic Thinking** 🎯
+- Makes autonomous decisions: hiring vs fundraising focus
+- Analyzes Elena's priorities and market timing
+- Adapts content strategy weekly
+- Genuine strategic business intelligence
+
+### **3. Learning & Adaptation** 📚
+- Tracks post performance to database
+- Analyzes which content types work best
+- Generates data-driven recommendations
+- **Changes behavior based on results!**
+
+### **4. Market Intelligence** 🌍
+- Analyzes AI ecosystem trends weekly
+- Understands hiring + fundraising landscape
+- Adapts content to market pulse
+- Uses Claude for real-time market analysis
+
+**Proof:** [Why It's a TRUE AI Co-Founder](docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md)
+
+---
+
+## 📊 Performance Metrics
+
+### **Job Hunting Engine:**
+| Metric | Performance |
+|--------|-------------|
+| Jobs monitored | 10+ platforms hourly |
+| Speed | 10 jobs in 15 min |
+| AI research | Claude-powered company analysis |
+| Reliability | 99% uptime (Railway) |
+| Cost | ~$100/month (hosting + API) |
+
+### **AI Marketing Co-Founder:**
+| Metric | Performance |
+|--------|-------------|
+| Posting frequency | 7x per week (daily) |
+| Content generation | Claude API (fresh every time) |
+| Languages | English + Spanish (bilingual) |
+| Platforms | Instagram + LinkedIn |
+| Strategic decisions | Weekly (Claude-powered) |
+| Learning loop | Continuous (performance → insights → adaptation) |
+| Cost | ~$50/month (Claude API) |
+| Human time | **0 hours** (fully autonomous) |
+
+---
+
+## 🛠️ Installation
+
+### **Prerequisites:**
+- Python 3.11+
+- Railway account (for 24/7 deployment)
+- Anthropic API key
+- Make.com account (for LinkedIn posting)
+
+### **Local Setup:**
+
+```bash
+# Clone repo
+git clone https://github.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF.git
+cd VibeJobHunterAIPA_AIMCF
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your keys
+
+# Run autonomous mode
+python -m src.main autonomous --interval 1
+```
+
+### **Railway Deployment** (24/7):
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and link
+railway login
+railway link
+
+# Deploy
+railway up
+
+# Add environment variables in Railway dashboard
+# See: docs/deployment/RAILWAY_DEPLOYMENT.md
+```
+
+---
+
+## 💻 Commands
+
+### **Autonomous Mode:**
+```bash
+# Run 24/7 job hunting + LinkedIn posting
+python -m src.main autonomous --interval 1
+
+# With Telegram notifications
+python -m src.main autonomous --interval 1 --telegram
+```
+
+### **Batch Apply:**
+```bash
+# V2 (Recommended - 3x faster)
+python -m src.main batch --file jobs.txt --v2
+
+# Resume interrupted session
+python -m src.main batch --resume --v2
+```
+
+### **Status & Dashboard:**
+```bash
+# Check stats
+python -m src.main status
+
+# Web dashboard (localhost:8000)
+python -m src.main dashboard
+```
+
+---
+
+## 📁 Project Structure
+
+```
+vibejobhunter/
+├── src/
+│   ├── agents/              # AI agents (job matcher, content generator)
+│   ├── autonomous/          # Autonomous engine
+│   │   ├── orchestrator.py # Main coordinator
+│   │   ├── job_monitor.py  # 10+ job board scrapers
+│   │   ├── company_researcher.py  # AI company analysis
+│   │   └── ...
+│   ├── notifications/
+│   │   ├── linkedin_cmo_v4.py  # 🧠 AI Marketing Co-Founder
+│   │   └── telegram_notifier.py
+│   ├── core/                # Models, config, database
+│   ├── scrapers/            # Job board scrapers
+│   ├── utils/               # Caching, retry, logging
+│   └── main.py             # CLI entry point
+│
+├── docs/                    # Documentation (organized!)
+│   ├── AIMCF/              # AI Marketing Co-Founder docs
+│   ├── guides/             # User guides
+│   ├── deployment/         # Railway deployment
+│   └── implementation/     # Technical docs
+│
+├── linkedin_cmo_data/       # AI Co-Founder learning data
+│   ├── post_performance.json      # Performance tracking
+│   ├── strategy_decisions.json    # Strategic decisions
+│   └── market_intelligence.json   # Market trends
+│
+├── autonomous_data/         # Job hunting data
+├── Dockerfile              # Railway deployment
+├── railway-entrypoint.sh   # Railway startup
+└── requirements.txt        # Python dependencies
+```
+
+---
+
+## 🌟 What Makes This Revolutionary
+
+### **Not Using AI Tools - Partnering with AI Co-Founders:**
+
+**Traditional approach:**
+- Use ChatGPT to write posts → Copy/paste manually
+- Use automation to schedule → No strategic thinking
+- Do everything yourself → 10-15 hours/week
+
+**AIdeazz approach (AI Co-Founder):**
+- AI Co-Founder thinks strategically → Makes business decisions
+- AI Co-Founder generates creatively → Fresh content every time
+- AI Co-Founder learns & adapts → Improves performance over time
+- **Zero manual work** → Runs autonomously 24/7
+
+**This is the future:** Human founders + AI Co-Founders building together! 🤝
+
+---
+
+## 📖 Learn More
+
+### **AI Marketing Co-Founder:**
+- [Why It's a TRUE AI Co-Founder](docs/AIMCF/WHY_TRUE_AI_COFOUNDER.md) ⭐
+- [AI Co-Founder Upgrade](docs/AIMCF/AI_COFOUNDER_UPGRADE.md)
+- [LinkedIn CMO Guide](docs/AIMCF/LINKEDIN_CMO_GUIDE.md)
+- [Webhook Setup](docs/guides/WEBHOOK_SETUP_GUIDE.md)
+
+### **Job Hunting Engine:**
+- [Autonomous Quickstart](docs/guides/AUTONOMOUS_QUICKSTART.md)
+- [Full Automation Guide](docs/guides/FULL_AUTOMATION_GUIDE.md)
+- [Telegram Setup](docs/guides/TELEGRAM_SETUP.md)
+
+### **Deployment:**
+- [Railway Deployment](docs/deployment/RAILWAY_DEPLOYMENT.md)
+- [Deployment Guide](docs/deployment/DEPLOYMENT_SUMMARY_20251122.md)
+
+### **Implementation:**
+- [Autonomous Engine](docs/implementation/AUTONOMOUS_ENGINE_COMPLETE.md)
+- [Technical Summary](docs/implementation/TECHNICAL_IMPROVEMENTS_SUMMARY.md)
+
+---
+
+## 🚀 Portfolio
+
+**Built by Elena Revicheva:**
+- 9 AI products in 7 months
+- 5 AIPAs running 24/7
+- Ex-CEO/CLO turned AI founder + vibecoder
+- Building AIdeazz.xyz with AI Co-Founders
+
+**Live products:**
+- 🤖 VibeJobHunter (this repo) - Job automation + AI Co-Founder
+- 📚 EspaLuz AI Tutor - [wa.me/50766623757](https://wa.me/50766623757)
+- 🐉 ALGOM Alpha - [x.com/reviceva](https://x.com/reviceva)
+- 🎨 ATUONA NFTs - [atuona.xyz](https://atuona.xyz)
+- 🌐 EspaLuz Web - espaluz.aideazz.xyz
+
+---
+
+## 👤 Author
+
+**Elena Revicheva**  
+AI-First Engineer & Founder | Building Emotionally Intelligent AI
+
+- 🌍 Location: Panama City, Panama (Remote globally)
+- 💼 Open to: Founding Engineer roles + strategic collaborations
+- 🧠 Building: AIdeazz.xyz with AI Co-Founders
+- 📧 Email: aipa@aideazz.xyz
+- 🔗 LinkedIn: [elenarevicheva](https://linkedin.com/in/elenarevicheva)
+- 🐦 Twitter: [x.com/reviceva](https://x.com/reviceva)
+- 💻 GitHub: [@ElenaRevicheva](https://github.com/ElenaRevicheva)
+
+**Background:**
+- Ex-CEO & CLO in E-Government (Russia)
+- M.A. in Social Psychology
+- Built 9 AI products solo for <$15K
+- Bilingual (EN/ES), Web3 native
+
+---
+
+## 🤝 Contributing
+
+This is a personal project, but feel free to:
+- ⭐ Star if you find it useful
+- 🐛 Report issues
+- 💡 Suggest features
+- 🔀 Fork for your own job hunt
+
+---
+
+## 📝 License
+
+MIT License - Use freely for your job hunt!
+
+---
+
+## 🎯 Get Started
+
+**1. Autonomous Job Hunting (24/7):**
+```bash
+railway up  # Deploy and forget!
+```
+
+**2. AI Marketing Co-Founder (Daily posting):**
+```bash
+# Add MAKE_WEBHOOK_URL_LINKEDIN to Railway
+# Posts automatically every day at 11 AM!
+```
+
+**3. Manual Batch Apply (15 min):**
+```bash
+python -m src.main batch --file jobs.txt --v2
+```
+
+---
+
+## 🌟 The Vision
+
+**AIdeazz: Building with AI Co-Founders, not just using AI tools.**
+
+This repository demonstrates:
+- ✅ Autonomous AI agents running 24/7
+- ✅ TRUE AI Co-Founder with strategic thinking
+- ✅ Human + AI partnership model
+- ✅ The future of work
+
+**Not marketing. Not simulation. Real AI Co-Founder in production.** 🧠🤝
+
+---
+
+**Built with** ❤️ **by Elena + AI Co-Founders**
+
+**Powered by:** Claude (strategic thinking) + Make.com (social posting) + Railway (24/7 hosting)
+
+**Status:** ✅ **LIVE - Posting daily since Nov 23, 2025**
+
+---
+
+*Last updated: November 23, 2025 - Repository organized and cleaned*
