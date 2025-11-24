@@ -92,7 +92,7 @@ python -m src.main batch --file jobs.txt --v2
 
 ### **What It Does (Fully Autonomous):**
 
-**Daily (11 AM Panama time):**
+**Daily (3 PM Panama time / 20:00 UTC):**
 - ✅ Generates fresh strategic content via Claude API
 - ✅ Posts to Instagram + LinkedIn with images
 - ✅ Tracks performance for learning
@@ -154,13 +154,13 @@ python -m src.main batch --file jobs.txt --v2
 
 | Day | Time | Language | Image | Content Strategy |
 |-----|------|----------|-------|------------------|
-| **Monday** | 11 AM Panama | English | image_1.png | + Market analysis + Strategic decision |
-| **Tuesday** | 11 AM Panama | Spanish | image_1.1.png | Learning from Monday's data |
-| **Wednesday** | 11 AM Panama | English | image_1.png | Adapted based on strategy |
-| **Thursday** | 11 AM Panama | Spanish | image_1.1.png | Performance-optimized |
-| **Friday** | 11 AM Panama | English | image_1.png | Strategic content |
-| **Saturday** | 11 AM Panama | Spanish | image_1.1.png | Weekend engagement |
-| **Sunday** | 11 AM Panama | English | image_1.png | Weekly wrap-up |
+| **Monday** | 3 PM Panama (20:00 UTC) | English | image_1.png | + Market analysis + Strategic decision |
+| **Tuesday** | 3 PM Panama (20:00 UTC) | Spanish | image_1.1.png | Learning from Monday's data |
+| **Wednesday** | 3 PM Panama (20:00 UTC) | English | image_1.png | Adapted based on strategy |
+| **Thursday** | 3 PM Panama (20:00 UTC) | Spanish | image_1.1.png | Performance-optimized |
+| **Friday** | 3 PM Panama (20:00 UTC) | English | image_1.png | Strategic content |
+| **Saturday** | 3 PM Panama (20:00 UTC) | Spanish | image_1.1.png | Weekend engagement |
+| **Sunday** | 3 PM Panama (20:00 UTC) | English | image_1.png | Weekly wrap-up |
 
 **Zero manual work. Ever.** ✨
 
