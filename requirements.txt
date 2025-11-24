@@ -1,5 +1,6 @@
 # Core dependencies
-# v4.0 AI CO-FOUNDER EDITION - Build: 2025-11-23 21:20 UTC
+# v4.0 AI CO-FOUNDER EDITION - Build: 2025-11-23 21:35 UTC
+# TRUE AI CO-FOUNDER: Performance tracking + Learning + Strategy + Market intelligence
 python-dotenv>=1.0.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
