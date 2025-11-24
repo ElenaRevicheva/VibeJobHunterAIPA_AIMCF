@@ -31,8 +31,13 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (v4.0 AI CO-FOUNDER - Cache bust timestamp: 2025-11-23 21:30)
+# Force rebuild: Changing this comment breaks Docker cache layer
 COPY . .
+RUN echo "🔥 COPIED FRESH CODE - v4.0 AI CO-FOUNDER - Build: $(date)" && \
+    ls -la src/notifications/ && \
+    echo "Checking for linkedin_cmo_v4.py:" && \
+    test -f src/notifications/linkedin_cmo_v4.py && echo "✅ AI Co-Founder file exists!" || echo "❌ File missing!"
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/autonomous_data \
