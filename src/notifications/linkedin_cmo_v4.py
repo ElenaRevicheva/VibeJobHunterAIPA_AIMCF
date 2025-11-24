@@ -583,7 +583,7 @@ REQUIREMENTS:
 Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-latest",  # Use latest available model
+                model="claude-3-5-sonnet-20241022",  # Current production model
                 max_tokens=800,
                 temperature=0.8,  # Creative but not random
                 messages=[{
@@ -623,10 +623,18 @@ Generate FRESH, creative content (not templates). Think strategically about what
         # Try AI Co-Founder generation first (if enabled)
         ai_content = None
         if self.use_ai_generation:
-            import asyncio
             try:
-                # Run async function properly
-                ai_content = asyncio.run(self.generate_ai_cofounder_content(post_type, language))
+                # Call async function directly - we're already in async context via post_to_linkedin
+                # Don't use asyncio.run() - it creates a new event loop
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Already in event loop - create task and wait
+                    task = asyncio.create_task(self.generate_ai_cofounder_content(post_type, language))
+                    ai_content = await task
+                else:
+                    # No loop running - safe to use run
+                    ai_content = asyncio.run(self.generate_ai_cofounder_content(post_type, language))
             except Exception as e:
                 logger.error(f"AI generation failed: {e}")
                 ai_content = None
@@ -855,7 +863,7 @@ Respond with ONE WORD: hiring, fundraising, or balanced
 Then on new line, explain WHY in 1 sentence."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-latest",  # Use latest available model
+                model="claude-3-5-sonnet-20241022",  # Current production model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -911,7 +919,7 @@ List 3 trends, each on new line, format:
 Be specific and actionable."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-latest",  # Use latest available model
+                model="claude-3-5-sonnet-20241022",  # Current production model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -937,7 +945,7 @@ Be specific and actionable."""
             logger.error(f"Market analysis failed: {e}")
             return {}
     
-    async def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
+    def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
         """
         Generate and post to LinkedIn (via Make.com)
         
