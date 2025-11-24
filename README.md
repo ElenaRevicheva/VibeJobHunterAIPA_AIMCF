@@ -70,7 +70,7 @@ railway up
 
 # That's it! Runs 24/7:
 # - Finds jobs hourly
-# - Posts to LinkedIn daily at 11 AM
+# - Posts to LinkedIn daily at 3 PM Panama
 # - Sends you Telegram updates
 ```
 
@@ -179,7 +179,7 @@ Railway (24/7 Autonomous)
     │    ├─ Send multi-channel outreach
     │    └─ Track responses & demos
     │
-    └─── AI Marketing Co-Founder (Daily 11 AM)
+    └─── AI Marketing Co-Founder (Daily 3 PM Panama / 20:00 UTC)
          ├─ [Monday] Analyze market trends (Claude)
          ├─ [Monday] Make strategic decision (Claude)
          ├─ [Daily] Learn from performance data
@@ -628,7 +628,7 @@ railway up  # Deploy and forget!
 **2. AI Marketing Co-Founder (Daily posting):**
 ```bash
 # Add MAKE_WEBHOOK_URL_LINKEDIN to Railway
-# Posts automatically every day at 11 AM!
+# Posts automatically every day at 3 PM Panama!
 ```
 
 **3. Manual Batch Apply (15 min):**
