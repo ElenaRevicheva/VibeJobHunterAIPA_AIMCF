@@ -29,7 +29,7 @@
 - Bilingual content strategy (EN/ES)
 - Performance tracking & adaptation
 - Market intelligence & strategic decisions
-- **Daily posts at 11 AM Panama time - zero manual work!**
+- **Daily posts at 3 PM Panama time (20:00 UTC) - zero manual work!**
 
 ---
 
@@ -131,7 +131,7 @@ python -m src.main batch --file jobs.txt --v2
 - ✅ **Telegram notifications** (real-time updates on your phone)
 
 ### **AI Marketing Co-Founder:**
-- ✅ **Daily LinkedIn posting** (11 AM Panama time)
+- ✅ **Daily LinkedIn posting** (3 PM Panama time / 20:00 UTC)
 - ✅ **Fresh AI-generated content** (Claude API with strategic prompts)
 - ✅ **Bilingual strategy** (English/Spanish alternating daily)
 - ✅ **Instagram + LinkedIn** (posts to both automatically)
