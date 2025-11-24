@@ -124,7 +124,11 @@ class LinkedInCMO:
         logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 11 AM Panama | ⚡ Full Autonomy")
         logger.info("")
         logger.info("Part of AIdeazz's AI Co-Founder Team 🤝")
-        logger.info("=" * 75)
+        logger.info("=" * 80)
+        logger.info("🚀 PORTFOLIO: 9 Products (5 AIPAs + 4 AI Products) with DIGNIFIED descriptions")
+        logger.info("🔗 ALL VERIFIED LINKS: wa.me/50766623757, t.me/EspaLuzFamily_bot, x.com/reviceva")
+        logger.info("🎯 KEY DIFFERENTIATOR: Emotionally Intelligent AI")
+        logger.info("=" * 80)
         
         self.make_webhook_url = make_webhook_url or os.getenv('MAKE_WEBHOOK_URL_LINKEDIN')
         self.enabled = bool(self.make_webhook_url)
