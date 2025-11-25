@@ -108,6 +108,24 @@ class LinkedInCMO:
         # Get API keys for AI Co-Founder capabilities
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
         self.use_ai_generation = bool(self.anthropic_api_key)  # True Co-Founder mode if API key exists
+        
+        # 🔥🔥🔥 REMARKABLE API KEY DETECTION 🔥🔥🔥
+        print("\n" + "🔑"*40)
+        print("🚨 ANTHROPIC API KEY DETECTION CHECK 🚨")
+        print("="*80)
+        if self.anthropic_api_key:
+            key_preview = self.anthropic_api_key[:20] + "..." + self.anthropic_api_key[-10:]
+            print(f"✅ API KEY DETECTED: {key_preview}")
+            print(f"✅ KEY LENGTH: {len(self.anthropic_api_key)} characters")
+            print(f"✅ KEY PREFIX: {self.anthropic_api_key[:15]}")
+            print(f"✅ AI CO-FOUNDER MODE: ENABLED")
+            print("🧠 Will attempt Claude API calls for content generation!")
+        else:
+            print("❌ NO API KEY FOUND!")
+            print("❌ AI CO-FOUNDER MODE: DISABLED")
+            print("📝 Will use template content (AIPA mode)")
+        print("="*80)
+        print("🔑"*40 + "\n")
         # 🔥 AI MARKETING CO-FOUNDER STARTUP BANNER 🔥
         logger.info("=" * 80)
         logger.info("  █████╗ ██╗    ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗███████╗████████╗██╗███╗   ██╗ ██████╗ ")
