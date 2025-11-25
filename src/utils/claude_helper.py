@@ -1,4 +1,4 @@
-"""
+﻿"""
 Claude API Helper
 Handles model selection and fallbacks gracefully
 """
@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 # Model selection priority (tries in order)
 CLAUDE_MODELS = [
-    "claude-3-5-sonnet-20241022",  # Latest
-    "claude-3-5-sonnet-20241022",  # Fallback 1
-    "claude-3-5-sonnet-20241022",    # Fallback 2
-    "claude-3-5-sonnet-20241022",      # Fallback 3 (most reliable)
+    "claude-sonnet-4-20250514",  # Latest
+    "claude-sonnet-4-20250514",  # Fallback 1
+    "claude-sonnet-4-20250514",    # Fallback 2
+    "claude-sonnet-4-20250514",      # Fallback 3 (most reliable)
 ]
 
 
@@ -72,8 +72,8 @@ def get_best_available_model(client, preferred_model: Optional[str] = None) -> s
     
     # If all else fails, return the most reliable one
     # (Anthropic will error if it's not available, which is fine)
-    logger.warning("⚠️ Could not verify model availability, using claude-3-5-sonnet-20241022")
-    return "claude-3-5-sonnet-20241022"
+    logger.warning("⚠️ Could not verify model availability, using claude-sonnet-4-20250514")
+    return "claude-sonnet-4-20250514"
 
 
 # Cached model (determined once per session)

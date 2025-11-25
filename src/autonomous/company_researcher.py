@@ -1,4 +1,4 @@
-"""
+﻿"""
 🔬 COMPANY RESEARCHER
 AI-powered company intelligence gathering.
 Researches companies before outreach to personalize messages.
@@ -162,7 +162,7 @@ Tech Stack: {', '.join(intel.get('tech_stack', {}).get('detected_technologies', 
 """
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20241022",  # Updated model
+                model="claude-sonnet-4-20250514",  # Updated model
                 max_tokens=1000,
                 messages=[{
                     "role": "user",

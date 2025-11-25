@@ -1,4 +1,4 @@
-"""
+﻿"""
 🎯 LINKEDIN CMO - AI CO-FOUNDER
 TRUE AI Co-Founder for AIdeazz (not just an AIPA!)
 
@@ -601,7 +601,7 @@ REQUIREMENTS:
 Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",  # Current production model
+                model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=800,
                 temperature=0.8,  # Creative but not random
                 messages=[{
@@ -872,7 +872,7 @@ Respond with ONE WORD: hiring, fundraising, or balanced
 Then on new line, explain WHY in 1 sentence."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",  # Current production model
+                model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -928,7 +928,7 @@ List 3 trends, each on new line, format:
 Be specific and actionable."""
 
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",  # Current production model
+                model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )

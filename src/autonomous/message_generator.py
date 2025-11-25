@@ -1,4 +1,4 @@
-"""
+﻿"""
 ✍️ MESSAGE GENERATOR
 Generates hyper-personalized outreach messages for each channel.
 Uses AI to create context-aware, compelling messages.
@@ -119,7 +119,7 @@ Write ONLY the message, no subject line."""
         try:
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -181,7 +181,7 @@ Write the complete email (subject + body)."""
         try:
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=600,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -232,7 +232,7 @@ Write ONLY the DM text."""
         try:
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=200,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -337,7 +337,7 @@ Write ONLY the follow-up message."""
         try:
             message = await asyncio.to_thread(
                 self.client.messages.create,
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )

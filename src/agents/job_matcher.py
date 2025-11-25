@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI-powered job matching and scoring
 """
 from typing import List, Tuple
@@ -112,7 +112,7 @@ SCORING PRIORITY FOR ELENA:
 
         try:
             response = self.ai.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}]
             )
