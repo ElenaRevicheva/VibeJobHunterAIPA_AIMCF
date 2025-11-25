@@ -69,7 +69,7 @@ class MessageGenerator:
                 messages[channel] = self._get_fallback_message(channel, founder_name, company)
         
         # Cache for 7 days
-        self.cache.set(cache_key, messages, ttl=604800)
+        self.cache.set(cache_key, messages)
         
         logger.info(f"✅ Generated all messages for {company}")
         return messages

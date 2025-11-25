@@ -72,7 +72,7 @@ class CompanyResearcher:
         intel['ai_insights'] = await self._analyze_with_ai(intel)
 
         # Cache for 7 days
-        self.cache.set(cache_key, intel, ttl=604800)
+        self.cache.set(cache_key, intel)
 
         logger.info(f"✅ Research complete for {company_name}")
         return intel

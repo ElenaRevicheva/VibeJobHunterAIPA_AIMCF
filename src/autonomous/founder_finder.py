@@ -1,4 +1,4 @@
-"""
+﻿"""
 👤 FOUNDER FINDER
 Finds founder contact information (LinkedIn, Twitter, Email).
 Uses multiple data sources to build complete founder profiles.
@@ -69,7 +69,7 @@ class FounderFinder:
             return None
         
         # Cache for 30 days
-        self.cache.set(cache_key, founder_info, ttl=2592000)
+        self.cache.set(cache_key, founder_info)
         
         logger.info(f"✅ Found founder info for {company_name}")
         return founder_info
