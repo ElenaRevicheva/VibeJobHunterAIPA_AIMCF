@@ -69,7 +69,7 @@ Format: Professional markdown suitable for conversion to PDF.
 
         try:
             response = self.ai.messages.create(
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -130,7 +130,7 @@ Be specific, avoid generic phrases, and show you understand what the company doe
 
         try:
             response = self.ai.messages.create(
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -177,7 +177,7 @@ Keep it conversational and human.
 
         try:
             response = self.ai.messages.create(
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=512,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -246,7 +246,7 @@ Focus on technical questions for AI/ML roles and behavioral questions for cultur
 
         try:
             response = self.ai.messages.create(
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=3072,
                 messages=[{"role": "user", "content": prompt}]
             )
