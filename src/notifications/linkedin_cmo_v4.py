@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import os
 import anthropic
+from anthropic import AsyncAnthropic
 import json
 from pathlib import Path
 
@@ -543,7 +544,7 @@ No busco trabajo. Construyo leverage.
             return None
         
         try:
-            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            client = AsyncAnthropic(api_key=self.anthropic_api_key)
             
             # Elena's profile context
             profile_context = """
@@ -600,7 +601,7 @@ REQUIREMENTS:
 
 Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
 
-            response = client.messages.create(
+            response = await client.messages.create(
                 model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=800,
                 temperature=0.8,  # Creative but not random
@@ -671,85 +672,63 @@ Generate FRESH, creative content (not templates). Think strategically about what
     async def send_to_make_com(self, post_content: Dict[str, str]) -> bool:
         """
         Send LinkedIn post to Make.com webhook
-        
         Make.com will handle: Formatting → Buffer → LinkedIn + Instagram posting
-        
-        Args:
-            post_content: Dict with content, language, type
-        
-        Returns:
-            True if sent successfully
         """
         if not self.enabled:
             logger.warning("LinkedIn CMO not enabled (no Make.com webhook URL)")
             return False
-            # === 14-IMAGE ROTATION SYSTEM (NO REPEAT) ===
-            github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
-
-            all_images = [
-                f"{github_base}/image_1.png",
-                f"{github_base}/image_1.1.jpeg",
-                f"{github_base}/image_1.2.jpeg",
-                f"{github_base}/image_1.3.jpeg",
-                f"{github_base}/image_1.4.jpeg",
-                f"{github_base}/image_1.5.jpeg",
-                f"{github_base}/image_1.6.jpeg",
-                f"{github_base}/image_1.7.jpeg",
-                f"{github_base}/image_1.8.jpeg",
-                f"{github_base}/image_1.9.jpeg",
-                f"{github_base}/image_1.10.jpeg",
-                f"{github_base}/image_1.11.jpeg",
-                f"{github_base}/image_1.12.jpeg",
-                f"{github_base}/image_1.13.jpeg"
-            ]
-
-            last_image_file = "last_used_image.txt"
-
-            try:
-                with open(last_image_file, "r") as f:
-                    last_used = f.read().strip()
-            except FileNotFoundError:
-                last_used = None
-
-            available_images = [img for img in all_images if img != last_used]
-            selected_image = random.choice(available_images)
-
-            with open(last_image_file, "w") as f:
-                f.write(selected_image)
-
-            logger.info(f" AI Co-Founder selected NEW image: {selected_image.split('/')[-1]}")
+        
+        # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
+        github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
+        all_images = [
+            f"{github_base}/image_1.png",
+            f"{github_base}/image_1.1.jpeg",
+            f"{github_base}/image_1.2.jpeg",
+            f"{github_base}/image_1.3.jpeg",
+            f"{github_base}/image_1.4.jpeg",
+            f"{github_base}/image_1.5.jpeg",
+            f"{github_base}/image_1.6.jpeg",
+            f"{github_base}/image_1.7.jpeg",
+            f"{github_base}/image_1.8.jpeg",
+            f"{github_base}/image_1.9.jpeg",
+            f"{github_base}/image_1.10.jpeg",
+            f"{github_base}/image_1.11.jpeg",
+            f"{github_base}/image_1.12.jpeg",
+            f"{github_base}/image_1.13.jpeg"
+        ]
+        
+        # Track last used image to avoid repetition
+        last_image_file = self.data_dir / "last_used_image.txt"
+        try:
+            with open(last_image_file, "r") as f:
+                last_used = f.read().strip()
+        except FileNotFoundError:
+            last_used = None
+        
+        # Select from images NOT used last time
+        available_images = [img for img in all_images if img != last_used]
+        if not available_images:  # Safety fallback
+            available_images = all_images
+        
+        selected_image = random.choice(available_images)
+        
+        # Save for next run
+        with open(last_image_file, "w") as f:
+            f.write(selected_image)
+        
+        logger.info(f"🎨 Selected image: {selected_image.split('/')[-1]} (last: {last_used.split('/')[-1] if last_used else 'none'})")
         
         try:
-            # Image URLs for LinkedIn CMO posts (hosted on GitHub)
-            # Images uploaded to repository: image_1.png and image_1.1.png
-            # image_1.png = English posts (Mon/Fri)
-            # image_1.1.png = Spanish posts (Wednesday)
-            
-            
-
-            # Choose image based on post type (fallback to first available)
-            selected_image = image_urls.get(post_content.get("type")) or next(iter(image_urls.values()))
-            # Persist last chosen image for anti-repeat behavior
-            try:
-                self.strategy_data["last_image"] = selected_image
-                self._save_json(self.strategy_file, self.strategy_data)
-            except Exception:
-                # Non-fatal: if saving fails, continue using selected_image
-                pass
-
-            logger.info(f"Selected image for post: {selected_image}")
             payload = {
                 "platform": "linkedin",
                 "content": post_content["content"],
-                "text": post_content["content"],  # For Make.com compatibility
+                "text": post_content["content"],
                 "language": post_content["language"],
                 "post_type": post_content["type"],
                 "timestamp": post_content["timestamp"],
                 "author": post_content["author"],
-                # Add image URL based on post type
-                "imageURL": selected_image,
-                "videoURL": "",  # Future: Add video support
-                # Make.com scenario compatibility fields
+                "imageURL": selected_image,  # ✅ FIXED!
+                "videoURL": "",
                 "hook": "LinkedIn CMO Automated Post",
                 "audience": "Tech Professionals & Founders",
                 "emotional_state": "Ambitious",
@@ -766,7 +745,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             )
             
             if response.status_code == 200:
-                logger.info(f"✅ Sent LinkedIn post to Make.com ({post_content['language'].upper()}, {post_content['type']})")
+                logger.info(f"✅ Sent to Make.com ({post_content['language'].upper()}, {post_content['type']})")
                 return True
             else:
                 logger.error(f"❌ Make.com webhook failed: {response.status_code}")
@@ -869,7 +848,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             if not self.use_ai_generation:
                 return "balanced"  # Default if no AI
             
-            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            client = AsyncAnthropic(api_key=self.anthropic_api_key)
             
             # Analyze recent performance and current context
             recent_posts = self.performance_data.get("posts", [])[-10:]  # Last 10 posts
@@ -911,7 +890,7 @@ Respond with ONE WORD: hiring, fundraising, or balanced
 
 Then on new line, explain WHY in 1 sentence."""
 
-            response = client.messages.create(
+            response = await client.messages.create(
                 model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
@@ -951,7 +930,7 @@ Then on new line, explain WHY in 1 sentence."""
             if not self.use_ai_generation:
                 return {}
             
-            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            client = AsyncAnthropic(api_key=self.anthropic_api_key)
             
             prompt = """You are LinkedIn CMO, an AI Co-Founder analyzing market trends.
 
@@ -967,7 +946,7 @@ List 3 trends, each on new line, format:
 
 Be specific and actionable."""
 
-            response = client.messages.create(
+            response = await client.messages.create(
                 model="claude-sonnet-4-20250514",  # Current production model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
