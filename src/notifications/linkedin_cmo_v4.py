@@ -710,7 +710,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
                 pass
 
             logger.info(f"Selected image for post: {selected_image}")
-payload = {
+            payload = {
                 "platform": "linkedin",
                 "content": post_content["content"],
                 "text": post_content["content"],  # For Make.com compatibility
