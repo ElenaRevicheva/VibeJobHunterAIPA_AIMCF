@@ -683,6 +683,41 @@ Generate FRESH, creative content (not templates). Think strategically about what
         if not self.enabled:
             logger.warning("LinkedIn CMO not enabled (no Make.com webhook URL)")
             return False
+            # === 14-IMAGE ROTATION SYSTEM (NO REPEAT) ===
+            github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
+
+            all_images = [
+                f"{github_base}/image_1.png",
+                f"{github_base}/image_1.1.jpeg",
+                f"{github_base}/image_1.2.jpeg",
+                f"{github_base}/image_1.3.jpeg",
+                f"{github_base}/image_1.4.jpeg",
+                f"{github_base}/image_1.5.jpeg",
+                f"{github_base}/image_1.6.jpeg",
+                f"{github_base}/image_1.7.jpeg",
+                f"{github_base}/image_1.8.jpeg",
+                f"{github_base}/image_1.9.jpeg",
+                f"{github_base}/image_1.10.jpeg",
+                f"{github_base}/image_1.11.jpeg",
+                f"{github_base}/image_1.12.jpeg",
+                f"{github_base}/image_1.13.jpeg"
+            ]
+
+            last_image_file = "last_used_image.txt"
+
+            try:
+                with open(last_image_file, "r") as f:
+                    last_used = f.read().strip()
+            except FileNotFoundError:
+                last_used = None
+
+            available_images = [img for img in all_images if img != last_used]
+            selected_image = random.choice(available_images)
+
+            with open(last_image_file, "w") as f:
+                f.write(selected_image)
+
+            logger.info(f" AI Co-Founder selected NEW image: {selected_image.split('/')[-1]}")
         
         try:
             # Image URLs for LinkedIn CMO posts (hosted on GitHub)
@@ -690,14 +725,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             # image_1.png = English posts (Mon/Fri)
             # image_1.1.png = Spanish posts (Wednesday)
             
-            image_urls = {
-                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg",
-                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg"
-            }
+            
 
             # Choose image based on post type (fallback to first available)
             selected_image = image_urls.get(post_content.get("type")) or next(iter(image_urls.values()))
@@ -1046,3 +1074,4 @@ Be specific and actionable."""
         print("✅"*40 + "\n")
         
         return success
+
