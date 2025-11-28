@@ -689,22 +689,27 @@ Generate FRESH, creative content (not templates). Think strategically about what
             # Images uploaded to repository: image_1.png and image_1.1.png
             # image_1.png = English posts (Mon/Fri)
             # image_1.1.png = Spanish posts (Wednesday)
+            
             image_urls = {
-                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.png",
-                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png",  # Spanish (Wed)
-                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png"  # Spanish (Wed)
+                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
+                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
+                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
+                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
+                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg",
+                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg"
             }
-            
-            
-            # Choose image based on post type (fallback to english image)
+
+            # Choose image based on post type (fallback to first available)
+            selected_image = image_urls.get(post_content.get("type")) or next(iter(image_urls.values()))
+            # Persist last chosen image for anti-repeat behavior
             try:
-                selected_image = image_urls.get(post_content.get("type"), image_urls.get("open_to_work"))
+                self.strategy_data["last_image"] = selected_image
+                self._save_json(self.strategy_file, self.strategy_data)
             except Exception:
-                # fallback to first available or default image
-                selected_image = (list(image_urls.values())[0] if isinstance(image_urls, dict) and image_urls else "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png")
+                # Non-fatal: if saving fails, continue using selected_image
+                pass
+
+            logger.info(f"Selected image for post: {selected_image}")
 payload = {
                 "platform": "linkedin",
                 "content": post_content["content"],
