@@ -707,7 +707,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
                 "timestamp": post_content["timestamp"],
                 "author": post_content["author"],
                 # Add image URL based on post type
-                "imageURL": image_urls.get(post_content["type"], ""),
+                "imageURL": selected_image,
                 "videoURL": "",  # Future: Add video support
                 # Make.com scenario compatibility fields
                 "hook": "LinkedIn CMO Automated Post",
