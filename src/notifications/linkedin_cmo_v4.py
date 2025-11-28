@@ -698,7 +698,14 @@ Generate FRESH, creative content (not templates). Think strategically about what
                 "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/vibejobhunter/main/image_1.1.png"  # Spanish (Wed)
             }
             
-            payload = {
+            
+            # Choose image based on post type (fallback to english image)
+            try:
+                selected_image = image_urls.get(post_content.get("type"), image_urls.get("open_to_work"))
+            except Exception:
+                # fallback to first available or default image
+                selected_image = (list(image_urls.values())[0] if isinstance(image_urls, dict) and image_urls else "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png")
+payload = {
                 "platform": "linkedin",
                 "content": post_content["content"],
                 "text": post_content["content"],  # For Make.com compatibility
