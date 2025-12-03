@@ -22,6 +22,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Google Analytics imports (optional - graceful fallback if not installed)
+try:
+    from google.analytics.data_v1beta import BetaAnalyticsDataClient
+    from google.analytics.data_v1beta.types import (
+        RunReportRequest,
+        Dimension,
+        Metric,
+        DateRange,
+        FilterExpression,
+        Filter,
+        FilterExpressionList,
+    )
+    from google.oauth2 import service_account
+    GA_AVAILABLE = True
+except ImportError:
+    GA_AVAILABLE = False
+    logger.warning("⚠️ google-analytics-data not installed - GA integration disabled")
+
 
 class PerformanceTracker:
     """
@@ -41,7 +59,21 @@ class PerformanceTracker:
         # API keys (from environment)
         self.buffer_access_token = os.getenv('BUFFER_ACCESS_TOKEN')
         self.google_analytics_key = os.getenv('GOOGLE_ANALYTICS_KEY')
+        self.google_analytics_credentials = os.getenv('GOOGLE_ANALYTICS_CREDENTIALS')  # JSON as string
+        self.ga4_property_id = os.getenv('GA4_PROPERTY_ID')
         self.gmail_credentials = os.getenv('GMAIL_CREDENTIALS_PATH')
+        
+        # Initialize Google Analytics client
+        self.ga_client = None
+        if GA_AVAILABLE and (self.google_analytics_key or self.google_analytics_credentials):
+            try:
+                self.ga_client = self._initialize_ga_client()
+                if self.ga_client:
+                    print("✅ Google Analytics client initialized successfully!")
+                    logger.info("✅ GA4 client ready - can fetch real performance data")
+            except Exception as e:
+                logger.warning(f"⚠️ GA client initialization failed: {e}")
+                print(f"⚠️ GA client initialization failed: {e}")
         
         # Performance database
         self.performance_file = self.data_dir / "real_performance.json"
@@ -51,9 +83,9 @@ class PerformanceTracker:
         print("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER INITIALIZED! 🎯🎯🎯")
         print("="*80)
         print("✅ UTM tracking: ACTIVE (automatic)")
-        print("✅ Buffer API: Ready (if BUFFER_ACCESS_TOKEN set)")
-        print("✅ Google Analytics: Ready (if GOOGLE_ANALYTICS_KEY set)")
-        print("✅ Gmail API: Ready (if GMAIL_CREDENTIALS_PATH set)")
+        print(f"✅ Buffer API: {'READY' if self.buffer_access_token else 'Not configured'}")
+        print(f"✅ Google Analytics: {'READY' if self.ga_client else 'Not configured'}")
+        print(f"✅ Gmail API: {'Ready' if self.gmail_credentials else 'Not configured'}")
         print("="*80)
         print("📊 All LinkedIn post links will be tracked!")
         print("="*80 + "\n")
@@ -62,6 +94,59 @@ class PerformanceTracker:
         logger.info("="*80)
         logger.info("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER ACTIVE! 🎯🎯🎯")
         logger.info("="*80)
+    
+    def _initialize_ga_client(self):
+        """
+        Initialize Google Analytics Data API client
+        
+        Supports two authentication methods:
+        1. JSON key file path (GOOGLE_ANALYTICS_KEY)
+        2. JSON credentials as string (GOOGLE_ANALYTICS_CREDENTIALS)
+        """
+        if not GA_AVAILABLE:
+            logger.warning("google-analytics-data package not installed")
+            return None
+        
+        try:
+            # Method 1: JSON key file path
+            if self.google_analytics_key and os.path.exists(self.google_analytics_key):
+                credentials = service_account.Credentials.from_service_account_file(
+                    self.google_analytics_key,
+                    scopes=['https://www.googleapis.com/auth/analytics.readonly']
+                )
+                logger.info(f"✅ Loaded GA credentials from file: {self.google_analytics_key}")
+                return BetaAnalyticsDataClient(credentials=credentials)
+            
+            # Method 2: JSON credentials as environment variable
+            elif self.google_analytics_credentials:
+                import tempfile
+                
+                # Parse JSON credentials
+                creds_dict = json.loads(self.google_analytics_credentials)
+                
+                # Create temporary file for credentials
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    json.dump(creds_dict, f)
+                    temp_path = f.name
+                
+                credentials = service_account.Credentials.from_service_account_file(
+                    temp_path,
+                    scopes=['https://www.googleapis.com/auth/analytics.readonly']
+                )
+                
+                # Clean up temp file
+                os.unlink(temp_path)
+                
+                logger.info("✅ Loaded GA credentials from environment variable")
+                return BetaAnalyticsDataClient(credentials=credentials)
+            
+            else:
+                logger.warning("No GA credentials found")
+                return None
+        
+        except Exception as e:
+            logger.error(f"Failed to initialize GA client: {e}")
+            return None
     
     # ==================== UTM TRACKING ====================
     
@@ -165,41 +250,124 @@ class PerformanceTracker:
         utm_campaign: str
     ) -> Dict[str, Any]:
         """
-        Get website traffic from Google Analytics
+        Get website traffic from Google Analytics Data API v1 (GA4)
         
         Tracks:
         - Sessions from LinkedIn
         - Page views
         - Conversions (demo requests, contact forms)
         - Time on site
+        - Bounce rate
+        
+        Filters by UTM campaign to attribute traffic to specific LinkedIn posts
         
         Docs: https://developers.google.com/analytics/devguides/reporting/data/v1
         """
-        if not self.google_analytics_key:
+        if not self.ga_client:
             logger.warning("⚠️ Google Analytics not configured - skipping GA data")
             return {}
         
+        if not self.ga4_property_id:
+            logger.warning("⚠️ GA4_PROPERTY_ID not set - skipping GA data")
+            return {}
+        
         try:
-            # TODO: Implement Google Analytics Data API v1
-            # For now, return structure
+            # Format dates for GA4 API (YYYY-MM-DD)
+            start_date_str = start_date.strftime("%Y-%m-%d")
+            end_date_str = end_date.strftime("%Y-%m-%d")
             
+            # Build the request
+            request = RunReportRequest(
+                property=f"properties/{self.ga4_property_id}",
+                dimensions=[
+                    Dimension(name="sessionSource"),
+                    Dimension(name="sessionMedium"),
+                    Dimension(name="sessionCampaignName"),
+                ],
+                metrics=[
+                    Metric(name="sessions"),
+                    Metric(name="screenPageViews"),
+                    Metric(name="averageSessionDuration"),
+                    Metric(name="engagedSessions"),
+                    Metric(name="bounceRate"),
+                    Metric(name="newUsers"),
+                ],
+                date_ranges=[DateRange(start_date=start_date_str, end_date=end_date_str)],
+                dimension_filter=FilterExpression(
+                    and_group=FilterExpressionList(
+                        expressions=[
+                            FilterExpression(
+                                filter=Filter(
+                                    field_name="sessionSource",
+                                    string_filter=Filter.StringFilter(
+                                        match_type=Filter.StringFilter.MatchType.EXACT,
+                                        value="linkedin"
+                                    )
+                                )
+                            ),
+                            FilterExpression(
+                                filter=Filter(
+                                    field_name="sessionCampaignName",
+                                    string_filter=Filter.StringFilter(
+                                        match_type=Filter.StringFilter.MatchType.CONTAINS,
+                                        value=utm_campaign
+                                    )
+                                )
+                            ),
+                        ]
+                    )
+                ),
+            )
+            
+            # Execute request in thread pool (GA client is synchronous)
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                self.ga_client.run_report,
+                request
+            )
+            
+            # Parse response
             analytics = {
-                "sessions": 0,  # Will be real data
+                "sessions": 0,
                 "page_views": 0,
                 "avg_session_duration": 0,
-                "demo_clicks": 0,  # Custom event tracking
-                "contact_form_submissions": 0,  # Custom event
-                "source": "google_analytics",
+                "engaged_sessions": 0,
+                "bounce_rate": 0.0,
+                "new_users": 0,
+                "source": "google_analytics_api",
                 "utm_campaign": utm_campaign,
                 "date_range": f"{start_date.date()} to {end_date.date()}",
                 "fetched_at": datetime.now().isoformat()
             }
             
-            logger.info(f"📊 GA data fetched for campaign: {utm_campaign}")
+            # Extract metrics from response
+            if response.rows:
+                for row in response.rows:
+                    # Sum up all metrics (in case there are multiple rows)
+                    analytics["sessions"] += int(row.metric_values[0].value)
+                    analytics["page_views"] += int(row.metric_values[1].value)
+                    analytics["avg_session_duration"] += float(row.metric_values[2].value)
+                    analytics["engaged_sessions"] += int(row.metric_values[3].value)
+                    analytics["bounce_rate"] += float(row.metric_values[4].value)
+                    analytics["new_users"] += int(row.metric_values[5].value)
+                
+                # Average the session duration and bounce rate
+                if len(response.rows) > 1:
+                    analytics["avg_session_duration"] /= len(response.rows)
+                    analytics["bounce_rate"] /= len(response.rows)
+                
+                print(f"📊 GA DATA FETCHED: {analytics['sessions']} sessions, {analytics['page_views']} pageviews")
+                logger.info(f"✅ GA data: {analytics['sessions']} sessions, {analytics['page_views']} pageviews for {utm_campaign}")
+            else:
+                print(f"📊 GA: No data yet for campaign {utm_campaign} (normal for new posts)")
+                logger.info(f"📊 No GA data yet for campaign: {utm_campaign}")
+            
             return analytics
         
         except Exception as e:
             logger.error(f"Failed to get Google Analytics: {e}")
+            print(f"❌ GA fetch error: {e}")
             return {}
     
     # ==================== GMAIL API - OPPORTUNITY TRACKING ====================
