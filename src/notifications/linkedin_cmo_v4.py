@@ -1,4 +1,4 @@
-﻿"""
+"""
 🎯 LINKEDIN CMO - AI CO-FOUNDER
 TRUE AI Co-Founder for AIdeazz (not just an AIPA!)
 
@@ -8,7 +8,7 @@ DIFFERENCE:
 
 CAPABILITIES:
 ✅ Generates fresh content using Claude API (not templates!)
-✅ Analyzes LinkedIn performance data
+✅ Analyzes LinkedIn performance data (PROXY METRICS - NO LINKEDIN API NEEDED!)
 ✅ Makes strategic decisions about content mix
 ✅ Adapts tone/strategy based on goals
 ✅ Bilingual content strategy (EN/ES)
@@ -17,6 +17,7 @@ CAPABILITIES:
 Author: Elena Revicheva (Human Co-Founder)
 AI Co-Founder: LinkedIn CMO (Autonomous Strategic Partner)
 Created: November 2025
+Updated: December 2025 - PROXY METRICS INTEGRATION!
 """
 
 import requests
@@ -29,6 +30,14 @@ import anthropic
 from anthropic import AsyncAnthropic
 import json
 from pathlib import Path
+
+# Import performance tracker
+try:
+    from .performance_tracker import PerformanceTracker
+    PERFORMANCE_TRACKER_AVAILABLE = True
+except ImportError:
+    PERFORMANCE_TRACKER_AVAILABLE = False
+    logger.warning("⚠️ Performance tracker not available - using basic tracking")
 
 # 🔥🔥🔥 DEPLOYMENT VERIFICATION BANNER 🔥🔥🔥
 print("\n" + "🎯"*40)
@@ -193,6 +202,14 @@ class LinkedInCMO:
         self.performance_data = self._load_json(self.performance_file) or {"posts": []}
         self.strategy_data = self._load_json(self.strategy_file) or {"decisions": [], "current_focus": "balanced"}
         self.market_data = self._load_json(self.market_file) or {"trends": []}
+        
+        # Initialize PROXY METRICS performance tracker
+        if PERFORMANCE_TRACKER_AVAILABLE:
+            self.performance_tracker = PerformanceTracker()
+            logger.info("✅ Performance Tracker enabled (Proxy Metrics)")
+        else:
+            self.performance_tracker = None
+            logger.warning("⚠️ Performance Tracker not available")
     
     def _load_json(self, file_path: Path) -> Optional[Dict]:
         """Load JSON data from file"""
@@ -673,10 +690,26 @@ Generate FRESH, creative content (not templates). Think strategically about what
         """
         Send LinkedIn post to Make.com webhook
         Make.com will handle: Formatting → Buffer → LinkedIn + Instagram posting
+        
+        NOW WITH UTM TRACKING for performance monitoring!
         """
         if not self.enabled:
             logger.warning("LinkedIn CMO not enabled (no Make.com webhook URL)")
             return False
+        
+        # === UTM TRACKING INTEGRATION ===
+        post_id = post_content.get("post_id", f"{post_content['type']}_{datetime.now().strftime('%Y%m%d_%H%M')}")
+        
+        # Add UTM parameters to content if performance tracker available
+        content = post_content["content"]
+        if self.performance_tracker:
+            logger.info("📊 Adding UTM tracking to all links...")
+            content = self.performance_tracker.enhance_post_content_with_utm(
+                content, 
+                post_id, 
+                post_content["type"]
+            )
+            logger.info(f"✅ UTM tracking added - post_id: {post_id}")
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
         github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
@@ -721,13 +754,14 @@ Generate FRESH, creative content (not templates). Think strategically about what
         try:
             payload = {
                 "platform": "linkedin",
-                "content": post_content["content"],
-                "text": post_content["content"],
+                "content": content,  # ✅ Now with UTM tracking!
+                "text": content,
                 "language": post_content["language"],
                 "post_type": post_content["type"],
+                "post_id": post_id,  # ✅ Added for tracking
                 "timestamp": post_content["timestamp"],
                 "author": post_content["author"],
-                "imageURL": selected_image,  # ✅ FIXED!
+                "imageURL": selected_image,
                 "videoURL": "",
                 "hook": "LinkedIn CMO Automated Post",
                 "audience": "Tech Professionals & Founders",
@@ -746,6 +780,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             
             if response.status_code == 200:
                 logger.info(f"✅ Sent to Make.com ({post_content['language'].upper()}, {post_content['type']})")
+                logger.info(f"📊 UTM tracking active - campaign: cmo_{post_id}")
                 return True
             else:
                 logger.error(f"❌ Make.com webhook failed: {response.status_code}")
@@ -794,9 +829,23 @@ Generate FRESH, creative content (not templates). Think strategically about what
         """
         AI CO-FOUNDER: Learn from post performance data
         
+        NOW USES REAL PROXY METRICS!
         Analyzes which content types perform best and adapts strategy
         """
         try:
+            # Use proxy metrics performance tracker if available
+            if self.performance_tracker:
+                logger.info("🧠 Learning from REAL proxy metrics data...")
+                insights = await self.performance_tracker.get_learning_insights(days=30)
+                
+                if "error" not in insights:
+                    logger.info(f"✅ Proxy metrics insights: {insights['best_performing_type']} performs best")
+                    logger.info(f"📊 Analyzed {insights['analyzed_posts']} posts with real data")
+                    return insights
+                else:
+                    logger.info(f"⚠️ Not enough proxy data yet: {insights['error']}")
+            
+            # Fallback to basic tracking
             if not self.performance_data.get("posts"):
                 logger.info("📚 No performance data yet - still learning!")
                 return {"insights": "Insufficient data", "recommendations": []}
@@ -1034,8 +1083,18 @@ Be specific and actionable."""
             logger.info(f"🎉 LinkedIn post sent successfully!")
             
             # Step 6: Initialize performance tracking
-            post_id = f"{post_content['type']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            await self.analyze_post_performance(post_id)
+            post_id = post_content.get("post_id", f"{post_content['type']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+            
+            # Use PROXY METRICS performance tracker if available
+            if self.performance_tracker:
+                logger.info(f"📊 Scheduling proxy metrics collection for post: {post_id}")
+                # Schedule analysis for 7 days later (gives time for engagement)
+                # In production, this would be done by a scheduler
+                # For now, we'll just track that it was posted
+                await self.analyze_post_performance(post_id)
+            else:
+                # Fallback to basic tracking
+                await self.analyze_post_performance(post_id)
             
             # Save post details for future learning
             self.performance_data["posts"].append({
@@ -1044,7 +1103,9 @@ Be specific and actionable."""
                 "language": post_content['language'],
                 "ai_generated": post_content.get('ai_generated', False),
                 "timestamp": post_content['timestamp'],
-                "metrics": {}  # Will be updated later with actual LinkedIn data
+                "posted_date": datetime.now().isoformat(),
+                "utm_tracking_enabled": self.performance_tracker is not None,
+                "metrics": {}  # Will be updated by proxy metrics tracker
             })
             self._save_json(self.performance_file, self.performance_data)
         
