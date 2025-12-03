@@ -205,11 +205,33 @@ class LinkedInCMO:
         
         # Initialize PROXY METRICS performance tracker
         if PERFORMANCE_TRACKER_AVAILABLE:
+            print("\n" + "🔥"*40)
+            print("🔥🔥🔥 INITIALIZING PROXY METRICS TRACKER! 🔥🔥🔥")
+            print("🔥"*40 + "\n")
+            
             self.performance_tracker = PerformanceTracker()
+            
+            print("\n" + "✅"*40)
+            print("✅✅✅ PROXY METRICS TRACKER SUCCESSFULLY LOADED! ✅✅✅")
+            print("="*80)
+            print("🎯 UTM tracking will be added to ALL LinkedIn post links!")
+            print("📊 All links will have: ?utm_source=linkedin&utm_campaign=...")
+            print("="*80)
+            print("✅"*40 + "\n")
+            
+            logger.info("="*80)
             logger.info("✅ Performance Tracker enabled (Proxy Metrics)")
+            logger.info("🎯 UTM TRACKING ACTIVE - All links will be tracked!")
+            logger.info("="*80)
         else:
+            print("\n" + "⚠️"*40)
+            print("⚠️⚠️⚠️ PROXY METRICS TRACKER NOT AVAILABLE ⚠️⚠️⚠️")
+            print("📝 Using basic tracking (original features still work!)")
+            print("⚠️"*40 + "\n")
+            
             self.performance_tracker = None
             logger.warning("⚠️ Performance Tracker not available")
+            logger.info("📝 Using basic tracking - all original features work")
     
     def _load_json(self, file_path: Path) -> Optional[Dict]:
         """Load JSON data from file"""
@@ -703,13 +725,31 @@ Generate FRESH, creative content (not templates). Think strategically about what
         # Add UTM parameters to content if performance tracker available
         content = post_content["content"]
         if self.performance_tracker:
+            print("\n" + "📊"*40)
+            print("📊📊📊 APPLYING UTM TRACKING TO POST LINKS! 📊📊📊")
+            print("="*80)
+            print(f"Post ID: {post_id}")
+            print(f"Post Type: {post_content['type']}")
+            print("="*80)
+            
+            logger.info("="*80)
             logger.info("📊 Adding UTM tracking to all links...")
+            logger.info(f"Post ID: {post_id} | Type: {post_content['type']}")
+            
             content = self.performance_tracker.enhance_post_content_with_utm(
                 content, 
                 post_id, 
                 post_content["type"]
             )
+            
+            print("✅ UTM TRACKING SUCCESSFULLY APPLIED!")
+            print(f"✅ Campaign: cmo_{post_id}")
+            print("✅ All links now have tracking parameters!")
+            print("📊"*40 + "\n")
+            
             logger.info(f"✅ UTM tracking added - post_id: {post_id}")
+            logger.info("✅ All links enhanced with UTM parameters!")
+            logger.info("="*80)
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
         github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"

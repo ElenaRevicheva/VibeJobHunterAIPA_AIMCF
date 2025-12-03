@@ -47,7 +47,21 @@ class PerformanceTracker:
         self.performance_file = self.data_dir / "real_performance.json"
         self.opportunities_file = self.data_dir / "opportunities.json"
         
+        print("\n" + "="*80)
+        print("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER INITIALIZED! 🎯🎯🎯")
+        print("="*80)
+        print("✅ UTM tracking: ACTIVE (automatic)")
+        print("✅ Buffer API: Ready (if BUFFER_ACCESS_TOKEN set)")
+        print("✅ Google Analytics: Ready (if GOOGLE_ANALYTICS_KEY set)")
+        print("✅ Gmail API: Ready (if GMAIL_CREDENTIALS_PATH set)")
+        print("="*80)
+        print("📊 All LinkedIn post links will be tracked!")
+        print("="*80 + "\n")
+        
         logger.info("🎯 Performance Tracker initialized (Proxy Metrics)")
+        logger.info("="*80)
+        logger.info("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER ACTIVE! 🎯🎯🎯")
+        logger.info("="*80)
     
     # ==================== UTM TRACKING ====================
     
@@ -70,6 +84,8 @@ class PerformanceTracker:
         )
         
         tracked_url = f"{url}{separator}{utm_params}"
+        
+        print(f"📊 UTM TRACKING APPLIED: {url[:40]}... → {tracked_url[:60]}...")
         logger.info(f"📊 Added UTM tracking: {url[:30]}... → {tracked_url[:50]}...")
         return tracked_url
     
