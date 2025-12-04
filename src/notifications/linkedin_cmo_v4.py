@@ -149,7 +149,7 @@ class LinkedInCMO:
         logger.info("")
         logger.info("🎯 EMOTIONALLY INTELLIGENT AI (Not just functional tools!)")
         logger.info("💡 Creative Content Generation | 📊 Performance Analysis | 🔄 Strategy Adaptation")
-        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 3 PM Panama (20:00 UTC) | ⚡ Full Autonomy")
+        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 4:30 PM Panama (21:30 UTC) | ⚡ Full Autonomy")
         logger.info("")
         logger.info("Part of AIdeazz's AI Co-Founder Team 🤝")
         logger.info("=" * 80)
@@ -188,7 +188,7 @@ class LinkedInCMO:
             print("⚠️"*30 + "\n")
             logger.info("📝 AIPA MODE: Using templates")
         
-        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 3 PM Panama (20:00 UTC)!")
+        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 4:30 PM Panama (21:30 UTC)!")
         logger.info("=" * 75)
         
         # Initialize performance tracking database
