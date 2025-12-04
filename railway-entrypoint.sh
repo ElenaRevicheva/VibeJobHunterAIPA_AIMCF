@@ -51,5 +51,12 @@ else
 fi
 echo ""
 
-# Run autonomous mode with interval from env var (default 1 hour)
-exec python -m src.main autonomous --interval "${AUTONOMOUS_INTERVAL:-1}"
+# Check if we should run web server or autonomous mode
+if [ "$RUN_MODE" = "web" ]; then
+    echo "🌐 Starting Web Server mode (with GA4 Dashboard)..."
+    exec python web_server.py
+else
+    echo "🤖 Starting Autonomous Job Hunting mode..."
+    # Run autonomous mode with interval from env var (default 1 hour)
+    exec python -m src.main autonomous --interval "${AUTONOMOUS_INTERVAL:-1}"
+fi
