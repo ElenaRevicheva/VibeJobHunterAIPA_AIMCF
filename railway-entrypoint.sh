@@ -7,7 +7,7 @@ echo "╔═══════════════════════�
 echo "║  🧠✨ AI MARKETING CO-FOUNDER v5.0 - DIGNIFIED POSITIONING! ✨🧠 ║"
 echo "║                                                                   ║"
 echo "║  📅 BUILD: November 24, 2025 19:46 UTC                           ║"
-echo "║  🕒 Daily Posts: 3 PM PANAMA (20:00 UTC) ⏰                       ║"
+echo "║  🕒 Daily Posts: 4 PM PANAMA (21:00 UTC) ⏰                       ║"
 echo "║  🎯 GIT COMMIT: 68075b1 (Time Change + v5.0!)                    ║"
 echo "║                                                                   ║"
 echo "║  🎯 EMOTIONALLY INTELLIGENT AI - 9 Products (5 AIPAs + 4 Apps)   ║"
@@ -71,13 +71,13 @@ def job():
     print(f'⏰ Running LinkedIn CMO at {datetime.now()}')
     asyncio.run(cmo.create_and_post())
 
-# Schedule for 20:00 UTC (3 PM Panama)
-schedule.every().day.at('20:00').do(job)
-print('✅ LinkedIn CMO scheduled for 20:00 UTC daily')
+# Schedule for 21:00 UTC (4 PM Panama)
+schedule.every().day.at('21:00').do(job)
+print('✅ LinkedIn CMO scheduled for 21:00 UTC daily')
 
 # Also run once at startup if it's the right time
 now = datetime.utcnow()
-if now.hour == 20 and now.minute < 5:
+if now.hour == 21 and now.minute < 5:
     print('🎯 Running LinkedIn CMO now (startup at posting time)')
     job()
 

@@ -29,7 +29,7 @@
 - Bilingual content strategy (EN/ES)
 - Performance tracking & adaptation
 - Market intelligence & strategic decisions
-- **Daily posts at 3 PM Panama time (20:00 UTC) - zero manual work!**
+- **Daily posts at 4 PM Panama time (21:00 UTC) - zero manual work!**
 
 ---
 

@@ -45,7 +45,7 @@ INFO:     Application startup complete.
 
 ### ✅ LinkedIn CMO (Background)
 - Runs in background
-- Scheduled for **20:00 UTC daily** (3 PM Panama)
+- Scheduled for **21:00 UTC daily** (4 PM Panama)
 - Also runs immediately if you deploy within 5 min of posting time
 - Creates and posts content automatically
 
@@ -63,7 +63,7 @@ If you want to trigger a post immediately (not wait until tomorrow):
 
 ### Option 1: Restart at Posting Time
 
-Deploy/restart Railway between 20:00-20:05 UTC and it will post immediately
+Deploy/restart Railway between 21:00-21:05 UTC and it will post immediately
 
 ### Option 2: Use Railway CLI
 
@@ -84,11 +84,11 @@ Create a one-time posting trigger (I can help with this if needed)
 
 ## 🕒 Posting Schedule
 
-**Time:** 20:00 UTC (3 PM Panama)
+**Time:** 21:00 UTC (4 PM Panama)
 **Frequency:** Daily
 **Weekends:** Yes, posts every day
 
-**Today's post was missed** because the system was in web-only mode at 20:00 UTC.
+**Today's post was missed** because the system was in web-only mode at posting time.
 
 **Tomorrow's post** will work once you set `RUN_MODE=both`
 
@@ -100,7 +100,7 @@ Create a one-time posting trigger (I can help with this if needed)
 
 **In Railway logs, look for:**
 ```
-✅ LinkedIn CMO scheduled for 20:00 UTC daily
+✅ LinkedIn CMO scheduled for 21:00 UTC daily
 ⏰ Running LinkedIn CMO at [time]
 🎯 Post created and sent to webhook!
 ```
@@ -123,7 +123,7 @@ Should still work perfectly!
 - [ ] Wait 2-3 minutes
 - [ ] Check logs for "✅ LinkedIn CMO scheduled"
 - [ ] Verify dashboard still works
-- [ ] Wait for tomorrow at 20:00 UTC (3 PM Panama)
+- [ ] Wait for tomorrow at 21:00 UTC (4 PM Panama)
 - [ ] Check LinkedIn for post!
 
 ---
@@ -163,7 +163,7 @@ Let me know if you want this setup instead!
 3. Web server mode **replaced** autonomous mode
 4. Autonomous mode includes LinkedIn CMO
 5. LinkedIn CMO stopped running
-6. No post at 20:00 UTC today
+6. No post at posting time today
 
 **Fix:**
 - `RUN_MODE=both` runs BOTH systems
@@ -174,7 +174,7 @@ Let me know if you want this setup instead!
 
 ## ✅ After You Apply Fix
 
-**Tomorrow at 20:00 UTC (3 PM Panama):**
+**Tomorrow at 21:00 UTC (4 PM Panama):**
 - LinkedIn CMO will create fresh content
 - Post to Instagram + LinkedIn
 - Track performance
