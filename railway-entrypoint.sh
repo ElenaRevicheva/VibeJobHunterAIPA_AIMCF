@@ -51,9 +51,42 @@ else
 fi
 echo ""
 
-# Check if we should run web server or autonomous mode
+# Check if we should run web server, autonomous mode, or both
 if [ "$RUN_MODE" = "web" ]; then
     echo "🌐 Starting Web Server mode (with GA4 Dashboard)..."
+    exec python web_server.py
+elif [ "$RUN_MODE" = "both" ]; then
+    echo "🚀 Starting BOTH Web Server AND LinkedIn CMO..."
+    # Start LinkedIn CMO in background
+    python -c "
+import asyncio
+import schedule
+import time
+from datetime import datetime
+from src.notifications.linkedin_cmo_v4 import LinkedInCMO
+
+cmo = LinkedInCMO()
+
+def job():
+    print(f'⏰ Running LinkedIn CMO at {datetime.now()}')
+    asyncio.run(cmo.create_and_post())
+
+# Schedule for 20:00 UTC (3 PM Panama)
+schedule.every().day.at('20:00').do(job)
+print('✅ LinkedIn CMO scheduled for 20:00 UTC daily')
+
+# Also run once at startup if it's the right time
+now = datetime.utcnow()
+if now.hour == 20 and now.minute < 5:
+    print('🎯 Running LinkedIn CMO now (startup at posting time)')
+    job()
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)
+" &
+    
+    # Start web server in foreground
     exec python web_server.py
 else
     echo "🤖 Starting Autonomous Job Hunting mode..."
