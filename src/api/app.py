@@ -10,6 +10,9 @@ from typing import List, Optional
 from ..core import ProfileManager, get_settings
 from ..agents import ApplicationManager, JobMatcher
 
+# Import GA4 Dashboard routes
+from .ga_dashboard_routes import router as analytics_router
+
 
 def create_app() -> FastAPI:
     """Create FastAPI application"""
@@ -27,6 +30,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Include GA4 Analytics Dashboard routes
+    app.include_router(analytics_router)
     
     # Initialize managers
     profile_manager = ProfileManager()
