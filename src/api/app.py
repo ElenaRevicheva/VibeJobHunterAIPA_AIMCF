@@ -6,12 +6,24 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from ..core import ProfileManager, get_settings
 from ..agents import ApplicationManager, JobMatcher
 
-# Import GA4 Dashboard routes
-from .ga_dashboard_routes import router as analytics_router
+# Import GA4 Dashboard routes with error handling
+try:
+    from .ga_dashboard_routes import router as analytics_router
+    logger.info("✅ Successfully imported GA4 analytics router")
+    ANALYTICS_AVAILABLE = True
+except Exception as e:
+    logger.error(f"❌ Failed to import GA4 analytics router: {e}")
+    ANALYTICS_AVAILABLE = False
+    analytics_router = None
 
 
 def create_app() -> FastAPI:
@@ -31,8 +43,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Include GA4 Analytics Dashboard routes
-    app.include_router(analytics_router)
+    # Include GA4 Analytics Dashboard routes (if available)
+    if ANALYTICS_AVAILABLE and analytics_router:
+        try:
+            app.include_router(analytics_router)
+            logger.info("✅ GA4 Analytics routes registered successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to register analytics routes: {e}")
+    else:
+        logger.warning("⚠️ GA4 Analytics routes not available - skipping")
     
     # Initialize managers
     profile_manager = ProfileManager()
