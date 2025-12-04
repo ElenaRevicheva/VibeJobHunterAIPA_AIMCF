@@ -31,6 +31,9 @@ Complete documentation for the VibeJobHunter AI Co-Founder system.
 - [Rollback Instructions](guides/ROLLBACK_INSTRUCTIONS.md) - Emergency procedures
 - [Quick Commands](guides/QUICK_COMMANDS.sh) - Useful shortcuts
 
+#### Troubleshooting
+- [Fix LinkedIn Posting](guides/FIX_LINKEDIN_POSTING.md) - Restore LinkedIn CMO posting when dashboard is enabled
+
 ### 🚂 Deployment
 
 - [Add Dashboard to Railway](deployment/ADD_DASHBOARD_TO_RAILWAY.md) - Railway setup
@@ -49,6 +52,7 @@ Complete documentation for the VibeJobHunter AI Co-Founder system.
 - [Deployment Status](status/DEPLOYMENT_STATUS.md) - Live status
 - [Safety Verification](status/SAFETY_VERIFICATION.md) - Security checks
 - [Backup Status](status/BACKUP_STATUS.txt) - Backup info
+- [Cleanup Summary](status/CLEANUP_SUMMARY.md) - Documentation reorganization history
 
 ### 🔬 Technical Analysis
 
@@ -77,6 +81,9 @@ Complete documentation for the VibeJobHunter AI Co-Founder system.
 
 **Understand the system architecture:**
 → [Honest System Evaluation](analysis/HONEST_EVALUATION.md)
+
+**Fix LinkedIn posting not working:**
+→ [Fix LinkedIn Posting](guides/FIX_LINKEDIN_POSTING.md)
 
 **Troubleshoot issues:**
 → [Test Locally First](deployment/TEST_LOCALLY_FIRST.md)
