@@ -69,7 +69,7 @@ cmo = LinkedInCMO()
 
 def job():
     print(f'⏰ Running LinkedIn CMO at {datetime.now()}')
-    asyncio.run(cmo.create_and_post())
+    asyncio.run(cmo.post_to_linkedin())
 
 # Schedule for 21:00 UTC (4 PM Panama)
 schedule.every().day.at('21:00').do(job)
