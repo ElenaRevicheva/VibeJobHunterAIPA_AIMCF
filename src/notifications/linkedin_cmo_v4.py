@@ -662,6 +662,9 @@ Generate FRESH, creative content (not templates). Think strategically about what
         """
         Generate a LinkedIn post (AI Co-Founder or template fallback)
         
+        ENHANCED: Now checks for tech updates from CTO AIPA first.
+        SAFE: If tech update system fails, falls back to regular content.
+        
         Args:
             post_type: Type of post ("open_to_work", "technical_showcase", etc.) or "random"
             language: "en", "es", or "random"
@@ -669,6 +672,78 @@ Generate FRESH, creative content (not templates). Think strategically about what
         Returns:
             Dict with 'content', 'language', 'type'
         """
+        
+        # ========================================
+        # NEW: Check for tech updates from CTO AIPA
+        # ========================================
+        try:
+            tech_updates = self._get_pending_tech_updates()
+            
+            if tech_updates and len(tech_updates) > 0:
+                # WE HAVE A TECH UPDATE! Post about it instead of regular content
+                latest_update = tech_updates[0]  # Most recent unposted update
+                
+                logger.info(f"🎯 [CTO Integration] Generating post about tech update: {latest_update.get('title')}")
+                
+                # Determine language for tech update post
+                if language == "random":
+                    language = random.choice(["en", "es"])
+                
+                # Generate prompt for tech update
+                prompt = self._generate_tech_update_prompt(latest_update, language.upper())
+                
+                # Call Claude (same as before, just different prompt)
+                if self.use_ai_generation:
+                    try:
+                        client = AsyncAnthropic(api_key=self.anthropic_api_key)
+                        response = await client.messages.create(
+                            model="claude-sonnet-4-20250514",
+                            max_tokens=600,
+                            temperature=0.8,
+                            messages=[{
+                                "role": "user",
+                                "content": prompt
+                            }]
+                        )
+                        
+                        content = response.content[0].text
+                        
+                        # Mark this update as posted (non-critical if fails)
+                        self._mark_tech_update_posted(latest_update)
+                        
+                        logger.info(f"✅ [CTO Integration] Generated post about CTO's work: PR#{latest_update.get('pr_number')}")
+                        
+                        # Return content to existing posting pipeline
+                        return {
+                            "content": content,
+                            "language": language,
+                            "type": "tech_update",
+                            "timestamp": datetime.now().isoformat(),
+                            "author": "Elena Revicheva",
+                            "ai_generated": True,
+                            "post_id": f"tech_update_{latest_update.get('pr_number', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+                        }
+                    except Exception as claude_err:
+                        logger.error(f"❌ [CTO Integration] Claude API call failed: {claude_err}")
+                        logger.info("🔄 [CTO Integration] Falling back to regular content generation")
+                        # Fall through to regular content below...
+                else:
+                    logger.info("📝 [CTO Integration] No AI generation available, falling back to regular content")
+                    # Fall through to regular content below...
+        
+        except Exception as tech_err:
+            # CRITICAL SAFETY: If tech update system fails, continue with regular content
+            logger.error(f"❌ [CTO Integration] Error in tech update flow: {tech_err}")
+            logger.info("🔄 [CTO Integration] Falling back to regular content generation")
+            # Fall through to regular content below...
+        
+        # ========================================
+        # EXISTING CODE: Regular content generation
+        # (Keep everything exactly as it was before!)
+        # ========================================
+        
+        logger.info("📝 Generating regular daily content (no tech updates pending)")
+        
         # Choose language
         if language == "random":
             language = random.choice(["en", "es"])
@@ -1154,4 +1229,166 @@ Be specific and actionable."""
         print("✅"*40 + "\n")
         
         return success
+    
+    # ========================================
+    # CTO AIPA INTEGRATION - NEW HELPER METHODS
+    # Added: December 2025 - Safe, non-breaking additions
+    # ========================================
+    
+    def _get_pending_tech_updates(self) -> List[Dict[str, Any]]:
+        """
+        Get pending tech updates from CTO AIPA to feature in today's post.
+        
+        SAFE: Returns empty list if:
+        - File doesn't exist
+        - JSON is corrupted
+        - Any error occurs
+        
+        This ensures existing posting continues even if CTO integration fails.
+        """
+        try:
+            import json
+            from pathlib import Path
+            
+            storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+            
+            if not storage_file.exists():
+                logger.debug("📋 [CTO Integration] No tech updates file found. Using regular content.")
+                return []
+            
+            try:
+                with open(storage_file, 'r', encoding='utf-8') as f:
+                    all_updates = json.load(f)
+            except json.JSONDecodeError as json_err:
+                logger.warning(f"⚠️ [CTO Integration] Corrupted updates file: {json_err}. Using regular content.")
+                return []
+            except Exception as read_err:
+                logger.warning(f"⚠️ [CTO Integration] Could not read updates: {read_err}. Using regular content.")
+                return []
+            
+            # Filter only unposted updates
+            pending = [u for u in all_updates if not u.get('posted', False)]
+            
+            if pending:
+                logger.info(f"📋 [CTO Integration] Found {len(pending)} pending tech update(s) from CTO AIPA")
+            else:
+                logger.debug("📋 [CTO Integration] No pending tech updates. Using regular content.")
+            
+            return pending
+            
+        except Exception as e:
+            logger.error(f"❌ [CTO Integration] Error in _get_pending_tech_updates: {e}")
+            logger.info("🔄 [CTO Integration] Falling back to regular content generation")
+            return []  # SAFE FALLBACK - existing system continues
+    
+    def _mark_tech_update_posted(self, update: Dict[str, Any]) -> bool:
+        """
+        Mark a tech update as posted after successful LinkedIn post.
+        
+        SAFE: If this fails, it doesn't break posting.
+        Update just stays "pending" and might be reused (acceptable).
+        """
+        try:
+            import json
+            from pathlib import Path
+            from datetime import datetime
+            
+            storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+            
+            if not storage_file.exists():
+                logger.warning("⚠️ [CTO Integration] Updates file disappeared. Cannot mark as posted.")
+                return False
+            
+            # Read
+            try:
+                with open(storage_file, 'r', encoding='utf-8') as f:
+                    all_updates = json.load(f)
+            except Exception as read_err:
+                logger.error(f"❌ [CTO Integration] Could not read file to mark posted: {read_err}")
+                return False
+            
+            # Find and mark
+            marked = False
+            for u in all_updates:
+                if (u.get('pr_number') == update.get('pr_number') and 
+                    u.get('repo') == update.get('repo') and
+                    not u.get('posted', False)):
+                    u['posted'] = True
+                    u['posted_at'] = datetime.now().isoformat()
+                    marked = True
+                    break
+            
+            if not marked:
+                logger.warning(f"⚠️ [CTO Integration] Could not find update to mark as posted: PR#{update.get('pr_number')}")
+                return False
+            
+            # Save
+            try:
+                with open(storage_file, 'w', encoding='utf-8') as f:
+                    json.dump(all_updates, f, indent=2, ensure_ascii=False)
+                logger.info(f"✅ [CTO Integration] Marked tech update as posted: PR#{update.get('pr_number')}")
+                return True
+            except Exception as write_err:
+                logger.error(f"❌ [CTO Integration] Could not save marked update: {write_err}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ [CTO Integration] Error in _mark_tech_update_posted: {e}")
+            return False  # Non-critical failure
+    
+    def _generate_tech_update_prompt(self, update: Dict[str, Any], language: str = "EN") -> str:
+        """
+        Generate Claude prompt for tech update post.
+        
+        SAFE: Pure function, no side effects.
+        """
+        lang_full = "English" if language == "EN" else "Spanish"
+        
+        # Build context
+        repo = update.get('repo', 'AIdeazz')
+        pr_num = update.get('pr_number', 'unknown')
+        title = update.get('title', 'Technical improvement')
+        desc = update.get('description', '')
+        update_type = update.get('type', 'feature')
+        security = update.get('security_issues', 0)
+        complexity = update.get('complexity_issues', 0)
+        
+        prompt = f"""You are the CMO of AIdeazz, posting about a technical achievement from your CTO AIPA (AI Technical Co-Founder).
+
+🤖 CONTEXT: Your AI Co-Founders are working together!
+- CTO AIPA (on Oracle Cloud) just reviewed code and found improvements
+- CMO AIPA (you) announces this progress publicly
+
+TECH UPDATE FROM CTO AIPA:
+Repository: {repo}
+PR #{pr_num}: {title}
+Type: {update_type}
+Description: {desc}
+{f"🔒 Security issues found & fixed: {security}" if security > 0 else ""}
+{f"📊 Code complexity improvements: {complexity}" if complexity > 0 else ""}
+
+CREATE A LINKEDIN POST:
+1. Language: {lang_full}
+2. Tone: Authentic founder energy, "building in public" transparency
+3. Angle: Celebrate AI Co-Founders working together (CTO reviewed code, CMO announces it)
+4. Make it accessible: Non-technical audience should understand the value
+5. Show momentum: We're shipping, improving, growing
+6. Length: 150-250 words
+7. Use relevant emojis (🚀 🤖 ✨ 🔧 etc.)
+8. End with hashtags: #BuildingInPublic #AICoFounders #AIdeazz #TechProgress
+
+IMPORTANT:
+- Don't be too technical (avoid jargon)
+- Focus on what it means for users/product
+- Show it's AI Co-Founders collaborating
+- Be proud but humble
+- Authentic, not corporate
+
+Generate the LinkedIn post now:"""
+
+        return prompt
+    
+    # ========================================
+    # END CTO AIPA INTEGRATION HELPER METHODS
+    # ========================================
 

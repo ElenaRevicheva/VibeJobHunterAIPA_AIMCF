@@ -286,4 +286,137 @@ def create_app() -> FastAPI:
         apps = app_manager.get_applications_needing_followup()
         return [app.model_dump() for app in apps]
     
+    # ========================================
+    # CTO AIPA INTEGRATION (NEW - SAFE TO ADD)
+    # ========================================
+    
+    @app.post("/api/tech-update")
+    async def receive_tech_update(update: dict):
+        """
+        Receive tech updates from CTO AIPA (Oracle Cloud).
+        Stores updates for CMO to use in next daily post.
+        
+        This endpoint is INDEPENDENT - does not affect existing functionality.
+        """
+        try:
+            import json
+            from pathlib import Path
+            from datetime import datetime
+            
+            logger.info(f"📥 [CTO Integration] Received tech update: {update.get('type', 'unknown')}")
+            
+            # Create storage directory (safe - won't affect existing code)
+            storage_dir = Path("cto_aipa_updates")
+            storage_dir.mkdir(exist_ok=True)
+            
+            # Prepare update data
+            update_data = {
+                "timestamp": datetime.now().isoformat(),
+                "type": update.get('type', 'feature'),
+                "pr_number": update.get('pr_number'),
+                "repo": update.get('repo', 'AIdeazz'),
+                "title": update.get('title', 'Tech Update'),
+                "description": update.get('description', ''),
+                "security_issues": update.get('security_issues', 0),
+                "complexity_issues": update.get('complexity_issues', 0),
+                "posted": False,
+                "received_at": datetime.now().isoformat()
+            }
+            
+            # Load existing updates (defensive - handles missing file)
+            storage_file = storage_dir / "pending_tech_updates.json"
+            try:
+                if storage_file.exists():
+                    with open(storage_file, 'r', encoding='utf-8') as f:
+                        updates = json.load(f)
+                else:
+                    updates = []
+            except Exception as read_err:
+                logger.warning(f"⚠️ Could not read existing updates: {read_err}. Starting fresh.")
+                updates = []
+            
+            # Add new update
+            updates.append(update_data)
+            
+            # Keep only last 20 updates (prevent file bloat)
+            updates = updates[-20:]
+            
+            # Save (defensive - handles write errors)
+            try:
+                with open(storage_file, 'w', encoding='utf-8') as f:
+                    json.dump(updates, f, indent=2, ensure_ascii=False)
+                logger.info(f"✅ [CTO Integration] Tech update stored. Total pending: {len([u for u in updates if not u.get('posted')])}")
+            except Exception as write_err:
+                logger.error(f"❌ [CTO Integration] Could not save update: {write_err}")
+                return {
+                    "status": "error",
+                    "message": f"Failed to save update: {str(write_err)}"
+                }
+            
+            return {
+                "status": "success",
+                "message": "Tech update received. CMO will feature it in next daily post (3 PM Panama).",
+                "update": update_data,
+                "note": "Existing posting system unchanged"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ [CTO Integration] Error in tech-update endpoint: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "note": "This error does not affect existing CMO functionality"
+            }
+    
+    @app.get("/api/tech-updates/pending")
+    async def get_pending_tech_updates():
+        """
+        Get pending (unposted) tech updates from CTO AIPA.
+        Safe read-only endpoint.
+        """
+        try:
+            import json
+            from pathlib import Path
+            
+            storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+            
+            if not storage_file.exists():
+                return {
+                    "status": "success",
+                    "count": 0,
+                    "updates": [],
+                    "message": "No tech updates yet"
+                }
+            
+            try:
+                with open(storage_file, 'r', encoding='utf-8') as f:
+                    all_updates = json.load(f)
+            except Exception as read_err:
+                logger.error(f"❌ Error reading updates: {read_err}")
+                return {
+                    "status": "error",
+                    "message": str(read_err)
+                }
+            
+            # Filter only unposted
+            pending = [u for u in all_updates if not u.get('posted', False)]
+            
+            return {
+                "status": "success",
+                "count": len(pending),
+                "total_all_time": len(all_updates),
+                "updates": pending
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error in get pending updates: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    # ========================================
+    # END CTO AIPA INTEGRATION
+    # ========================================
+    
     return app
