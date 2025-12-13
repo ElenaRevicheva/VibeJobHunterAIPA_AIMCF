@@ -14,6 +14,14 @@ from .multi_channel_sender import MultiChannelSender
 from .demo_tracker import DemoTracker
 from .response_handler import ResponseHandler
 
+# NEW: Safe ATS Integration (non-breaking, can disable via env var)
+try:
+    from .ats_integration import get_ats_jobs_safely
+except ImportError:
+    # Fallback if ats_scraper not available
+    async def get_ats_jobs_safely(*args, **kwargs):
+        return []
+
 __all__ = [
     "AutonomousOrchestrator",
     "JobMonitor",
@@ -23,4 +31,5 @@ __all__ = [
     "MultiChannelSender",
     "DemoTracker",
     "ResponseHandler",
+    "get_ats_jobs_safely",  # NEW: Safe addition
 ]

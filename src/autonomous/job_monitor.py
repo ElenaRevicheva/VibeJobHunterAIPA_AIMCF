@@ -96,6 +96,23 @@ class JobMonitor:
                 continue
             all_jobs.extend(result)
         
+        # =====================================
+        # NEW: Add ATS API jobs (SAFE - won't break existing)
+        # Can disable via env: ATS_SCRAPER_ENABLED=false
+        # =====================================
+        try:
+            from .ats_integration import get_ats_jobs_safely
+            ats_jobs = await get_ats_jobs_safely(target_roles, max_companies=20)
+            if ats_jobs:
+                all_jobs.extend(ats_jobs)
+                logger.info(f"✅ [ATS] Added {len(ats_jobs)} jobs from Greenhouse/Lever APIs")
+        except Exception as e:
+            logger.debug(f"[ATS] Skipped (non-critical): {e}")
+            # Continue with existing sources - no impact on existing functionality
+        # =====================================
+        # END NEW CODE
+        # =====================================
+        
         # Filter to only new jobs
         new_jobs = []
         for job in all_jobs:
