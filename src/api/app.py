@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 from ..core import ProfileManager
 from ..agents import ApplicationManager
-from src.job_engine.ats_runner import ats_background_loop
+from ..job_engine.ats_runner import ats_background_loop
 
 # ------------------------------------------------------------------
 # GA4 Dashboard (optional)
