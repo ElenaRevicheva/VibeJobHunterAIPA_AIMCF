@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 """
 FastAPI Web Server for VibeJobHunter + GA4 Dashboard
-Run with: python web_server.py
+Railway production entrypoint
 """
+
+# ------------------------------------------------------------------
+# FIX PYTHON PATH (CRITICAL FOR RAILWAY)
+# ------------------------------------------------------------------
+import sys
 import os
+
+# Make /app/src importable as root
+sys.path.append(os.path.abspath("src"))
+
+# ------------------------------------------------------------------
+# Standard imports
+# ------------------------------------------------------------------
 import logging
 import uvicorn
 
@@ -26,23 +38,18 @@ logger.info(f"[DEPLOY VERIFY] {DEPLOY_FINGERPRINT}")
 def main():
     """Start the FastAPI web server"""
 
-    from src.api.app import create_app
+    # IMPORTANT: no `src.` here
+    from api.app import create_app
 
     logger.info("🚀 Starting VibeJobHunter Web Server...")
-    logger.info("✅ FastAPI app initialized")
     logger.info("📊 GA4 Dashboard will be available at /analytics/dashboard")
 
     app = create_app()
 
     port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "0.0.0.0")
+    host = "0.0.0.0"
 
     logger.info(f"🌐 Server starting on {host}:{port}")
-    logger.info("📡 Endpoints available:")
-    logger.info("   - http://localhost:8000/ (Main App)")
-    logger.info("   - http://localhost:8000/analytics/dashboard (GA4 Dashboard)")
-    logger.info("   - http://localhost:8000/analytics/health (Health Check)")
-    logger.info("   - http://localhost:8000/docs (API Documentation)")
 
     uvicorn.run(
         app,
@@ -52,6 +59,6 @@ def main():
         access_log=True,
     )
 
+
 if __name__ == "__main__":
     main()
-
