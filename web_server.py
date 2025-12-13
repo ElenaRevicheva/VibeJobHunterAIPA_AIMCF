@@ -10,8 +10,9 @@ Railway production entrypoint
 import sys
 import os
 
-# Make /app/src importable as root
-sys.path.append(os.path.abspath("src"))
+# Add the project root to Python path
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, project_root)
 
 # ------------------------------------------------------------------
 # Standard imports
@@ -38,8 +39,8 @@ logger.info(f"[DEPLOY VERIFY] {DEPLOY_FINGERPRINT}")
 def main():
     """Start the FastAPI web server"""
 
-    # IMPORTANT: no `src.` here
-    from api.app import create_app
+    # Import from src package
+    from src.api.app import create_app
 
     logger.info("🚀 Starting VibeJobHunter Web Server...")
     logger.info("📊 GA4 Dashboard will be available at /analytics/dashboard")
