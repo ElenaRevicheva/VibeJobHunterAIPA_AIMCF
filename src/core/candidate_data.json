@@ -1,48 +1,52 @@
 {
   "candidate": {
     "name": "Elena Revicheva",
-    "title": "AI-First Engineer & Founder | Building Emotionally Intelligent AI",
-    "tagline": "2 live AI agents with paying users in 19 countries | Ex-CEO | Web3 Native",
-    "location": "Panama City, Panama (Remote globally)",
+    "title": "AI-First Engineer & Startup Founder | Building Emotionally Intelligent AI",
+    "tagline": "11 AI products (7 live agents) in 10 months | Ex-CEO/CLO | AI Co-Founders: CTO + CMO AIPAs | $0/month operational cost",
+    "location": "Panama City, Panama (Remote / On-site / Full-time / Part-time)",
     "languages": ["Russian (Native)", "English (Fluent)", "Spanish (Intermediate)", "French (Elementary)"],
     "contact": {
       "email": "aipa@aideazz.xyz",
       "whatsapp": "https://wa.me/50766623757",
-      "telegram": "https://t.me/your_telegram",
+      "telegram": "https://t.me/espaluzfamily_bot",
       "website": "https://aideazz.xyz",
       "portfolio": "https://aideazz.xyz/card",
       "demo": "https://wa.me/50766623757",
       "linkedin": "linkedin.com/in/elenarevicheva",
       "github": "ElenaRevicheva",
+      "instagram": "instagram.com/elena_revicheva",
       "ens": "aideazz.eth"
     },
     "real_traction": {
-      "live_products": 2,
+      "live_products": 11,
+      "live_ai_agents": 7,
       "paying_customers": true,
       "countries_reached": 19,
       "revenue_model": "PayPal Subscriptions (LIVE) + Crypto (testing)",
       "uptime": "99%+",
+      "operational_cost": "$0/month (AI Co-Founders)",
       "status": "REVENUE GENERATING"
     }
   },
 
   "target_roles": [
+    "AI Engineer",
+    "Product Builder",
     "Founding Engineer (with equity 0.5-3%)",
+    "Technical Lead",
     "AI Product Manager",
     "Full-Stack AI Engineer",
     "LLM Engineer",
     "AI Solutions Architect",
     "AI Growth Engineer",
-    "Technical Co-Founder (equity-heavy)",
-    "AI Product Engineer (0→1)",
-    "Senior AI Engineer (early-stage startup)",
-    "Web3 + AI Engineer"
+    "Technical Co-Founder (equity-heavy)"
   ],
 
   "target_compensation": {
     "base_salary_range": "$100K-180K",
     "equity": "0.5-3% (founding/early employee)",
-    "total_comp_target": "$120K-200K+"
+    "total_comp_target": "$120K-200K+",
+    "hybrid_approach": "Role + Pre-seed Investment for AIdeazz (parallel execution)"
   },
 
   "target_companies": {
@@ -50,6 +54,84 @@
     "focus": ["AI-first products", "Mission-driven", "High-growth"],
     "locations": ["Remote", "US", "Europe", "LATAM"],
     "culture": ["Fast-paced", "Builder-focused", "Innovation-driven"]
+  },
+
+  "key_achievements_metrics": [
+    "🔥 11 AI products (7 live AI agents) in 10 months (March–December 2025) — solo-built full-stack",
+    "🤖 Deployed AI Co-Founders: CTO AIPA (autonomous code reviewer, 8 GitHub repos, Oracle Cloud) + CMO AIPA (LinkedIn automation, Railway) — $0/month operational cost",
+    "💰 99%+ cost reduction vs. team-based development ($900K → <$15K)",
+    "🌍 Users in 19 Spanish-speaking countries — dual-sided market with bilingual (EN/ES) architecture",
+    "⚙️ Integrated 10+ AI services: Claude, GPT, Groq (Llama 3.3 70B), Whisper, TTS, OCR, ElizaOS, HeyGen, MCP",
+    "💳 PayPal Subscriptions LIVE, crypto payments in testing",
+    "🚀 0→1 builder: Vision → Design → Build → Deploy → Growth",
+    "👔 7 years C-suite experience (Deputy CEO & CLO at E-Government Russia)",
+    "🌐 Web3 Native (Polygon, IPFS, DAO LLC, ENS: aideazz.eth)",
+    "🏛️ Member of Innovation Smart District (ISD), Panama"
+  ],
+
+  "ai_cofounders": {
+    "cto_aipa": {
+      "name": "CTO AIPA - AI Technical Co-Founder",
+      "status": "LIVE",
+      "description": "Autonomous code review automation across entire GitHub ecosystem — eliminates need for technical co-founder",
+      "github": "ElenaRevicheva/cto-aipa",
+      "tech_stack": ["TypeScript", "Node.js", "Express.js", "Groq (Llama 3.3 70B)", "Claude 3.5 Sonnet", "Oracle Autonomous Database 26ai (mTLS)", "Oracle Cloud Infrastructure", "GitHub API (@octokit/rest)", "PM2"],
+      "capabilities": [
+        "Automated PR reviews across 8 GitHub repositories (24/7, sub-30-second response)",
+        "Security vulnerability scanning (hardcoded credentials, SQL injection, unsafe code)",
+        "Code complexity analysis (McCabe scoring, architecture pattern detection)",
+        "Performance optimization (N+1 queries, inefficient loops)",
+        "Intelligent AI model selection (Groq for speed, Claude for critical analysis)",
+        "Integration with CMO AIPA for automated tech announcements"
+      ],
+      "business_impact": {
+        "cost": "$0/month (vs $120K/year senior developer)",
+        "speed": "Sub-30-second reviews (vs hours/days for human review)",
+        "quality": "100% PR security scanning, zero missed reviews",
+        "scalability": "Architecture supports 100+ repos with no code changes"
+      }
+    },
+    "cmo_aipa": {
+      "name": "CMO AIPA - AI Marketing Co-Founder",
+      "status": "LIVE",
+      "description": "Autonomous LinkedIn and Instagram content generation — NOT templates, but strategic AI-powered marketing with business intelligence",
+      "platforms": ["LinkedIn", "Instagram"],
+      "tech_stack": ["Python", "AsyncAnthropic (Claude API)", "FastAPI", "Make.com", "Buffer", "Railway"],
+      "capabilities": [
+        "Daily fresh AI content generation using Claude (learns what works)",
+        "Strategic decision-making (hiring vs fundraising focus based on business goals)",
+        "Bilingual content strategy (EN/ES with image rotation)",
+        "Tech update announcements (receives notifications from CTO AIPA when features ship)",
+        "Fully autonomous daily posting"
+      ],
+      "integration": "CTO completes code review → Notifies CMO via REST API → CMO generates LinkedIn post → Auto-posts next day (synchronized technical + marketing workflow, zero human intervention)",
+      "business_impact": "$0/month cost, 100% daily posting consistency, AI-tailored content strategy"
+    }
+  },
+
+  "technical_skills": {
+    "coding_experience": "100,000+ lines of production code",
+    "applications_built": 11,
+    "live_ai_agents": 7,
+    "production_timeline": "10 months (March–December 2025)",
+    "paying_customers": true,
+    "languages": ["Python", "TypeScript", "JavaScript", "Node.js", "SQL"],
+    "frameworks": ["React", "Flask", "FastAPI", "Express.js", "Node.js", "Vite"],
+    "ai_ml": ["GPT", "Claude", "Groq (Llama 3.3 70B)", "Whisper", "TTS", "MCP", "LangChain", "ElizaOS", "HeyGen", "OCR"],
+    "web3": ["Polygon", "Thirdweb", "MetaMask", "IPFS", "DAO Design", "ENS (aideazz.eth)"],
+    "infrastructure": ["PostgreSQL", "Oracle Autonomous Database 26ai", "Supabase", "Docker", "Railway", "Oracle Cloud Infrastructure (OCI)"],
+    "frontend": ["Tailwind CSS", "shadcn/ui", "Framer Motion", "i18next (bilingual)"],
+    "apis": ["WhatsApp", "Telegram", "PayPal", "Twitter", "CCXT", "GitHub API (@octokit/rest)", "Make.com", "Buffer"],
+    "databases": ["PostgreSQL", "Oracle Autonomous Database 26ai", "Supabase"],
+    "devops": ["PM2", "Oracle Cloud VM", "Ubuntu", "mTLS encryption", "Docker"],
+    "tools": ["Git", "GitHub", "Docker", "Railway", "Oracle Cloud"],
+    "methodologies": ["Solo-founder MVP", "0→1 building", "Rapid prototyping", "Capital-efficient dev", "AI-first development"],
+    "certifications": [
+      "Polkadot Blockchain Academy PBA-X Wave #3 (2025)",
+      "How-To-DAO Cohort Graduate (2025)",
+      "Blockchain Regulation, MGIMO (Moscow, 2017)",
+      "Presidential Program for Executive Management, RANEPA (Moscow, 2015)"
+    ]
   },
 
   "executive_experience": {
@@ -62,8 +144,7 @@
         "Managed IT, HR, legal, and compliance departments",
         "Built and led cross-functional teams",
         "Strategic planning and execution at C-suite level",
-        "Presidential Program for Executive Management (RANEPA, Moscow 2015)",
-        "Internship: Nyskapingsparken Innovation Park, Bergen, Norway"
+        "Board-level governance experience"
       ]
     },
     "operational_cofounder": {
@@ -89,34 +170,37 @@
     }
   },
 
-  "technical_skills": {
-    "coding_experience": "50,000+ lines of production code",
-    "applications_built": 6,
-    "live_ai_agents": 2,
-    "production_timeline": "7 months",
-    "paying_customers": true,
-    "languages": ["Python", "TypeScript", "JavaScript", "SQL", "HTML/CSS"],
-    "frameworks": ["React", "Flask", "Node.js", "Vite", "Next.js"],
-    "ai_ml": ["GPT", "Claude", "Whisper", "TTS", "MCP", "LangChain", "ElizaOS", "HeyGen"],
-    "web3": ["Polygon", "Thirdweb", "MetaMask", "IPFS", "DAO Design", "ENS (aideazz.eth)"],
-    "infrastructure": ["PostgreSQL", "Supabase", "Docker", "Railway", "Vercel"],
-    "frontend": ["Tailwind CSS", "shadcn/ui", "Framer Motion", "i18next (bilingual)"],
-    "apis": ["WhatsApp", "Telegram", "PayPal", "Twitter", "CCXT (crypto trading)"],
-    "databases": ["MongoDB", "PostgreSQL", "Supabase"],
-    "tools": ["Git", "GitHub", "Docker", "Railway", "Vercel"],
-    "methodologies": ["Solo-founder MVP", "0→1 building", "Rapid prototyping", "Capital-efficient dev"],
-    "certifications": [
-      "Polkadot Blockchain Academy PBA-X Wave #3 (2025)",
-      "How-To-DAO Cohort Graduate (2025)",
-      "Blockchain Regulation, MGIMO (Moscow, 2017)"
-    ]
-  },
-
   "applications_portfolio": [
     {
-      "name": "EspaLuz - AI Spanish Tutor",
-      "description": "Bilingual AI tutor bridging expats and locals (EN↔ES). Emotionally intelligent, persistent memory.",
-      "tech_stack": ["Python", "Claude", "GPT", "OCR", "TTS", "Whisper", "PostgreSQL", "WhatsApp API", "Telegram API"],
+      "name": "CTO AIPA - AI Technical Co-Founder",
+      "description": "Autonomous code review automation across 8 GitHub repositories — eliminates need for technical co-founder",
+      "tech_stack": ["TypeScript", "Node.js", "Express.js", "Groq (Llama 3.3 70B)", "Claude 3.5 Sonnet", "Oracle Autonomous Database 26ai", "Oracle Cloud Infrastructure", "GitHub API", "PM2"],
+      "status": "LIVE",
+      "demo": "https://github.com/ElenaRevicheva/cto-aipa",
+      "achievements": [
+        "$0/month operational cost (vs $120K/year senior developer)",
+        "Sub-30-second PR reviews (24/7)",
+        "100% security scanning coverage",
+        "Scales to 100+ repos"
+      ]
+    },
+    {
+      "name": "CMO AIPA - AI Marketing Co-Founder",
+      "description": "Autonomous LinkedIn and Instagram content generation with strategic AI-powered marketing",
+      "tech_stack": ["Python", "AsyncAnthropic (Claude API)", "FastAPI", "Make.com", "Buffer", "Railway"],
+      "status": "LIVE",
+      "demo": "https://linkedin.com/in/elenarevicheva",
+      "achievements": [
+        "$0/month operational cost",
+        "100% daily posting consistency",
+        "Bilingual EN/ES content strategy",
+        "Integrated with CTO AIPA for tech announcements"
+      ]
+    },
+    {
+      "name": "EspaLuz - Emotionally Intelligent AI Spanish Tutor",
+      "description": "Bilingual AI tutor bridging expats to Spanish-speaking countries and locals (EN↔ES). Persistent emotional memory, OCR, TTS, voice synthesis.",
+      "tech_stack": ["Python", "GPT-4", "Claude", "WhatsApp API", "Telegram API", "LangChain", "MCP", "OCR", "TTS", "HeyGen", "Railway", "PostgreSQL"],
       "status": "LIVE with PAYING USERS",
       "traction": {
         "platforms": ["WhatsApp", "Telegram", "SaaS Web App"],
@@ -126,9 +210,9 @@
       },
       "demo": "https://wa.me/50766623757",
       "links": {
-        "whatsapp": "WhatsApp Bot LIVE",
-        "telegram": "Telegram Bot LIVE",
-        "webapp": "SaaS Web App LIVE"
+        "whatsapp": "wa.me/50766623757",
+        "telegram": "t.me/EspaLuzFamily_bot",
+        "webapp": "espaluz-ai-language-tutor.lovable.app"
       },
       "achievements": [
         "Paying users in 19 countries",
@@ -140,11 +224,15 @@
       ]
     },
     {
-      "name": "ALGOM Alpha - AI Crypto Mentor",
-      "description": "Autonomous AI agent teaching safe trading + digital literacy via paper trading on X",
-      "tech_stack": ["Node.js", "ElizaOS", "CCXT", "Twitter API", "autonomous agents"],
+      "name": "ALGOM Alpha - Post-Scam Era AI Crypto Mentor",
+      "description": "AI crypto mentor teaching basics of safe trading for beginners via autonomous paper trading on X/Twitter",
+      "tech_stack": ["Node.js", "ElizaOS", "CCXT", "Twitter API", "Technical indicators (MA, RSI)"],
       "status": "LIVE on X (Twitter)",
-      "demo": "https://x.com/algom_alpha",
+      "demo": "https://x.com/reviceva",
+      "traction": {
+        "followers": "180+",
+        "platform": "X/Twitter"
+      },
       "achievements": [
         "Autonomous agent on Twitter",
         "Paper trading demonstration",
@@ -153,75 +241,71 @@
       ]
     },
     {
-      "name": "EspaLuz Influencer Bot",
-      "description": "Automates AI content generation and Buffer posting to LinkedIn + Instagram",
-      "tech_stack": ["Python", "GPT", "Buffer API", "LinkedIn API", "Instagram API"],
+      "name": "EspaLuz SMM AIPA",
+      "description": "Automated social media marketing for EspaLuz",
+      "tech_stack": ["Python", "GPT", "Buffer API", "Telegram"],
       "status": "LIVE",
-      "achievements": [
-        "Automated content generation",
-        "Multi-platform posting",
-        "Social media automation"
-      ]
+      "demo": "https://t.me/Influencer_EspaLuz_bot"
     },
     {
-      "name": "Atuona NFT Gallery",
-      "description": "Mindfulness-driven NFT poetry drops on Polygon blockchain",
-      "tech_stack": ["React", "Thirdweb SDK", "Polygon", "IPFS", "Web3"],
-      "status": "LIVE",
-      "demo": "https://atuona.xyz",
-      "achievements": [
-        "NFT minting on Polygon",
-        "IPFS decentralized storage",
-        "Thirdweb integration",
-        "Web3 + Art fusion"
-      ]
-    },
-    {
-      "name": "AIdeazz Main Website - Ecosystem Platform",
-      "description": "Bilingual (EN/ES) responsive UX showcasing AIdeazz ecosystem",
+      "name": "AIdeazz Ecosystem Platform",
+      "description": "Emotionally Intelligent AI Personal Assistants Showroom - bilingual (EN/ES) responsive UX",
       "tech_stack": ["React", "Tailwind CSS", "Framer Motion", "i18next"],
       "status": "LIVE",
-      "demo": "https://aideazz.xyz",
-      "achievements": [
-        "Professional bilingual UX",
-        "Responsive design",
-        "Ecosystem hub",
-        "Modern animations"
-      ]
+      "demo": "https://aideazz.xyz"
     },
     {
-      "name": "AIdeazz Digital Business Card",
-      "description": "Interactive portfolio showcasing all products",
+      "name": "AIdeazz Business Card & Portfolio",
+      "description": "Interactive portfolio showcasing all products and founder background",
       "tech_stack": ["React", "Tailwind", "Modern UI/UX"],
       "status": "LIVE",
       "demo": "https://aideazz.xyz/card"
+    },
+    {
+      "name": "Atuona NFT Gallery",
+      "description": "Mindfulness-driven NFT poetry drops - Underground Russian Poetry on Polygon blockchain",
+      "tech_stack": ["React", "Thirdweb SDK", "Polygon", "IPFS", "Web3"],
+      "status": "LIVE",
+      "demo": "https://atuona.xyz"
     }
   ],
 
   "unique_value_propositions": [
     {
-      "title": "LIVE Products with Paying Users",
-      "description": "2 live AI agents with revenue in 19 countries",
-      "metric": "PayPal Subscriptions ACTIVE | Not just a demo, real business",
-      "proof": "Try: wa.me/50766623757"
+      "title": "AI Co-Founders at $0/month",
+      "description": "Deployed CTO + CMO AI Co-Founders running 24/7 autonomously",
+      "metric": "CTO: 8 repos reviewed, sub-30s response | CMO: Daily posts, 100% consistency",
+      "proof": "LinkedIn + GitHub showing real automation"
     },
     {
-      "title": "Speed of Execution",
-      "description": "6 production apps in 7 months (solo!)",
-      "metric": "10x faster than traditional teams",
+      "title": "11 Products, 7 Live AI Agents, 10 Months, Solo",
+      "description": "Built entire AI product ecosystem single-handedly",
+      "metric": "March 2025 → December 2025 = 11 production apps",
       "proof": "All live and testable"
     },
     {
-      "title": "Capital Efficiency",
+      "title": "Capital Efficiency: 99%+ Cost Reduction",
       "description": "Built revenue-generating platform for <$15K",
-      "metric": "98% cost reduction vs $900K traditional budget",
-      "calculation": "$15K vs $900K (outsourced estimate)"
+      "metric": "$15K vs $900K (traditional team estimate)",
+      "calculation": "99%+ cost reduction through AI-first development"
+    },
+    {
+      "title": "LIVE Products with Paying Users in 19 Countries",
+      "description": "7 live AI agents with revenue across Spanish-speaking world",
+      "metric": "PayPal Subscriptions ACTIVE | Not just a demo, real business",
+      "proof": "Try: wa.me/50766623757"
     },
     {
       "title": "Strategic + Technical Hybrid (Unicorn Combo)",
       "description": "7 years C-suite (Deputy CEO, CLO) + Full-Stack AI Engineer",
       "advantage": "Understands business strategy, governance, AND can build it",
-      "proof": "E-Government transformation + 6 live products"
+      "proof": "E-Government transformation + 11 live products"
+    },
+    {
+      "title": "10+ AI Services Integration Expert",
+      "description": "Claude, GPT, Groq (Llama 3.3 70B), Whisper, TTS, OCR, ElizaOS, HeyGen, MCP",
+      "advantage": "Deep experience with production AI integrations",
+      "proof": "All products using multiple AI services"
     },
     {
       "title": "Web3 Native + AI Pioneer",
@@ -230,64 +314,56 @@
       "proof": "ALGOM Alpha (live AI agent), Atuona NFT, DAO LLC structure"
     },
     {
-      "title": "Proven Founder Execution",
-      "description": "Not just 'can code' - built, deployed, marketed, got paying users",
-      "advantage": "0→1 builder: Vision → Build → Revenue",
-      "proof": "PayPal subscriptions live, 19 countries reach"
-    },
-    {
-      "title": "Live Demo Advantage",
-      "description": "Can demonstrate working AI assistant immediately",
-      "demo_link": "wa.me/50766623757",
-      "advantage": "Most candidates talk about what they'll build - I show what I've built"
-    },
-    {
-      "title": "Bilingual Market Expertise",
-      "description": "Built products for EN/ES/RU markets",
+      "title": "Bilingual Market Expertise (EN/ES)",
+      "description": "Built products for EN/ES markets serving 19 countries",
       "advantage": "Can reach Spanish-speaking LATAM (600M+ people)",
       "proof": "EspaLuz serving 19 Spanish-speaking countries"
     }
   ],
 
-  "key_achievements_metrics": [
-    "🔥 2 LIVE AI agents with PAYING USERS in 19 countries",
-    "💰 PayPal Subscriptions ACTIVE (revenue-generating business)",
-    "⚡ 6 production applications in 7 months (solo)",
-    "💻 50,000+ lines of production code",
-    "🤖 8+ AI integrations (Claude, GPT, Whisper, TTS, ElizaOS, HeyGen)",
-    "🌍 Users in 19 Spanish-speaking countries",
-    "🚀 98% cost reduction ($15K vs $900K traditional)",
-    "⏱️ 10x faster execution than traditional teams",
-    "👔 7 years C-suite experience (Deputy CEO, CLO at E-Government)",
-    "🏗️ Ex-Operational Co-Founder (DAO/tokenomics/governance)",
-    "🌐 Web3 Native (Polygon, IPFS, DAO LLC, ENS: aideazz.eth)",
-    "🗣️ Trilingual (Russian/English/Spanish) product development",
-    "🎓 Polkadot Blockchain Academy + How-To-DAO Graduate",
-    "📈 0→1 builder: Strategy → Build → Deploy → Revenue",
-    "🤝 Hybrid approach open: Role + Pre-seed investment for AIdeazz"
-  ],
+  "cover_letter_template": {
+    "opening": "I have 7 live AI agents with paying users in 19 countries — not portfolio projects, real businesses generating revenue. I built 11 AI products in 10 months (solo) including AI Co-Founders (CTO + CMO AIPAs) that run 24/7 at $0/month operational cost. I combine 7 years of C-suite leadership (Deputy CEO, CLO at E-Government) with full-stack AI engineering to build products that generate revenue, not just demos.",
+    "company_research": "[Research company and insert 2-3 sentences about why you're excited about THEIR specific mission/product/approach. Show you understand their challenges and market.]",
+    "relevant_experience": "Most relevant to [Company]:\n• AI Co-Founders: CTO AIPA (autonomous code reviews, 8 repos) + CMO AIPA (daily LinkedIn automation) — $0/month cost\n• EspaLuz: Live AI tutor with PayPal subscriptions in 19 countries\n• ALGOM Alpha: Autonomous AI agent on X with 24/7 operation\n• 99%+ cost reduction through AI-first execution\n• [Add 1-2 more specific to their needs]",
+    "differentiation": "What makes me different:\n1. I have LIVE products with PAYING users (not just side projects)\n2. I deployed AI Co-Founders (CTO + CMO) running 24/7 at $0/month\n3. You can try my AI assistant right now: wa.me/50766623757\n4. I'm Web3 native (DAO, tokenomics, Polygon) + AI engineer (rare combo)\n5. I understand both strategy (7 years C-suite) and execution (100K+ lines of code)\n\nMost candidates talk about what they'll build. I show what I've already built and monetized.",
+    "hybrid_approach": "[Optional: If company is early-stage] I'm also open to a hybrid approach: joining as [Role] + providing pre-seed investment for AIdeazz parallel execution. This could create strategic alignment and shared upside.",
+    "call_to_action": "I'd love to discuss how my combination of founder-level execution, C-suite strategy, and AI engineering can help [Company] [their specific goal]. Available for a call this week.",
+    "closing": "Best regards,\nElena Revicheva\n💬 WhatsApp: wa.me/50766623757 (try the AI!)\n📧 Email: aipa@aideazz.xyz\n🌐 Portfolio: aideazz.xyz/card"
+  },
+
+  "interview_questions_prep": {
+    "tell_me_about_yourself": "I'm an AI-first engineer and founder who combines strategic thinking with hands-on execution. Spent 7 years as Deputy CEO and Chief Legal Officer leading digital transformation, then taught myself full-stack development and built 11 production AI applications in 10 months — including AI Co-Founders (CTO and CMO AIPAs) that run 24/7 autonomously at $0/month cost. What excites me most is building emotionally intelligent AI that grows with humans. Try my live AI assistant right now: wa.me/50766623757. I'm looking for a role where I can use both my strategic experience and technical skills to build AI products that help millions of people.",
+    
+    "biggest_achievement": "Building 11 AI products in 10 months for under $15K — a 99%+ cost reduction versus the $900K+ traditional team estimate. But what I'm most proud of are my AI Co-Founders: CTO AIPA reviews code across 8 GitHub repos in sub-30 seconds, 24/7. CMO AIPA posts to LinkedIn daily with strategic AI-generated content. Both run at $0/month operational cost. These demonstrate the future of work: AI Co-Founders handling operational tasks while I focus on strategy and growth.",
+    
+    "technical_challenge": "Building the CTO AIPA to handle autonomous code reviews across 8 repositories was complex. The challenge was: intelligent model selection (Groq for speed vs Claude for critical analysis), secure database connections (mTLS to Oracle Autonomous Database), and integration with CMO AIPA for automated announcements. I solved it with a modular architecture using Express.js, TypeScript, and PM2 for process management. Result: sub-30-second reviews, 100% PR coverage, scales to 100+ repos.",
+    
+    "why_leave_current_role": "I'm not leaving — I'm expanding. I built AIdeazz to prove I can execute at founder level. Now I want to join a team where I can combine my strategic C-suite experience with AI engineering skills to build products at scale. I bring proven 0→1 execution and AI Co-Founder methodology that reduces operational costs to near-zero."
+  },
 
   "strategic_affiliations": [
     {
-      "organization": "Innovation Smart District Panama",
+      "organization": "Innovation Smart District (ISD) Panama",
       "role": "Member",
       "focus": "Tech innovation ecosystem"
-    },
-    {
-      "organization": "Decentralized AI Agent Alliance",
-      "role": "Member",
-      "focus": "AI agent development community"
     }
   ],
 
   "education": {
-    "legal": "Law degree",
-    "technical": "Self-taught full-stack engineer",
-    "continuous_learning": "AI/ML, advanced TypeScript, system design"
+    "degree": "M.A. in Social Psychology",
+    "institution": "Penza State University, Russia",
+    "year": "2018",
+    "additional": [
+      "Polkadot Blockchain Academy PBA-X Wave #3 (2025)",
+      "How-To-DAO Cohort Graduate (2025)",
+      "Blockchain Regulation, MGIMO Moscow (2017)",
+      "Presidential Program for Executive Management, RANEPA Moscow (2015)",
+      "Internship: Nyskapingsparken Innovation Park, Bergen, Norway (2015)"
+    ]
   },
 
   "work_authorization": {
-    "current_location": "Panama",
+    "current_location": "Panama City, Panama",
     "remote_work": "Available globally",
     "relocation": "Open to discussion for exceptional opportunities",
     "visa_status": "To be discussed based on opportunity"
@@ -295,149 +371,15 @@
 
   "availability": {
     "start_date": "2-4 weeks notice",
-    "work_mode": "Remote preferred, hybrid considered",
+    "work_mode": "Remote / On-site / Full-time / Part-time",
     "time_zones": "Flexible (US, Europe, LATAM)",
-    "hours": "Full-time"
-  },
-
-  "interview_talking_points": {
-    "technical": [
-      "Architected and built 6 full-stack applications solo",
-      "Integrated 8+ AI APIs with production-grade error handling",
-      "Deployed scalable systems handling real-time voice/text",
-      "50K+ lines of production TypeScript/Python code",
-      "Experience with MongoDB, PostgreSQL, cloud deployment"
-    ],
-    "strategic": [
-      "7 years as Chief Legal Officer - understand business strategy",
-      "Led digital transformation in traditional industry",
-      "Risk management and compliance expertise",
-      "Cross-functional team leadership",
-      "Strategic planning and execution"
-    ],
-    "execution": [
-      "Shipped 6 apps in 7 months (from zero to production)",
-      "98% cost reduction through efficient execution",
-      "10x faster than traditional development teams",
-      "Solo-founder discipline: scope, build, ship, iterate"
-    ],
-    "founder_mindset": [
-      "Built products solving real pain points I experienced",
-      "Russia → Panama journey: understand underserved markets",
-      "Founder-market fit for language learning, business tools",
-      "Capital efficient: maximum impact with minimal resources"
-    ],
-    "demo_advantage": [
-      "Live demo available: wa.me/50766623757",
-      "Can show, not just tell",
-      "Hiring managers can experience product immediately",
-      "Real working AI assistant with voice capabilities"
-    ]
-  },
-
-  "cover_letter_template": {
-    "opening": "I have 2 live AI agents with paying users in 19 countries — not a portfolio project, a real business. I combine 7 years of C-suite leadership (Deputy CEO, CLO at E-Government) with full-stack AI engineering to build products that generate revenue, not just demos.",
-    "company_research": "[Research company and insert 2-3 sentences about why you're excited about THEIR specific mission/product/approach. Show you understand their challenges and market.]",
-    "relevant_experience": "Most relevant to [Company]:\n• EspaLuz: Live AI tutor with PayPal subscriptions in 19 countries\n• ALGOM Alpha: Autonomous AI agent on X with 24/7 operation\n• 98% cost reduction through capital-efficient execution\n• [Add 1-2 more specific to their needs]",
-    "differentiation": "What makes me different:\n1. I have LIVE products with PAYING users (not just side projects)\n2. You can try my AI assistant right now: wa.me/50766623757\n3. I'm Web3 native (DAO, tokenomics, Polygon) + AI engineer (rare combo)\n4. I understand both strategy (7 years C-suite) and execution (50K+ lines of code)\n\nMost candidates talk about what they'll build. I show what I've already built and monetized.",
-    "hybrid_approach": "[Optional: If company is early-stage] I'm also open to a hybrid approach: joining as [Role] + providing pre-seed investment for AIdeazz parallel execution. This could create strategic alignment and shared upside.",
-    "call_to_action": "I'd love to discuss how my combination of founder-level execution, C-suite strategy, and AI engineering can help [Company] [their specific goal]. Available for a call this week.",
-    "closing": "Best regards,\nElena Revicheva\n💬 WhatsApp: wa.me/50766623757 (try the AI!)\n📧 Email: aipa@aideazz.xyz\n🌐 Portfolio: aideazz.xyz/card"
-  },
-
-  "email_templates": {
-    "initial_application": {
-      "subject": "Senior AI Engineer - Elena Revicheva (6 production AI apps, 98% cost reduction)",
-      "body": "Hi [Name],\n\nI'm reaching out about the [Role] position at [Company]. I solo-built 6 production AI applications in 7 months with 98% cost reduction, combining 7 years of C-suite strategic experience with full-stack engineering.\n\nWhat caught my attention about [Company]: [2-3 specific things about their mission/product].\n\nMost relevant to this role:\n- [Achievement 1 matching their needs]\n- [Achievement 2 matching their needs]\n- [Achievement 3 matching their needs]\n\nYou can try my AI assistant immediately: wa.me/50766623757\n\nI'd love to discuss how I can contribute to [their specific goal]. Available for a call this week.\n\nBest regards,\nElena Revicheva\naipa@aideazz.xyz | aideazz.xyz"
-    },
-    "follow_up": {
-      "subject": "Following up - [Role] at [Company]",
-      "body": "Hi [Name],\n\nFollowing up on my application for [Role] at [Company]. I wanted to share one more thing that might be relevant:\n\n[Share a specific insight about their product/company, or mention a relevant recent achievement]\n\nStill very interested in this opportunity. Happy to jump on a quick call anytime this week.\n\nBest regards,\nElena"
-    },
-    "networking": {
-      "subject": "Fellow AI builder - would love to connect",
-      "body": "Hi [Name],\n\nI came across your work on [specific thing] and was impressed by [genuine compliment].\n\nI'm building AI products (6 apps in 7 months, including a WhatsApp AI assistant) and transitioning from 7 years in C-suite to full-time engineering roles.\n\nWould love to connect and learn from your experience at [Company]. No ask, just genuine interest in your work.\n\nBest regards,\nElena\nwa.me/50766623757 | aideazz.xyz"
-    }
-  },
-
-  "interview_questions_prep": {
-    "tell_me_about_yourself": "I'm an engineer and founder who combines strategic thinking with hands-on execution. Spent 7 years as Chief Legal Officer leading digital transformation, then taught myself full-stack development and built 6 production AI apps in 7 months. What excites me most is building products that solve real problems - like my WhatsApp AI assistant that's live today at wa.me/50766623757. I'm looking for a role where I can use both my strategic experience and technical skills to build AI products that help millions of people.",
-    
-    "why_this_company": "[Research company thoroughly] I'm excited about [Company] because [specific reason 1] and [specific reason 2]. When I saw [specific product/feature], I immediately thought about how [specific technical approach]. Your focus on [their mission] aligns perfectly with my experience building products for underserved markets.",
-    
-    "biggest_achievement": "Building 6 production AI applications in 7 months for under $15K - a 98% cost reduction vs the $950K traditional estimate. But beyond the metrics, I'm most proud that these are real, working products solving real problems. You can try one right now: wa.me/50766623757. It demonstrates what I call 'founder-mode engineering' - strategic thinking plus hands-on execution plus relentless shipping.",
-    
-    "technical_challenge": "Integrating 8 different AI APIs with real-time voice processing was complex. The challenge was handling voice-to-text latency, API failures, and maintaining conversation context. I solved it by building a robust error handling system with fallbacks, implementing streaming responses, and creating a context management layer. The result is a production system that handles real-time voice conversations with 99%+ uptime.",
-    
-    "why_leave_current_role": "I spent 7 years in C-suite roles and realized my passion is building products, not just strategizing about them. So I taught myself to code and built 6 apps in 7 months. Now I want to join a team where I can combine both skill sets - strategic thinking AND hands-on engineering - to build AI products that scale to millions of users.",
-    
-    "salary_expectations": "I'm looking for $100-180K base plus equity, depending on the role and company stage. Given my unique combination of 7 years C-suite experience plus full-stack engineering skills, I believe this is fair market value. But I'm flexible for the right opportunity, especially if there's meaningful equity."
-  },
-
-  "job_search_strategy": {
-    "daily_targets": {
-      "jobs_reviewed": "10-15 per day",
-      "applications_submitted": "3-5 high-quality per day",
-      "networking_messages": "2-3 per day",
-      "follow_ups": "All pending within 24 hours"
-    },
-    "weekly_targets": {
-      "applications": "15-25 per week",
-      "first_calls": "2-5 per week",
-      "technical_interviews": "1-3 per week (by week 3)"
-    },
-    "success_metrics": {
-      "application_to_response_rate": "30-40%",
-      "response_to_first_call": "60-70%",
-      "first_call_to_technical": "40-50%",
-      "technical_to_offer": "30-40%"
-    }
-  },
-
-  "red_flags_to_avoid": {
-    "companies": [
-      "No clear product or mission",
-      "Unrealistic timelines without resources",
-      "Toxic culture signals in interview",
-      "Below-market compensation with no equity",
-      "No technical team or weak engineering culture"
-    ],
-    "roles": [
-      "Unclear job description",
-      "Significantly below experience level",
-      "No growth potential",
-      "100% maintenance with no building",
-      "No mention of AI/innovation"
-    ]
-  },
-
-  "ideal_role_characteristics": {
-    "technical": [
-      "Building AI products (not just using AI)",
-      "Ownership of significant features/systems",
-      "Modern tech stack (React, TypeScript, Python, AI APIs)",
-      "High impact work (millions of users potential)",
-      "Learning opportunities (work with senior engineers)"
-    ],
-    "strategic": [
-      "Input on product strategy",
-      "Cross-functional collaboration",
-      "Growth potential to leadership",
-      "Meaningful equity stake",
-      "Mission-driven company"
-    ],
-    "culture": [
-      "Fast-paced, builder-focused",
-      "High trust, high autonomy",
-      "Founder-mode mentality",
-      "Diverse, inclusive team",
-      "Remote-first or hybrid flexible"
-    ]
+    "hours": "Full-time or Part-time"
   },
 
   "notes": {
-    "updated": "2025-11-09",
-    "version": "1.0",
+    "updated": "2025-12-13",
+    "version": "2.0 - December 2025 Update",
+    "changes": "Updated to 11 products, 10 months timeline, added CTO AIPA + CMO AIPA, updated tech stack with Groq/Oracle Cloud/MCP",
     "usage": "This JSON file is the single source of truth for AI agent job hunting. Parse this data to generate customized applications, emails, and responses."
   }
 }

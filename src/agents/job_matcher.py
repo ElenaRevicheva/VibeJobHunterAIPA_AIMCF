@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI-powered job matching and scoring
 """
 from typing import List, Tuple
@@ -55,17 +55,19 @@ class JobMatcher:
 Candidate Profile:
 - Name: {profile.name}
 - Location: {profile.location}
-- Experience: {profile.experience_years} years TOTAL (7 years exec + 8 months hands-on AI/ML engineering)
+- Experience: {profile.experience_years} years TOTAL (7 years C-suite exec + 10 months hands-on AI/ML engineering)
 
 UNIQUE DIFFERENTIATORS (emphasize these!):
-- 🔥 2 LIVE AI agents with PAYING USERS in 19 countries
+- 🔥 11 AI products (7 LIVE AI agents) with PAYING USERS in 19 countries
+- 🤖 AI Co-Founders: CTO AIPA (autonomous code reviews, 8 repos) + CMO AIPA (LinkedIn automation) - $0/month operational cost
 - 💰 Revenue: PayPal Subscriptions ACTIVE (not just demo!)
-- ⚡ Speed: 6 production apps in 7 months (solo-built)
-- 💎 Cost: 98% reduction ($15K vs $900K traditional estimate)
-- 🤖 Tech: Claude, GPT, Whisper, TTS, OCR, ElizaOS, HeyGen
+- ⚡ Speed: 11 production apps in 10 months (March-Dec 2025, solo-built)
+- 💎 Cost: 99%+ reduction ($15K vs $900K traditional estimate)
+- 🤖 Tech: Claude, GPT, Groq (Llama 3.3 70B), Whisper, TTS, OCR, ElizaOS, HeyGen, MCP, Oracle Cloud
 - 🌎 Bilingual: EN/ES dual-sided market
-- 👔 Executive: Ex-CEO & CLO at E-Government (strategic thinking)
-- 🦄 Unique: Web3 + AI combination (DAO, tokenomics + LLM)
+- 👔 Executive: Ex-CEO & CLO at E-Government Russia (7 years strategic leadership)
+- 🦄 Unique: Web3 + AI combination (DAO LLC, tokenomics + LLM)
+- 🏢 Enterprise: Oracle Autonomous Database 26ai, mTLS encryption
 - 💬 Live Demo: wa.me/50766623757 (instant credibility!)
 
 - Skills: {', '.join(profile.skills[:15])}
