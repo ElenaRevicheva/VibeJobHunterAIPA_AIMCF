@@ -7,6 +7,8 @@ import uvicorn
 import os
 import logging
 
+print("[DEPLOY CHECK] DATE=2025-12-13 MODE=REAL ENGINE=VibeJobHunter")
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
