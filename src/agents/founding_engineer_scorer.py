@@ -30,18 +30,23 @@ class FoundingEngineerScorer:
             "product engineer"
         ]
         
-        # Elena's unique differentiators
+        # Elena's unique differentiators (Updated December 2025)
         self.unique_strengths = {
-            "live_products": 2,
+            "live_products": 11,
+            "live_ai_agents": 7,
             "paying_users": True,
             "countries": 19,
             "revenue": "PayPal subscriptions active",
-            "cost_efficiency": "98% reduction",
-            "speed": "6 products in 7 months",
+            "cost_efficiency": "99%+ reduction ($900K → <$15K)",
+            "speed": "11 products in 10 months (March-Dec 2025)",
+            "ai_cofounders": "CTO AIPA + CMO AIPA ($0/month operational)",
             "web3": True,
             "bilingual": True,
-            "executive": "Ex-CEO & CLO",
-            "demo_link": "wa.me/50766623757"
+            "executive": "Ex-CEO & CLO (7 years)",
+            "demo_link": "wa.me/50766623757",
+            "ai_services": "10+ (Claude, GPT, Groq, Whisper, TTS, OCR, ElizaOS, HeyGen, MCP)",
+            "oracle_cloud": True,
+            "cto_aipa": "Autonomous code reviews across 8 GitHub repos"
         }
     
     def calculate_founding_fit_score(
@@ -157,44 +162,59 @@ class FoundingEngineerScorer:
         return score, strengths
     
     def _score_value_propositions(self, job_text: str) -> Tuple[float, List[str]]:
-        """Score how well Elena's unique value props align"""
+        """Score how well Elena's unique value props align (Updated Dec 2025)"""
         score = 0.0
         strengths = []
         
         # Live products / traction focus
         if any(keyword in job_text for keyword in ["traction", "users", "revenue", "customers", "pmf", "product-market fit"]):
-            score += 10
-            strengths.append("🔥 LEAD WITH: 2 live AI agents, 19 countries, PayPal subs active")
+            score += 15
+            strengths.append("🔥 LEAD WITH: 11 products, 7 live AI agents, 19 countries, PayPal subs active")
         
         # Speed / execution focus
         if any(keyword in job_text for keyword in ["ship", "fast", "move quickly", "velocity", "iterate"]):
-            score += 8
-            strengths.append("⚡ EMPHASIZE: 6 products in 7 months, solo-built")
+            score += 10
+            strengths.append("⚡ EMPHASIZE: 11 products in 10 months, solo-built full-stack")
         
         # Cost efficiency
         if any(keyword in job_text for keyword in ["bootstrap", "capital efficient", "lean", "scrappy"]):
-            score += 8
-            strengths.append("💡 HIGHLIGHT: 98% cost reduction ($15K vs $900K)")
+            score += 10
+            strengths.append("💡 HIGHLIGHT: 99%+ cost reduction ($15K vs $900K)")
+        
+        # AI Co-Founders / Automation
+        if any(keyword in job_text for keyword in ["automation", "autonomous", "agent", "ai agent"]):
+            score += 12
+            strengths.append("🤖 AI CO-FOUNDERS: CTO AIPA (code reviews) + CMO AIPA (LinkedIn) at $0/month")
+        
+        # Code review / DevOps
+        if any(keyword in job_text for keyword in ["code review", "ci/cd", "devops", "github"]):
+            score += 10
+            strengths.append("⚙️ CTO AIPA: Autonomous code reviews across 8 GitHub repos, sub-30s response")
         
         # Web3 + AI
         if any(keyword in job_text for keyword in ["web3", "blockchain", "crypto", "dao"]) and "ai" in job_text:
             score += 10
-            strengths.append("🦄 UNIQUE: Web3 + AI combo (mention DAO, ALGOM, Atuona)")
+            strengths.append("🦄 UNIQUE: Web3 + AI combo (DAO LLC, ALGOM Alpha, Atuona NFT)")
         
         # Bilingual / international
         if any(keyword in job_text for keyword in ["spanish", "latam", "latin america", "bilingual", "international"]):
-            score += 8
-            strengths.append("🌎 ADVANTAGE: Bilingual EN/ES, 19 countries experience")
+            score += 10
+            strengths.append("🌎 ADVANTAGE: Bilingual EN/ES, 19 countries, dual-sided market")
         
         # AI/LLM specific
-        if any(keyword in job_text for keyword in ["llm", "gpt", "claude", "language model", "rag", "embeddings"]):
-            score += 10
-            strengths.append("🤖 TECHNICAL FIT: EspaLuz uses Claude, GPT, Whisper, TTS")
+        if any(keyword in job_text for keyword in ["llm", "gpt", "claude", "language model", "rag", "embeddings", "groq"]):
+            score += 12
+            strengths.append("🤖 TECHNICAL FIT: 10+ AI services (Claude, GPT, Groq Llama 3.3 70B, Whisper, TTS, MCP)")
         
         # Product management
         if any(keyword in job_text for keyword in ["product manager", "product strategy", "roadmap", "gtm"]):
+            score += 10
+            strengths.append("📊 PM EXPERIENCE: Solo founder = product + eng + growth + monetization")
+        
+        # Oracle / Enterprise
+        if any(keyword in job_text for keyword in ["oracle", "enterprise", "database"]):
             score += 8
-            strengths.append("📊 PM EXPERIENCE: Solo founder = product + eng + growth")
+            strengths.append("🏢 ENTERPRISE: Oracle Autonomous Database 26ai + OCI experience")
         
         return score, strengths
     
@@ -225,7 +245,7 @@ class FoundingEngineerScorer:
         job: JobPosting, 
         strengths: List[str]
     ) -> List[str]:
-        """Generate specific talking points for this role"""
+        """Generate specific talking points for this role (Updated Dec 2025)"""
         talking_points = []
         
         job_text = (job.title + " " + job.description).lower()
@@ -235,23 +255,32 @@ class FoundingEngineerScorer:
         
         # Role-specific points
         if "founding engineer" in job_text:
-            talking_points.append("🎯 PITCH: 'I've been a founding engineer on my own products - 2 live AI agents with paying users'")
-            talking_points.append("📈 METRICS: '19 countries reach, PayPal subscriptions active, 98% cost reduction'")
+            talking_points.append("🎯 PITCH: 'I've built 11 AI products solo, including AI Co-Founders (CTO + CMO) running 24/7 at $0/month'")
+            talking_points.append("📈 METRICS: '7 live AI agents, 19 countries, PayPal subs active, 99%+ cost reduction'")
         
         if "ai product manager" in job_text or "product manager" in job_text:
-            talking_points.append("🎯 PITCH: 'As a solo founder, I handle product strategy AND engineering'")
-            talking_points.append("📊 PM SKILLS: '0→1 product development, user research (bilingual EN/ES market), GTM execution'")
+            talking_points.append("🎯 PITCH: 'As a solo founder, I handle product strategy, engineering, AND growth'")
+            talking_points.append("📊 PM SKILLS: '0→1 product development, bilingual EN/ES market, PayPal monetization live'")
         
         if "llm" in job_text or "language model" in job_text:
-            talking_points.append("🤖 TECHNICAL: 'EspaLuz uses Claude for emotional intelligence + GPT for structured tasks'")
-            talking_points.append("🔧 LLM EXPERIENCE: 'Prompt engineering, RAG, context management, multi-language support'")
+            talking_points.append("🤖 TECHNICAL: '10+ AI services: Claude, GPT, Groq (Llama 3.3 70B), Whisper, TTS, MCP'")
+            talking_points.append("🔧 LLM EXPERIENCE: 'Intelligent model selection, prompt engineering, multi-language support'")
+        
+        if "automation" in job_text or "autonomous" in job_text or "agent" in job_text:
+            talking_points.append("🤖 AI CO-FOUNDERS: 'CTO AIPA reviews code across 8 repos in <30s, CMO AIPA posts daily'")
+            talking_points.append("💰 EFFICIENCY: 'Both run at $0/month operational cost vs $120K/year human equivalent'")
         
         if "growth" in job_text or "growth engineer" in job_text:
-            talking_points.append("📈 GROWTH: 'Organic reach to 19 countries through bilingual product + community building'")
-            talking_points.append("💰 MONETIZATION: 'PayPal subscriptions from zero to live in 7 months'")
+            talking_points.append("📈 GROWTH: 'Organic reach to 19 Spanish-speaking countries through bilingual AI'")
+            talking_points.append("💰 MONETIZATION: 'PayPal subscriptions live, 11 products in 10 months'")
+        
+        if "technical lead" in job_text or "tech lead" in job_text:
+            talking_points.append("👔 LEADERSHIP: '7 years C-suite (Deputy CEO, CLO) + technical execution'")
+            talking_points.append("⚙️ ARCHITECTURE: 'Oracle Cloud, mTLS encryption, PM2, scalable to 100+ repos'")
         
         # Always close with this
-        talking_points.append("🎁 VALUE PROP: 'I don't just talk about building - you can use my product right now'")
+        talking_points.append("🎁 VALUE PROP: 'I don't just talk about building - you can use my products right now'")
+        talking_points.append("🚀 AI CO-FOUNDERS: 'I've proven AI can handle CTO + CMO tasks at $0/month'")
         
         return talking_points
     

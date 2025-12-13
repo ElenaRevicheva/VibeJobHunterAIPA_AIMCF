@@ -4,5 +4,6 @@ Job scrapers for various platforms
 from .base_scraper import BaseScraper
 from .linkedin_scraper import LinkedInScraper
 from .indeed_scraper import IndeedScraper
+from .ats_scraper import ATSScraper
 
-__all__ = ["BaseScraper", "LinkedInScraper", "IndeedScraper"]
+__all__ = ["BaseScraper", "LinkedInScraper", "IndeedScraper", "ATSScraper"]

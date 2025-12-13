@@ -49,12 +49,12 @@ class CandidateDataLoader:
                     'description': '\n'.join(exec_exp.get('achievements', []))
                 })
             
-            # Add current role
+            # Add current role (Updated Dec 2025)
             work_history.insert(0, {
                 'title': 'Founder & AI Engineer',
-                'company': 'AIdeazz',
-                'period': '2024 - Present',
-                'description': 'Solo-built 6 production AI applications in 7 months with 98% cost reduction'
+                'company': 'AIdeazz.xyz',
+                'period': 'March 2025 - Present',
+                'description': 'Solo-built 11 AI products (7 live AI agents) in 10 months with 99%+ cost reduction. Deployed AI Co-Founders: CTO AIPA (autonomous code reviews) + CMO AIPA (LinkedIn automation) at $0/month operational cost.'
             })
             
             # Create profile
