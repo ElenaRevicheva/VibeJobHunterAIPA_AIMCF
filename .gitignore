@@ -60,3 +60,10 @@ cover_letters/
 
 # Node modules (if using Node for any part)
 node_modules/
+
+# ---- Local-only test & runtime artifacts ----
+linkedin_cmo_data/
+pytest.ini
+test_*.py
+scripts/test_*.py
+
