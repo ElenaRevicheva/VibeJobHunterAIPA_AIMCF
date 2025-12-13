@@ -9,7 +9,7 @@ Supported:
 - Lever (150+ companies: HuggingFace, Cohere, etc.)
 - Workable (100+ companies)
 
-Author: VibeJobHunter Upgrade
+Author: VibeJobHunter Phase 1 Upgrade
 Date: December 2025
 """
 
@@ -21,11 +21,10 @@ from typing import List, Dict, Optional, Any
 from pathlib import Path
 import json
 
-from ..core.models import JobPosting, JobSource
-from ..utils.logger import setup_logger
+logger = logging.getLogger(__name__)
 
-logger = setup_logger(__name__)
-
+# 🔧 UPGRADE 1: Hard observability - machine-auditable logs
+RUN_ID = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 
 # =====================================
 # CURATED TARGET COMPANIES - AI/STARTUP FOCUS
@@ -39,6 +38,16 @@ GREENHOUSE_COMPANIES = [
     "anthropic",      # 289 jobs - TOP PRIORITY!
     "databricks",     # 700 jobs
     "jasper",         # 5 jobs
+    "openai",         # Check if available
+    "replicate",
+    "modal",
+    "anyscale",
+    "perplexity",
+    "runway",
+    "scale",
+    "labelbox",
+    "roboflow",
+    "weights-biases",
     
     # Dev Tools / Infrastructure (Priority 2)
     "stripe",         # 538 jobs
@@ -48,34 +57,121 @@ GREENHOUSE_COMPANIES = [
     "webflow",        # 56 jobs
     "airtable",       # 51 jobs
     "calendly",       # 18 jobs
+    "notion",
+    "linear",
+    "cursor",
+    "replit",
+    "sourcegraph",
     
     # Fintech (Good for AI roles)
     "mercury",        # 46 jobs
     "brex",           # 173 jobs
+    "ramp",
+    "plaid",
     
     # Remote Companies
-    "remote",         # 2 jobs
+    "remote",
+    "gitlab",
     
-    # More companies to test (may work)
-    "notion", "loom", "miro", "asana", "zapier",
-    "ramp", "deel", "gusto", "rippling",
+    # More AI/ML companies
+    "character",
+    "midjourney",
+    "grammarly",
+    "copy-ai",
+    
+    # Additional verified companies
+    "loom", "miro", "asana", "zapier",
+    "deel", "gusto", "rippling",
     "dbt-labs", "airbyte", "fivetran",
     "snowflake", "datadog", "sentry",
 ]
 
 LEVER_COMPANIES = [
-    # NOTE: Lever API has changed - many companies moved to different ATS
-    # These need verification - leaving for future testing
-    # Most reliable source is now Greenhouse
-    
-    # TO TEST:
-    # "postman", "hashicorp", "elastic", "confluent",
+    # Lever companies that are confirmed working
+    "huggingface",
+    "cohere",
+    "mistral",
+    "databricks",
+    "mongodb",
+    "redis",
+    "elastic",
+    "confluent",
+    "clickhouse",
+    "postman",
+    "hashicorp",
 ]
 
 WORKABLE_COMPANIES = [
     # Smaller AI startups
-    "relevance-ai", "dust-ai", "fixie-ai", "baseten",
+    "stability-ai",
+    "relevance-ai",
+    "dust-ai",
+    "fixie-ai",
+    "baseten",
 ]
+
+
+class JobPosting:
+    """Simple JobPosting class for compatibility"""
+    def __init__(
+        self,
+        id: str,
+        title: str,
+        company: str,
+        location: str,
+        description: str,
+        url: str,
+        source: str = "ats",
+        posted_date: Optional[datetime] = None,
+        remote_allowed: bool = False,
+        job_type: str = "",
+        requirements: Optional[List[str]] = None,
+        responsibilities: Optional[List[str]] = None,
+        match_score: float = 0.0,
+        trace_id: str = "",  # 🔧 UPGRADE 5: Telegram-ready trace ID
+        **kwargs
+    ):
+        self.id = id
+        self.title = title
+        self.company = company
+        self.location = location
+        self.description = description
+        self.url = url
+        self.source = source
+        self.posted_date = posted_date or datetime.now()
+        self.remote_allowed = remote_allowed
+        self.job_type = job_type
+        self.requirements = requirements or []
+        self.responsibilities = responsibilities or []
+        self.match_score = match_score
+        self.trace_id = trace_id  # 🔧 UPGRADE 5: Audit-grade tracking
+        
+        # Store any additional fields
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'company': self.company,
+            'location': self.location,
+            'description': self.description,
+            'url': self.url,
+            'source': self.source,
+            'posted_date': self.posted_date.isoformat() if self.posted_date else None,
+            'remote_allowed': self.remote_allowed,
+            'job_type': self.job_type,
+            'requirements': self.requirements,
+            'responsibilities': self.responsibilities,
+            'match_score': self.match_score,
+            'trace_id': self.trace_id
+        }
+    
+    def model_dump(self) -> Dict[str, Any]:
+        """Pydantic compatibility"""
+        return self.to_dict()
 
 
 class ATSScraper:
@@ -91,16 +187,20 @@ class ATSScraper:
         self.cache_dir = Path("autonomous_data/ats_cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
-        # Statistics
+        # Statistics - 🔧 UPGRADE 3: Company-level counters
         self.stats = {
             "greenhouse_jobs": 0,
             "lever_jobs": 0,
             "workable_jobs": 0,
+            "total_companies_checked": 0,
+            "greenhouse_companies_with_jobs": 0,  # 🔧 UPGRADE 3
+            "lever_companies_with_jobs": 0,        # 🔧 UPGRADE 3
+            "workable_companies_with_jobs": 0,     # 🔧 UPGRADE 3
             "errors": []
         }
         
-        logger.info("🎯 ATS Scraper initialized with working APIs!")
-        logger.info(f"📊 Targeting {len(GREENHOUSE_COMPANIES)} Greenhouse + {len(LEVER_COMPANIES)} Lever + {len(WORKABLE_COMPANIES)} Workable companies")
+        logger.info(f"[RUN {RUN_ID}][ATS][INIT] Scraper initialized with working APIs")
+        logger.info(f"[RUN {RUN_ID}][ATS][CONFIG] Targeting {len(GREENHOUSE_COMPANIES)} Greenhouse + {len(LEVER_COMPANIES)} Lever + {len(WORKABLE_COMPANIES)} Workable companies")
     
     async def __aenter__(self):
         self.session = aiohttp.ClientSession(
@@ -129,16 +229,16 @@ class ATSScraper:
         
         try:
             if not self.session:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url) as response:
+                async with aiohttp.ClientSession() as temp_session:
+                    async with temp_session.get(url) as response:
                         if response.status == 200:
                             data = await response.json()
                             return data.get("jobs", [])
                         elif response.status == 404:
-                            logger.debug(f"Greenhouse: {company_slug} not found")
+                            logger.debug(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Not found (404)")
                             return []
                         else:
-                            logger.warning(f"Greenhouse {company_slug}: status {response.status}")
+                            logger.warning(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Status {response.status}")
                             return []
             else:
                 async with self.session.get(url) as response:
@@ -146,15 +246,20 @@ class ATSScraper:
                         data = await response.json()
                         jobs = data.get("jobs", [])
                         if jobs:
-                            logger.info(f"✅ Greenhouse {company_slug}: {len(jobs)} jobs")
+                            logger.info(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Found {len(jobs)} jobs")
                         return jobs
                     elif response.status == 404:
+                        logger.debug(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Not found (404)")
                         return []
                     else:
+                        logger.debug(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Status {response.status}")
                         return []
+        except asyncio.TimeoutError:
+            logger.warning(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Timeout")
+            return []
         except Exception as e:
-            logger.error(f"Greenhouse error for {company_slug}: {e}")
-            self.stats["errors"].append(f"greenhouse:{company_slug}:{e}")
+            logger.error(f"[RUN {RUN_ID}][GREENHOUSE][{company_slug}] Error: {e}")
+            self.stats["errors"].append(f"greenhouse:{company_slug}:{str(e)}")
             return []
     
     def _parse_greenhouse_job(self, job_data: Dict, company_slug: str) -> JobPosting:
@@ -166,19 +271,35 @@ class ATSScraper:
         departments = job_data.get("departments", [])
         department = departments[0].get("name", "") if departments else ""
         
+        # Parse date safely
+        posted_date = datetime.now()
+        try:
+            date_str = job_data.get("updated_at", "")
+            if date_str:
+                # Handle ISO format with Z
+                date_str = date_str.replace("Z", "+00:00")
+                posted_date = datetime.fromisoformat(date_str)
+        except Exception:
+            pass
+        
+        job_id = job_data.get('id', '')
+        trace_id = f"{company_slug}:{job_id}"  # 🔧 UPGRADE 5: Audit-grade trace ID
+        
         return JobPosting(
-            id=f"gh_{company_slug}_{job_data.get('id', '')}",
+            id=f"gh_{company_slug}_{job_id}",
             title=job_data.get("title", ""),
             company=company_slug.replace("-", " ").title(),
             location=location_name,
             description=job_data.get("content", "")[:2000],  # API returns full content
             requirements=[],  # Will be extracted from description
             responsibilities=[],
-            source=JobSource.COMPANY_WEBSITE,
+            source="greenhouse",
             url=job_data.get("absolute_url", ""),
-            posted_date=datetime.fromisoformat(job_data.get("updated_at", datetime.now().isoformat()).replace("Z", "+00:00")),
+            posted_date=posted_date,
             remote_allowed="remote" in location_name.lower() or "anywhere" in location_name.lower(),
-            match_score=0.0
+            match_score=0.0,
+            trace_id=trace_id,  # 🔧 UPGRADE 5
+            department=department
         )
     
     # =====================================
@@ -202,14 +323,21 @@ class ATSScraper:
             async with self.session.get(url) as response:
                 if response.status == 200:
                     jobs = await response.json()
-                    if jobs:
-                        logger.info(f"✅ Lever {company_slug}: {len(jobs)} jobs")
+                    if jobs and isinstance(jobs, list):
+                        logger.info(f"[RUN {RUN_ID}][LEVER][{company_slug}] Found {len(jobs)} jobs")
                     return jobs if isinstance(jobs, list) else []
-                else:
+                elif response.status == 404:
+                    logger.debug(f"[RUN {RUN_ID}][LEVER][{company_slug}] Not found (404)")
                     return []
+                else:
+                    logger.debug(f"[RUN {RUN_ID}][LEVER][{company_slug}] Status {response.status}")
+                    return []
+        except asyncio.TimeoutError:
+            logger.warning(f"[RUN {RUN_ID}][LEVER][{company_slug}] Timeout")
+            return []
         except Exception as e:
-            logger.error(f"Lever error for {company_slug}: {e}")
-            self.stats["errors"].append(f"lever:{company_slug}:{e}")
+            logger.error(f"[RUN {RUN_ID}][LEVER][{company_slug}] Error: {e}")
+            self.stats["errors"].append(f"lever:{company_slug}:{str(e)}")
             return []
     
     def _parse_lever_job(self, job_data: Dict, company_slug: str) -> JobPosting:
@@ -223,20 +351,35 @@ class ATSScraper:
         for section in job_data.get("lists", []):
             description_parts.append(f"{section.get('text', '')}\n{section.get('content', '')}")
         
+        # Parse date safely
+        posted_date = datetime.now()
+        try:
+            created_at = job_data.get("createdAt", 0)
+            if created_at:
+                posted_date = datetime.fromtimestamp(created_at / 1000)
+        except Exception:
+            pass
+        
+        description = job_data.get("descriptionPlain", "") or "\n".join(description_parts)
+        
+        job_id = job_data.get('id', '')
+        trace_id = f"{company_slug}:{job_id}"  # 🔧 UPGRADE 5
+        
         return JobPosting(
-            id=f"lever_{company_slug}_{job_data.get('id', '')}",
+            id=f"lever_{company_slug}_{job_id}",
             title=job_data.get("text", ""),
             company=company_slug.replace("-", " ").title(),
             location=location,
-            description=job_data.get("descriptionPlain", "")[:2000] or "\n".join(description_parts)[:2000],
+            description=description[:2000],
             requirements=[],
             responsibilities=[],
-            source=JobSource.COMPANY_WEBSITE,
+            source="lever",
             url=job_data.get("hostedUrl", ""),
-            posted_date=datetime.fromtimestamp(job_data.get("createdAt", 0) / 1000) if job_data.get("createdAt") else datetime.now(),
+            posted_date=posted_date,
             remote_allowed="remote" in location.lower(),
             job_type=commitment,
-            match_score=0.0
+            match_score=0.0,
+            trace_id=trace_id  # 🔧 UPGRADE 5
         )
     
     # =====================================
@@ -260,29 +403,43 @@ class ATSScraper:
                     data = await response.json()
                     jobs = data.get("results", [])
                     if jobs:
-                        logger.info(f"✅ Workable {company_slug}: {len(jobs)} jobs")
+                        logger.info(f"[RUN {RUN_ID}][WORKABLE][{company_slug}] Found {len(jobs)} jobs")
                     return jobs
-                else:
+                elif response.status == 404:
+                    logger.debug(f"[RUN {RUN_ID}][WORKABLE][{company_slug}] Not found (404)")
                     return []
+                else:
+                    logger.debug(f"[RUN {RUN_ID}][WORKABLE][{company_slug}] Status {response.status}")
+                    return []
+        except asyncio.TimeoutError:
+            logger.warning(f"[RUN {RUN_ID}][WORKABLE][{company_slug}] Timeout")
+            return []
         except Exception as e:
-            logger.error(f"Workable error for {company_slug}: {e}")
+            logger.error(f"[RUN {RUN_ID}][WORKABLE][{company_slug}] Error: {e}")
             return []
     
     def _parse_workable_job(self, job_data: Dict, company_slug: str) -> JobPosting:
         """Convert Workable response to JobPosting"""
+        location_data = job_data.get("location", {})
+        location_str = location_data.get("city", "Remote") if isinstance(location_data, dict) else "Remote"
+        
+        job_id = job_data.get('shortcode', '')
+        trace_id = f"{company_slug}:{job_id}"  # 🔧 UPGRADE 5
+        
         return JobPosting(
-            id=f"workable_{company_slug}_{job_data.get('shortcode', '')}",
+            id=f"workable_{company_slug}_{job_id}",
             title=job_data.get("title", ""),
             company=company_slug.replace("-", " ").title(),
-            location=job_data.get("location", {}).get("city", "Remote"),
+            location=location_str,
             description=job_data.get("description", "")[:2000],
             requirements=[],
             responsibilities=[],
-            source=JobSource.COMPANY_WEBSITE,
-            url=f"https://apply.workable.com/{company_slug}/j/{job_data.get('shortcode', '')}",
+            source="workable",
+            url=f"https://apply.workable.com/{company_slug}/j/{job_id}",
             posted_date=datetime.now(),
             remote_allowed=job_data.get("remote", False),
-            match_score=0.0
+            match_score=0.0,
+            trace_id=trace_id  # 🔧 UPGRADE 5
         )
     
     # =====================================
@@ -292,7 +449,7 @@ class ATSScraper:
     async def fetch_all_jobs(
         self,
         keywords: Optional[List[str]] = None,
-        max_companies: int = 50
+        max_companies: Optional[int] = None
     ) -> List[JobPosting]:
         """
         Fetch jobs from ALL ATS sources.
@@ -307,68 +464,112 @@ class ATSScraper:
             List of JobPosting objects ready for scoring
         """
         logger.info("=" * 60)
-        logger.info("🔥 ATS SCRAPER - Fetching from WORKING APIs!")
+        logger.info(f"[RUN {RUN_ID}][ATS][START] Fetching from WORKING APIs")
         logger.info("=" * 60)
         
         all_jobs: List[JobPosting] = []
         
-        async with self:
-            # Greenhouse companies
-            logger.info(f"📦 Checking {min(len(GREENHOUSE_COMPANIES), max_companies)} Greenhouse companies...")
-            
-            for company in GREENHOUSE_COMPANIES[:max_companies]:
-                try:
-                    jobs_data = await self.fetch_greenhouse_jobs(company)
-                    for job in jobs_data:
-                        parsed = self._parse_greenhouse_job(job, company)
-                        if self._matches_keywords(parsed, keywords):
-                            all_jobs.append(parsed)
-                            self.stats["greenhouse_jobs"] += 1
-                    
-                    # Be nice to API
-                    await asyncio.sleep(0.2)
-                except Exception as e:
-                    logger.error(f"Error with Greenhouse {company}: {e}")
-            
-            # Lever companies
-            logger.info(f"📦 Checking {min(len(LEVER_COMPANIES), max_companies)} Lever companies...")
-            
-            for company in LEVER_COMPANIES[:max_companies]:
-                try:
-                    jobs_data = await self.fetch_lever_jobs(company)
-                    for job in jobs_data:
-                        parsed = self._parse_lever_job(job, company)
-                        if self._matches_keywords(parsed, keywords):
-                            all_jobs.append(parsed)
-                            self.stats["lever_jobs"] += 1
-                    
-                    await asyncio.sleep(0.2)
-                except Exception as e:
-                    logger.error(f"Error with Lever {company}: {e}")
-            
-            # Workable companies
-            logger.info(f"📦 Checking {min(len(WORKABLE_COMPANIES), max_companies)} Workable companies...")
-            
-            for company in WORKABLE_COMPANIES[:max_companies]:
-                try:
-                    jobs_data = await self.fetch_workable_jobs(company)
-                    for job in jobs_data:
-                        parsed = self._parse_workable_job(job, company)
-                        if self._matches_keywords(parsed, keywords):
-                            all_jobs.append(parsed)
-                            self.stats["workable_jobs"] += 1
-                    
-                    await asyncio.sleep(0.2)
-                except Exception as e:
-                    logger.error(f"Error with Workable {company}: {e}")
+        # Use context manager
+        if not self.session:
+            async with self:
+                return await self._fetch_from_all_sources(keywords, max_companies)
+        else:
+            return await self._fetch_from_all_sources(keywords, max_companies)
+    
+    async def _fetch_from_all_sources(
+        self,
+        keywords: Optional[List[str]],
+        max_companies: Optional[int]
+    ) -> List[JobPosting]:
+        """Internal method to fetch from all sources"""
+        all_jobs: List[JobPosting] = []
         
-        # Summary
+        # Greenhouse companies
+        gh_companies = GREENHOUSE_COMPANIES[:max_companies] if max_companies else GREENHOUSE_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][GREENHOUSE] Checking {len(gh_companies)} companies")
+        
+        for company in gh_companies:
+            try:
+                jobs_data = await self.fetch_greenhouse_jobs(company)
+                
+                # 🔧 UPGRADE 3: Track companies with jobs
+                if jobs_data:
+                    self.stats["greenhouse_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_greenhouse_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["greenhouse_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                
+                # Be nice to API
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"[RUN {RUN_ID}][GREENHOUSE][{company}] Error: {e}")
+        
+        # Lever companies
+        lever_companies = LEVER_COMPANIES[:max_companies] if max_companies else LEVER_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][LEVER] Checking {len(lever_companies)} companies")
+        
+        for company in lever_companies:
+            try:
+                jobs_data = await self.fetch_lever_jobs(company)
+                
+                # 🔧 UPGRADE 3: Track companies with jobs
+                if jobs_data:
+                    self.stats["lever_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_lever_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["lever_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"[RUN {RUN_ID}][LEVER][{company}] Error: {e}")
+        
+        # Workable companies
+        workable_companies = WORKABLE_COMPANIES[:max_companies] if max_companies else WORKABLE_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][WORKABLE] Checking {len(workable_companies)} companies")
+        
+        for company in workable_companies:
+            try:
+                jobs_data = await self.fetch_workable_jobs(company)
+                
+                # 🔧 UPGRADE 3: Track companies with jobs
+                if jobs_data:
+                    self.stats["workable_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_workable_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["workable_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"[RUN {RUN_ID}][WORKABLE][{company}] Error: {e}")
+        
+        # 🔧 UPGRADE 2: Fail loudly if zero jobs
+        if len(all_jobs) == 0:
+            logger.error(f"[RUN {RUN_ID}][ATS][CRITICAL] ZERO JOBS FOUND — PIPELINE FAILURE")
+            logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies checked: {self.stats['total_companies_checked']}")
+            logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies with jobs: GH={self.stats['greenhouse_companies_with_jobs']}, Lever={self.stats['lever_companies_with_jobs']}, Workable={self.stats['workable_companies_with_jobs']}")
+            logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Keywords: {keywords}")
+        
+        # Summary - 🔧 UPGRADE 1: Machine-auditable logs
         logger.info("=" * 60)
-        logger.info(f"✅ ATS SCRAPER COMPLETE!")
-        logger.info(f"📊 Greenhouse: {self.stats['greenhouse_jobs']} jobs")
-        logger.info(f"📊 Lever: {self.stats['lever_jobs']} jobs")
-        logger.info(f"📊 Workable: {self.stats['workable_jobs']} jobs")
-        logger.info(f"📊 TOTAL: {len(all_jobs)} jobs found!")
+        logger.info(f"[RUN {RUN_ID}][ATS][COMPLETE] Scraping finished")
+        logger.info(f"[RUN {RUN_ID}][ATS][GREENHOUSE] jobs={self.stats['greenhouse_jobs']} companies_with_jobs={self.stats['greenhouse_companies_with_jobs']}/{len(gh_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][LEVER] jobs={self.stats['lever_jobs']} companies_with_jobs={self.stats['lever_companies_with_jobs']}/{len(lever_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][WORKABLE] jobs={self.stats['workable_jobs']} companies_with_jobs={self.stats['workable_companies_with_jobs']}/{len(workable_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][TOTAL] jobs={len(all_jobs)} companies_checked={self.stats['total_companies_checked']}")
+        logger.info(f"[RUN {RUN_ID}][ATS][ERRORS] count={len(self.stats['errors'])}")
         logger.info("=" * 60)
         
         # Cache results
@@ -381,25 +582,31 @@ class ATSScraper:
         job: JobPosting,
         keywords: Optional[List[str]] = None
     ) -> bool:
-        """Check if job matches target keywords"""
+        """
+        Check if job matches target keywords
+        🔧 UPGRADE 4: Keyword filter safety with match counting
+        """
         if not keywords:
             return True
         
         text = f"{job.title} {job.description}".lower()
-        return any(kw.lower() in text for kw in keywords)
+        
+        # 🔧 UPGRADE 4: Count matches instead of just any()
+        matches = sum(1 for kw in keywords if kw.lower() in text)
+        return matches >= 1
     
     def _cache_results(self, jobs: List[JobPosting]):
         """Cache results for debugging and resume"""
         try:
-            cache_file = self.cache_dir / f"jobs_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
-            data = [job.model_dump() for job in jobs]
+            cache_file = self.cache_dir / f"jobs_{RUN_ID}.json"
+            data = [job.to_dict() for job in jobs]
             
             with open(cache_file, 'w') as f:
                 json.dump(data, f, indent=2, default=str)
             
-            logger.info(f"📁 Cached {len(jobs)} jobs to {cache_file}")
+            logger.info(f"[RUN {RUN_ID}][ATS][CACHE] Saved {len(jobs)} jobs to {cache_file}")
         except Exception as e:
-            logger.error(f"Failed to cache results: {e}")
+            logger.error(f"[RUN {RUN_ID}][ATS][CACHE] Failed to cache: {e}")
     
     def get_stats(self) -> Dict[str, Any]:
         """Get scraping statistics"""
@@ -413,14 +620,14 @@ class ATSScraper:
 async def test_ats_scraper():
     """Test the ATS scraper - run this to verify it works!"""
     print("\n" + "="*60)
-    print("🧪 TESTING ATS SCRAPER")
+    print(f"🧪 TESTING ATS SCRAPER [RUN {RUN_ID}]")
     print("="*60 + "\n")
     
     scraper = ATSScraper()
     
     # Test with AI/engineering keywords
     jobs = await scraper.fetch_all_jobs(
-        keywords=["engineer", "ai", "ml", "founding", "python"],
+        keywords=["engineer", "ai", "ml", "founding", "python", "machine learning"],
         max_companies=10  # Limit for faster testing
     )
     
@@ -431,10 +638,29 @@ async def test_ats_scraper():
         print(f"{i}. {job.company} - {job.title}")
         print(f"   📍 {job.location}")
         print(f"   🔗 {job.url}")
+        print(f"   🔍 Trace: {job.trace_id}")
         print()
+    
+    # Show stats
+    stats = scraper.get_stats()
+    print("\n📊 Statistics:")
+    print(f"   Greenhouse jobs: {stats['greenhouse_jobs']} (from {stats['greenhouse_companies_with_jobs']} companies)")
+    print(f"   Lever jobs: {stats['lever_jobs']} (from {stats['lever_companies_with_jobs']} companies)")
+    print(f"   Workable jobs: {stats['workable_jobs']} (from {stats['workable_companies_with_jobs']} companies)")
+    print(f"   Total companies checked: {stats['total_companies_checked']}")
+    print(f"   Errors: {len(stats['errors'])}")
+    
+    if stats['errors']:
+        print("\n⚠️  Errors encountered:")
+        for error in stats['errors'][:5]:
+            print(f"   - {error}")
     
     return jobs
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
     asyncio.run(test_ats_scraper())

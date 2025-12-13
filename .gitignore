@@ -67,3 +67,5 @@ pytest.ini
 test_*.py
 scripts/test_*.py
 
+# ATS runtime cache
+autonomous_data/ats_cache/
