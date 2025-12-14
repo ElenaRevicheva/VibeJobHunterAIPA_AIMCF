@@ -25,23 +25,15 @@ from .response_handler import ResponseHandler
 logger = setup_logger(__name__)
 
 # 🔥🔥🔥 MODULE VERSION - Logs on import! 🔥🔥🔥
-ORCHESTRATOR_VERSION = "4.1_PHASE1_UPGRADES"
-ORCHESTRATOR_BUILD = "2025-12-13_23:00_UTC"
-ORCHESTRATOR_COMMIT = "phase1_dec14_2025_12:45"
-
-print("\n" + "💥"*40)
-print("🚨 PHASE 1 UPGRADES DEPLOYED! 🚨")
-print(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
-print(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-print(f"🧠 NEW: Database + Enhanced Telegram Bot + Email Service")
-print("💥"*40 + "\n")
+ORCHESTRATOR_VERSION = "4.2_REAL_APPLICATIONS"
+ORCHESTRATOR_BUILD = "2025-12-14_20:00_UTC"
+ORCHESTRATOR_COMMIT = "auto_apply_LIVE"
 
 logger.info("💥" * 35)
-logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - PHASE 1! 🚨🚨🚨")
+logger.info("🚨 PHASE 1 COMPLETE - REAL APPLICATIONS ACTIVE! 🚨")
 logger.info(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
 logger.info(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-logger.info(f"🧠 INCLUDES: Enhanced Telegram Bot + Database Tracking")
-logger.info(f"🔥 IF YOU SEE THIS = Railway loaded FRESH orchestrator.py file!")
+logger.info(f"🧠 NEW: Auto-Applicator with Elena's Real Resume")
 logger.info("💥" * 35)
 
 
@@ -52,66 +44,75 @@ class AutonomousOrchestrator:
     Workflow:
     1. Monitor job boards (every hour)
     2. Filter & score new jobs
-    3. Research companies (AI-powered)
-    4. Find founder contacts
-    5. Generate personalized messages
-    6. Send via multiple channels
-    7. Track responses & demo clicks
-    8. Schedule interviews automatically
-    9. Follow up intelligently
+    3. AUTO-APPLY to best matches (NEW!)
+    4. Track in database
+    5. Monitor responses
     """
     
     def __init__(self, profile: Profile, telegram_enabled: bool = True):
-        # 🔥🔥🔥 DEPLOYMENT TEST v4.1 - Phase 1 Upgrades! 🔥🔥🔥
         logger.info("=" * 80)
-        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v4.1 - PHASE 1 EDITION 🚀🎨")
-        logger.info("🔥 GIT COMMIT: phase1 | 📅 BUILD: Dec 13, 2025")
-        logger.info("✨ NEW: Database Tracking + Enhanced Telegram Bot + Email Service ✨")
+        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v4.2 - REAL APPLICATIONS 🚀🎨")
+        logger.info("✨ NEW: Auto-Apply with Elena's Real Background ✨")
         logger.info("=" * 80)
         
         self.profile = profile
-        self.last_linkedin_post_date = None  # Track last posting date to prevent duplicates
+        self.last_linkedin_post_date = None
         
-        # Initialize Telegram notifier (job search notifications)
+        # Initialize Telegram notifier
         from ..notifications import TelegramNotifier
         self.telegram = TelegramNotifier()
         
-        # Initialize LinkedIn CMO (separate from job search)
+        # Initialize LinkedIn CMO
         logger.info("🔍 Attempting to load LinkedIn CMO...")
         try:
             from ..notifications import LinkedInCMO
-            logger.info("✅ LinkedInCMO class imported successfully")
             self.linkedin_cmo = LinkedInCMO()
             logger.info("✅ LinkedInCMO initialized successfully")
         except Exception as e:
-            logger.error(f"❌❌❌ LINKEDIN CMO FAILED TO LOAD: {e}")
-            logger.error(f"❌ Error type: {type(e).__name__}")
-            import traceback
-            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            logger.error(f"❌ LINKEDIN CMO FAILED TO LOAD: {e}")
             self.linkedin_cmo = None
         
-        # Initialize Enhanced Telegram Bot (Phase 1 upgrade)
+        # Initialize Enhanced Telegram Bot
         logger.info("🤖 Attempting to load Enhanced Telegram Bot...")
         try:
             from ..database.database_models import DatabaseHelper, init_database
             from ..notifications.telegram_bot_enhanced import create_enhanced_bot
             
-            # Initialize database
             init_database()
             self.db_helper = DatabaseHelper()
             logger.info("✅ Database initialized successfully")
             
-            # Create enhanced bot
             self.telegram_bot_enhanced = create_enhanced_bot(db_helper=self.db_helper)
             logger.info("✅ Enhanced Telegram Bot initialized successfully")
             
         except Exception as e:
             logger.error(f"❌ Enhanced Telegram Bot failed to load: {e}")
-            logger.error(f"Error type: {type(e).__name__}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(traceback.format_exc())
             self.telegram_bot_enhanced = None
             self.db_helper = None
+        
+        # Initialize Auto-Applicator (REAL APPLICATIONS!)
+        logger.info("🎯 Attempting to load Auto-Applicator...")
+        try:
+            from .auto_applicator import AutoApplicator
+            from .email_service import create_email_service
+            
+            email_service = create_email_service()
+            
+            self.auto_applicator = AutoApplicator(
+                profile=profile,
+                db_helper=self.db_helper if hasattr(self, 'db_helper') else None,
+                email_service=email_service,
+                telegram=self.telegram if hasattr(self, 'telegram') else None
+            )
+            logger.info("✅ Auto-Applicator initialized - REAL APPLICATIONS ENABLED!")
+            
+        except Exception as e:
+            logger.error(f"❌ Auto-Applicator failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            self.auto_applicator = None
         
         # Initialize all agents
         self.job_monitor = JobMonitor()
@@ -131,6 +132,8 @@ class AutonomousOrchestrator:
             'demo_clicks': 0,
             'responses_received': 0,
             'interviews_scheduled': 0,
+            'applications_generated': 0,  # NEW
+            'applications_sent': 0,        # NEW
         }
         
         # Storage
@@ -150,7 +153,7 @@ class AutonomousOrchestrator:
         
         try:
             # STEP 1: Find new jobs
-            logger.info("🔍 [1/7] Monitoring job boards...")
+            logger.info("🔍 [1/8] Monitoring job boards...")
             new_jobs = await self.job_monitor.find_new_jobs(
                 target_roles=self.profile.target_roles,
                 max_results=50
@@ -163,11 +166,11 @@ class AutonomousOrchestrator:
                 return
             
             # STEP 2: Filter & prioritize
-            logger.info("🎯 [2/7] Filtering & scoring jobs...")
+            logger.info("🎯 [2/8] Filtering & scoring jobs...")
             top_jobs = await self._filter_and_score(new_jobs)
             logger.info(f"✅ {len(top_jobs)} high-priority jobs identified")
             
-            # Store jobs in database (Phase 1 feature)
+            # Store jobs in database
             if self.db_helper:
                 try:
                     for job in top_jobs:
@@ -180,41 +183,91 @@ class AutonomousOrchestrator:
                             'description': getattr(job, 'description', ''),
                             'location': getattr(job, 'location', ''),
                             'ats_type': getattr(job, 'ats_type', ''),
-                            'match_score': job.match_score / 100.0,  # Convert to 0-1 scale
+                            'match_score': job.match_score / 100.0,
                         })
                     logger.info(f"✅ Stored {len(top_jobs)} jobs in database")
                 except Exception as e:
                     logger.error(f"❌ Failed to store jobs in database: {e}")
+            
+            # STEP 3: AUTO-APPLY TO BEST JOBS! (NEW!)
+            if self.auto_applicator and top_jobs:
+                logger.info("🚀 [3/8] AUTO-APPLYING TO TOP JOBS...")
+                logger.info(f"  Found {len(top_jobs)} high-priority jobs")
+                
+                # Filter for very high matches only (score >= 80)
+                best_jobs = [j for j in top_jobs if j.match_score >= 80]
+                
+                if best_jobs:
+                    logger.info(f"  Applying to {len(best_jobs)} best matches (score >= 80)")
+                    
+                    # Convert JobPosting objects to dicts
+                    job_dicts = []
+                    for job in best_jobs:
+                        job_dict = {
+                            'company': job.company,
+                            'title': job.title,
+                            'url': job.url,
+                            'description': getattr(job, 'description', ''),
+                            'location': getattr(job, 'location', ''),
+                            'match_score': job.match_score,
+                            'source': getattr(job, 'source', 'ats_scraper')
+                        }
+                        job_dicts.append(job_dict)
+                    
+                    # Process applications (max 3 per cycle for safety)
+                    application_results = await self.auto_applicator.batch_process_jobs(
+                        jobs=job_dicts,
+                        max_applications=3
+                    )
+                    
+                    # Update stats
+                    self.stats['applications_generated'] = application_results.get('materials_generated', 0)
+                    self.stats['applications_sent'] = application_results.get('emails_sent', 0)
+                    
+                    logger.info(f"✅ [AUTO-APPLY] Cycle complete!")
+                    logger.info(f"  📝 Materials generated: {application_results['materials_generated']}")
+                    logger.info(f"  📧 Emails sent: {application_results['emails_sent']}")
+                    
+                    # Notify via Telegram
+                    if self.telegram:
+                        await self.telegram.send_message(
+                            f"🎯 Application Update\n"
+                            f"📊 Jobs found: {len(top_jobs)}\n"
+                            f"✅ Applied to: {application_results['emails_sent']} companies\n"
+                            f"📝 Materials: {application_results['materials_generated']}"
+                        )
+                else:
+                    logger.info("  ⏭️ No jobs with score >= 80, skipping applications")
             
             # Notify about hot jobs (score >85)
             for job in top_jobs:
                 if job.match_score >= 85:
                     await self.telegram.notify_hot_job(job)
             
-            # STEP 3: Research companies (parallel)
-            logger.info("🔬 [3/7] Researching companies...")
+            # STEP 4: Research companies (parallel)
+            logger.info("🔬 [4/8] Researching companies...")
             company_intel = await self._research_companies_parallel(top_jobs)
             logger.info(f"✅ Researched {len(company_intel)} companies")
             self.stats['companies_researched'] += len(company_intel)
             
-            # STEP 4: Find founders
-            logger.info("👤 [4/7] Finding founder contacts...")
+            # STEP 5: Find founders
+            logger.info("👤 [5/8] Finding founder contacts...")
             founder_contacts = await self._find_founders(company_intel)
             logger.info(f"✅ Found {len(founder_contacts)} founder contacts")
             
-            # STEP 5: Generate personalized messages
-            logger.info("✍️ [5/7] Generating personalized outreach...")
+            # STEP 6: Generate personalized messages
+            logger.info("✍️ [6/8] Generating personalized outreach...")
             messages = await self._generate_messages(founder_contacts, company_intel)
             logger.info(f"✅ Generated {len(messages)} personalized messages")
             
-            # STEP 6: Send via multiple channels
-            logger.info("📤 [6/7] Sending multi-channel outreach...")
+            # STEP 7: Send via multiple channels
+            logger.info("📤 [7/8] Sending multi-channel outreach...")
             sent_results = await self._send_messages(messages)
             logger.info(f"✅ Sent {sent_results['total_sent']} messages")
             self.stats['messages_sent'] += sent_results['total_sent']
             
-            # STEP 7: Handle responses & follow-ups
-            logger.info("📧 [7/7] Checking responses & scheduling follow-ups...")
+            # STEP 8: Handle responses & follow-ups
+            logger.info("📧 [8/8] Checking responses & scheduling follow-ups...")
             responses = await self.response_handler.check_responses()
             logger.info(f"✅ {len(responses)} new responses")
             self.stats['responses_received'] += len(responses)
@@ -258,6 +311,8 @@ class AutonomousOrchestrator:
                 'timestamp': datetime.now().isoformat(),
                 'new_jobs': len(new_jobs),
                 'top_jobs': len(top_jobs),
+                'applications_generated': self.stats.get('applications_generated', 0),
+                'applications_sent': self.stats.get('applications_sent', 0),
                 'messages_sent': sent_results['total_sent'],
                 'responses': len(responses),
                 'demo_clicks': len(demo_clicks),
@@ -274,7 +329,6 @@ class AutonomousOrchestrator:
             
         except Exception as e:
             logger.error(f"❌ Error in autonomous cycle: {e}", exc_info=True)
-            # Notify about errors
             await self.telegram.notify_error(str(e))
     
     async def _filter_and_score(self, jobs: List[JobPosting]) -> List[JobPosting]:
@@ -290,32 +344,24 @@ class AutonomousOrchestrator:
         scored_jobs = []
         for job in jobs:
             try:
-                # Score the job (note: profile comes FIRST, then job, and it's NOT async)
                 score, reasons = matcher.calculate_match_score(self.profile, job)
                 job.match_score = score
                 job.match_reasons = reasons
                 
-                # Check criteria
                 criteria_match = criteria_matcher.evaluate_job(job)
                 job.criteria_match = criteria_match
                 
-                # Check red flags
                 has_flags, red_flags = red_flag_detector.scan_job(job)
                 job.red_flags = red_flags
                 
-                # Only keep decent-scoring jobs without major red flags (lowered to 60 for more matches!)
                 if score >= 60 and not any('MAJOR' in flag for flag in red_flags):
                     scored_jobs.append(job)
             
             except Exception as e:
                 logger.debug(f"Failed to score job {job.title} at {job.company}: {e}")
-                # Skip jobs that fail scoring
                 continue
         
-        # Sort by score
         scored_jobs.sort(key=lambda x: x.match_score, reverse=True)
-        
-        # Return top 10
         return scored_jobs[:10]
     
     async def _research_companies_parallel(self, jobs: List[JobPosting]) -> Dict[str, Dict[str, Any]]:
@@ -368,7 +414,6 @@ class AutonomousOrchestrator:
             founder = contact['founder']
             
             try:
-                # Generate multi-channel messages
                 message_variants = await self.message_generator.generate_multi_channel_messages(
                     founder_name=founder.get('name', 'Founder'),
                     company=company,
@@ -405,7 +450,6 @@ class AutonomousOrchestrator:
                     company=message_data['company']
                 )
                 
-                # Track results
                 for channel, success in send_results.items():
                     if success:
                         results[channel] += 1
@@ -429,127 +473,60 @@ class AutonomousOrchestrator:
             json.dump(cycle_data, f, indent=2)
     
     async def check_linkedin_schedule(self):
-        """
-        Check if it's time to post to LinkedIn
-        
-        Posts DAILY at 4:30 PM Panama time (UTC-5)
-        Railway runs in UTC, so we post at 21:30 UTC = 4:30 PM Panama
-        
-        Alternates EN/ES by day:
-        - Even days (Mon/Wed/Fri/Sun) = English + image_1.png
-        - Odd days (Tue/Thu/Sat) = Spanish + image_1.1.png
-        """
+        """Check if it's time to post to LinkedIn"""
         if not self.linkedin_cmo or not self.linkedin_cmo.enabled:
             return
         
         now = datetime.now()
         today = now.date()
-        day_name = now.strftime("%A")
-        day_number = now.weekday()  # Monday=0, Sunday=6
+        day_number = now.weekday()
         hour = now.hour
-        minute = now.minute
         
-        # Check if already posted today
         if self.last_linkedin_post_date == today:
-            logger.debug(f"⏭️ LinkedIn CMO: Already posted today ({today}), skipping")
             return
         
-        # Post EVERY DAY at 21:30 UTC = 4:30 PM Panama time (UTC-5)
-        # Allow posting during 21:00-21:59 window (in case we miss exact minute)
         if hour == 21:
-            # Alternate language by day number
-            # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
             language = "en" if day_number % 2 == 0 else "es"
-            image_name = "image_1.png" if language == "en" else "image_1.1.png"
-            
-            logger.info(f"📱 LinkedIn CMO: DAILY POST TRIGGERED! 🚀")
-            logger.info(f"📅 Date: {today} ({day_name})")
-            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (4:30 PM Panama)")
-            logger.info(f"🌍 Language: {language.upper()}")
-            logger.info(f"🖼️ Image: {image_name}")
             
             await self.linkedin_cmo.post_to_linkedin(
                 post_type="random",
                 language=language
             )
             
-            # Mark as posted today
             self.last_linkedin_post_date = today
-            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 21:30 UTC (4:30 PM Panama)")
     
     async def start_autonomous_mode(self, interval_hours: int = 1):
-        """
-        🚀 START AUTONOMOUS MODE
-        
-        Runs continuously, executing cycles every N hours
-        """
+        """🚀 START AUTONOMOUS MODE"""
         self.is_running = True
-        logger.info(f"🚀 AUTONOMOUS MODE STARTED (running every {interval_hours} hour(s))")
+        logger.info(f"🚀 AUTONOMOUS MODE STARTED (every {interval_hours} hour)")
         
-        # Send startup notification and start polling (now that event loop is running!)
         if self.telegram.enabled:
             await self.telegram.notify_startup_success()
-            # Start polling in background for Railway logs
             import asyncio as aio
             aio.create_task(self.telegram.start_polling())
         
-        # Start Enhanced Telegram Bot polling (Phase 1 feature)
         if self.telegram_bot_enhanced:
             async def start_enhanced_bot():
-                """Start the enhanced Telegram bot"""
                 try:
                     await self.telegram_bot_enhanced.app.initialize()
                     await self.telegram_bot_enhanced.app.start()
                     logger.info("✅ Enhanced Telegram Bot started polling")
                     await self.telegram_bot_enhanced.app.updater.start_polling()
                 except Exception as e:
-                    logger.error(f"❌ Failed to start enhanced bot polling: {e}")
+                    logger.error(f"❌ Failed to start enhanced bot: {e}")
             
             asyncio.create_task(start_enhanced_bot())
         
-        # Schedule daily summary at 8pm
-        from datetime import datetime, time as dt_time
-        
-        async def send_daily_summary_at_8pm():
-            """Send daily summary at 8pm"""
-            while self.is_running:
-                now = datetime.now()
-                target_time = now.replace(hour=20, minute=0, second=0, microsecond=0)
-                
-                # If past 8pm today, schedule for tomorrow
-                if now.hour >= 20:
-                    target_time += timedelta(days=1)
-                
-                # Sleep until 8pm
-                wait_seconds = (target_time - now).total_seconds()
-                if wait_seconds > 0:
-                    await asyncio.sleep(wait_seconds)
-                
-                # Send summary
-                await self.telegram.send_daily_summary(self.stats)
-                
-                # Wait a bit to avoid sending again immediately
-                await asyncio.sleep(60)
-        
-        # Start daily summary task
-        asyncio.create_task(send_daily_summary_at_8pm())
-        
-        # Start separate LinkedIn posting check (runs every 10 minutes)
         async def check_linkedin_frequently():
-            """Check LinkedIn schedule every 10 minutes to never miss posting window"""
             while self.is_running:
                 await self.check_linkedin_schedule()
-                await asyncio.sleep(10 * 60)  # Check every 10 minutes
+                await asyncio.sleep(10 * 60)
         
         asyncio.create_task(check_linkedin_frequently())
-        logger.info("🕒 LinkedIn posting check: Every 10 minutes (catches 21:30 UTC window)")
         
         while self.is_running:
             try:
-                # Run one cycle
                 await self.run_autonomous_cycle()
-                
-                # Wait for next cycle
                 logger.info(f"😴 Sleeping for {interval_hours} hour(s)...")
                 await asyncio.sleep(interval_hours * 3600)
                 
@@ -559,8 +536,7 @@ class AutonomousOrchestrator:
                 break
             except Exception as e:
                 logger.error(f"❌ Error in autonomous mode: {e}", exc_info=True)
-                # Wait a bit before retrying
-                await asyncio.sleep(300)  # 5 minutes
+                await asyncio.sleep(300)
     
     def stop(self):
         """Stop autonomous mode"""
