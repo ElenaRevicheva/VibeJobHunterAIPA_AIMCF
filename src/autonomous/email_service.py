@@ -41,15 +41,15 @@ class EmailService:
             
             api_key = os.getenv('RESEND_API_KEY')
             if not api_key:
-                logger.warning(" RESEND_API_KEY not set")
+                logger.warning("⚠️ RESEND_API_KEY not set")
                 return
             
             resend.api_key = api_key
             self.client = resend
-            logger.info(" Resend email service initialized")
+            logger.info("✅ Resend email service initialized")
             
         except ImportError:
-            logger.error(" Resend not installed. Install with: pip install resend")
+            logger.error("❌ Resend not installed. Install with: pip install resend")
     
     def _init_sendgrid(self):
         """Initialize SendGrid client"""
@@ -58,14 +58,14 @@ class EmailService:
             
             api_key = os.getenv('SENDGRID_API_KEY')
             if not api_key:
-                logger.warning(" SENDGRID_API_KEY not set")
+                logger.warning("⚠️ SENDGRID_API_KEY not set")
                 return
             
             self.client = SendGridAPIClient(api_key)
-            logger.info(" SendGrid email service initialized")
+            logger.info("✅ SendGrid email service initialized")
             
         except ImportError:
-            logger.error(" SendGrid not installed. Install with: pip install sendgrid")
+            logger.error("❌ SendGrid not installed. Install with: pip install sendgrid")
     
     def _init_gmail(self):
         """Initialize Gmail API client"""
@@ -76,15 +76,15 @@ class EmailService:
             creds_file = os.getenv('GMAIL_CREDENTIALS_FILE', 'gmail_credentials.json')
             
             if not os.path.exists(creds_file):
-                logger.warning(" Gmail credentials file not found")
+                logger.warning("⚠️ Gmail credentials file not found")
                 return
             
             creds = Credentials.from_authorized_user_file(creds_file)
             self.client = build('gmail', 'v1', credentials=creds)
-            logger.info(" Gmail API service initialized")
+            logger.info("✅ Gmail API service initialized")
             
         except ImportError:
-            logger.error(" Google API client not installed")
+            logger.error("❌ Google API client not installed")
     
     async def send_email(
         self,
@@ -124,7 +124,7 @@ class EmailService:
                 return await self._send_gmail(to, subject, body, html, attachments)
         
         except Exception as e:
-            logger.error(f" Email send failed: {e}")
+            logger.error(f"❌ Email send failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -262,12 +262,18 @@ class EmailService:
         cover_letter: str,
         resume_attachment: Optional[Dict] = None
     ) -> Dict:
-        """Send a job application email with standard formatting"""
+        """
+        Send a job application email with standard formatting
+        🔧 FIXED: No f-string with backslashes
+        """
         
         subject = f"Application for {role} at {company}"
         
-        html_body = f"""
-<!DOCTYPE html>
+        # 🔧 FIX: Convert newlines to <br> tags OUTSIDE f-string
+        cover_letter_html = cover_letter.replace('\n', '<br>')
+        
+        # 🔧 FIX: Build HTML template without backslashes in f-string
+        html_body = f"""<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -283,7 +289,7 @@ class EmailService:
     </div>
     
     <div class="content">
-        {cover_letter.replace('\n', '<br>')}
+        {cover_letter_html}
     </div>
     
     <div class="signature">
@@ -294,8 +300,7 @@ class EmailService:
         <a href="https://aideazz.xyz">aideazz.xyz</a></p>
     </div>
 </body>
-</html>
-"""
+</html>"""
         
         attachments = [resume_attachment] if resume_attachment else None
         
@@ -308,19 +313,19 @@ class EmailService:
         )
         
         if result['success']:
-            logger.info(f" Application sent to {company}: {result['message_id']}")
+            logger.info(f"✅ Application sent to {company}: {result['message_id']}")
         else:
-            logger.error(f" Failed to send application to {company}: {result.get('error')}")
+            logger.error(f"❌ Failed to send application to {company}: {result.get('error')}")
         
         return result
     
     def test_connection(self) -> bool:
         """Test if email service is properly configured"""
         if not self.client:
-            logger.error(f" {self.provider} not configured")
+            logger.error(f"❌ {self.provider} not configured")
             return False
         
-        logger.info(f" {self.provider} configured and ready")
+        logger.info(f"✅ {self.provider} configured and ready")
         return True
 
 
@@ -329,6 +334,7 @@ def create_email_service(provider: str = None) -> EmailService:
     if provider:
         return EmailService(provider)
     
+    # Auto-detect available provider
     if os.getenv('RESEND_API_KEY'):
         return EmailService('resend')
     elif os.getenv('SENDGRID_API_KEY'):
@@ -336,18 +342,43 @@ def create_email_service(provider: str = None) -> EmailService:
     elif os.path.exists('gmail_credentials.json'):
         return EmailService('gmail')
     else:
-        logger.warning(" No email provider configured")
-        return EmailService('resend')
+        logger.warning("⚠️ No email provider configured")
+        return EmailService('resend')  # Default to Resend
 
 
+# =============================================================================
+# STANDALONE TEST
+# =============================================================================
 if __name__ == '__main__':
-    print(" Testing email service...")
-    service = create_email_service()
+    import asyncio
     
-    if service.test_connection():
-        print(" Email service ready!")
-    else:
-        print("\n Email service not configured. Set up:")
-        print("1. RESEND_API_KEY (recommended)")
-        print("2. SENDGRID_API_KEY")
-        print("3. Gmail credentials")
+    async def test_email_service():
+        """Test email service configuration"""
+        print("\n🧪 Testing email service...")
+        print("=" * 60)
+        
+        service = create_email_service()
+        
+        if service.test_connection():
+            print("✅ Email service ready!")
+            print(f"📧 Provider: {service.provider}")
+            
+            # Test sending (commented out to avoid accidental sends)
+            # result = await service.send_email(
+            #     to="test@example.com",
+            #     subject="Test Email",
+            #     body="<p>This is a test email from VibeJobHunter</p>",
+            #     html=True
+            # )
+            # print(f"Send result: {result}")
+            
+        else:
+            print("\n❌ Email service not configured. Set up one of:")
+            print("   1. RESEND_API_KEY (recommended)")
+            print("   2. SENDGRID_API_KEY")
+            print("   3. Gmail credentials (gmail_credentials.json)")
+            print("\nGet Resend API key: https://resend.com/api-keys")
+        
+        print("=" * 60)
+    
+    asyncio.run(test_email_service())

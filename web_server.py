@@ -21,11 +21,14 @@ sys.path.insert(0, project_root)
 # ------------------------------------------------------------------
 import logging
 import uvicorn
+import time
 
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_FINGERPRINT = "phase1_NO_BOT_in_webserver"
+DEPLOY_TIMESTAMP = "20251214_205500"  # ← UPDATE THIS EACH DEPLOY!
+DEPLOY_FINGERPRINT = "phase1_NO_BOT_in_webserver_FIXED"
+GIT_COMMIT_SHORT = "email_fix"  # Latest fix identifier
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -36,10 +39,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-logger.info(f"[DEPLOY VERIFY] {DEPLOY_FINGERPRINT}")
-logger.info("=" * 60)
+# ULTRA-VISIBLE DEPLOYMENT VERIFICATION
+logger.info("=" * 80)
+logger.info("🚀 " + "DEPLOYMENT VERIFICATION".center(76) + " 🚀")
+logger.info("=" * 80)
+logger.info(f"📅 DEPLOY_TIMESTAMP: {DEPLOY_TIMESTAMP}")
+logger.info(f"🔖 DEPLOY_FINGERPRINT: {DEPLOY_FINGERPRINT}")
+logger.info(f"💾 GIT_COMMIT: {GIT_COMMIT_SHORT}")
+logger.info(f"⏰ SERVER_START_TIME: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
+logger.info("=" * 80)
 logger.info("🌐 WEB SERVER MODE - Bot runs in orchestrator only")
-logger.info("=" * 60)
+logger.info("🔧 FIXES: F-string syntax error + Bot conflict resolved")
+logger.info("=" * 80)
 
 # ------------------------------------------------------------------
 # Initialize Database (but not bot)
@@ -78,26 +89,33 @@ def main():
         raise
 
     # Server configuration
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8080))  # Railway uses PORT env var
     host = "0.0.0.0"
     
-    logger.info("=" * 60)
+    logger.info("=" * 80)
     logger.info(f"🌐 Server Configuration:")
     logger.info(f"   Host: {host}")
     logger.info(f"   Port: {port}")
     logger.info(f"   Environment: {os.getenv('RAILWAY_ENVIRONMENT', 'local')}")
-    logger.info("=" * 60)
-    logger.info("📊 GA4 Dashboard: /analytics/dashboard")
-    logger.info("🔍 API Docs: /docs")
-    logger.info("📡 Health Check: /health")
-    logger.info("=" * 60)
+    logger.info(f"   Deploy Time: {DEPLOY_TIMESTAMP}")
+    logger.info("=" * 80)
+    logger.info("📊 Routes Available:")
+    logger.info("   /analytics/dashboard - GA4 Dashboard")
+    logger.info("   /docs - API Documentation")
+    logger.info("   /health - Health Check")
+    logger.info("   /version - Deployment Version")
+    logger.info("=" * 80)
     logger.info("")
-    logger.info("🤖 NOTE: Telegram bot runs in orchestrator only!")
-    logger.info("   To start bot: Run orchestrator separately")
-    logger.info("=" * 60)
+    logger.info("🤖 IMPORTANT: Telegram bot runs in orchestrator only!")
+    logger.info("   Web server: API + Dashboard")
+    logger.info("   Orchestrator: Job hunting + Bot")
+    logger.info("   Both run as separate processes on Railway")
+    logger.info("=" * 80)
 
     # Start server
     try:
+        logger.info(f"🌐 Starting Uvicorn server on {host}:{port}...")
+        
         uvicorn.run(
             app,
             host=host,
