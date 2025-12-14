@@ -1,6 +1,7 @@
 """
 FastAPI application for web dashboard
 """
+
 import asyncio
 import logging
 from typing import Optional
@@ -16,24 +17,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
-# Internal imports
+# Internal imports (ABSOLUTE — Railway safe)
 # ------------------------------------------------------------------
-from ..core import ProfileManager
-from ..agents import ApplicationManager
-from ..job_engine.ats_runner import ats_background_loop
+from src.core import ProfileManager
+from src.agents import ApplicationManager
+from src.job_engine.ats_runner import ats_background_loop
 
 # ------------------------------------------------------------------
-# GA4 Dashboard (optional)
+# GA4 Dashboard (optional, backward compatible)
 # ------------------------------------------------------------------
 try:
-    from .ga_dashboard_routes import router as analytics_router
+    from src.api.ga_dashboard_routes import router as analytics_router
     ANALYTICS_AVAILABLE = True
     logger.info("✅ Successfully imported GA4 analytics router")
 except Exception as e:
     ANALYTICS_AVAILABLE = False
     analytics_router = None
     logger.error(f"❌ Failed to import GA4 analytics router: {e}")
-
 
 # ==================================================================
 # APP FACTORY
@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
     # --------------------------------------------------------------
     @app.on_event("startup")
     async def start_background_jobs():
-        logger.info("🧠 Starting ATS hourly background runner")
+        logger.info("🧠 ATS hourly background runner STARTED")
         asyncio.create_task(ats_background_loop())
 
     # --------------------------------------------------------------
@@ -109,7 +109,7 @@ def create_app() -> FastAPI:
     @app.get("/api/applications")
     async def get_applications(status: Optional[str] = None):
         if status:
-            from ..core.models import ApplicationStatus
+            from src.core.models import ApplicationStatus
             try:
                 status_enum = ApplicationStatus(status)
             except ValueError:
@@ -121,4 +121,3 @@ def create_app() -> FastAPI:
         return [a.model_dump() for a in apps]
 
     return app
-
