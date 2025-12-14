@@ -23,7 +23,7 @@ import uvicorn
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_FINGERPRINT = "DEPLOY_FINGERPRINT=2025-12-13_job_engine_focus_v1"
+DEPLOY_FINGERPRINT = "DEPLOY_FINGERPRINT=phase1_dec14_SUCCESS_06fc17c"
 
 # ------------------------------------------------------------------
 # Logging setup
