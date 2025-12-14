@@ -8,7 +8,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Cache buster for Railway - forces fresh rebuild
-ENV BUILD_VERSION=4.1_PHASE1_SUCCESS
+ENV BUILD_VERSION=4.1_PHASE1_NOCACHE
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV BUILD_TIMESTAMP=20251123_213500
 ENV GIT_COMMIT=ca0320c
 ENV STRATEGIC_CAPABILITIES=true
@@ -35,6 +37,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code (v4.0 AI CO-FOUNDER - Cache bust timestamp: 2025-11-23 21:30)
 # Force rebuild: Changing this comment breaks Docker cache layer
 COPY . .
+RUN find /app -type f -name "*.pyc" -delete && find /app -type d -name "__pycache__" -delete
 RUN echo "🔥 COPIED FRESH CODE - v4.0 AI CO-FOUNDER - Build: $(date)" && \
     ls -la src/notifications/ && \
     echo "Checking for linkedin_cmo_v4.py:" && \
