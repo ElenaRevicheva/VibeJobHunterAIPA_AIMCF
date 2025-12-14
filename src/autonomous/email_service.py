@@ -142,7 +142,7 @@ class EmailService:
         """Send email via Resend"""
         
         if not from_email:
-            from_email = os.getenv('FROM_EMAIL', 'aipa@aideazz.xyz')
+            from_email = os.getenv('FROM_EMAIL', 'elena.revicheva2016@gmail.com')
         
         params = {
             "from": from_email,
@@ -180,7 +180,7 @@ class EmailService:
         import base64
         
         if not from_email:
-            from_email = os.getenv('FROM_EMAIL', 'aipa@aideazz.xyz')
+            from_email = os.getenv('FROM_EMAIL', 'elena.revicheva2016@gmail.com')
         
         message = Mail(
             from_email=from_email,
@@ -289,7 +289,7 @@ class EmailService:
     <div class="signature">
         <p>Best regards,<br>
         Elena Revicheva<br>
-        <a href="mailto:aipa@aideazz.xyz">aipa@aideazz.xyz</a><br>
+        <a href="mailto:elena.revicheva2016@gmail.com">elena.revicheva2016@gmail.com</a><br>
         <a href="https://linkedin.com/in/elenarevicheva">linkedin.com/in/elenarevicheva</a><br>
         <a href="https://aideazz.xyz">aideazz.xyz</a></p>
     </div>
