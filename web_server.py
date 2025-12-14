@@ -23,7 +23,7 @@ import uvicorn
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_FINGERPRINT = "DEPLOY_FINGERPRINT=phase1_dec14_SUCCESS_06fc17c"
+DEPLOY_FINGERPRINT = "phase1_dec14_SUCCESS_06fc17c"
 
 # ------------------------------------------------------------------
 # Logging setup
