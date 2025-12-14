@@ -1,0 +1,281 @@
+﻿{
+  "priority_1_ai_leaders": {
+    "description": "Top AI companies - highest priority",
+    "companies": [
+      {
+        "name": "Anthropic",
+        "ats": "greenhouse",
+        "slug": "anthropic",
+        "keywords": ["AI Engineer", "Founding Engineer", "Research Engineer", "Product Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "OpenAI",
+        "ats": "greenhouse",
+        "slug": "openai",
+        "keywords": ["Research Scientist", "Applied AI Engineer", "Product Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Mistral AI",
+        "ats": "lever",
+        "slug": "mistral",
+        "keywords": ["ML Engineer", "Research Engineer", "AI Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Hugging Face",
+        "ats": "lever",
+        "slug": "huggingface",
+        "keywords": ["ML Engineer", "Research Engineer", "Developer Advocate"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Cohere",
+        "ats": "lever",
+        "slug": "cohere",
+        "keywords": ["ML Engineer", "Research Scientist", "Product Engineer"],
+        "location_flexibility": "remote_friendly"
+      }
+    ]
+  },
+  "priority_2_yc_ai_startups": {
+    "description": "YC-backed AI startups with strong funding",
+    "companies": [
+      {
+        "name": "Databricks",
+        "ats": "greenhouse",
+        "slug": "databricks",
+        "keywords": ["ML Engineer", "Data Engineer", "AI Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Replicate",
+        "ats": "greenhouse",
+        "slug": "replicate",
+        "keywords": ["ML Engineer", "Founding Engineer", "Backend Engineer"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Modal",
+        "ats": "greenhouse",
+        "slug": "modal",
+        "keywords": ["Founding Engineer", "Infrastructure Engineer", "ML Platform"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Anyscale",
+        "ats": "greenhouse",
+        "slug": "anyscale",
+        "keywords": ["ML Engineer", "Distributed Systems", "Ray"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Runway",
+        "ats": "greenhouse",
+        "slug": "runway",
+        "keywords": ["ML Engineer", "Research Engineer", "Creative AI"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Perplexity",
+        "ats": "greenhouse",
+        "slug": "perplexity",
+        "keywords": ["ML Engineer", "Founding Engineer", "Search Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Jasper",
+        "ats": "greenhouse",
+        "slug": "jasper",
+        "keywords": ["ML Engineer", "Product Engineer", "AI Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Labelbox",
+        "ats": "greenhouse",
+        "slug": "labelbox",
+        "keywords": ["ML Engineer", "Full Stack Engineer", "Data Platform"],
+        "location_flexibility": "remote_friendly"
+      }
+    ]
+  },
+  "priority_3_infra_tools": {
+    "description": "Developer tools and infrastructure companies",
+    "companies": [
+      {
+        "name": "Vercel",
+        "ats": "greenhouse",
+        "slug": "vercel",
+        "keywords": ["Frontend Engineer", "Full Stack Engineer", "DevRel"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Linear",
+        "ats": "greenhouse",
+        "slug": "linear",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Design Engineer"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Retool",
+        "ats": "greenhouse",
+        "slug": "retool",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Webflow",
+        "ats": "greenhouse",
+        "slug": "webflow",
+        "keywords": ["Full Stack Engineer", "Product Designer", "Growth Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Figma",
+        "ats": "greenhouse",
+        "slug": "figma",
+        "keywords": ["Product Designer", "Product Engineer", "Full Stack Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Airtable",
+        "ats": "greenhouse",
+        "slug": "airtable",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "hybrid"
+      }
+    ]
+  },
+  "priority_4_fintech_saas": {
+    "description": "Modern fintech and SaaS companies",
+    "companies": [
+      {
+        "name": "Stripe",
+        "ats": "greenhouse",
+        "slug": "stripe",
+        "keywords": ["Software Engineer", "Product Engineer", "ML Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Brex",
+        "ats": "greenhouse",
+        "slug": "brex",
+        "keywords": ["Software Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Mercury",
+        "ats": "greenhouse",
+        "slug": "mercury",
+        "keywords": ["Full Stack Engineer", "Backend Engineer", "Product Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Gusto",
+        "ats": "greenhouse",
+        "slug": "gusto",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Calendly",
+        "ats": "greenhouse",
+        "slug": "calendly",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "remote_friendly"
+      }
+    ]
+  },
+  "priority_5_data_infra": {
+    "description": "Data infrastructure and analytics companies",
+    "companies": [
+      {
+        "name": "Fivetran",
+        "ats": "greenhouse",
+        "slug": "fivetran",
+        "keywords": ["Software Engineer", "Data Engineer", "Backend Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Datadog",
+        "ats": "greenhouse",
+        "slug": "datadog",
+        "keywords": ["Software Engineer", "Backend Engineer", "ML Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "GitLab",
+        "ats": "greenhouse",
+        "slug": "gitlab",
+        "keywords": ["Backend Engineer", "Frontend Engineer", "Full Stack Engineer"],
+        "location_flexibility": "fully_remote"
+      }
+    ]
+  },
+  "priority_6_productivity": {
+    "description": "Productivity and collaboration tools",
+    "companies": [
+      {
+        "name": "Asana",
+        "ats": "greenhouse",
+        "slug": "asana",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Backend Engineer"],
+        "location_flexibility": "hybrid"
+      },
+      {
+        "name": "Grammarly",
+        "ats": "greenhouse",
+        "slug": "grammarly",
+        "keywords": ["ML Engineer", "NLP Engineer", "Full Stack Engineer"],
+        "location_flexibility": "remote_friendly"
+      },
+      {
+        "name": "Remote",
+        "ats": "greenhouse",
+        "slug": "remote",
+        "keywords": ["Full Stack Engineer", "Backend Engineer", "Product Engineer"],
+        "location_flexibility": "fully_remote"
+      },
+      {
+        "name": "Watershed",
+        "ats": "greenhouse",
+        "slug": "watershed",
+        "keywords": ["Full Stack Engineer", "Product Engineer", "Climate Tech"],
+        "location_flexibility": "remote_friendly"
+      }
+    ]
+  },
+  "filters": {
+    "required_keywords": [
+      "engineer",
+      "founding",
+      "ml",
+      "ai",
+      "full stack",
+      "product",
+      "research"
+    ],
+    "excluded_keywords": [
+      "intern",
+      "sales",
+      "recruiter",
+      "customer success",
+      "account manager"
+    ],
+    "location_preferences": {
+      "fully_remote": 10,
+      "remote_friendly": 8,
+      "hybrid": 6,
+      "on_site": 4
+    },
+    "min_match_score": 0.6
+  },
+  "scraping_config": {
+    "check_frequency_hours": 1,
+    "max_jobs_per_company": 50,
+    "cache_duration_hours": 24,
+    "retry_on_error": true,
+    "max_retries": 3
+  }
+}
