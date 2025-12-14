@@ -13,6 +13,7 @@ echo "║                                                                   ║"
 echo "║  🎯 EMOTIONALLY INTELLIGENT AI - 9 Products (5 AIPAs + 4 Apps)   ║"
 echo "║  🔗 ALL 9 VERIFIED LINKS | 🌍 Bilingual EN/ES                    ║"
 echo "║  🚀 POSTS DAILY AT 4:30 PM PANAMA!                               ║"
+echo "║  🎯 AUTO-APPLICATIONS ENABLED! 3 jobs/hour                       ║"
 echo "║                                                                   ║"
 echo "║  IF YOU SEE v5.0 + 68075b1 = TIME CHANGE DEPLOYED! ✅            ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
@@ -37,7 +38,7 @@ python -m src.main setup --elena || true
 echo ""
 
 # Create necessary directories
-mkdir -p autonomous_data logs tailored_resumes cover_letters
+mkdir -p autonomous_data logs tailored_resumes cover_letters autonomous_data/applications
 echo "✅ Directories created"
 echo ""
 
@@ -56,8 +57,21 @@ if [ "$RUN_MODE" = "web" ]; then
     echo "🌐 Starting Web Server mode (with GA4 Dashboard)..."
     exec python web_server.py
 elif [ "$RUN_MODE" = "both" ]; then
-    echo "🚀 Starting BOTH Web Server AND LinkedIn CMO..."
-    # Start LinkedIn CMO in background
+    echo "🚀 Starting ALL THREE: Web Server + LinkedIn CMO + Auto-Apply Job Hunter..."
+    echo ""
+    
+    # 1. Start Autonomous Job Hunting Orchestrator in background
+    echo "🎯 [1/3] Starting Autonomous Job Hunting with Auto-Applications..."
+    python -m src.main autonomous --interval "${AUTONOMOUS_INTERVAL:-1}" &
+    ORCHESTRATOR_PID=$!
+    echo "   ✅ Orchestrator PID: $ORCHESTRATOR_PID"
+    echo ""
+    
+    # Wait a moment for orchestrator to initialize
+    sleep 2
+    
+    # 2. Start LinkedIn CMO in background
+    echo "📱 [2/3] Starting LinkedIn CMO (Daily Posts at 4:30 PM Panama)..."
     python -c "
 import asyncio
 import schedule
@@ -85,8 +99,23 @@ while True:
     schedule.run_pending()
     time.sleep(60)
 " &
+    CMO_PID=$!
+    echo "   ✅ LinkedIn CMO PID: $CMO_PID"
+    echo ""
     
-    # Start web server in foreground
+    # 3. Start web server in foreground
+    echo "🌐 [3/3] Starting Web Server (GA4 Dashboard on port 8080)..."
+    echo ""
+    echo "╔═══════════════════════════════════════════════════════════════════╗"
+    echo "║  🎉 ALL SYSTEMS OPERATIONAL! 🎉                                   ║"
+    echo "║                                                                   ║"
+    echo "║  1. 🤖 Job Hunter:    Finding & applying to jobs hourly          ║"
+    echo "║  2. 📱 LinkedIn CMO:  Posting daily at 4:30 PM Panama            ║"
+    echo "║  3. 🌐 Web Server:    GA4 Dashboard on port 8080                 ║"
+    echo "║                                                                   ║"
+    echo "╚═══════════════════════════════════════════════════════════════════╝"
+    echo ""
+    
     exec python web_server.py
 else
     echo "🤖 Starting Autonomous Job Hunting mode..."
