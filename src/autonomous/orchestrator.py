@@ -25,22 +25,22 @@ from .response_handler import ResponseHandler
 logger = setup_logger(__name__)
 
 # 🔥🔥🔥 MODULE VERSION - Logs on import! 🔥🔥🔥
-ORCHESTRATOR_VERSION = "4.0_AI_COFOUNDER_FULL_STRATEGIC"
-ORCHESTRATOR_BUILD = "2025-11-23_21:36_UTC"
-ORCHESTRATOR_COMMIT = "bf5e131"
+ORCHESTRATOR_VERSION = "4.1_PHASE1_UPGRADES"
+ORCHESTRATOR_BUILD = "2025-12-13_23:00_UTC"
+ORCHESTRATOR_COMMIT = "phase1"
 
 print("\n" + "💥"*40)
-print("🚨 EMERGENCY DEPLOY: FULL AI CO-FOUNDER STRATEGIC CAPABILITIES! 🚨")
+print("🚨 PHASE 1 UPGRADES DEPLOYED! 🚨")
 print(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
 print(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-print(f"🧠 ALL 4 CAPABILITIES: Performance + Learning + Strategy + Market")
+print(f"🧠 NEW: Database + Enhanced Telegram Bot + Email Service")
 print("💥"*40 + "\n")
 
 logger.info("💥" * 35)
-logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - FULL CAPABILITIES! 🚨🚨🚨")
+logger.info("🚨🚨🚨 ORCHESTRATOR MODULE IMPORTING - PHASE 1! 🚨🚨🚨")
 logger.info(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
 logger.info(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-logger.info(f"🧠 INCLUDES: LinkedIn CMO v4 with FULL AI Co-Founder capabilities")
+logger.info(f"🧠 INCLUDES: Enhanced Telegram Bot + Database Tracking")
 logger.info(f"🔥 IF YOU SEE THIS = Railway loaded FRESH orchestrator.py file!")
 logger.info("💥" * 35)
 
@@ -62,11 +62,11 @@ class AutonomousOrchestrator:
     """
     
     def __init__(self, profile: Profile, telegram_enabled: bool = True):
-        # 🔥🔥🔥 DEPLOYMENT TEST v3.0 - If you see this, Railway deployed latest code! 🔥🔥🔥
+        # 🔥🔥🔥 DEPLOYMENT TEST v4.1 - Phase 1 Upgrades! 🔥🔥🔥
         logger.info("=" * 80)
-        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v3.0 - LINKEDIN CMO EDITION 🚀🎨")
-        logger.info("🔥 GIT COMMIT: 324436a | 📅 BUILD: Nov 23, 2025")
-        logger.info("✨ NEW FEATURE: LinkedIn CMO with ASCII Art Banner! ✨")
+        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v4.1 - PHASE 1 EDITION 🚀🎨")
+        logger.info("🔥 GIT COMMIT: phase1 | 📅 BUILD: Dec 13, 2025")
+        logger.info("✨ NEW: Database Tracking + Enhanced Telegram Bot + Email Service ✨")
         logger.info("=" * 80)
         
         self.profile = profile
@@ -89,6 +89,29 @@ class AutonomousOrchestrator:
             import traceback
             logger.error(f"❌ Traceback: {traceback.format_exc()}")
             self.linkedin_cmo = None
+        
+        # Initialize Enhanced Telegram Bot (Phase 1 upgrade)
+        logger.info("🤖 Attempting to load Enhanced Telegram Bot...")
+        try:
+            from ..database.database_models import DatabaseHelper, init_database
+            from ..notifications.telegram_bot_enhanced import create_enhanced_bot
+            
+            # Initialize database
+            init_database()
+            self.db_helper = DatabaseHelper()
+            logger.info("✅ Database initialized successfully")
+            
+            # Create enhanced bot
+            self.telegram_bot_enhanced = create_enhanced_bot(db_helper=self.db_helper)
+            logger.info("✅ Enhanced Telegram Bot initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Enhanced Telegram Bot failed to load: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            self.telegram_bot_enhanced = None
+            self.db_helper = None
         
         # Initialize all agents
         self.job_monitor = JobMonitor()
@@ -143,6 +166,25 @@ class AutonomousOrchestrator:
             logger.info("🎯 [2/7] Filtering & scoring jobs...")
             top_jobs = await self._filter_and_score(new_jobs)
             logger.info(f"✅ {len(top_jobs)} high-priority jobs identified")
+            
+            # Store jobs in database (Phase 1 feature)
+            if self.db_helper:
+                try:
+                    for job in top_jobs:
+                        job_id = f"{job.company}_{job.id if hasattr(job, 'id') else job.title}"
+                        self.db_helper.add_job_listing({
+                            'id': job_id,
+                            'company': job.company,
+                            'title': job.title,
+                            'url': job.url,
+                            'description': getattr(job, 'description', ''),
+                            'location': getattr(job, 'location', ''),
+                            'ats_type': getattr(job, 'ats_type', ''),
+                            'match_score': job.match_score / 100.0,  # Convert to 0-1 scale
+                        })
+                    logger.info(f"✅ Stored {len(top_jobs)} jobs in database")
+                except Exception as e:
+                    logger.error(f"❌ Failed to store jobs in database: {e}")
             
             # Notify about hot jobs (score >85)
             for job in top_jobs:
@@ -390,8 +432,8 @@ class AutonomousOrchestrator:
         """
         Check if it's time to post to LinkedIn
         
-        Posts DAILY at 3 PM Panama time (UTC-5)
-        Railway runs in UTC, so we post at 20:00 UTC = 3:00 PM Panama
+        Posts DAILY at 4:30 PM Panama time (UTC-5)
+        Railway runs in UTC, so we post at 21:30 UTC = 4:30 PM Panama
         
         Alternates EN/ES by day:
         - Even days (Mon/Wed/Fri/Sun) = English + image_1.png
@@ -412,9 +454,9 @@ class AutonomousOrchestrator:
             logger.debug(f"⏭️ LinkedIn CMO: Already posted today ({today}), skipping")
             return
         
-        # Post EVERY DAY at 20:00 UTC = 3:00 PM Panama time (UTC-5)
-        # Allow posting during 20:00-20:59 window (in case we miss exact minute)
-        if hour == 20:
+        # Post EVERY DAY at 21:30 UTC = 4:30 PM Panama time (UTC-5)
+        # Allow posting during 21:00-21:59 window (in case we miss exact minute)
+        if hour == 21:
             # Alternate language by day number
             # Even days (0,2,4,6) = EN, Odd days (1,3,5) = ES
             language = "en" if day_number % 2 == 0 else "es"
@@ -422,7 +464,7 @@ class AutonomousOrchestrator:
             
             logger.info(f"📱 LinkedIn CMO: DAILY POST TRIGGERED! 🚀")
             logger.info(f"📅 Date: {today} ({day_name})")
-            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (3 PM Panama)")
+            logger.info(f"🕐 Time: {hour:02d}:{minute:02d} UTC (4:30 PM Panama)")
             logger.info(f"🌍 Language: {language.upper()}")
             logger.info(f"🖼️ Image: {image_name}")
             
@@ -433,7 +475,7 @@ class AutonomousOrchestrator:
             
             # Mark as posted today
             self.last_linkedin_post_date = today
-            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 20:00 UTC (3 PM Panama)")
+            logger.info(f"✅ LinkedIn post completed! Next post: tomorrow at 21:30 UTC (4:30 PM Panama)")
     
     async def start_autonomous_mode(self, interval_hours: int = 1):
         """
@@ -450,6 +492,20 @@ class AutonomousOrchestrator:
             # Start polling in background for Railway logs
             import asyncio as aio
             aio.create_task(self.telegram.start_polling())
+        
+        # Start Enhanced Telegram Bot polling (Phase 1 feature)
+        if self.telegram_bot_enhanced:
+            async def start_enhanced_bot():
+                """Start the enhanced Telegram bot"""
+                try:
+                    await self.telegram_bot_enhanced.app.initialize()
+                    await self.telegram_bot_enhanced.app.start()
+                    logger.info("✅ Enhanced Telegram Bot started polling")
+                    await self.telegram_bot_enhanced.app.updater.start_polling()
+                except Exception as e:
+                    logger.error(f"❌ Failed to start enhanced bot polling: {e}")
+            
+            asyncio.create_task(start_enhanced_bot())
         
         # Schedule daily summary at 8pm
         from datetime import datetime, time as dt_time
@@ -486,7 +542,7 @@ class AutonomousOrchestrator:
                 await asyncio.sleep(10 * 60)  # Check every 10 minutes
         
         asyncio.create_task(check_linkedin_frequently())
-        logger.info("🕒 LinkedIn posting check: Every 10 minutes (catches 20:00 UTC window)")
+        logger.info("🕒 LinkedIn posting check: Every 10 minutes (catches 21:30 UTC window)")
         
         while self.is_running:
             try:
