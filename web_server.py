@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-FastAPI Web Server for VibeJobHunter + GA4 Dashboard + Enhanced Telegram Bot
+FastAPI Web Server for VibeJobHunter + GA4 Dashboard
 Railway production entrypoint
+
+NOTE: Telegram bot runs ONLY in orchestrator, NOT here!
 """
 
 # ------------------------------------------------------------------
@@ -19,98 +21,98 @@ sys.path.insert(0, project_root)
 # ------------------------------------------------------------------
 import logging
 import uvicorn
-import threading
-import asyncio
 
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_FINGERPRINT = "phase1_telegram_bot_FINAL"
+DEPLOY_FINGERPRINT = "phase1_NO_BOT_in_webserver"
 
 # ------------------------------------------------------------------
 # Logging setup
 # ------------------------------------------------------------------
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 logger.info(f"[DEPLOY VERIFY] {DEPLOY_FINGERPRINT}")
+logger.info("=" * 60)
+logger.info("🌐 WEB SERVER MODE - Bot runs in orchestrator only")
+logger.info("=" * 60)
 
 # ------------------------------------------------------------------
-# START ENHANCED TELEGRAM BOT (Phase 1)
+# Initialize Database (but not bot)
 # ------------------------------------------------------------------
-logger.info("🤖 Initializing Enhanced Telegram Bot...")
+logger.info("💾 Initializing database...")
 try:
-    from src.database.database_models import init_database, DatabaseHelper
-    from src.notifications.telegram_bot_enhanced import create_enhanced_bot
+    from src.database.database_models import init_database
     
-    # Initialize database
+    # Initialize database tables
     init_database()
-    logger.info("✅ Database initialized")
-    
-    db_helper = DatabaseHelper()
-    logger.info("✅ Database helper created")
-    
-    # Create bot
-    telegram_bot = create_enhanced_bot(db_helper=db_helper)
-    logger.info("✅ Enhanced Telegram Bot created")
-    
-    # Start bot in background thread
-    def run_telegram_bot():
-        """Run Telegram bot in its own event loop"""
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            async def start_bot():
-                await telegram_bot.app.initialize()
-                await telegram_bot.app.start()
-                logger.info("✅ Enhanced Telegram Bot polling started")
-                await telegram_bot.app.updater.start_polling()
-                # Keep running
-                await asyncio.Event().wait()
-            
-            loop.run_until_complete(start_bot())
-        except Exception as e:
-            logger.error(f"❌ Telegram bot error: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-    
-    # Start bot thread
-    bot_thread = threading.Thread(target=run_telegram_bot, daemon=True, name="TelegramBot")
-    bot_thread.start()
-    logger.info("✅ ENHANCED TELEGRAM BOT THREAD STARTED!")
+    logger.info("✅ Database initialized successfully")
     
 except Exception as e:
-    logger.error(f"❌ Failed to start Enhanced Telegram Bot: {e}")
-    import traceback
-    logger.error(traceback.format_exc())
+    logger.warning(f"⚠️  Database initialization skipped: {e}")
+    logger.info("ℹ️  This is OK if database isn't needed for web server")
 
 # ------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------
 def main():
     """Start the FastAPI web server"""
-
-    # Import from src package
-    from src.api.app import create_app
-
+    
     logger.info("🚀 Starting VibeJobHunter Web Server...")
-    logger.info("📊 GA4 Dashboard will be available at /analytics/dashboard")
+    
+    # Import from src package
+    try:
+        from src.api.app import create_app
+        
+        app = create_app()
+        logger.info("✅ FastAPI app created")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to create FastAPI app: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise
 
-    app = create_app()
-
+    # Server configuration
     port = int(os.getenv("PORT", 8000))
     host = "0.0.0.0"
+    
+    logger.info("=" * 60)
+    logger.info(f"🌐 Server Configuration:")
+    logger.info(f"   Host: {host}")
+    logger.info(f"   Port: {port}")
+    logger.info(f"   Environment: {os.getenv('RAILWAY_ENVIRONMENT', 'local')}")
+    logger.info("=" * 60)
+    logger.info("📊 GA4 Dashboard: /analytics/dashboard")
+    logger.info("🔍 API Docs: /docs")
+    logger.info("📡 Health Check: /health")
+    logger.info("=" * 60)
+    logger.info("")
+    logger.info("🤖 NOTE: Telegram bot runs in orchestrator only!")
+    logger.info("   To start bot: Run orchestrator separately")
+    logger.info("=" * 60)
 
-    logger.info(f"🌐 Server starting on {host}:{port}")
-
-    uvicorn.run(
-        app,
-        host=host,
-        port=port,
-        log_level="info",
-        access_log=True,
-    )
+    # Start server
+    try:
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            log_level="info",
+            access_log=True,
+            timeout_keep_alive=65,
+            limit_concurrency=100,
+            limit_max_requests=1000,
+        )
+    except Exception as e:
+        logger.error(f"❌ Server startup failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise
 
 
 if __name__ == "__main__":
