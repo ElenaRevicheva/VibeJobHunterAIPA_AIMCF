@@ -1,5 +1,11 @@
 """
-FastAPI application for web dashboard
+FastAPI application for VibeJobHunter web dashboard
+
+ROLE:
+- Web API + Dashboard only
+- NO Telegram bot polling
+- ATS runner allowed
+- Railway healthcheck compatible
 """
 
 import asyncio
@@ -14,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Logging
 # ------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("src.api.app")
 
 # ------------------------------------------------------------------
 # Internal imports (ABSOLUTE — Railway safe)
@@ -29,11 +35,11 @@ from src.job_engine.ats_runner import ats_background_loop
 try:
     from src.api.ga_dashboard_routes import router as analytics_router
     ANALYTICS_AVAILABLE = True
-    logger.info("✅ Successfully imported GA4 analytics router")
+    logger.info("✅ GA4 analytics router loaded")
 except Exception as e:
     ANALYTICS_AVAILABLE = False
     analytics_router = None
-    logger.error(f"❌ Failed to import GA4 analytics router: {e}")
+    logger.warning(f"⚠️ GA4 analytics disabled: {e}")
 
 # ==================================================================
 # APP FACTORY
@@ -69,10 +75,22 @@ def create_app() -> FastAPI:
     # --------------------------------------------------------------
     if ANALYTICS_AVAILABLE and analytics_router:
         app.include_router(analytics_router)
-        logger.info("✅ GA4 Analytics routes registered")
+        logger.info("📊 GA4 analytics routes registered")
 
     profile_manager = ProfileManager()
     app_manager = ApplicationManager()
+
+    # --------------------------------------------------------------
+    # HEALTH CHECK (Railway REQUIRED)
+    # --------------------------------------------------------------
+    @app.get("/health")
+    async def health_check():
+        return {
+            "status": "ok",
+            "service": "vibejobhunter-web",
+            "role": "web_dashboard",
+            "ats_runner": "active",
+        }
 
     # --------------------------------------------------------------
     # DASHBOARD
