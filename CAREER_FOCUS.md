@@ -190,3 +190,154 @@ You need:
 - With **contextual narrative**
 
 ➡️ One yes is enough.
+
+🥇 GOLDEN ROADMAP — VibeJobHunter (Elena Edition)
+
+PHASE 0 — LOCK THE TARGET (MANDATORY)
+
+Before touching more code.
+
+Define a hard gate (machine-enforced):
+
+A job is discarded immediately unless ALL are true:
+
+- Company size: 5–100
+- Stage: Seed → Series B
+- Role contains at least ONE of:
+  - founding
+  - platform
+  - product
+  - automation
+  - infra
+- Salary ≥ regional floor
+- Remote or Panama-compatible
+
+➡️ This logic MUST live in code, not in your head.
+
+If this gate fails → job never enters the system.
+
+---
+
+PHASE 1 — JOB DISCOVERY (YOU ARE HERE, AND IT WORKS)
+
+Good news:
+This phase is DONE.
+
+From production logs:
+- ATS APIs are working
+- 400+ jobs per run
+- Infrastructure is stable
+
+Keep:
+- ATSScraper
+- Feature flags
+- Railway background runner
+
+Remove mentally:
+- “We need more sources”
+- “We need more scraping”
+
+❌ You do NOT have a sourcing problem anymore.
+
+---
+
+PHASE 2 — RESUME-AWARE MATCHING (CRITICAL FIX)
+
+Replace keyword matching with resume-dimensional scoring.
+
+Dimensions and weights:
+
+| Dimension | Weight |
+|---------|--------|
+| AI product ownership | 25 |
+| 0→1 autonomy | 25 |
+| Full-stack + infra | 20 |
+| Business exposure | 15 |
+| Bilingual / global | 5 |
+| Web3 (optional) | 10 |
+
+Rules:
+- Score ≥ 75 → ACCEPT
+- Score < 75 → AUTO-REJECT
+
+👉 This is where 80% of bad jobs disappear.
+
+---
+
+PHASE 3 — RESUME VERSION SELECTION (NOT OPTIONAL)
+
+Create three resume profiles derived from the master resume:
+
+- resume_founding_engineer.md
+- resume_ai_product_engineer.md
+- resume_ai_solutions_architect.md
+
+The engine selects based on:
+- Company stage
+- Role wording
+- Tech emphasis
+
+❌ Never submit the same resume everywhere again.
+
+---
+
+PHASE 4 — CONTEXTUAL APPLICATION (THIS IS THE MONEY)
+
+Absolute rules:
+- No generic cover letters
+- No blind Easy Apply unless last resort
+- No “I am excited to apply…”
+
+Each application answers ONE question:
+“Why should THIS company talk to YOU?”
+
+Structure:
+1. Signal understanding of their product
+2. Map one shipped system you built to their pain
+3. Explain why you thrive in small, high-autonomy teams
+4. Calm, confident close
+
+3–4 paragraphs. No hype.
+
+---
+
+PHASE 5 — LOW VOLUME, HIGH SIGNAL
+
+Hard limits:
+- 3–5 applications per day
+- 20–30 total before reassessment
+
+If zero interviews after 30:
+- Adjust scoring
+- Adjust narrative
+- NOT volume
+
+---
+
+PHASE 6 — FEEDBACK & LEARNING (ONLY AFTER INTERVIEWS)
+
+Do NOT overbuild.
+
+Track only:
+- Applied
+- Response
+- Interview
+- Rejection / Ghost
+
+Learning comes AFTER signals exist.
+
+---
+
+FINAL VERDICT
+
+Your resume is exceptional.
+Your engineering is strong.
+Your failure mode was STRATEGY, not execution.
+
+You were building:
+“A job platform”
+
+You actually need:
+“A precision career weapon”
+
+Now everything is aligned.
