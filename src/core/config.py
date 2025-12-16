@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import List
+from pathlib import Path
 import os
 
 
@@ -8,6 +9,12 @@ class Settings(BaseSettings):
     Global application settings
     Used by ATS + Autonomous Orchestrator + LinkedIn CMO
     """
+
+    # -------------------------------------------------
+    # API KEYS (from environment)
+    # -------------------------------------------------
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
 
     # -------------------------------------------------
     # IDENTITY
@@ -55,6 +62,23 @@ class Settings(BaseSettings):
     # RUNTIME
     # -------------------------------------------------
     ENVIRONMENT: str = os.getenv("RAILWAY_ENVIRONMENT", "local")
+
+    # -------------------------------------------------
+    # DATA STORAGE
+    # -------------------------------------------------
+    data_dir: Path = Path("autonomous_data")
+    
+    # -------------------------------------------------
+    # APPLICATION LIMITS
+    # -------------------------------------------------
+    max_daily_applications: int = 20
+
+    # -------------------------------------------------
+    # LOWERCASE ALIASES (for compatibility)
+    # -------------------------------------------------
+    @property
+    def target_roles(self) -> List[str]:
+        return self.TARGET_ROLES
 
     class Config:
         env_file = ".env"
