@@ -25,13 +25,14 @@ sys.path.insert(0, project_root)
 import logging
 import uvicorn
 import time
+import asyncio
 
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_TIMESTAMP = "20251216_110500"  # ⬅️ update per deploy
-DEPLOY_FINGERPRINT = "single_service_orchestrator_restored"
-GIT_COMMIT_SHORT = "restore_linkedin_cmo_orchestrator"
+DEPLOY_TIMESTAMP = "20251216_120000"  # ⬅️ UPDATE EACH DEPLOY
+DEPLOY_FINGERPRINT = "single_service_orchestrator_PROFILE_FIXED"
+GIT_COMMIT_SHORT = "fix_orchestrator_profile"
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -90,19 +91,46 @@ def main():
     @app.on_event("startup")
     async def startup_event():
         try:
-            logger.info("🧠 Starting autonomous orchestrator (ATS + LinkedIn CMO)...")
+            logger.info("🧠 Initializing candidate profile...")
 
+            from src.core.models import Profile
+            from src.core.config import settings
             from src.autonomous.orchestrator import AutonomousOrchestrator
 
-            orchestrator = AutonomousOrchestrator()
-            orchestrator.start_background_tasks()
+            # -------------------------------
+            # CREATE PROFILE (REQUIRED)
+            # -------------------------------
+            profile = Profile(
+                full_name=settings.FULL_NAME,
+                email=settings.EMAIL,
+                target_roles=settings.TARGET_ROLES,
+                years_experience=settings.YEARS_EXPERIENCE,
+                location=settings.LOCATION,
+                remote_preference=settings.REMOTE_PREFERENCE,
+                skills=settings.SKILLS,
+                resume_path=settings.RESUME_PATH,
+                linkedin_url=settings.LINKEDIN_URL,
+                github_url=settings.GITHUB_URL,
+                portfolio_url=settings.PORTFOLIO_URL,
+            )
+
+            logger.info("✅ Profile initialized successfully")
+
+            # -------------------------------
+            # START ORCHESTRATOR
+            # -------------------------------
+            logger.info("🧠 Starting autonomous orchestrator (ATS + LinkedIn CMO)...")
+
+            orchestrator = AutonomousOrchestrator(profile=profile)
+            asyncio.create_task(orchestrator.start_autonomous_mode())
 
             logger.info("✅ Autonomous orchestrator started successfully")
 
         except Exception as e:
-            logger.error(f"❌ Failed to start autonomous orchestrator: {e}")
+            logger.error("❌ Failed to start autonomous orchestrator")
             import traceback
             logger.error(traceback.format_exc())
+            raise
 
     # -------------------------------
     # Server configuration
@@ -143,3 +171,4 @@ def main():
 # ------------------------------------------------------------------
 if __name__ == "__main__":
     main()
+
