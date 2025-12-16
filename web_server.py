@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 FastAPI Web Server for VibeJobHunter + GA4 Dashboard
-Railway production entrypoint
 
 MODE:
-- Web server
+- Web server (FastAPI)
 - ATS Job Hunter
 - LinkedIn CMO posting
-(all running in ONE service — restored)
+
+ALL running in ONE Railway service (restored correctly)
 """
 
 # ------------------------------------------------------------------
@@ -25,14 +25,13 @@ sys.path.insert(0, project_root)
 import logging
 import uvicorn
 import time
-import asyncio
 
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_TIMESTAMP = "20251215_210000"  # ⬅️ UPDATE ON EACH DEPLOY
-DEPLOY_FINGERPRINT = "phase0_job_gate_plus_cmo_restored"
-GIT_COMMIT_SHORT = "restore_cmo_loop"
+DEPLOY_TIMESTAMP = "20251216_110500"  # ⬅️ update per deploy
+DEPLOY_FINGERPRINT = "single_service_orchestrator_restored"
+GIT_COMMIT_SHORT = "restore_linkedin_cmo_orchestrator"
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -58,7 +57,7 @@ logger.info("🌐 SINGLE-SERVICE MODE: Web + ATS + LinkedIn CMO")
 logger.info("=" * 80)
 
 # ------------------------------------------------------------------
-# Initialize Database
+# Initialize Database (safe)
 # ------------------------------------------------------------------
 logger.info("💾 Initializing database...")
 try:
@@ -66,36 +65,7 @@ try:
     init_database()
     logger.info("✅ Database initialized successfully")
 except Exception as e:
-    logger.warning(f"⚠️ Database init skipped: {e}")
-
-# ------------------------------------------------------------------
-# Background task starter
-# ------------------------------------------------------------------
-async def start_background_tasks():
-    """
-    Starts ATS Job Hunter + LinkedIn CMO loops
-    """
-    logger.info("🧠 Starting background agents...")
-
-    # -------------------------------
-    # ATS Job Hunter
-    # -------------------------------
-    try:
-        from src.runners.ats_runner import ats_background_loop
-        asyncio.create_task(ats_background_loop())
-        logger.info("🧠 ATS hourly background runner STARTED")
-    except Exception as e:
-        logger.error(f"❌ Failed to start ATS runner: {e}")
-
-    # -------------------------------
-    # LinkedIn CMO (RESTORED)
-    # -------------------------------
-    try:
-        from src.cmo.linkedin_cmo import linkedin_cmo_loop
-        asyncio.create_task(linkedin_cmo_loop())
-        logger.info("📣 LinkedIn CMO Agent STARTED")
-    except Exception as e:
-        logger.error(f"❌ Failed to start LinkedIn CMO: {e}")
+    logger.warning(f"⚠️ Database initialization skipped: {e}")
 
 # ------------------------------------------------------------------
 # Main
@@ -103,6 +73,9 @@ async def start_background_tasks():
 def main():
     logger.info("🚀 Starting VibeJobHunter Web Server...")
 
+    # -------------------------------
+    # Create FastAPI app
+    # -------------------------------
     try:
         from src.api.app import create_app
         app = create_app()
@@ -111,10 +84,29 @@ def main():
         logger.error(f"❌ Failed to create FastAPI app: {e}")
         raise
 
+    # ------------------------------------------------------------------
+    # START AUTONOMOUS ORCHESTRATOR (ATS + LINKEDIN CMO)
+    # ------------------------------------------------------------------
     @app.on_event("startup")
-    async def on_startup():
-        await start_background_tasks()
+    async def startup_event():
+        try:
+            logger.info("🧠 Starting autonomous orchestrator (ATS + LinkedIn CMO)...")
 
+            from src.autonomous.orchestrator import AutonomousOrchestrator
+
+            orchestrator = AutonomousOrchestrator()
+            orchestrator.start_background_tasks()
+
+            logger.info("✅ Autonomous orchestrator started successfully")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to start autonomous orchestrator: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+    # -------------------------------
+    # Server configuration
+    # -------------------------------
     port = int(os.getenv("PORT", 8080))
     host = "0.0.0.0"
 
@@ -132,6 +124,9 @@ def main():
     logger.info("   /version")
     logger.info("=" * 80)
 
+    # -------------------------------
+    # Run server
+    # -------------------------------
     uvicorn.run(
         app,
         host=host,
