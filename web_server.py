@@ -101,12 +101,12 @@ def main():
             # CREATE PROFILE (REQUIRED)
             # -------------------------------
             profile = Profile(
-                full_name=settings.FULL_NAME,
+                name=settings.FULL_NAME,
                 email=settings.EMAIL,
                 target_roles=settings.TARGET_ROLES,
-                years_experience=settings.YEARS_EXPERIENCE,
+                experience_years=settings.YEARS_EXPERIENCE,
                 location=settings.LOCATION,
-                remote_preference=settings.REMOTE_PREFERENCE,
+                remote_only=settings.REMOTE_PREFERENCE,
                 skills=settings.SKILLS,
                 resume_path=settings.RESUME_PATH,
                 linkedin_url=settings.LINKEDIN_URL,

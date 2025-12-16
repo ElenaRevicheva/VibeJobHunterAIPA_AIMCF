@@ -109,13 +109,16 @@ class LinkedInCMO:
     Part of AIdeazz's AI Co-Founder team!
     """
     
-    def __init__(self, make_webhook_url: Optional[str] = None):
+    def __init__(self, make_webhook_url: Optional[str] = None, profile=None):
         """
         Initialize LinkedIn CMO AI Co-Founder
         
         Args:
             make_webhook_url: Make.com webhook URL for LinkedIn posting
+            profile: Optional profile (accepted for compatibility but not used)
         """
+        # Profile is accepted for orchestrator compatibility but not used
+        # LinkedIn CMO uses its own content templates
         # Get API keys for AI Co-Founder capabilities
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
         self.use_ai_generation = bool(self.anthropic_api_key)  # True Co-Founder mode if API key exists
