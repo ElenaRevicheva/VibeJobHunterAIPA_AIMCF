@@ -163,12 +163,18 @@ class AutonomousOrchestrator:
         self.is_running = True
         logger.info(f"🚀 AUTONOMOUS MODE STARTED (every {interval_hours}h)")
 
+        # Send startup notification
         if self.telegram:
             await self.telegram.notify_startup_success()
-            asyncio.create_task(self.telegram.start_polling())
 
+        # Start ONLY ONE telegram polling instance to avoid conflicts
+        # Priority: Enhanced bot (more features) > Basic notifier
         if self.telegram_bot_enhanced:
+            logger.info("📱 Starting Enhanced Telegram Bot (with commands)")
             asyncio.create_task(self.telegram_bot_enhanced.start())
+        elif self.telegram:
+            logger.info("📱 Starting basic Telegram polling")
+            asyncio.create_task(self.telegram.start_polling())
 
         async def linkedin_loop():
             while self.is_running:
