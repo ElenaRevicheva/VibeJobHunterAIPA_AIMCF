@@ -23,17 +23,9 @@ from .response_handler import ResponseHandler
 
 logger = setup_logger(__name__)
 
-# 🔥 MODULE VERSION — LOGS ON IMPORT
-ORCHESTRATOR_VERSION = "4.2_REAL_APPLICATIONS"
-ORCHESTRATOR_BUILD = "2025-12-14_20:00_UTC"
-ORCHESTRATOR_COMMIT = "auto_apply_LIVE"
-
-logger.info("💥" * 35)
-logger.info("🚨 PHASE 1 COMPLETE - REAL APPLICATIONS ACTIVE! 🚨")
-logger.info(f"📦 VERSION: {ORCHESTRATOR_VERSION}")
-logger.info(f"🎯 BUILD: {ORCHESTRATOR_BUILD} | COMMIT: {ORCHESTRATOR_COMMIT}")
-logger.info("🧠 NEW: Auto-Applicator with Elena's Real Resume")
-logger.info("💥" * 35)
+# Module version
+ORCHESTRATOR_VERSION = "4.3_AUTONOMOUS_CYCLE"
+logger.info(f"📦 Orchestrator v{ORCHESTRATOR_VERSION} loaded")
 
 
 class AutonomousOrchestrator:
@@ -49,9 +41,9 @@ class AutonomousOrchestrator:
         self.is_running = False
         self.last_linkedin_post_date = None
 
-        logger.info("=" * 80)
-        logger.info("🎨🚀 VIBEJOBHUNTER ORCHESTRATOR v4.2 — REAL APPLICATIONS 🚀🎨")
-        logger.info("=" * 80)
+        logger.info("=" * 60)
+        logger.info("🚀 VIBEJOBHUNTER ORCHESTRATOR INITIALIZING")
+        logger.info("=" * 60)
 
         # ─────────────────────────────
         # Notifications
@@ -197,3 +189,161 @@ class AutonomousOrchestrator:
 
     def get_stats(self) -> Dict[str, Any]:
         return self.stats.copy()
+
+    # ─────────────────────────────
+    # CORE AUTONOMOUS CYCLE (THE MISSING PIECE!)
+    # ─────────────────────────────
+    async def run_autonomous_cycle(self):
+        """
+        🔥 THE MAIN JOB HUNTING CYCLE 🔥
+        
+        This runs every hour and:
+        1. Fetches new jobs from ATS APIs
+        2. Scores and filters them
+        3. Generates application materials
+        4. Sends applications (if auto_apply enabled)
+        5. Notifies via Telegram
+        """
+        logger.info("=" * 60)
+        logger.info("🔄 AUTONOMOUS CYCLE STARTED")
+        logger.info("=" * 60)
+        
+        try:
+            # ─────────────────────────────
+            # STEP 1: Find new jobs
+            # ─────────────────────────────
+            logger.info("🔍 Step 1: Finding new jobs...")
+            
+            new_jobs = await self.job_monitor.find_new_jobs(
+                target_roles=self.profile.target_roles,
+                max_results=50
+            )
+            
+            self.stats["jobs_found"] += len(new_jobs)
+            logger.info(f"✅ Found {len(new_jobs)} new jobs")
+            
+            if not new_jobs:
+                logger.info("📭 No new jobs this cycle - waiting for next run")
+                return
+            
+            # ─────────────────────────────
+            # STEP 2: Score and filter jobs
+            # ─────────────────────────────
+            logger.info("📊 Step 2: Scoring jobs against Elena's profile...")
+            
+            from ..agents.job_matcher import JobMatcher
+            matcher = JobMatcher()
+            
+            scored_jobs = []
+            for job in new_jobs:
+                try:
+                    score, reasons = matcher.calculate_match_score(self.profile, job)
+                    job.match_score = score
+                    job.match_reasons = reasons
+                    scored_jobs.append(job)
+                    
+                    if score >= 75:
+                        logger.info(f"🎯 HIGH MATCH ({score:.0f}): {job.company} - {job.title}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Scoring failed for {job.company}: {e}")
+            
+            # Filter to high-quality matches only (score >= 70)
+            qualified_jobs = [j for j in scored_jobs if j.match_score >= 70]
+            logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥70 score)")
+            
+            if not qualified_jobs:
+                logger.info("📭 No jobs met quality threshold this cycle")
+                
+                # Still notify about what was found
+                if self.telegram and len(scored_jobs) > 0:
+                    top_job = max(scored_jobs, key=lambda j: j.match_score)
+                    await self.telegram.send_message(
+                        f"🔍 <b>Cycle Complete</b>\n\n"
+                        f"Found {len(new_jobs)} jobs, but none met quality threshold.\n"
+                        f"Best match: {top_job.company} ({top_job.match_score:.0f}/100)"
+                    )
+                return
+            
+            # ─────────────────────────────
+            # STEP 3: Process top jobs
+            # ─────────────────────────────
+            logger.info("📝 Step 3: Processing top qualified jobs...")
+            
+            # Sort by score and take top 5
+            qualified_jobs.sort(key=lambda j: j.match_score, reverse=True)
+            top_jobs = qualified_jobs[:5]
+            
+            applications_generated = 0
+            
+            for job in top_jobs:
+                try:
+                    logger.info(f"📋 Processing: {job.company} - {job.title} ({job.match_score:.0f}/100)")
+                    
+                    # Research company
+                    company_intel = {}
+                    try:
+                        company_intel = await self.company_researcher.research_company(
+                            job.company, 
+                            job.url
+                        )
+                        self.stats["companies_researched"] += 1
+                    except Exception as e:
+                        logger.warning(f"⚠️ Company research failed: {e}")
+                    
+                    # Generate application materials
+                    if self.auto_applicator:
+                        job_dict = {
+                            'company': job.company,
+                            'title': job.title,
+                            'description': job.description,
+                            'url': job.url,
+                            'match_score': job.match_score,
+                            'source': str(job.source),
+                            'location': job.location,
+                        }
+                        
+                        result = await self.auto_applicator.process_job(job_dict)
+                        
+                        if result.get('materials_generated'):
+                            applications_generated += 1
+                            self.stats["applications_generated"] += 1
+                            logger.info(f"✅ Application materials ready for {job.company}")
+                        
+                        if result.get('email_sent'):
+                            self.stats["applications_sent"] += 1
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to process {job.company}: {e}")
+            
+            # ─────────────────────────────
+            # STEP 4: Notify via Telegram
+            # ─────────────────────────────
+            if self.telegram:
+                summary = f"""🔄 <b>Autonomous Cycle Complete!</b>
+
+📊 <b>This Cycle:</b>
+• Jobs found: {len(new_jobs)}
+• Qualified (≥70 score): {len(qualified_jobs)}
+• Applications generated: {applications_generated}
+
+🎯 <b>Top Matches:</b>
+"""
+                for i, job in enumerate(top_jobs[:3], 1):
+                    summary += f"{i}. {job.company} - {job.title} ({job.match_score:.0f}/100)\n"
+                
+                summary += f"\n📁 Materials saved to autonomous_data/applications/"
+                
+                await self.telegram.send_message(summary)
+            
+            logger.info("=" * 60)
+            logger.info(f"✅ AUTONOMOUS CYCLE COMPLETE")
+            logger.info(f"   Jobs found: {len(new_jobs)}")
+            logger.info(f"   Qualified: {len(qualified_jobs)}")
+            logger.info(f"   Applications: {applications_generated}")
+            logger.info("=" * 60)
+            
+        except Exception as e:
+            logger.error(f"❌ Autonomous cycle failed: {e}", exc_info=True)
+            
+            if self.telegram:
+                await self.telegram.notify_error(f"Cycle failed: {str(e)[:200]}")

@@ -69,31 +69,20 @@ class PerformanceTracker:
             try:
                 self.ga_client = self._initialize_ga_client()
                 if self.ga_client:
-                    print("✅ Google Analytics client initialized successfully!")
-                    logger.info("✅ GA4 client ready - can fetch real performance data")
+                    logger.info("✅ GA4 client initialized")
             except Exception as e:
-                logger.warning(f"⚠️ GA client initialization failed: {e}")
-                print(f"⚠️ GA client initialization failed: {e}")
+                logger.warning(f"⚠️ GA client init failed: {e}")
         
         # Performance database
         self.performance_file = self.data_dir / "real_performance.json"
         self.opportunities_file = self.data_dir / "opportunities.json"
         
-        print("\n" + "="*80)
-        print("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER INITIALIZED! 🎯🎯🎯")
-        print("="*80)
-        print("✅ UTM tracking: ACTIVE (automatic)")
-        print(f"✅ Buffer API: {'READY' if self.buffer_access_token else 'Not configured'}")
-        print(f"✅ Google Analytics: {'READY' if self.ga_client else 'Not configured'}")
-        print(f"✅ Gmail API: {'Ready' if self.gmail_credentials else 'Not configured'}")
-        print("="*80)
-        print("📊 All LinkedIn post links will be tracked!")
-        print("="*80 + "\n")
-        
-        logger.info("🎯 Performance Tracker initialized (Proxy Metrics)")
-        logger.info("="*80)
-        logger.info("🎯🎯🎯 PROXY METRICS PERFORMANCE TRACKER ACTIVE! 🎯🎯🎯")
-        logger.info("="*80)
+        # Log configuration
+        logger.info("📊 Performance Tracker initialized:")
+        logger.info(f"   UTM tracking: ACTIVE")
+        logger.info(f"   Buffer API: {'Ready' if self.buffer_access_token else 'Not configured'}")
+        logger.info(f"   GA4: {'Ready' if self.ga_client else 'Not configured'}")
+        logger.info(f"   Gmail: {'Ready' if self.gmail_credentials else 'Not configured'}")
     
     def _initialize_ga_client(self):
         """
@@ -169,9 +158,7 @@ class PerformanceTracker:
         )
         
         tracked_url = f"{url}{separator}{utm_params}"
-        
-        print(f"📊 UTM TRACKING APPLIED: {url[:40]}... → {tracked_url[:60]}...")
-        logger.info(f"📊 Added UTM tracking: {url[:30]}... → {tracked_url[:50]}...")
+        logger.debug(f"UTM: {url[:30]}... → tracked")
         return tracked_url
     
     def enhance_post_content_with_utm(self, content: str, post_id: str, post_type: str) -> str:
@@ -357,17 +344,14 @@ class PerformanceTracker:
                     analytics["avg_session_duration"] /= len(response.rows)
                     analytics["bounce_rate"] /= len(response.rows)
                 
-                print(f"📊 GA DATA FETCHED: {analytics['sessions']} sessions, {analytics['page_views']} pageviews")
-                logger.info(f"✅ GA data: {analytics['sessions']} sessions, {analytics['page_views']} pageviews for {utm_campaign}")
+                logger.info(f"📊 GA: {analytics['sessions']} sessions, {analytics['page_views']} pageviews")
             else:
-                print(f"📊 GA: No data yet for campaign {utm_campaign} (normal for new posts)")
-                logger.info(f"📊 No GA data yet for campaign: {utm_campaign}")
+                logger.debug(f"📊 GA: No data yet for {utm_campaign}")
             
             return analytics
         
         except Exception as e:
             logger.error(f"Failed to get Google Analytics: {e}")
-            print(f"❌ GA fetch error: {e}")
             return {}
     
     # ==================== GMAIL API - OPPORTUNITY TRACKING ====================

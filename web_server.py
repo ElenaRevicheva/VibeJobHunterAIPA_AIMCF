@@ -4,10 +4,11 @@ FastAPI Web Server for VibeJobHunter + GA4 Dashboard
 
 MODE:
 - Web server (FastAPI)
-- ATS Job Hunter
-- LinkedIn CMO posting
+- ATS Job Hunter (hourly)
+- LinkedIn CMO posting (daily 4:30 PM Panama)
+- Telegram Bot (always-on)
 
-ALL running in ONE Railway service (restored correctly)
+ALL running in ONE Railway service
 """
 
 # ------------------------------------------------------------------
@@ -26,13 +27,14 @@ import logging
 import uvicorn
 import time
 import asyncio
+from contextlib import asynccontextmanager
 
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_TIMESTAMP = "20251216_120000"  # ⬅️ UPDATE EACH DEPLOY
-DEPLOY_FINGERPRINT = "single_service_orchestrator_DELAYED_START_FIXED"
-GIT_COMMIT_SHORT = "fix_healthcheck_delayed_orchestrator"
+DEPLOY_TIMESTAMP = "20251216_210000"  # ⬅️ UPDATE EACH DEPLOY
+DEPLOY_FINGERPRINT = "autonomous_cycle_FIXED"
+GIT_COMMIT_SHORT = "run_autonomous_cycle_added"
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -47,14 +49,12 @@ logger = logging.getLogger(__name__)
 # DEPLOYMENT VERIFICATION BANNER
 # ------------------------------------------------------------------
 logger.info("=" * 80)
-logger.info("🚀 " + "DEPLOYMENT VERIFICATION".center(76) + " 🚀")
+logger.info("🚀 VIBEJOBHUNTER DEPLOYMENT")
 logger.info("=" * 80)
-logger.info(f"📅 DEPLOY_TIMESTAMP: {DEPLOY_TIMESTAMP}")
-logger.info(f"🔖 DEPLOY_FINGERPRINT: {DEPLOY_FINGERPRINT}")
-logger.info(f"💾 GIT_COMMIT: {GIT_COMMIT_SHORT}")
-logger.info(f"⏰ SERVER_START_TIME: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
-logger.info("=" * 80)
-logger.info("🌐 SINGLE-SERVICE MODE: Web + ATS + LinkedIn CMO")
+logger.info(f"📅 DEPLOY: {DEPLOY_TIMESTAMP}")
+logger.info(f"🔖 FINGERPRINT: {DEPLOY_FINGERPRINT}")
+logger.info(f"💾 COMMIT: {GIT_COMMIT_SHORT}")
+logger.info(f"⏰ START: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
 logger.info("=" * 80)
 
 # ------------------------------------------------------------------
@@ -64,101 +64,169 @@ logger.info("💾 Initializing database...")
 try:
     from src.database.database_models import init_database
     init_database()
-    logger.info("✅ Database initialized successfully")
+    logger.info("✅ Database initialized")
 except Exception as e:
-    logger.warning(f"⚠️ Database initialization skipped: {e}")
+    logger.warning(f"⚠️ Database init skipped: {e}")
+
+# ------------------------------------------------------------------
+# Global orchestrator reference
+# ------------------------------------------------------------------
+orchestrator = None
+
+# ------------------------------------------------------------------
+# Lifespan context manager (replaces deprecated on_event)
+# ------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app):
+    """
+    Modern lifespan pattern for FastAPI startup/shutdown
+    """
+    global orchestrator
+    
+    # ─────────────────────────────
+    # STARTUP
+    # ─────────────────────────────
+    logger.info("🚀 Starting VibeJobHunter services...")
+    
+    try:
+        from src.core.models import Profile
+        from src.core.config import settings
+        from src.autonomous.orchestrator import AutonomousOrchestrator
+        
+        # Create profile
+        profile = Profile(
+            name=settings.FULL_NAME,
+            email=settings.EMAIL,
+            target_roles=settings.TARGET_ROLES,
+            experience_years=settings.YEARS_EXPERIENCE,
+            location=settings.LOCATION,
+            remote_only=settings.REMOTE_PREFERENCE,
+            skills=settings.SKILLS,
+            resume_path=settings.RESUME_PATH,
+            linkedin_url=settings.LINKEDIN_URL,
+            github_url=settings.GITHUB_URL,
+            portfolio_url=settings.PORTFOLIO_URL,
+        )
+        
+        logger.info("✅ Profile: Elena Revicheva loaded")
+        
+        # Create orchestrator
+        orchestrator = AutonomousOrchestrator(profile=profile)
+        
+        # Delayed start for autonomous mode
+        async def delayed_start():
+            logger.info("⏳ Waiting 10s for health check to pass...")
+            await asyncio.sleep(10)
+            logger.info("🚀 Starting autonomous mode...")
+            await orchestrator.start_autonomous_mode()
+        
+        asyncio.create_task(delayed_start())
+        logger.info("✅ Autonomous orchestrator scheduled")
+        
+    except Exception as e:
+        logger.error(f"❌ Startup error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+    
+    yield  # App is running
+    
+    # ─────────────────────────────
+    # SHUTDOWN
+    # ─────────────────────────────
+    logger.info("🛑 Shutting down VibeJobHunter...")
+    if orchestrator:
+        orchestrator.stop()
+
 
 # ------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------
 def main():
-    logger.info("🚀 Starting VibeJobHunter Web Server...")
-
-    # -------------------------------
-    # Create FastAPI app
-    # -------------------------------
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    
+    # Create app with lifespan
+    app = FastAPI(
+        title="VibeJobHunter",
+        description="AI-powered autonomous job hunting engine",
+        version="4.3.0",
+        lifespan=lifespan
+    )
+    
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # ─────────────────────────────
+    # ROUTES
+    # ─────────────────────────────
+    
+    @app.get("/health")
+    async def health():
+        return {
+            "status": "ok",
+            "service": "vibejobhunter",
+            "version": "4.3.0",
+            "deploy": DEPLOY_TIMESTAMP,
+            "components": {
+                "web": "running",
+                "ats_scraper": "active",
+                "linkedin_cmo": "scheduled",
+                "telegram_bot": "active"
+            }
+        }
+    
+    @app.get("/")
+    async def root():
+        return {"message": "🚀 VibeJobHunter is running!", "docs": "/docs"}
+    
+    @app.get("/status")
+    async def status():
+        global orchestrator
+        stats = orchestrator.get_stats() if orchestrator else {}
+        return {
+            "orchestrator": "running" if orchestrator else "not started",
+            "stats": stats,
+            "deploy": DEPLOY_TIMESTAMP
+        }
+    
+    # Include GA4 analytics routes if available
     try:
-        from src.api.app import create_app
-        app = create_app()
-        logger.info("✅ FastAPI app created")
+        from src.api.ga_dashboard_routes import router as analytics_router
+        app.include_router(analytics_router)
+        logger.info("✅ GA4 analytics routes loaded")
     except Exception as e:
-        logger.error(f"❌ Failed to create FastAPI app: {e}")
-        raise
-
-    # ------------------------------------------------------------------
-    # START AUTONOMOUS ORCHESTRATOR (ATS + LINKEDIN CMO)
-    # ------------------------------------------------------------------
-    @app.on_event("startup")
-    async def startup_event():
-        try:
-            logger.info("🧠 Initializing candidate profile...")
-
-            from src.core.models import Profile
-            from src.core.config import settings
-            from src.autonomous.orchestrator import AutonomousOrchestrator
-
-            # -------------------------------
-            # CREATE PROFILE (REQUIRED)
-            # -------------------------------
-            profile = Profile(
-                name=settings.FULL_NAME,
-                email=settings.EMAIL,
-                target_roles=settings.TARGET_ROLES,
-                experience_years=settings.YEARS_EXPERIENCE,
-                location=settings.LOCATION,
-                remote_only=settings.REMOTE_PREFERENCE,
-                skills=settings.SKILLS,
-                resume_path=settings.RESUME_PATH,
-                linkedin_url=settings.LINKEDIN_URL,
-                github_url=settings.GITHUB_URL,
-                portfolio_url=settings.PORTFOLIO_URL,
-            )
-
-            logger.info("✅ Profile initialized successfully")
-
-            orchestrator = AutonomousOrchestrator(profile=profile)
-
-            # ----------------------------------------------------------
-            # CRITICAL FIX: DELAY AUTONOMOUS START (RAILWAY SAFE)
-            # ----------------------------------------------------------
-            async def delayed_orchestrator_start():
-                logger.info("⏳ Waiting 15s before starting autonomous mode...")
-                await asyncio.sleep(15)
-                logger.info("🚀 Starting autonomous mode now")
-                await orchestrator.start_autonomous_mode()
-
-            asyncio.create_task(delayed_orchestrator_start())
-
-            logger.info("✅ Autonomous orchestrator scheduled successfully")
-
-        except Exception:
-            logger.error("❌ Failed to start autonomous orchestrator")
-            import traceback
-            logger.error(traceback.format_exc())
-
-    # -------------------------------
-    # Server configuration
-    # -------------------------------
+        logger.warning(f"⚠️ GA4 routes skipped: {e}")
+    
+    # Include ATS background runner
+    try:
+        from src.job_engine.ats_runner import ats_background_loop
+        
+        @app.on_event("startup")
+        async def start_ats_runner():
+            asyncio.create_task(ats_background_loop())
+            logger.info("✅ ATS background runner started")
+    except Exception as e:
+        logger.warning(f"⚠️ ATS runner skipped: {e}")
+    
+    # ─────────────────────────────
+    # SERVER CONFIG
+    # ─────────────────────────────
     port = int(os.getenv("PORT", 8080))
     host = "0.0.0.0"
-
+    
     logger.info("=" * 80)
-    logger.info("🌐 Server Configuration")
-    logger.info(f"   Host: {host}")
-    logger.info(f"   Port: {port}")
+    logger.info("🌐 SERVER READY")
+    logger.info(f"   Host: {host}:{port}")
     logger.info(f"   Environment: {os.getenv('RAILWAY_ENVIRONMENT', 'local')}")
-    logger.info(f"   Deploy Time: {DEPLOY_TIMESTAMP}")
+    logger.info("   Routes: /health, /status, /docs, /analytics/dashboard")
     logger.info("=" * 80)
-    logger.info("📊 Routes:")
-    logger.info("   /analytics/dashboard")
-    logger.info("   /docs")
-    logger.info("   /health")
-    logger.info("   /version")
-    logger.info("=" * 80)
-
-    # -------------------------------
-    # Run server
-    # -------------------------------
+    
     uvicorn.run(
         app,
         host=host,
@@ -166,9 +234,8 @@ def main():
         log_level="info",
         access_log=True,
         timeout_keep_alive=65,
-        limit_concurrency=100,
-        limit_max_requests=1000,
     )
+
 
 # ------------------------------------------------------------------
 # Entrypoint

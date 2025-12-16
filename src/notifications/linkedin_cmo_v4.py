@@ -42,35 +42,8 @@ except ImportError:
     PERFORMANCE_TRACKER_AVAILABLE = False
     logger.warning("⚠️ Performance tracker not available - using basic tracking")
 
-# 🔥🔥🔥 DEPLOYMENT VERIFICATION BANNER 🔥🔥🔥
-print("\n" + "🎯"*40)
-print("✨ AI MARKETING CO-FOUNDER v5.0 - DIGNIFIED POSITIONING DEPLOYED! ✨")
-print("="*80)
-print("📦 BUILD: 2025-11-24 17:00 UTC | COMMIT: 08810b9")
-print("")
-print("🤖 5 AIPAs with PROFESSIONAL DESCRIPTIONS:")
-print("   1. EspaLuz WhatsApp → 'Bilingual AIPA for 19 Spanish-speaking countries'")
-print("   2. EspaLuz Telegram → 'On-the-go Spanish learning AIPA'")
-print("   3. ALGOM Alpha → 'Post-Scammer Era Crypto Coach'")
-print("   4. EspaLuz SMM → 'SMM AIPA for social media marketing'")
-print("   5. LinkedIn CMO → 'AI Marketing Co-Founder posting daily!'")
-print("")
-print("🌐 4 AI Products with STRATEGIC POSITIONING:")
-print("   1. EspaLuz Web → 'Family's First Emotionally Intelligent AI Language Coach'")
-print("   2. AIdeazz.xyz → 'Emotionally Intelligent AI Assistants Showroom'")
-print("   3. Business Card → 'Business Card & Portfolio of AIdeazz Founder'")
-print("   4. ATUONA → 'Underground Russian Poetry NFT Gallery on Polygon'")
-print("")
-print("🔗 ALL 9 VERIFIED LINKS INCLUDED:")
-print("   wa.me/50766623757 | t.me/EspaLuzFamily_bot | x.com/reviceva")
-print("   t.me/Influencer_EspaLuz_bot | linkedin.com/in/elenarevicheva")
-print("   instagram.com/elena_revicheva | espaluz-ai-language-tutor.lovable.app")
-print("   aideazz.xyz | aideazz.xyz/card | atuona.xyz")
-print("")
-print("🎯 KEY DIFFERENTIATOR: 'Emotionally Intelligent AI' (AIdeazz positioning)")
-print("🚀 THIS IS TRUE AI MARKETING CO-FOUNDER - NOT JUST AUTOMATION!")
-print("="*80)
-print("🎯"*40 + "\n")
+# Deployment verification (logged, not printed)
+logger.info("✨ LinkedIn CMO v5.0 loaded - AI Marketing Co-Founder")
 
 # 🔥 VERSION MARKER - DIGNIFIED POSITIONING DEPLOYED! 🔥
 LINKEDIN_CMO_VERSION = "5.0_AI_MARKETING_COFOUNDER_DIGNIFIED"
@@ -123,44 +96,18 @@ class LinkedInCMO:
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
         self.use_ai_generation = bool(self.anthropic_api_key)  # True Co-Founder mode if API key exists
         
-        # 🔥🔥🔥 REMARKABLE API KEY DETECTION 🔥🔥🔥
-        print("\n" + "🔑"*40)
-        print("🚨 ANTHROPIC API KEY DETECTION CHECK 🚨")
-        print("="*80)
+        # API key detection (minimal logging)
         if self.anthropic_api_key:
-            key_preview = self.anthropic_api_key[:20] + "..." + self.anthropic_api_key[-10:]
-            print(f"✅ API KEY DETECTED: {key_preview}")
-            print(f"✅ KEY LENGTH: {len(self.anthropic_api_key)} characters")
-            print(f"✅ KEY PREFIX: {self.anthropic_api_key[:15]}")
-            print(f"✅ AI CO-FOUNDER MODE: ENABLED")
-            print("🧠 Will attempt Claude API calls for content generation!")
+            logger.info("✅ Anthropic API key detected - AI Co-Founder mode ENABLED")
         else:
-            print("❌ NO API KEY FOUND!")
-            print("❌ AI CO-FOUNDER MODE: DISABLED")
-            print("📝 Will use template content (AIPA mode)")
-        print("="*80)
-        print("🔑"*40 + "\n")
-        # 🔥 AI MARKETING CO-FOUNDER STARTUP BANNER 🔥
-        logger.info("=" * 80)
-        logger.info("  █████╗ ██╗    ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗███████╗████████╗██╗███╗   ██╗ ██████╗ ")
-        logger.info(" ██╔══██╗██║    ████╗ ████║██╔══██╗██╔══██╗██║ ██╔╝██╔════╝╚══██╔══╝██║████╗  ██║██╔════╝ ")
-        logger.info(" ███████║██║    ██╔████╔██║███████║██████╔╝█████╔╝ █████╗     ██║   ██║██╔██╗ ██║██║  ███╗")
-        logger.info(" ██╔══██║██║    ██║╚██╔╝██║██╔══██║██╔══██╗██╔═██╗ ██╔══╝     ██║   ██║██║╚██╗██║██║   ██║")
-        logger.info(" ██║  ██║██║    ██║ ╚═╝ ██║██║  ██║██║  ██║██║  ██╗███████╗   ██║   ██║██║ ╚████║╚██████╔╝")
-        logger.info(" ╚═╝  ╚═╝╚═╝    ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝ ")
-        logger.info("")
-        logger.info("           🧠 AI MARKETING CO-FOUNDER v5.0 - DIGNIFIED POSITIONING 🧠")
-        logger.info("")
-        logger.info("🎯 EMOTIONALLY INTELLIGENT AI (Not just functional tools!)")
-        logger.info("💡 Creative Content Generation | 📊 Performance Analysis | 🔄 Strategy Adaptation")
-        logger.info("🌍 Bilingual EN/ES | 📅 Daily Posts 4:30 PM Panama (21:30 UTC) | ⚡ Full Autonomy")
-        logger.info("")
-        logger.info("Part of AIdeazz's AI Co-Founder Team 🤝")
-        logger.info("=" * 80)
-        logger.info("🚀 PORTFOLIO: 9 Products (5 AIPAs + 4 AI Products) with DIGNIFIED descriptions")
-        logger.info("🔗 ALL VERIFIED LINKS: wa.me/50766623757, t.me/EspaLuzFamily_bot, x.com/reviceva")
-        logger.info("🎯 KEY DIFFERENTIATOR: Emotionally Intelligent AI")
-        logger.info("=" * 80)
+            logger.warning("⚠️ No Anthropic API key - using template mode")
+        # LinkedIn CMO initialization log
+        logger.info("=" * 60)
+        logger.info("🧠 AI MARKETING CO-FOUNDER v5.0")
+        logger.info("   📅 Daily posts: 4:30 PM Panama (21:30 UTC)")
+        logger.info("   🌍 Languages: EN/ES bilingual")
+        logger.info("   🔗 Portfolio: 9 products (5 AIPAs + 4 AI Products)")
+        logger.info("=" * 60)
         
         self.make_webhook_url = make_webhook_url or os.getenv('MAKE_WEBHOOK_URL_LINKEDIN')
         self.enabled = bool(self.make_webhook_url)
@@ -172,28 +119,13 @@ class LinkedInCMO:
             logger.warning("⚠️ LinkedIn CMO DISABLED - Add MAKE_WEBHOOK_URL_LINKEDIN to enable")
             logger.info("📝 Without webhook: Can generate content but won't post")
         
-        # AI Co-Founder capabilities - PRINT to ensure it shows!
+        # Log mode
         if self.use_ai_generation:
-            print("\n" + "="*75)
-            print("🧠🔥 AI CO-FOUNDER MODE ACTIVATED! 🔥🧠")
-            print("="*75)
-            print("✅ Fresh content via Claude API (claude-3-5-sonnet-latest)")
-            print("💡 Strategic thinking | Creative generation | Performance-aware")
-            print("🎯 Business intelligence | Goal-driven content | Adaptive strategy")
-            print("🚀 This is NOT automation - this is PARTNERSHIP!")
-            print("="*75)
-            print("🤝 Elena (Human Co-Founder) + LinkedIn CMO (AI Co-Founder)")
-            print("   Building AIdeazz together - the future of work!")
-            print("="*75 + "\n")
-            logger.info("🧠 AI CO-FOUNDER MODE: Fresh content via Claude API ✅")
+            logger.info("✅ AI Co-Founder mode: Claude API for fresh content")
         else:
-            print("\n" + "⚠️"*30)
-            print("📝 AIPA MODE: Using templates (add ANTHROPIC_API_KEY for Co-Founder mode)")
-            print("⚠️"*30 + "\n")
-            logger.info("📝 AIPA MODE: Using templates")
+            logger.info("📝 Template mode: Using pre-written content")
         
-        logger.info("🎉 LinkedIn CMO AI Co-Founder Ready! Daily posts at 4:30 PM Panama (21:30 UTC)!")
-        logger.info("=" * 75)
+        logger.info("🎉 LinkedIn CMO ready! Daily posts at 21:30 UTC (4:30 PM Panama)")
         
         # Initialize performance tracking database
         self.data_dir = Path("linkedin_cmo_data")
@@ -207,35 +139,13 @@ class LinkedInCMO:
         self.strategy_data = self._load_json(self.strategy_file) or {"decisions": [], "current_focus": "balanced"}
         self.market_data = self._load_json(self.market_file) or {"trends": []}
         
-        # Initialize PROXY METRICS performance tracker
+        # Initialize performance tracker
         if PERFORMANCE_TRACKER_AVAILABLE:
-            print("\n" + "🔥"*40)
-            print("🔥🔥🔥 INITIALIZING PROXY METRICS TRACKER! 🔥🔥🔥")
-            print("🔥"*40 + "\n")
-            
             self.performance_tracker = PerformanceTracker()
-            
-            print("\n" + "✅"*40)
-            print("✅✅✅ PROXY METRICS TRACKER SUCCESSFULLY LOADED! ✅✅✅")
-            print("="*80)
-            print("🎯 UTM tracking will be added to ALL LinkedIn post links!")
-            print("📊 All links will have: ?utm_source=linkedin&utm_campaign=...")
-            print("="*80)
-            print("✅"*40 + "\n")
-            
-            logger.info("="*80)
-            logger.info("✅ Performance Tracker enabled (Proxy Metrics)")
-            logger.info("🎯 UTM TRACKING ACTIVE - All links will be tracked!")
-            logger.info("="*80)
+            logger.info("✅ Performance tracker: UTM tracking enabled")
         else:
-            print("\n" + "⚠️"*40)
-            print("⚠️⚠️⚠️ PROXY METRICS TRACKER NOT AVAILABLE ⚠️⚠️⚠️")
-            print("📝 Using basic tracking (original features still work!)")
-            print("⚠️"*40 + "\n")
-            
             self.performance_tracker = None
-            logger.warning("⚠️ Performance Tracker not available")
-            logger.info("📝 Using basic tracking - all original features work")
+            logger.info("📝 Performance tracker: Basic mode")
     
     def _load_json(self, file_path: Path) -> Optional[Dict]:
         """Load JSON data from file"""
@@ -804,31 +714,13 @@ Generate FRESH, creative content (not templates). Think strategically about what
         # Add UTM parameters to content if performance tracker available
         content = post_content["content"]
         if self.performance_tracker:
-            print("\n" + "📊"*40)
-            print("📊📊📊 APPLYING UTM TRACKING TO POST LINKS! 📊📊📊")
-            print("="*80)
-            print(f"Post ID: {post_id}")
-            print(f"Post Type: {post_content['type']}")
-            print("="*80)
-            
-            logger.info("="*80)
-            logger.info("📊 Adding UTM tracking to all links...")
-            logger.info(f"Post ID: {post_id} | Type: {post_content['type']}")
-            
+            logger.info(f"📊 Adding UTM tracking to post: {post_id}")
             content = self.performance_tracker.enhance_post_content_with_utm(
                 content, 
                 post_id, 
                 post_content["type"]
             )
-            
-            print("✅ UTM TRACKING SUCCESSFULLY APPLIED!")
-            print(f"✅ Campaign: cmo_{post_id}")
-            print("✅ All links now have tracking parameters!")
-            print("📊"*40 + "\n")
-            
-            logger.info(f"✅ UTM tracking added - post_id: {post_id}")
-            logger.info("✅ All links enhanced with UTM parameters!")
-            logger.info("="*80)
+            logger.info("✅ UTM tracking applied")
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
         github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
@@ -1160,9 +1052,7 @@ Be specific and actionable."""
         Returns:
             True if successful
         """
-        print("\n" + "🧠"*40)
-        print("🎯 AI CO-FOUNDER STRATEGIC POSTING WORKFLOW STARTED")
-        print("🧠"*40 + "\n")
+        logger.info("🎯 LinkedIn CMO: Starting post workflow...")
         
         # Step 1: Weekly market analysis (runs once per week)
         if datetime.now().weekday() == 0:  # Monday
@@ -1228,9 +1118,7 @@ Be specific and actionable."""
             })
             self._save_json(self.performance_file, self.performance_data)
         
-        print("\n" + "✅"*40)
-        print("🎯 AI CO-FOUNDER WORKFLOW COMPLETE")
-        print("✅"*40 + "\n")
+        logger.info("✅ LinkedIn CMO: Post workflow complete")
         
         return success
     
