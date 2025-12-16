@@ -113,6 +113,16 @@ async def lifespan(app):
         # Create orchestrator
         orchestrator = AutonomousOrchestrator(profile=profile)
         
+        # Start ATS background runner (optional)
+        try:
+            from src.job_engine.ats_runner import ats_background_loop
+            asyncio.create_task(ats_background_loop())
+            logger.info("✅ ATS background runner started")
+        except ImportError:
+            logger.info("ℹ️ ATS runner module not available (optional)")
+        except Exception as e:
+            logger.warning(f"⚠️ ATS runner skipped: {e}")
+        
         # Delayed start for autonomous mode
         async def delayed_start():
             logger.info("⏳ Waiting 10s for health check to pass...")
@@ -203,16 +213,8 @@ def main():
     except Exception as e:
         logger.warning(f"⚠️ GA4 routes skipped: {e}")
     
-    # Include ATS background runner
-    try:
-        from src.job_engine.ats_runner import ats_background_loop
-        
-        @app.on_event("startup")
-        async def start_ats_runner():
-            asyncio.create_task(ats_background_loop())
-            logger.info("✅ ATS background runner started")
-    except Exception as e:
-        logger.warning(f"⚠️ ATS runner skipped: {e}")
+    # ATS background runner is now started via lifespan handler
+    # (see lifespan() function above)
     
     # ─────────────────────────────
     # SERVER CONFIG

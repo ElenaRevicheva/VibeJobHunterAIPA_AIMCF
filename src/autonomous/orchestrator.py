@@ -235,6 +235,8 @@ class AutonomousOrchestrator:
             matcher = JobMatcher()
             
             scored_jobs = []
+            score_distribution = {"0-30": 0, "30-50": 0, "50-60": 0, "60-70": 0, "70+": 0}
+            
             for job in new_jobs:
                 try:
                     score, reasons = matcher.calculate_match_score(self.profile, job)
@@ -242,14 +244,30 @@ class AutonomousOrchestrator:
                     job.match_reasons = reasons
                     scored_jobs.append(job)
                     
-                    if score >= 75:
-                        logger.info(f"🎯 HIGH MATCH ({score:.0f}): {job.company} - {job.title}")
+                    # Track distribution
+                    if score >= 70:
+                        score_distribution["70+"] += 1
+                    elif score >= 60:
+                        score_distribution["60-70"] += 1
+                    elif score >= 50:
+                        score_distribution["50-60"] += 1
+                    elif score >= 30:
+                        score_distribution["30-50"] += 1
+                    else:
+                        score_distribution["0-30"] += 1
+                    
+                    if score >= 65:
+                        logger.info(f"🎯 GOOD MATCH ({score:.0f}): {job.company} - {job.title}")
                 except Exception as e:
                     logger.warning(f"⚠️ Scoring failed for {job.company}: {e}")
             
-            # Filter to high-quality matches only (score >= 70)
-            qualified_jobs = [j for j in scored_jobs if j.match_score >= 70]
-            logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥70 score)")
+            # Log score distribution
+            logger.info(f"📊 Score distribution: {score_distribution}")
+            
+            # Filter to quality matches (lowered to >= 55 to capture more relevant jobs)
+            MIN_SCORE = 55
+            qualified_jobs = [j for j in scored_jobs if j.match_score >= MIN_SCORE]
+            logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥{MIN_SCORE} score)")
             
             if not qualified_jobs:
                 logger.info("📭 No jobs met quality threshold this cycle")

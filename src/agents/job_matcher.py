@@ -159,20 +159,21 @@ SCORING PRIORITY FOR ELENA:
     def _basic_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
         """
         Keyword-based matching (GENEROUS scoring for AI/Founding roles!)
-        Designed to score most relevant jobs 65-95 points
+        Base score of 30 + bonuses to ensure relevant jobs score 55-95
         """
-        score = 0.0
+        # Start with base score of 30 (ensures minimum relevance for jobs that passed gate)
+        score = 30.0
         reasons = []
         
         job_text = (job.title + " " + job.description).lower()
         
-        # TARGET ROLES (50 points max)
+        # TARGET ROLES (+30 max)
         role_matches = {
-            'founding engineer': 50, 'founding': 48,
-            'ai engineer': 45, 'ai product manager': 45, 'llm engineer': 45,
-            'full-stack ai': 45, 'machine learning engineer': 43, 'ml engineer': 43,
-            'ai solutions': 40, 'ai growth': 40,
-            'software engineer': 35, 'engineer': 28
+            'founding engineer': 30, 'founding': 28,
+            'ai engineer': 28, 'ai product manager': 28, 'llm engineer': 28,
+            'full-stack ai': 25, 'machine learning engineer': 25, 'ml engineer': 25,
+            'ai solutions': 22, 'ai growth': 22,
+            'product engineer': 20, 'software engineer': 18, 'engineer': 15
         }
         
         for keyword, points in role_matches.items():
@@ -181,36 +182,35 @@ SCORING PRIORITY FOR ELENA:
                 reasons.append(f"✅ {keyword.title()}")
                 break
         
-        # AI/ML TECH (35 points max)
+        # AI/ML TECH (+20 max)
         tech_keywords = ['ai', 'llm', 'gpt', 'claude', 'ml', 'machine learning', 'python',
-                        'react', 'typescript', 'pytorch', 'nlp']
+                        'react', 'typescript', 'pytorch', 'nlp', 'openai', 'anthropic']
         tech_found = [kw for kw in tech_keywords if kw in job_text]
         if tech_found:
-            score += min(len(tech_found) * 3, 35)
-            reasons.append(f"✅ Tech: {', '.join(tech_found[:4])}")
+            score += min(len(tech_found) * 4, 20)
+            reasons.append(f"✅ Tech: {', '.join(tech_found[:3])}")
         
-        # STARTUP SIGNALS (25 points max)  
-        startup_kw = ['startup', 'seed', 'equity', 'yc', '0-1', 'founding', 'early stage']
+        # STARTUP SIGNALS (+15 max)  
+        startup_kw = ['startup', 'seed', 'equity', 'yc', '0-1', 'founding', 'early stage', 'series a']
         startup_found = [kw for kw in startup_kw if kw in job_text]
         if startup_found:
-            score += min(len(startup_found) * 5, 25)
+            score += min(len(startup_found) * 5, 15)
             reasons.append(f"✅ Stage: {', '.join(startup_found[:2])}")
         
-        # REMOTE (15 points)
+        # REMOTE (+10)
         if job.remote_allowed or 'remote' in job_text:
-            score += 15
+            score += 10
             reasons.append("✅ Remote")
         
-        # SKILLS (20 points max)
+        # SKILLS (+10 max)
         skills_found = [s for s in profile.skills[:15] if s.lower() in job_text]
         if skills_found:
-            score += min(len(skills_found) * 2, 20)
+            score += min(len(skills_found) * 2, 10)
             reasons.append(f"✅ Skills: {', '.join(skills_found[:3])}")
         
-        # Minimum score
+        # If no specific matches, still explain base score
         if not reasons:
-            score = 50
-            reasons.append("Basic match")
+            reasons.append("📋 Passed career gate filters")
         
         return min(score, 100), reasons
     
