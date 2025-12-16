@@ -31,8 +31,8 @@ import asyncio
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
 DEPLOY_TIMESTAMP = "20251216_120000"  # ⬅️ UPDATE EACH DEPLOY
-DEPLOY_FINGERPRINT = "single_service_orchestrator_PROFILE_FIXED"
-GIT_COMMIT_SHORT = "fix_orchestrator_profile"
+DEPLOY_FINGERPRINT = "single_service_orchestrator_DELAYED_START_FIXED"
+GIT_COMMIT_SHORT = "fix_healthcheck_delayed_orchestrator"
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -116,21 +116,25 @@ def main():
 
             logger.info("✅ Profile initialized successfully")
 
-            # -------------------------------
-            # START ORCHESTRATOR
-            # -------------------------------
-            logger.info("🧠 Starting autonomous orchestrator (ATS + LinkedIn CMO)...")
-
             orchestrator = AutonomousOrchestrator(profile=profile)
-            asyncio.create_task(orchestrator.start_autonomous_mode())
 
-            logger.info("✅ Autonomous orchestrator started successfully")
+            # ----------------------------------------------------------
+            # CRITICAL FIX: DELAY AUTONOMOUS START (RAILWAY SAFE)
+            # ----------------------------------------------------------
+            async def delayed_orchestrator_start():
+                logger.info("⏳ Waiting 15s before starting autonomous mode...")
+                await asyncio.sleep(15)
+                logger.info("🚀 Starting autonomous mode now")
+                await orchestrator.start_autonomous_mode()
 
-        except Exception as e:
+            asyncio.create_task(delayed_orchestrator_start())
+
+            logger.info("✅ Autonomous orchestrator scheduled successfully")
+
+        except Exception:
             logger.error("❌ Failed to start autonomous orchestrator")
             import traceback
             logger.error(traceback.format_exc())
-            raise
 
     # -------------------------------
     # Server configuration
@@ -171,4 +175,5 @@ def main():
 # ------------------------------------------------------------------
 if __name__ == "__main__":
     main()
+
 
