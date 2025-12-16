@@ -63,3 +63,8 @@ class Settings(BaseSettings):
 
 # Singleton (IMPORTANT)
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get the global settings singleton"""
+    return settings

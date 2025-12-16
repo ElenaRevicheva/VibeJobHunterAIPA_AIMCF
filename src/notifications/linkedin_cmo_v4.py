@@ -31,6 +31,9 @@ from anthropic import AsyncAnthropic
 import json
 from pathlib import Path
 
+# Logger must be defined BEFORE it's used in try/except blocks
+logger = logging.getLogger(__name__)
+
 # Import performance tracker
 try:
     from .performance_tracker import PerformanceTracker
@@ -68,8 +71,6 @@ print("🎯 KEY DIFFERENTIATOR: 'Emotionally Intelligent AI' (AIdeazz positionin
 print("🚀 THIS IS TRUE AI MARKETING CO-FOUNDER - NOT JUST AUTOMATION!")
 print("="*80)
 print("🎯"*40 + "\n")
-
-logger = logging.getLogger(__name__)
 
 # 🔥 VERSION MARKER - DIGNIFIED POSITIONING DEPLOYED! 🔥
 LINKEDIN_CMO_VERSION = "5.0_AI_MARKETING_COFOUNDER_DIGNIFIED"
