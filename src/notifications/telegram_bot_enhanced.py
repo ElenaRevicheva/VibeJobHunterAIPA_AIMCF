@@ -1,4 +1,4 @@
-﻿"""
+"""
 Enhanced Telegram Bot for VibeJobHunter
 Interactive commands for job hunting control and status
 """
@@ -423,9 +423,16 @@ I'll notify you when I find great jobs and track all your applications!
             print(f" Failed to send Telegram notification: {e}")
     
     def run(self):
-        """Start the bot"""
+        """Start the bot (blocking)"""
         print(" Starting Enhanced Telegram Bot...")
         self.app.run_polling()
+    
+    async def start(self):
+        """Start the bot asynchronously (non-blocking)"""
+        print("🤖 Starting Enhanced Telegram Bot (async mode)...")
+        await self.app.initialize()
+        await self.app.start()
+        await self.app.updater.start_polling()
 
 
 def create_enhanced_bot(token: str = None, chat_id: str = None, db_helper=None):
