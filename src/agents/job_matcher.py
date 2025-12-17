@@ -120,8 +120,16 @@ class JobMatcher:
             founding_score = 0
             strengths = []
         
-        # Combine: 80% dimensional, 20% founding bonus
-        combined_score = (dimensional_score * 0.8) + (founding_score * 0.2)
+        # Combine: preserve base score, add weighted bonuses
+        # Base score (40) is GUARANTEED for passing career gate
+        # Dimensional bonus (0-60) weighted at 80%
+        # Founding bonus (0-100) contributes up to 20 points
+        BASE_SCORE = 40.0
+        dimensional_bonus = max(0, dimensional_score - BASE_SCORE)  # Extract bonus (0-60)
+        founding_contribution = founding_score * 0.2  # Up to 20 points
+        
+        combined_score = BASE_SCORE + (dimensional_bonus * 0.8) + founding_contribution
+        combined_score = min(combined_score, 100)  # Cap at 100
         
         # Combine reasons
         all_reasons = dimensional_reasons + strengths[:2]

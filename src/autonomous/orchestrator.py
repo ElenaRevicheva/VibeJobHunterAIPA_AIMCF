@@ -350,8 +350,27 @@ class AutonomousOrchestrator:
             if len(unique_jobs) < len(qualified_jobs):
                 logger.info(f"🔄 Deduplicated: {len(qualified_jobs)} → {len(unique_jobs)} unique jobs")
             
-            jobs_to_process = min(len(unique_jobs), remaining_today, remaining_total, 5)
-            top_jobs = unique_jobs[:jobs_to_process]
+            # ──────────────────────────────────
+            # DIVERSIFY BY COMPANY: max 1 job per company per cycle
+            # This ensures we apply to Anthropic, Cohere, Stripe, etc. NOT just Databricks
+            # ──────────────────────────────────
+            MAX_PER_COMPANY = 1  # Apply to 1 role per company per cycle
+            company_counts = {}
+            diverse_jobs = []
+            
+            for job in unique_jobs:
+                company_key = job.company.lower().strip()
+                if company_counts.get(company_key, 0) < MAX_PER_COMPANY:
+                    diverse_jobs.append(job)
+                    company_counts[company_key] = company_counts.get(company_key, 0) + 1
+            
+            if len(diverse_jobs) < len(unique_jobs):
+                companies_list = list(company_counts.keys())[:5]
+                logger.info(f"🏢 Diversified: {len(unique_jobs)} → {len(diverse_jobs)} jobs across {len(company_counts)} companies")
+                logger.info(f"🏢 Companies: {', '.join(companies_list)}...")
+            
+            jobs_to_process = min(len(diverse_jobs), remaining_today, remaining_total, 5)
+            top_jobs = diverse_jobs[:jobs_to_process]
             
             logger.info(f"📊 Processing {len(top_jobs)} jobs (daily: {today_applications}/{daily_cap}, total: {total_applications}/{total_cap})")
             
