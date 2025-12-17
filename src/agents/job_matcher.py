@@ -133,11 +133,31 @@ class JobMatcher:
         Score job against Elena's 6 dimensions from Golden Roadmap
         
         Returns: (score 0-100, dimension breakdown)
+        
+        BASE SCORE: 40 points (job passed career gate = has some relevance)
+        DIMENSIONAL: Up to 60 additional points
         """
-        job_text = (job.title + " " + job.description).lower()
+        # Safely extract job text
+        try:
+            title = getattr(job, 'title', '') or ''
+            description = getattr(job, 'description', '') or ''
+            company = getattr(job, 'company', '') or ''
+            job_text = f"{title} {description} {company}".lower()
+        except Exception as e:
+            logger.warning(f"Error extracting job data: {e}")
+            job_text = str(job).lower() if job else ""
+        
+        # BASE SCORE: 40 points for passing career gate
+        base_score = 40.0
         
         scores: Dict[str, float] = {}
         reasons: List[str] = []
+        
+        # If job_text is too short, log warning and use base score
+        if len(job_text) < 50:
+            logger.debug(f"⚠️ Short job text ({len(job_text)} chars): {title[:30]}...")
+            reasons.append("📋 Passed career gate (limited data)")
+            return base_score, reasons
         
         for dimension, weight in self.DIMENSION_WEIGHTS.items():
             keywords = self.DIMENSION_KEYWORDS.get(dimension, {})
@@ -147,30 +167,36 @@ class JobMatcher:
             medium_matches = [kw for kw in keywords.get("medium", []) if kw in job_text]
             low_matches = [kw for kw in keywords.get("low", []) if kw in job_text]
             
-            # Calculate dimension score (0-100% of weight)
+            # Calculate dimension score (scale to 60% of weight since base=40)
             if high_matches:
-                dim_score = weight * 1.0  # 100% of weight
+                dim_score = weight * 0.6  # 60% of weight (max dimensional = 60)
                 reasons.append(f"✅ {dimension.replace('_', ' ').title()}: {', '.join(high_matches[:2])}")
             elif medium_matches:
-                dim_score = weight * 0.6  # 60% of weight
+                dim_score = weight * 0.4  # 40% of weight
                 if len(medium_matches) >= 3:
-                    dim_score = weight * 0.8  # 80% if multiple medium matches
+                    dim_score = weight * 0.5  # 50% if multiple
                 reasons.append(f"✓ {dimension.replace('_', ' ').title()}: {', '.join(medium_matches[:2])}")
             elif low_matches:
-                dim_score = weight * 0.3  # 30% of weight
+                dim_score = weight * 0.2  # 20% of weight
             else:
                 dim_score = 0
             
             scores[dimension] = dim_score
         
-        # Calculate total
-        total_score = sum(scores.values())
+        # Calculate total: BASE + DIMENSIONAL
+        dimensional_score = sum(scores.values())
+        total_score = base_score + dimensional_score
         
-        # Log dimension breakdown for debugging
-        logger.debug(f"📊 {job.company} - {job.title}: {total_score:.0f} pts")
-        for dim, score in scores.items():
-            if score > 0:
-                logger.debug(f"   {dim}: {score:.0f}/{self.DIMENSION_WEIGHTS[dim]}")
+        # Cap at 100
+        total_score = min(total_score, 100)
+        
+        # If no reasons, add base reason
+        if not reasons:
+            reasons.append("📋 Passed career gate filters")
+        
+        # Log for debugging (only INFO level for visibility)
+        if total_score >= 60:
+            logger.info(f"🎯 MATCH ({total_score:.0f}): {company} - {title[:40]}")
         
         return total_score, reasons
         

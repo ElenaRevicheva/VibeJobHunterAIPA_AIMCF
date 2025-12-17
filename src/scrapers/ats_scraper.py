@@ -493,78 +493,63 @@ class ATSScraper:
     
     async def fetch_ashby_jobs(self, company_slug: str) -> List[Dict[str, Any]]:
         """
-        Fetch jobs from Ashby API.
+        Fetch jobs from Ashby's public job board API.
         
-        Ashby is popular with YC companies for modern hiring.
-        API: https://jobs.ashbyhq.com/{company}/api/jobs
+        Ashby has TWO possible APIs:
+        1. REST: https://api.ashbyhq.com/posting-api/job-board/{company}
+        2. Jobs page: https://jobs.ashbyhq.com/{company}
         """
-        url = f"https://jobs.ashbyhq.com/{company_slug}"
-        api_url = f"https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams"
-        
-        # Ashby uses GraphQL, so we need to make a POST request
-        query = {
-            "operationName": "ApiJobBoardWithTeams",
-            "variables": {
-                "organizationHostedJobsPageName": company_slug
-            },
-            "query": """
-                query ApiJobBoardWithTeams($organizationHostedJobsPageName: String!) {
-                    jobBoard: jobBoardWithTeams(
-                        organizationHostedJobsPageName: $organizationHostedJobsPageName
-                    ) {
-                        teams {
-                            id
-                            name
-                            jobs {
-                                id
-                                title
-                                locationName
-                                employmentType
-                                compensationTierSummary
-                                secondaryLocations {
-                                    locationName
-                                }
-                            }
-                        }
-                    }
-                }
-            """
-        }
+        # Try the posting API first (more reliable)
+        api_url = f"https://api.ashbyhq.com/posting-api/job-board/{company_slug}"
         
         try:
             if not self.session:
                 return []
             
-            async with self.session.post(
+            # First try the REST API
+            async with self.session.get(
                 api_url,
-                json=query,
-                headers={"Content-Type": "application/json"}
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "VibeJobHunter/1.0"
+                }
             ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    job_board = data.get("data", {}).get("jobBoard", {})
-                    teams = job_board.get("teams", [])
                     
-                    # Flatten jobs from all teams
-                    jobs = []
-                    for team in teams:
-                        team_name = team.get("name", "")
-                        for job in team.get("jobs", []):
-                            job["team"] = team_name
+                    # Ashby REST API returns jobs in 'jobs' array
+                    jobs_data = data.get("jobs", [])
+                    
+                    if jobs_data:
+                        # Add company_slug to each job
+                        for job in jobs_data:
                             job["company_slug"] = company_slug
-                            jobs.append(job)
+                        logger.info(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Found {len(jobs_data)} jobs")
+                        return jobs_data
                     
-                    if jobs:
-                        logger.info(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Found {len(jobs)} jobs")
-                    return jobs
+                    # Try nested structure if direct jobs array is empty
+                    if "departments" in data:
+                        jobs = []
+                        for dept in data.get("departments", []):
+                            for job in dept.get("jobs", []):
+                                job["company_slug"] = company_slug
+                                job["department"] = dept.get("name", "")
+                                jobs.append(job)
+                        if jobs:
+                            logger.info(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Found {len(jobs)} jobs (from departments)")
+                        return jobs
+                    
+                    return []
+                    
                 elif response.status == 404:
-                    logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Not found (404)")
+                    # Company not on Ashby - this is expected for many companies
                     return []
                 else:
                     logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Status {response.status}")
                     return []
+                    
         except asyncio.TimeoutError:
-            logger.warning(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Timeout")
+            logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Timeout")
             return []
         except Exception as e:
             logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Error: {e}")
@@ -572,30 +557,56 @@ class ATSScraper:
     
     def _parse_ashby_job(self, job_data: Dict, company_slug: str) -> JobPosting:
         """Convert Ashby response to JobPosting"""
-        location = job_data.get("locationName", "Remote")
+        # Handle different API response formats
+        location = (
+            job_data.get("location", {}).get("name") or
+            job_data.get("locationName") or
+            job_data.get("location") or
+            "Remote"
+        )
+        if isinstance(location, dict):
+            location = location.get("name", "Remote")
+        
+        # Handle secondary locations
         secondary = job_data.get("secondaryLocations", [])
         if secondary:
-            location += " / " + " / ".join([loc.get("locationName", "") for loc in secondary[:2]])
+            sec_names = [loc.get("locationName", "") or loc.get("name", "") for loc in secondary[:2]]
+            if any(sec_names):
+                location += " / " + " / ".join(filter(None, sec_names))
         
-        job_id = job_data.get('id', '')
+        job_id = job_data.get('id', '') or job_data.get('jobId', '')
         trace_id = f"{company_slug}:{job_id}"
         
         # Check if remote
-        remote = "remote" in location.lower() or "anywhere" in location.lower()
+        remote = "remote" in str(location).lower() or "anywhere" in str(location).lower()
+        
+        # Build description from available fields
+        description_parts = []
+        if job_data.get("department") or job_data.get("team"):
+            description_parts.append(f"Team: {job_data.get('department') or job_data.get('team')}")
+        if job_data.get("compensationTierSummary") or job_data.get("compensation"):
+            comp = job_data.get("compensationTierSummary") or job_data.get("compensation")
+            description_parts.append(f"Compensation: {comp}")
+        if job_data.get("descriptionPlain"):
+            description_parts.append(job_data.get("descriptionPlain")[:1500])
+        elif job_data.get("description"):
+            description_parts.append(job_data.get("description")[:1500])
+        
+        description = " | ".join(description_parts) if description_parts else "See job posting for details"
         
         return JobPosting(
             id=f"ashby_{company_slug}_{job_id}",
             title=job_data.get("title", ""),
             company=company_slug.replace("-", " ").title(),
-            location=location,
-            description=f"Team: {job_data.get('team', 'N/A')}. Compensation: {job_data.get('compensationTierSummary', 'Not specified')}",
+            location=str(location),
+            description=description,
             requirements=[],
             responsibilities=[],
             source="ashby",
-            url=f"https://jobs.ashbyhq.com/{company_slug}/{job_id}",
+            url=job_data.get("jobUrl") or f"https://jobs.ashbyhq.com/{company_slug}/{job_id}",
             posted_date=datetime.now(),
             remote_allowed=remote,
-            job_type=job_data.get("employmentType", "Full-time"),
+            job_type=job_data.get("employmentType") or job_data.get("type") or "Full-time",
             match_score=0.0,
             trace_id=trace_id
         )

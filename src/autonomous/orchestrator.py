@@ -237,6 +237,7 @@ class AutonomousOrchestrator:
             scored_jobs = []
             score_distribution = {"0-30": 0, "30-50": 0, "50-60": 0, "60-70": 0, "70+": 0}
             
+            sample_logged = 0
             for job in new_jobs:
                 try:
                     score, reasons = matcher.calculate_match_score(self.profile, job)
@@ -256,16 +257,25 @@ class AutonomousOrchestrator:
                     else:
                         score_distribution["0-30"] += 1
                     
-                    if score >= 65:
+                    # Log high-quality matches
+                    if score >= 60:
                         logger.info(f"🎯 GOOD MATCH ({score:.0f}): {job.company} - {job.title}")
+                    
+                    # Log first few samples for debugging
+                    if sample_logged < 3:
+                        logger.info(f"📋 Sample score: {job.company} - {job.title[:30]}... = {score:.0f}")
+                        sample_logged += 1
+                        
                 except Exception as e:
-                    logger.warning(f"⚠️ Scoring failed for {job.company}: {e}")
+                    logger.warning(f"⚠️ Scoring failed for {getattr(job, 'company', 'unknown')}: {e}")
             
             # Log score distribution
             logger.info(f"📊 Score distribution: {score_distribution}")
             
-            # Filter to quality matches (lowered to >= 55 to capture more relevant jobs)
-            MIN_SCORE = 55
+            # Filter to quality matches
+            # NEW SCORING: base=40 + dimensional(0-60) = range 40-100
+            # Set threshold at 50 to capture jobs with at least some dimensional match
+            MIN_SCORE = 50
             qualified_jobs = [j for j in scored_jobs if j.match_score >= MIN_SCORE]
             logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥{MIN_SCORE} score)")
             
