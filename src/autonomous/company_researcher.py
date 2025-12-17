@@ -1,4 +1,4 @@
-﻿"""
+"""
 🔬 COMPANY RESEARCHER
 AI-powered company intelligence gathering.
 Researches companies before outreach to personalize messages.
@@ -39,10 +39,17 @@ class CompanyResearcher:
         logger.info(f"🔬 Researching {company_name}...")
 
         cache_key = f"company_research_{company_name.lower().replace(' ', '_')}"
-        cached = None  # TODO: Fix cache compatibility
-        if cached and (datetime.now() - datetime.fromisoformat(cached.get('timestamp', datetime.now().isoformat()))).days < 7:
-            logger.info(f"✅ Using cached research for {company_name}")
-            return cached
+        
+        # Check cache first (using the new get_data method)
+        cached = self.cache.get_data(cache_key)
+        if cached:
+            try:
+                cached_time = datetime.fromisoformat(cached.get('timestamp', '2000-01-01'))
+                if (datetime.now() - cached_time).days < 7:
+                    logger.info(f"✅ Using cached research for {company_name}")
+                    return cached
+            except Exception:
+                pass  # Cache invalid, continue with fresh research
 
         intel = {
             'company_name': company_name,
@@ -71,8 +78,8 @@ class CompanyResearcher:
         # AI Analysis: Synthesize insights
         intel['ai_insights'] = await self._analyze_with_ai(intel)
 
-        # Cache for 7 days
-        self.cache.set(cache_key, intel)
+        # Cache for 7 days (using the new set_data method)
+        self.cache.set_data(cache_key, intel)
 
         logger.info(f"✅ Research complete for {company_name}")
         return intel

@@ -81,6 +81,59 @@ class ResponseCache:
         except Exception:
             pass  # Silently fail on cache write errors
     
+    def set_data(self, cache_key: str, data: Any):
+        """
+        Cache arbitrary data by key (for company research, etc.)
+        
+        Args:
+            cache_key: Unique key for this cache entry
+            data: Any JSON-serializable data
+        """
+        key_hash = hashlib.sha256(cache_key.encode()).hexdigest()
+        cache_file = self.cache_dir / f"{key_hash}.json"
+        
+        cache_data = {
+            'timestamp': datetime.now().isoformat(),
+            'cache_key': cache_key,
+            'data': data
+        }
+        
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=2, default=str)
+        except Exception:
+            pass  # Silently fail on cache write errors
+    
+    def get_data(self, cache_key: str) -> Optional[Any]:
+        """
+        Get cached data by key
+        
+        Args:
+            cache_key: Unique key for this cache entry
+            
+        Returns:
+            Cached data or None
+        """
+        key_hash = hashlib.sha256(cache_key.encode()).hexdigest()
+        cache_file = self.cache_dir / f"{key_hash}.json"
+        
+        if not cache_file.exists():
+            return None
+        
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+            
+            # Check if expired
+            cached_time = datetime.fromisoformat(cache_data['timestamp'])
+            if datetime.now() - cached_time > self.ttl:
+                cache_file.unlink()
+                return None
+            
+            return cache_data.get('data')
+        except Exception:
+            return None
+    
     def clear(self):
         """Clear all cached responses"""
         for cache_file in self.cache_dir.glob("*.json"):

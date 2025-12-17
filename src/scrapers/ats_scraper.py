@@ -557,15 +557,17 @@ class ATSScraper:
     
     def _parse_ashby_job(self, job_data: Dict, company_slug: str) -> JobPosting:
         """Convert Ashby response to JobPosting"""
-        # Handle different API response formats
-        location = (
-            job_data.get("location", {}).get("name") or
-            job_data.get("locationName") or
-            job_data.get("location") or
-            "Remote"
-        )
-        if isinstance(location, dict):
-            location = location.get("name", "Remote")
+        # Handle different API response formats - location can be string OR dict!
+        raw_location = job_data.get("location")
+        
+        # Determine location based on type
+        if isinstance(raw_location, dict):
+            location = raw_location.get("name", "Remote")
+        elif isinstance(raw_location, str):
+            location = raw_location
+        else:
+            # Fallback to other fields
+            location = job_data.get("locationName") or "Remote"
         
         # Handle secondary locations
         secondary = job_data.get("secondaryLocations", [])

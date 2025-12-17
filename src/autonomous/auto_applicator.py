@@ -264,16 +264,16 @@ Write the cover letter now:"""
             # Track in database
             if self.db_helper:
                 try:
-                    self.db_helper.record_application({
-                        'job_id': f"{company}_{title}".replace(' ', '_')[:100],
-                        'company': company,
-                        'title': title,
-                        'url': job.get('url'),
+                    # Create job_id and application_data separately (method signature requires both)
+                    job_id = f"{company}_{title}".replace(' ', '_').replace('/', '_')[:100]
+                    application_data = {
+                        'id': f"app_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{company_slug}",
                         'applied_date': datetime.now(),
                         'source': job.get('source', 'ats_scraper'),
-                        'cover_letter_path': str(filepath),
-                        'match_score': job.get('match_score', 0)
-                    })
+                        'resume_version': resume_type,
+                        'cover_letter_hash': str(filepath),
+                    }
+                    self.db_helper.record_application(job_id, application_data)
                     result['db_tracked'] = True
                     logger.info(f"    ✅ Tracked in database")
                 except Exception as e:
