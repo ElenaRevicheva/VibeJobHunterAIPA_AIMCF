@@ -273,24 +273,38 @@ class AutonomousOrchestrator:
             logger.info(f"📊 Score distribution: {score_distribution}")
             
             # Filter to quality matches
-            # NEW SCORING: base=40 + dimensional(0-60) = range 40-100
-            # Per Golden Roadmap v2: MIN_SCORE = 75 (strong match required)
-            # Jobs scoring 75+ have meaningful dimensional alignment
-            MIN_SCORE = 75
+            # CALIBRATED SCORING: With AI floor at 35 and balanced weights,
+            # a strong keyword match (70) + moderate AI (40) = ~58 combined
+            # We want to catch good matches while filtering noise
+            # 
+            # Threshold tiers:
+            # - 70+: Excellent match, apply immediately
+            # - 60-69: Good match, worth applying
+            # - 50-59: Maybe, review manually
+            # - <50: Skip
+            MIN_SCORE = 65  # Lowered from 75 to allow calibrated scores through
             qualified_jobs = [j for j in scored_jobs if j.match_score >= MIN_SCORE]
             logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥{MIN_SCORE} score)")
             
             if not qualified_jobs:
                 logger.info("📭 No jobs met quality threshold this cycle")
                 
+                # Log top 5 near-misses for debugging
+                near_misses = sorted(scored_jobs, key=lambda j: j.match_score, reverse=True)[:5]
+                logger.info("📊 Top 5 near-misses:")
+                for job in near_misses:
+                    logger.info(f"   {job.match_score:.0f}: {job.company} - {job.title[:40]}")
+                
                 # Still notify about what was found
                 if self.telegram and len(scored_jobs) > 0:
-                    top_job = max(scored_jobs, key=lambda j: j.match_score)
-                    await self.telegram.send_message(
-                        f"🔍 <b>Cycle Complete</b>\n\n"
-                        f"Found {len(new_jobs)} jobs, but none met quality threshold.\n"
-                        f"Best match: {top_job.company} ({top_job.match_score:.0f}/100)"
-                    )
+                    top_jobs = sorted(scored_jobs, key=lambda j: j.match_score, reverse=True)[:3]
+                    msg = f"🔍 <b>Cycle Complete</b>\n\n"
+                    msg += f"Found {len(new_jobs)} jobs, {len([j for j in scored_jobs if j.match_score >= 50])} scored 50+\n"
+                    msg += f"Threshold: {MIN_SCORE} (none qualified)\n\n"
+                    msg += "<b>Top candidates:</b>\n"
+                    for job in top_jobs:
+                        msg += f"• {job.company}: {job.match_score:.0f}/100\n"
+                    await self.telegram.send_message(msg)
                 return
             
             # ─────────────────────────────

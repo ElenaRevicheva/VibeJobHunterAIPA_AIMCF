@@ -71,6 +71,12 @@ class JobMonitor:
         logger.info("=" * 60)
 
         all_jobs: List[Any] = []  # Can be JobPosting objects or dicts
+        
+        # Track jobs per source for summary
+        source_counts = {
+            "ats": 0, "hn": 0, "remoteok": 0, "yc": 0, 
+            "wellfound": 0, "wwr": 0, "aijobs": 0
+        }
 
         # ==============================================================
         # 1️⃣ ATS APIs — PRIMARY SOURCE (Greenhouse, Lever, Workable)
@@ -86,6 +92,7 @@ class JobMonitor:
 
             logger.info(f"✅ ATS APIs returned {len(ats_jobs)} jobs")
             all_jobs.extend(ats_jobs)
+            source_counts["ats"] = len(ats_jobs)
 
         except Exception as e:
             logger.error(f"❌ ATS integration failed: {e}")
@@ -96,6 +103,7 @@ class JobMonitor:
         try:
             hn_jobs = await self._search_hackernews()
             all_jobs.extend(hn_jobs)
+            source_counts["hn"] = len(hn_jobs)
         except Exception as e:
             logger.warning(f"⚠️ HN search failed: {e}")
 
@@ -105,6 +113,7 @@ class JobMonitor:
         try:
             remoteok_jobs = await self._search_remoteok()
             all_jobs.extend(remoteok_jobs)
+            source_counts["remoteok"] = len(remoteok_jobs)
         except Exception as e:
             logger.warning(f"⚠️ RemoteOK search failed: {e}")
 
@@ -114,6 +123,7 @@ class JobMonitor:
         try:
             yc_jobs = await self._search_yc_workatastartup()
             all_jobs.extend(yc_jobs)
+            source_counts["yc"] = len(yc_jobs)
         except Exception as e:
             logger.warning(f"⚠️ YC WAAS search failed: {e}")
 
@@ -123,6 +133,7 @@ class JobMonitor:
         try:
             wellfound_jobs = await self._search_wellfound()
             all_jobs.extend(wellfound_jobs)
+            source_counts["wellfound"] = len(wellfound_jobs)
         except Exception as e:
             logger.warning(f"⚠️ Wellfound search failed: {e}")
 
@@ -132,6 +143,7 @@ class JobMonitor:
         try:
             wwr_jobs = await self._search_weworkremotely()
             all_jobs.extend(wwr_jobs)
+            source_counts["wwr"] = len(wwr_jobs)
         except Exception as e:
             logger.warning(f"⚠️ WeWorkRemotely search failed: {e}")
 
@@ -141,10 +153,24 @@ class JobMonitor:
         try:
             ai_jobs = await self._search_aijobs()
             all_jobs.extend(ai_jobs)
+            source_counts["aijobs"] = len(ai_jobs)
         except Exception as e:
             logger.warning(f"⚠️ AI-Jobs search failed: {e}")
 
-        logger.info(f"📊 Total raw jobs collected: {len(all_jobs)}")
+        # ==============================================================
+        # 📊 SOURCE SUMMARY (visibility into what's working)
+        # ==============================================================
+        logger.info("=" * 60)
+        logger.info("📊 SOURCE SUMMARY:")
+        logger.info(f"   ATS APIs:        {source_counts['ats']} jobs")
+        logger.info(f"   Hacker News:     {source_counts['hn']} jobs")
+        logger.info(f"   RemoteOK:        {source_counts['remoteok']} jobs")
+        logger.info(f"   YC WAAS:         {source_counts['yc']} jobs")
+        logger.info(f"   Wellfound:       {source_counts['wellfound']} jobs")
+        logger.info(f"   WeWorkRemotely:  {source_counts['wwr']} jobs")
+        logger.info(f"   AI-Jobs.net:     {source_counts['aijobs']} jobs")
+        logger.info(f"   TOTAL:           {len(all_jobs)} jobs")
+        logger.info("=" * 60)
 
         # ==============================================================
         # 4️⃣ CAREER GATE FILTERING

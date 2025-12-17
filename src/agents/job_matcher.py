@@ -162,10 +162,22 @@ class JobMatcher:
             except Exception as e:
                 logger.warning(f"AI analysis failed: {e}")
         
-        # PHASE 3: Combine scores
+        # PHASE 3: Combine scores - CALIBRATED FOR REAL RESULTS
+        # Problem: AI was giving 10-25 scores, tanking 70+ keyword matches
+        # Fix: Balance weights and add AI floor to prevent over-penalization
         if ai_score is not None:
-            # Weight: 40% keyword, 60% AI (AI is more accurate)
-            combined_score = (preliminary_score * 0.4) + (ai_score * 0.6)
+            # AI floor: Prevent AI from completely tanking a good keyword match
+            # If keywords say 70+ and AI says 15, something's wrong with AI prompt
+            ai_score_adjusted = max(ai_score, 35)  # Floor at 35
+            
+            # If keyword score is strong (65+), trust it more
+            if preliminary_score >= 65:
+                # 60% keyword, 40% AI for strong keyword matches
+                combined_score = (preliminary_score * 0.6) + (ai_score_adjusted * 0.4)
+            else:
+                # 50/50 for weaker keyword matches
+                combined_score = (preliminary_score * 0.5) + (ai_score_adjusted * 0.5)
+            
             all_reasons = ai_reasons[:3] + dimensional_reasons[:2] + strengths[:2]
         else:
             combined_score = preliminary_score
@@ -223,16 +235,28 @@ Description: {desc_truncated}
 Requirements:
 {req_text}
 
-SCORING CRITERIA:
-+30: Founding Engineer / AI Product roles
-+25: YC / Seed / Series A stage
-+20: Equity mentioned (0.5-3%)
-+15: Values traction/PMF
-+15: Fast-paced builder culture
-+10: Web3 + AI combo
--20: Big corp (Google, Meta, etc.)
--15: Pure maintenance role
--10: Junior/Mid level
+SCORING CRITERIA (start at 50, adjust up/down):
+BASE: 50 (neutral starting point)
+
+POSITIVE (add points):
++25: Founding Engineer / First Engineer / 0-1 role
++20: AI/ML Product Engineer role
++15: YC / Seed / Series A startup
++15: Staff/Principal/Lead engineer role  
++10: Equity mentioned
++10: Small team (under 50 people)
++10: High autonomy / ownership emphasized
++5: Remote-friendly
++5: Web3 + AI combo
+
+NEGATIVE (subtract points):
+-30: Big corp (Google, Meta, Microsoft, Amazon, Databricks, Snowflake)
+-20: Junior/Entry level
+-15: Pure research / PhD required
+-10: Maintenance-focused role
+-10: Large engineering team (50+ engineers)
+
+Be generous with AI/startup roles. Elena has 11 AI products shipped.
 
 Return ONLY valid JSON (no markdown):
 {{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""

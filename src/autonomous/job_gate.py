@@ -48,6 +48,28 @@ ROLE_EXCLUDE_KEYWORDS = {
     "executive assistant", "administrative",
 }
 
+# ─────────────────────────────
+# LARGE COMPANY BLOCKLIST (Golden Roadmap: reject 20+ engineers)
+# These companies have 1000+ employees - auto-reject
+# ─────────────────────────────
+LARGE_COMPANY_BLOCKLIST = {
+    # Big Tech
+    "google", "meta", "facebook", "amazon", "aws", "microsoft", "apple",
+    "netflix", "nvidia", "intel", "amd", "ibm", "oracle", "sap", "salesforce",
+    "adobe", "vmware", "cisco", "qualcomm", "broadcom",
+    # Large Data/Cloud Companies
+    "databricks", "snowflake", "palantir", "splunk", "elastic",
+    "datadog", "mongodb", "confluent", "cloudera", "teradata",
+    # Large Fintech
+    "stripe", "plaid", "square", "block", "paypal", "visa", "mastercard",
+    "robinhood", "coinbase", "kraken",
+    # Large AI Companies (established, not startups)
+    "openai", "anthropic", "deepmind", "cohere",  # These are elite but large now
+    # Consulting/Enterprise
+    "accenture", "deloitte", "mckinsey", "bcg", "bain", "kpmg", "pwc", "ey",
+    "capgemini", "infosys", "wipro", "tcs", "cognizant",
+}
+
 LOCATION_INCLUDE_KEYWORDS = {
     "remote", "anywhere", "global", "worldwide",
     "latam", "latin america", "americas",
@@ -236,8 +258,18 @@ class JobGate:
         title = (job.get("title") or "").lower()
         description = (job.get("description") or job.get("raw_text") or "").lower()
         location = (job.get("location") or "").lower()
+        company = (job.get("company") or "").lower()
         
         combined_text = f"{title} {description}"
+        
+        # ─────────────────────────────
+        # 0️⃣ BLOCKLIST large companies (instant reject)
+        # Golden Roadmap: No companies with 20+ engineers
+        # ─────────────────────────────
+        for blocked in LARGE_COMPANY_BLOCKLIST:
+            if blocked in company:
+                logger.debug(f"❌ GATE REJECT (blocklisted company '{blocked}'): {company} - {title[:40]}")
+                return False
         
         # ─────────────────────────────
         # 1️⃣ EXCLUDE bad roles (instant reject)
