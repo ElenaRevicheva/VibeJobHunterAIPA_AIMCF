@@ -151,7 +151,7 @@ Write the cover letter now:"""
             return None
     
     async def process_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a single job application"""
+        """Process a single job application with intelligent resume selection"""
         company = job.get('company', 'Unknown')
         title = job.get('title', 'Unknown')
         
@@ -169,6 +169,20 @@ Write the cover letter now:"""
         }
         
         try:
+            # ──────────────────────────────────
+            # SELECT OPTIMAL RESUME VARIANT
+            # ──────────────────────────────────
+            resume_type = "default"
+            try:
+                from ..templates.resume_selector import get_resume_selector
+                selector = get_resume_selector()
+                resume_content, resume_type = selector.get_resume_for_job(job)
+                result['resume_variant'] = resume_type
+                logger.info(f"  📄 Selected resume: {resume_type}")
+            except Exception as e:
+                logger.debug(f"Resume selector unavailable: {e}")
+                resume_content = None
+            
             # Generate cover letter
             logger.info(f"  📝 Generating materials...")
             cover_letter = await self.generate_cover_letter(job)
@@ -177,20 +191,41 @@ Write the cover letter now:"""
                 logger.error(f"  ❌ Failed to generate materials")
                 return result
             
-            # Save cover letter
+            # Save application package
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             company_slug = company.replace(' ', '_').replace('/', '_').lower()
-            filename = f"cover_letter_{company_slug}_{timestamp}.txt"
+            filename = f"application_{company_slug}_{timestamp}.txt"
             filepath = self.output_dir / filename
             
             with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(f"═══════════════════════════════════════════════════════════════════════════════\n")
+                f.write(f"APPLICATION PACKAGE - {company.upper()}\n")
+                f.write(f"═══════════════════════════════════════════════════════════════════════════════\n\n")
                 f.write(f"Company: {company}\n")
                 f.write(f"Role: {title}\n")
                 f.write(f"Applied: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Match Score: {job.get('match_score', 0)}\n")
+                f.write(f"Match Score: {job.get('match_score', 0)}/100\n")
+                f.write(f"Resume Variant: {resume_type}\n")
                 f.write(f"URL: {job.get('url', 'N/A')}\n")
-                f.write("\n" + "="*80 + "\n\n")
+                
+                # Include founder info if available
+                founder_info = job.get('founder_info')
+                if founder_info:
+                    f.write(f"\n--- FOUNDER INFO ---\n")
+                    f.write(f"LinkedIn: {founder_info.get('linkedin_company', 'N/A')}\n")
+                    f.write(f"Email patterns: {founder_info.get('email_patterns', [])[:3]}\n")
+                
+                f.write(f"\n{'═'*80}\n")
+                f.write(f"COVER LETTER\n")
+                f.write(f"{'═'*80}\n\n")
                 f.write(cover_letter)
+                
+                # Include resume if available
+                if resume_content:
+                    f.write(f"\n\n{'═'*80}\n")
+                    f.write(f"RESUME ({resume_type.upper()})\n")
+                    f.write(f"{'═'*80}\n\n")
+                    f.write(resume_content[:3000])  # First 3000 chars
             
             result['materials_generated'] = True
             result['cover_letter_path'] = str(filepath)

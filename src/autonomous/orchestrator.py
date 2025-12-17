@@ -283,13 +283,54 @@ class AutonomousOrchestrator:
                 return
             
             # ─────────────────────────────
-            # STEP 3: Process top jobs
+            # STEP 3: Process top jobs (WITH DAILY CAP)
             # ─────────────────────────────
             logger.info("📝 Step 3: Processing top qualified jobs...")
             
-            # Sort by score and take top 5
+            # DAILY CAP ENFORCEMENT (Golden Roadmap: 3-5/day, 30 total)
+            from ..core.config import get_settings
+            settings = get_settings()
+            
+            daily_cap = settings.max_daily_applications  # Default: 5
+            total_cap = settings.max_total_applications  # Default: 30
+            
+            # Check how many we've already sent today
+            today_applications = self.stats.get("applications_today", 0)
+            total_applications = self.stats.get("applications_sent", 0)
+            
+            remaining_today = max(0, daily_cap - today_applications)
+            remaining_total = max(0, total_cap - total_applications)
+            
+            if remaining_today == 0:
+                logger.info(f"🛑 Daily cap reached ({daily_cap}/day) - saving jobs for tomorrow")
+                if self.telegram:
+                    await self.telegram.send_message(
+                        f"🛑 <b>Daily Cap Reached</b>\n\n"
+                        f"Applied to {today_applications} jobs today (max {daily_cap}).\n"
+                        f"Found {len(qualified_jobs)} more qualified jobs - saved for tomorrow.\n\n"
+                        f"<i>Precision over volume.</i>"
+                    )
+                return
+            
+            if remaining_total <= 0:
+                logger.warning(f"⚠️ TOTAL CAP REACHED ({total_cap} applications)")
+                logger.warning("📊 Time to reassess strategy per Golden Roadmap")
+                if self.telegram:
+                    await self.telegram.send_message(
+                        f"⚠️ <b>Total Cap Reached ({total_cap})</b>\n\n"
+                        f"Per Golden Roadmap: If zero interviews, reassess:\n"
+                        f"• Adjust scoring\n"
+                        f"• Adjust narrative\n"
+                        f"• Do NOT increase volume"
+                    )
+                return
+            
+            # Sort by score and respect caps
             qualified_jobs.sort(key=lambda j: j.match_score, reverse=True)
-            top_jobs = qualified_jobs[:5]
+            jobs_to_process = min(len(qualified_jobs), remaining_today, remaining_total, 5)
+            top_jobs = qualified_jobs[:jobs_to_process]
+            
+            logger.info(f"📊 Processing {len(top_jobs)} jobs (daily: {today_applications}/{daily_cap}, total: {total_applications}/{total_cap})")
             
             applications_generated = 0
             
@@ -297,7 +338,9 @@ class AutonomousOrchestrator:
                 try:
                     logger.info(f"📋 Processing: {job.company} - {job.title} ({job.match_score:.0f}/100)")
                     
-                    # Research company
+                    # ──────────────────────────────────
+                    # STEP 3a: Research company
+                    # ──────────────────────────────────
                     company_intel = {}
                     try:
                         company_intel = await self.company_researcher.research_company(
@@ -308,7 +351,31 @@ class AutonomousOrchestrator:
                     except Exception as e:
                         logger.warning(f"⚠️ Company research failed: {e}")
                     
-                    # Generate application materials
+                    # ──────────────────────────────────
+                    # STEP 3b: Find founder (HIGH-PRIORITY JOBS ONLY)
+                    # Per Golden Roadmap: Direct founder email > ATS
+                    # ──────────────────────────────────
+                    founder_info = None
+                    if job.match_score >= 70 and self.founder_finder:
+                        try:
+                            founder_info = await self.founder_finder.find_founder(
+                                job.company,
+                                company_intel
+                            )
+                            if founder_info:
+                                logger.info(f"👤 Found founder info for {job.company}")
+                                self.stats["founders_found"] = self.stats.get("founders_found", 0) + 1
+                                
+                                # Determine best outreach channel
+                                channels = self.founder_finder.generate_contact_priority(founder_info)
+                                if channels:
+                                    logger.info(f"📧 Outreach priority: {' > '.join(channels)}")
+                        except Exception as e:
+                            logger.debug(f"Founder finder: {e}")
+                    
+                    # ──────────────────────────────────
+                    # STEP 3c: Generate application materials
+                    # ──────────────────────────────────
                     if self.auto_applicator:
                         job_dict = {
                             'company': job.company,
@@ -318,6 +385,8 @@ class AutonomousOrchestrator:
                             'match_score': job.match_score,
                             'source': str(job.source),
                             'location': job.location,
+                            'founder_info': founder_info,  # Pass to applicator
+                            'company_intel': company_intel,
                         }
                         
                         result = await self.auto_applicator.process_job(job_dict)
@@ -325,10 +394,15 @@ class AutonomousOrchestrator:
                         if result.get('materials_generated'):
                             applications_generated += 1
                             self.stats["applications_generated"] += 1
+                            self.stats["applications_today"] = self.stats.get("applications_today", 0) + 1
                             logger.info(f"✅ Application materials ready for {job.company}")
                         
                         if result.get('email_sent'):
                             self.stats["applications_sent"] += 1
+                            
+                            # Track if it was founder outreach
+                            if founder_info:
+                                self.stats["founder_outreach"] = self.stats.get("founder_outreach", 0) + 1
                     
                 except Exception as e:
                     logger.error(f"❌ Failed to process {job.company}: {e}")

@@ -110,6 +110,49 @@ WORKABLE_COMPANIES = [
     "baseten",
 ]
 
+# =====================================
+# ASHBY COMPANIES - YC FAVORITES (NEW!)
+# =====================================
+# Ashby is used by many YC companies for modern hiring
+# API: https://jobs.ashbyhq.com/{company}/api/jobs
+ASHBY_COMPANIES = [
+    # AI/ML Startups (YC backed)
+    "ramp",
+    "brex",
+    "deel",
+    "vanta",
+    "mercury",
+    "gusto",
+    "scale-ai",
+    "lattice",
+    "gem",
+    "rippling",
+    
+    # Dev Tools
+    "linear",
+    "raycast",
+    "posthog",
+    "airplane",
+    "dagster",
+    
+    # AI Companies
+    "cohere",
+    "adept",
+    "inflection",
+    "together-ai",
+    "cerebras",
+    "anyscale",
+    
+    # Other YC companies
+    "retool",
+    "zip",
+    "ashby",  # They use their own product!
+    "vercel",
+    "neon",
+    "supabase",
+    "convex",
+]
+
 
 class JobPosting:
     """Simple JobPosting class for compatibility"""
@@ -192,15 +235,17 @@ class ATSScraper:
             "greenhouse_jobs": 0,
             "lever_jobs": 0,
             "workable_jobs": 0,
+            "ashby_jobs": 0,  # NEW!
             "total_companies_checked": 0,
-            "greenhouse_companies_with_jobs": 0,  # 🔧 UPGRADE 3
-            "lever_companies_with_jobs": 0,        # 🔧 UPGRADE 3
-            "workable_companies_with_jobs": 0,     # 🔧 UPGRADE 3
+            "greenhouse_companies_with_jobs": 0,
+            "lever_companies_with_jobs": 0,
+            "workable_companies_with_jobs": 0,
+            "ashby_companies_with_jobs": 0,  # NEW!
             "errors": []
         }
         
         logger.info(f"[RUN {RUN_ID}][ATS][INIT] Scraper initialized with working APIs")
-        logger.info(f"[RUN {RUN_ID}][ATS][CONFIG] Targeting {len(GREENHOUSE_COMPANIES)} Greenhouse + {len(LEVER_COMPANIES)} Lever + {len(WORKABLE_COMPANIES)} Workable companies")
+        logger.info(f"[RUN {RUN_ID}][ATS][CONFIG] Targeting {len(GREENHOUSE_COMPANIES)} Greenhouse + {len(LEVER_COMPANIES)} Lever + {len(WORKABLE_COMPANIES)} Workable + {len(ASHBY_COMPANIES)} Ashby companies")
     
     async def __aenter__(self):
         self.session = aiohttp.ClientSession(
@@ -443,6 +488,119 @@ class ATSScraper:
         )
     
     # =====================================
+    # ASHBY API (YC Companies Favorite!)
+    # =====================================
+    
+    async def fetch_ashby_jobs(self, company_slug: str) -> List[Dict[str, Any]]:
+        """
+        Fetch jobs from Ashby API.
+        
+        Ashby is popular with YC companies for modern hiring.
+        API: https://jobs.ashbyhq.com/{company}/api/jobs
+        """
+        url = f"https://jobs.ashbyhq.com/{company_slug}"
+        api_url = f"https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams"
+        
+        # Ashby uses GraphQL, so we need to make a POST request
+        query = {
+            "operationName": "ApiJobBoardWithTeams",
+            "variables": {
+                "organizationHostedJobsPageName": company_slug
+            },
+            "query": """
+                query ApiJobBoardWithTeams($organizationHostedJobsPageName: String!) {
+                    jobBoard: jobBoardWithTeams(
+                        organizationHostedJobsPageName: $organizationHostedJobsPageName
+                    ) {
+                        teams {
+                            id
+                            name
+                            jobs {
+                                id
+                                title
+                                locationName
+                                employmentType
+                                compensationTierSummary
+                                secondaryLocations {
+                                    locationName
+                                }
+                            }
+                        }
+                    }
+                }
+            """
+        }
+        
+        try:
+            if not self.session:
+                return []
+            
+            async with self.session.post(
+                api_url,
+                json=query,
+                headers={"Content-Type": "application/json"}
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    job_board = data.get("data", {}).get("jobBoard", {})
+                    teams = job_board.get("teams", [])
+                    
+                    # Flatten jobs from all teams
+                    jobs = []
+                    for team in teams:
+                        team_name = team.get("name", "")
+                        for job in team.get("jobs", []):
+                            job["team"] = team_name
+                            job["company_slug"] = company_slug
+                            jobs.append(job)
+                    
+                    if jobs:
+                        logger.info(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Found {len(jobs)} jobs")
+                    return jobs
+                elif response.status == 404:
+                    logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Not found (404)")
+                    return []
+                else:
+                    logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Status {response.status}")
+                    return []
+        except asyncio.TimeoutError:
+            logger.warning(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Timeout")
+            return []
+        except Exception as e:
+            logger.debug(f"[RUN {RUN_ID}][ASHBY][{company_slug}] Error: {e}")
+            return []
+    
+    def _parse_ashby_job(self, job_data: Dict, company_slug: str) -> JobPosting:
+        """Convert Ashby response to JobPosting"""
+        location = job_data.get("locationName", "Remote")
+        secondary = job_data.get("secondaryLocations", [])
+        if secondary:
+            location += " / " + " / ".join([loc.get("locationName", "") for loc in secondary[:2]])
+        
+        job_id = job_data.get('id', '')
+        trace_id = f"{company_slug}:{job_id}"
+        
+        # Check if remote
+        remote = "remote" in location.lower() or "anywhere" in location.lower()
+        
+        return JobPosting(
+            id=f"ashby_{company_slug}_{job_id}",
+            title=job_data.get("title", ""),
+            company=company_slug.replace("-", " ").title(),
+            location=location,
+            description=f"Team: {job_data.get('team', 'N/A')}. Compensation: {job_data.get('compensationTierSummary', 'Not specified')}",
+            requirements=[],
+            responsibilities=[],
+            source="ashby",
+            url=f"https://jobs.ashbyhq.com/{company_slug}/{job_id}",
+            posted_date=datetime.now(),
+            remote_allowed=remote,
+            job_type=job_data.get("employmentType", "Full-time"),
+            match_score=0.0,
+            trace_id=trace_id
+        )
+    
+    # =====================================
     # MAIN FETCH ALL METHOD
     # =====================================
     
@@ -555,11 +713,33 @@ class ATSScraper:
             except Exception as e:
                 logger.error(f"[RUN {RUN_ID}][WORKABLE][{company}] Error: {e}")
         
+        # Ashby companies (NEW! YC favorites)
+        ashby_companies = ASHBY_COMPANIES[:max_companies] if max_companies else ASHBY_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][ASHBY] Checking {len(ashby_companies)} companies")
+        
+        for company in ashby_companies:
+            try:
+                jobs_data = await self.fetch_ashby_jobs(company)
+                
+                if jobs_data:
+                    self.stats["ashby_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_ashby_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["ashby_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"[RUN {RUN_ID}][ASHBY][{company}] Error: {e}")
+        
         # 🔧 UPGRADE 2: Fail loudly if zero jobs
         if len(all_jobs) == 0:
             logger.error(f"[RUN {RUN_ID}][ATS][CRITICAL] ZERO JOBS FOUND — PIPELINE FAILURE")
             logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies checked: {self.stats['total_companies_checked']}")
-            logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies with jobs: GH={self.stats['greenhouse_companies_with_jobs']}, Lever={self.stats['lever_companies_with_jobs']}, Workable={self.stats['workable_companies_with_jobs']}")
+            logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies with jobs: GH={self.stats['greenhouse_companies_with_jobs']}, Lever={self.stats['lever_companies_with_jobs']}, Workable={self.stats['workable_companies_with_jobs']}, Ashby={self.stats['ashby_companies_with_jobs']}")
             logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Keywords: {keywords}")
         
         # Summary - 🔧 UPGRADE 1: Machine-auditable logs
@@ -568,6 +748,7 @@ class ATSScraper:
         logger.info(f"[RUN {RUN_ID}][ATS][GREENHOUSE] jobs={self.stats['greenhouse_jobs']} companies_with_jobs={self.stats['greenhouse_companies_with_jobs']}/{len(gh_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][LEVER] jobs={self.stats['lever_jobs']} companies_with_jobs={self.stats['lever_companies_with_jobs']}/{len(lever_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][WORKABLE] jobs={self.stats['workable_jobs']} companies_with_jobs={self.stats['workable_companies_with_jobs']}/{len(workable_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][ASHBY] jobs={self.stats['ashby_jobs']} companies_with_jobs={self.stats['ashby_companies_with_jobs']}/{len(ashby_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][TOTAL] jobs={len(all_jobs)} companies_checked={self.stats['total_companies_checked']}")
         logger.info(f"[RUN {RUN_ID}][ATS][ERRORS] count={len(self.stats['errors'])}")
         logger.info("=" * 60)
