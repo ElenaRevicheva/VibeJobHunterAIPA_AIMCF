@@ -274,8 +274,9 @@ class AutonomousOrchestrator:
             
             # Filter to quality matches
             # NEW SCORING: base=40 + dimensional(0-60) = range 40-100
-            # Set threshold at 50 to capture jobs with at least some dimensional match
-            MIN_SCORE = 50
+            # Per Golden Roadmap v2: MIN_SCORE = 75 (strong match required)
+            # Jobs scoring 75+ have meaningful dimensional alignment
+            MIN_SCORE = 75
             qualified_jobs = [j for j in scored_jobs if j.match_score >= MIN_SCORE]
             logger.info(f"✅ {len(qualified_jobs)} jobs passed quality threshold (≥{MIN_SCORE} score)")
             

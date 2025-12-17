@@ -6,11 +6,14 @@ STRATEGY:
 - Filter based on title + description keywords (data we HAVE)
 - Exclude junior/intern/sales roles
 - Prioritize remote-friendly positions
+- Filter by salary (when available)
+- Filter by company size (when available)
 - Let high-quality scoring happen in job_matcher.py
 """
 
-from typing import Dict
+from typing import Dict, Optional
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,23 @@ LOCATION_INCLUDE_KEYWORDS = {
     "panama", "usa", "united states", "us-",
 }
 
+# ─────────────────────────────
+# SALARY FLOORS (Annual)
+# ─────────────────────────────
+SALARY_FLOORS = {
+    "us": 150000,      # $150K USD minimum for US roles
+    "eu": 90000,       # €90K EUR minimum for EU roles  
+    "uk": 80000,       # £80K GBP minimum for UK roles
+    "latam": 100000,   # $100K USD minimum for LATAM (often USD-denominated)
+    "remote": 120000,  # $120K USD for unspecified remote roles
+}
+
+# ─────────────────────────────
+# COMPANY SIZE LIMITS
+# ─────────────────────────────
+MAX_ENGINEERING_TEAM_SIZE = 20  # Reject if >20 engineers (too established)
+MAX_TOTAL_EMPLOYEES = 150       # Reject if >150 total (too large)
+
 
 class JobGate:
     """
@@ -60,9 +80,152 @@ class JobGate:
     - Job title keywords
     - Job description keywords
     - Location compatibility
-    
-    Does NOT require: company_size, funding_stage, salary (ATS APIs don't have these)
+    - Salary minimums (when available)
+    - Company size (when available)
     """
+
+    @staticmethod
+    def _extract_salary(job: Dict) -> Optional[int]:
+        """
+        Extract salary from job data.
+        Returns annual salary in USD equivalent (or None if not available).
+        """
+        # Direct salary fields
+        salary_min = job.get("salary_min")
+        salary_max = job.get("salary_max")
+        compensation = job.get("compensation") or job.get("salary") or ""
+        
+        # If we have numeric fields, use them
+        if salary_min and isinstance(salary_min, (int, float)):
+            return int(salary_min)
+        if salary_max and isinstance(salary_max, (int, float)):
+            return int(salary_max * 0.8)  # Use 80% of max as proxy
+        
+        # Try to parse compensation string
+        if compensation and isinstance(compensation, str):
+            # Remove common symbols and normalize
+            comp_clean = compensation.replace(",", "").replace("$", "").replace("€", "").replace("£", "").lower()
+            
+            # Look for patterns like "150k-200k", "150000", "150k"
+            matches = re.findall(r'(\d+)k|\b(\d{5,})\b', comp_clean)
+            
+            if matches:
+                numbers = []
+                for m in matches:
+                    if m[0]:  # "150k" pattern
+                        numbers.append(int(m[0]) * 1000)
+                    elif m[1]:  # "150000" pattern
+                        numbers.append(int(m[1]))
+                
+                if numbers:
+                    return min(numbers)  # Use minimum for floor check
+        
+        # Try description for salary info
+        description = (job.get("description") or "").lower()
+        salary_patterns = [
+            r'\$(\d{2,3})k',  # $150k
+            r'\$(\d{3},?\d{3})',  # $150,000
+            r'€(\d{2,3})k',  # €90k
+            r'£(\d{2,3})k',  # £80k
+        ]
+        
+        for pattern in salary_patterns:
+            match = re.search(pattern, description)
+            if match:
+                num = match.group(1).replace(",", "")
+                if "k" in pattern:
+                    return int(num) * 1000
+                return int(num)
+        
+        return None
+    
+    @staticmethod
+    def _get_salary_floor(location: str) -> int:
+        """Get the appropriate salary floor based on location."""
+        location = location.lower()
+        
+        if any(loc in location for loc in ["united states", "usa", "us-", "new york", "san francisco", "california", "texas"]):
+            return SALARY_FLOORS["us"]
+        elif any(loc in location for loc in ["uk", "united kingdom", "london", "england"]):
+            return SALARY_FLOORS["uk"]
+        elif any(loc in location for loc in ["eu", "europe", "germany", "france", "netherlands", "spain", "berlin", "paris"]):
+            return SALARY_FLOORS["eu"]
+        elif any(loc in location for loc in ["latam", "latin america", "mexico", "brazil", "argentina", "panama", "colombia"]):
+            return SALARY_FLOORS["latam"]
+        else:
+            return SALARY_FLOORS["remote"]  # Default for remote/unknown
+    
+    @staticmethod
+    def _check_company_size(job: Dict) -> bool:
+        """
+        Check if company size is acceptable.
+        Returns True if acceptable or unknown, False if too large.
+        """
+        # Check for company_size field
+        company_size = job.get("company_size") or job.get("team_size") or ""
+        
+        if isinstance(company_size, str):
+            company_size_lower = company_size.lower()
+            
+            # Parse ranges like "51-200", "201-500", "11-50"
+            range_match = re.search(r'(\d+)-(\d+)', company_size)
+            if range_match:
+                lower, upper = int(range_match.group(1)), int(range_match.group(2))
+                # For engineering team: reject if lower bound > 20
+                # For total company: reject if lower bound > 150
+                if lower > MAX_TOTAL_EMPLOYEES:
+                    return False
+            
+            # Parse descriptive sizes
+            too_large_indicators = ["500+", "1000+", "enterprise", "10000+", "5000+"]
+            if any(ind in company_size_lower for ind in too_large_indicators):
+                return False
+                
+        elif isinstance(company_size, (int, float)):
+            if company_size > MAX_TOTAL_EMPLOYEES:
+                return False
+        
+        # Check description for team size hints
+        description = (job.get("description") or "").lower()
+        
+        # Look for "team of X engineers" patterns
+        team_patterns = [
+            r'team of (\d+)\+? engineers',
+            r'(\d+)\+? person engineering',
+            r'engineering team.*?(\d+) people',
+        ]
+        
+        for pattern in team_patterns:
+            match = re.search(pattern, description)
+            if match:
+                team_size = int(match.group(1))
+                if team_size > MAX_ENGINEERING_TEAM_SIZE:
+                    return False
+        
+        # Default: pass (no info means we give benefit of doubt)
+        return True
+    
+    @staticmethod
+    def _check_company_stage(job: Dict) -> bool:
+        """
+        Check if company stage is acceptable (Seed to Series B preferred).
+        Returns True if acceptable or unknown, False if too late stage.
+        """
+        description = (job.get("description") or "").lower()
+        company_info = (job.get("company_info") or "").lower()
+        combined = f"{description} {company_info}"
+        
+        # Too late stage indicators
+        late_stage = ["series d", "series e", "series f", "ipo", "public company", "fortune 500"]
+        for indicator in late_stage:
+            if indicator in combined:
+                return False
+        
+        # Preferred stage indicators (bonus, not rejection)
+        # early_stage = ["seed", "series a", "series b", "pre-seed", "yc", "y combinator"]
+        # We don't reject based on early stage, but could boost score in matcher
+        
+        return True
 
     @staticmethod
     def passes(job: Dict) -> bool:
@@ -109,6 +272,32 @@ class JobGate:
                         return False
         
         # ─────────────────────────────
+        # 4️⃣ CHECK salary floor (if salary data available)
+        # ─────────────────────────────
+        salary = JobGate._extract_salary(job)
+        if salary is not None:
+            floor = JobGate._get_salary_floor(location)
+            if salary < floor:
+                logger.debug(f"❌ GATE REJECT (salary ${salary:,} < ${floor:,} floor): {title[:50]}")
+                return False
+        
+        # ─────────────────────────────
+        # 5️⃣ CHECK company size (if data available)
+        # ─────────────────────────────
+        if not JobGate._check_company_size(job):
+            company = job.get("company", "Unknown")
+            logger.debug(f"❌ GATE REJECT (company too large): {company} - {title[:50]}")
+            return False
+        
+        # ─────────────────────────────
+        # 6️⃣ CHECK company stage (if data available)
+        # ─────────────────────────────
+        if not JobGate._check_company_stage(job):
+            company = job.get("company", "Unknown")
+            logger.debug(f"❌ GATE REJECT (company too late stage): {company} - {title[:50]}")
+            return False
+        
+        # ─────────────────────────────
         # ✅ PASSED - Proceed to scoring
         # ─────────────────────────────
         logger.debug(f"✅ GATE PASSED: {title[:50]}")
@@ -124,3 +313,73 @@ class JobGate:
             "rejected": len(jobs) - passed,
             "pass_rate": f"{(passed/len(jobs)*100):.1f}%" if jobs else "0%"
         }
+    
+    @staticmethod
+    def get_rejection_reasons(jobs: list) -> Dict:
+        """Get breakdown of rejection reasons for debugging"""
+        reasons = {
+            "excluded_keyword": 0,
+            "no_relevant_keywords": 0,
+            "bad_location": 0,
+            "low_salary": 0,
+            "company_too_large": 0,
+            "late_stage": 0,
+            "passed": 0,
+        }
+        
+        for job in jobs:
+            title = (job.get("title") or "").lower()
+            description = (job.get("description") or "").lower()
+            location = (job.get("location") or "").lower()
+            combined_text = f"{title} {description}"
+            
+            # Check exclusions
+            excluded = False
+            for exclude_kw in ROLE_EXCLUDE_KEYWORDS:
+                if exclude_kw in title:
+                    reasons["excluded_keyword"] += 1
+                    excluded = True
+                    break
+            if excluded:
+                continue
+                
+            # Check relevance
+            has_relevant = any(kw in combined_text for kw in ROLE_INCLUDE_KEYWORDS)
+            if not has_relevant:
+                reasons["no_relevant_keywords"] += 1
+                continue
+            
+            # Check location
+            if location:
+                is_remote_friendly = any(loc in location for loc in LOCATION_INCLUDE_KEYWORDS)
+                if not is_remote_friendly:
+                    incompatible = ["london", "new york", "san francisco", "berlin", "paris", "tokyo"]
+                    for bad_loc in incompatible:
+                        if bad_loc in location and "remote" not in location:
+                            reasons["bad_location"] += 1
+                            break
+                    else:
+                        continue
+                    continue
+            
+            # Check salary
+            salary = JobGate._extract_salary(job)
+            if salary is not None:
+                floor = JobGate._get_salary_floor(location)
+                if salary < floor:
+                    reasons["low_salary"] += 1
+                    continue
+            
+            # Check company size
+            if not JobGate._check_company_size(job):
+                reasons["company_too_large"] += 1
+                continue
+            
+            # Check stage
+            if not JobGate._check_company_stage(job):
+                reasons["late_stage"] += 1
+                continue
+            
+            reasons["passed"] += 1
+        
+        return reasons

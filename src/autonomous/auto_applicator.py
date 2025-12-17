@@ -235,26 +235,72 @@ Write the cover letter now:"""
             if self.email_service:
                 logger.info(f"  📧 Sending application...")
                 
-                # Try to find hiring email
-                hiring_email = job.get('email')
+                # Get founder info for personalized outreach
+                founder_info = job.get('founder_info')
+                match_score = job.get('match_score', 0)
+                
+                # Determine email target (prioritize founder for high-score jobs)
+                hiring_email = None
+                is_founder_outreach = False
+                
+                # HIGH-SCORE (75+): Try founder email first
+                if match_score >= 75 and founder_info:
+                    email_patterns = founder_info.get('email_patterns', [])
+                    domain = founder_info.get('domain', '')
+                    
+                    # Get primary founder name if available
+                    primary_founder = founder_info.get('primary_founder', {})
+                    founder_name = primary_founder.get('name', '') if isinstance(primary_founder, dict) else ''
+                    
+                    if email_patterns and domain:
+                        # Prioritize: founder@ > hello@ > hi@ > contact@
+                        priority_prefixes = ['founder', 'hello', 'hi', 'contact', 'team']
+                        for prefix in priority_prefixes:
+                            for pattern in email_patterns:
+                                if pattern.startswith(f"{prefix}@"):
+                                    hiring_email = pattern
+                                    is_founder_outreach = True
+                                    break
+                            if hiring_email:
+                                break
+                        
+                        # Fallback to first pattern
+                        if not hiring_email and email_patterns:
+                            hiring_email = email_patterns[0]
+                            is_founder_outreach = True
+                
+                # MEDIUM-SCORE (50-74): Use careers/jobs email
                 if not hiring_email:
-                    # Common patterns
-                    domain = company.lower().replace(' ', '').replace(',', '')
-                    hiring_email = f"careers@{domain}.com"
+                    hiring_email = job.get('email')
+                    if not hiring_email:
+                        domain = company.lower().replace(' ', '').replace(',', '').replace('.', '')
+                        hiring_email = f"careers@{domain}.com"
                 
                 try:
-                    email_result = await self.email_service.send_application_email(
-                        to=hiring_email,
-                        company=company,
-                        role=title,
-                        cover_letter=cover_letter
-                    )
+                    # Use founder outreach template for high-score matches
+                    if is_founder_outreach:
+                        logger.info(f"    👤 FOUNDER OUTREACH: {hiring_email}")
+                        email_result = await self._send_founder_email(
+                            to=hiring_email,
+                            company=company,
+                            role=title,
+                            cover_letter=cover_letter,
+                            founder_info=founder_info
+                        )
+                    else:
+                        email_result = await self.email_service.send_application_email(
+                            to=hiring_email,
+                            company=company,
+                            role=title,
+                            cover_letter=cover_letter
+                        )
                     
                     result['email_sent'] = email_result.get('success', False)
                     result['email_to'] = hiring_email
+                    result['is_founder_outreach'] = is_founder_outreach
                     
                     if result['email_sent']:
-                        logger.info(f"    ✅ Email sent to {hiring_email}")
+                        logger.info(f"    ✅ Email sent to {hiring_email}" + (" (FOUNDER)" if is_founder_outreach else ""))
                     else:
                         logger.warning(f"    ⚠️ Email failed: {email_result.get('error')}")
                         
@@ -298,6 +344,72 @@ Write the cover letter now:"""
             logger.error(f"  ❌ Error processing {company}: {e}")
             result['error'] = str(e)
             return result
+    
+    async def _send_founder_email(
+        self,
+        to: str,
+        company: str,
+        role: str,
+        cover_letter: str,
+        founder_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Send personalized founder outreach email
+        
+        This uses a more direct, founder-to-founder tone vs generic application
+        """
+        if not self.email_service:
+            return {'success': False, 'error': 'Email service not configured'}
+        
+        # Extract founder name if available
+        primary_founder = founder_info.get('primary_founder', {})
+        founder_name = primary_founder.get('name', '') if isinstance(primary_founder, dict) else ''
+        
+        # Generate personalized subject line
+        if founder_name:
+            subject = f"Fellow founder → {role} at {company}"
+        else:
+            subject = f"AI Builder → {role} at {company}"
+        
+        # Create founder-focused email body
+        # Less formal, more direct - founder to founder
+        email_body = f"""Hi{' ' + founder_name.split()[0] if founder_name else ''},
+
+I'm Elena — an AI-first founder who's shipped 11 products solo in 10 months. I saw the {role} opening and wanted to reach out directly.
+
+Quick highlights:
+• Built 2 autonomous AI Co-Founders (CTO + CMO) that run my company while I sleep
+• 99%+ cost reduction vs team-based dev ($900K → <$15K)
+• Full-stack: Python/TS/React → Claude/GPT/LangChain → PostgreSQL/Docker/Railway
+• Users across 19 countries, PayPal subscriptions live
+
+{cover_letter}
+
+I'd love 15 minutes to chat about how my scrappy shipping speed could help {company}.
+
+Elena Revicheva
+🔗 linkedin.com/in/elenarevicheva
+🌐 aideazz.xyz
+📧 aipa@aideazz.xyz
+"""
+        
+        try:
+            result = await self.email_service.send_email(
+                to=to,
+                subject=subject,
+                body=email_body,
+                is_html=False
+            )
+            return result
+        except Exception as e:
+            # Fallback to standard application email
+            logger.warning(f"Founder email failed, using standard: {e}")
+            return await self.email_service.send_application_email(
+                to=to,
+                company=company,
+                role=role,
+                cover_letter=cover_letter
+            )
     
     async def batch_process_jobs(
         self, 

@@ -117,6 +117,33 @@ class JobMonitor:
         except Exception as e:
             logger.warning(f"⚠️ YC WAAS search failed: {e}")
 
+        # ==============================================================
+        # 5️⃣ Wellfound (AngelList) — Startup jobs
+        # ==============================================================
+        try:
+            wellfound_jobs = await self._search_wellfound()
+            all_jobs.extend(wellfound_jobs)
+        except Exception as e:
+            logger.warning(f"⚠️ Wellfound search failed: {e}")
+
+        # ==============================================================
+        # 6️⃣ WeWorkRemotely — Remote jobs
+        # ==============================================================
+        try:
+            wwr_jobs = await self._search_weworkremotely()
+            all_jobs.extend(wwr_jobs)
+        except Exception as e:
+            logger.warning(f"⚠️ WeWorkRemotely search failed: {e}")
+
+        # ==============================================================
+        # 7️⃣ AI-Jobs.net — AI-specific job board
+        # ==============================================================
+        try:
+            ai_jobs = await self._search_aijobs()
+            all_jobs.extend(ai_jobs)
+        except Exception as e:
+            logger.warning(f"⚠️ AI-Jobs search failed: {e}")
+
         logger.info(f"📊 Total raw jobs collected: {len(all_jobs)}")
 
         # ==============================================================
@@ -255,78 +282,420 @@ class JobMonitor:
 
     async def _search_yc_workatastartup(self) -> List[Dict]:
         """
-        YC Work At A Startup API
+        YC Work At A Startup - REAL API
         
-        This searches the YC job board which lists roles at YC companies.
-        Uses their Algolia-powered search API.
+        Uses the actual workatastartup.com Algolia API to fetch real jobs.
         """
         logger.info("🔍 Checking YC Work At A Startup...")
         jobs = []
 
         try:
             async with aiohttp.ClientSession() as session:
-                # YC uses Algolia for search
-                # This endpoint searches their job listings
+                # Work at a Startup uses Algolia - public search endpoint
+                # The actual API endpoint that returns job data
+                algolia_url = "https://45bwzj1sgc-dsn.algolia.net/1/indexes/*/queries"
+                
                 headers = {
-                    "User-Agent": "VibeJobHunter/1.0",
+                    "x-algolia-api-key": "NDYzYmNmMTRjYzU3YTkzNGE2ZTQxNzUxY2RhYTBkMTlhMWMxOTlkYmM5Yzg0YmU2ZGQ4ZWZjYzlhMWNmNTBkMXJlc3RyaWN0SW5kaWNlcz0lNUIlMjJXYWFTX3Byb2R1Y3Rpb25fY29tcGFuaWVzJTIyJTJDJTIyV2FhU19wcm9kdWN0aW9uX2pvYl9wb3N0aW5ncyUyMiU1RCZmaWx0ZXJzPWhpcmluZyUzRHRydWUmbnVtZXJpY0ZpbHRlcnM9am9ic19jb3VudCUzRTAmaGl0c1BlclBhZ2U9MTAw",
+                    "x-algolia-application-id": "45BWZJ1SGC",
                     "Content-Type": "application/json",
-                    "Accept": "application/json",
                 }
                 
-                # Search for AI/ML roles
-                search_queries = ["AI Engineer", "Founding Engineer", "Machine Learning"]
+                # Search for AI/ML/Founding roles
+                search_payload = {
+                    "requests": [
+                        {
+                            "indexName": "WaaS_production_job_postings",
+                            "params": "query=AI engineer&hitsPerPage=50&filters=remote%3Atrue"
+                        },
+                        {
+                            "indexName": "WaaS_production_job_postings",
+                            "params": "query=founding engineer&hitsPerPage=50"
+                        },
+                        {
+                            "indexName": "WaaS_production_job_postings",
+                            "params": "query=machine learning&hitsPerPage=50&filters=remote%3Atrue"
+                        },
+                        {
+                            "indexName": "WaaS_production_job_postings",
+                            "params": "query=staff engineer&hitsPerPage=30"
+                        }
+                    ]
+                }
                 
-                for query in search_queries:
-                    url = "https://www.workatastartup.com/companies"
-                    params = {
-                        "query": query,
-                        "page": 1,
-                    }
-                    
-                    try:
-                        async with session.get(url, params=params, headers=headers, timeout=15) as resp:
-                            if resp.status == 200:
-                                # Parse HTML for job listings (fallback approach)
-                                html = await resp.text()
-                                
-                                # Extract company names and create search opportunities
-                                # (Full parsing would require BeautifulSoup, simplified here)
-                                if "founding" in html.lower() or "ai" in html.lower():
-                                    jobs.append({
-                                        "title": f"{query} at YC Startup",
-                                        "company": "YC Company",
-                                        "location": "Remote",
-                                        "description": f"YC-backed startup hiring for {query} roles. Check workatastartup.com for details.",
-                                        "source": "yc_waas",
-                                        "url": f"https://www.workatastartup.com/jobs?query={query.replace(' ', '+')}",
-                                    })
-                    except Exception as e:
-                        logger.debug(f"YC search for '{query}' failed: {e}")
-
-                # Also check YC's API directly (if available)
                 try:
-                    yc_api_url = "https://www.ycombinator.com/companies"
-                    params = {"batch": "", "isHiring": "true", "industry": "B2B,Artificial Intelligence"}
-                    
-                    async with session.get(yc_api_url, params=params, headers=headers, timeout=15) as resp:
+                    async with session.post(
+                        algolia_url, 
+                        json=search_payload, 
+                        headers=headers, 
+                        timeout=20
+                    ) as resp:
                         if resp.status == 200:
-                            # This is a placeholder - YC doesn't have a public API
-                            # But we can still create entries to remind about checking YC
-                            jobs.append({
-                                "title": "AI Engineer at YC Startup",
-                                "company": "YC Company (Check YC Directory)",
-                                "location": "Remote",
-                                "description": "Y Combinator companies actively hiring. Visit ycombinator.com/companies and filter by 'Hiring' and 'Artificial Intelligence'.",
-                                "source": "yc_directory",
-                                "url": "https://www.ycombinator.com/companies?isHiring=true&industry=Artificial%20Intelligence",
-                            })
-                except Exception:
-                    pass
+                            data = await resp.json()
+                            
+                            seen_ids = set()
+                            for result in data.get("results", []):
+                                for hit in result.get("hits", []):
+                                    job_id = hit.get("id") or hit.get("objectID")
+                                    if job_id in seen_ids:
+                                        continue
+                                    seen_ids.add(job_id)
+                                    
+                                    title = hit.get("title") or hit.get("job_title") or ""
+                                    company = hit.get("company_name") or hit.get("company", {}).get("name") or "YC Startup"
+                                    
+                                    # Build job URL
+                                    slug = hit.get("slug") or hit.get("company_slug") or ""
+                                    job_url = f"https://www.workatastartup.com/jobs/{job_id}" if job_id else "https://www.workatastartup.com/jobs"
+                                    
+                                    # Get location
+                                    location = hit.get("location") or hit.get("locations") or "Remote"
+                                    if isinstance(location, list):
+                                        location = ", ".join(location[:3])
+                                    
+                                    # Get description
+                                    description = hit.get("description") or hit.get("job_description") or ""
+                                    if len(description) > 2000:
+                                        description = description[:2000]
+                                    
+                                    jobs.append({
+                                        "id": f"yc_{job_id}",
+                                        "title": title,
+                                        "company": company,
+                                        "location": str(location),
+                                        "description": description,
+                                        "source": "yc_workatastartup",
+                                        "url": job_url,
+                                        "salary_min": hit.get("salary_min"),
+                                        "salary_max": hit.get("salary_max"),
+                                        "remote": hit.get("remote", True),
+                                        "yc_batch": hit.get("batch") or hit.get("company", {}).get("batch"),
+                                    })
+                        else:
+                            logger.debug(f"YC WAAS API returned {resp.status}")
+                            
+                except Exception as e:
+                    logger.debug(f"YC Algolia API failed: {e}")
+                    
+                    # Fallback: Try the jobs JSON endpoint
+                    try:
+                        fallback_url = "https://www.workatastartup.com/companies.json"
+                        params = {"query": "ai", "hasJobs": "true"}
+                        
+                        async with session.get(fallback_url, params=params, headers={"User-Agent": "VibeJobHunter/1.0"}, timeout=15) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                for company in data.get("companies", [])[:30]:
+                                    for job in company.get("jobs", []):
+                                        jobs.append({
+                                            "id": f"yc_{job.get('id')}",
+                                            "title": job.get("title", ""),
+                                            "company": company.get("name", "YC Startup"),
+                                            "location": job.get("location", "Remote"),
+                                            "description": job.get("description", "")[:2000],
+                                            "source": "yc_workatastartup",
+                                            "url": job.get("url") or f"https://www.workatastartup.com/companies/{company.get('slug')}",
+                                        })
+                    except Exception as e2:
+                        logger.debug(f"YC fallback also failed: {e2}")
 
-            logger.info(f"✅ YC WAAS: {len(jobs)} leads found")
+            logger.info(f"✅ YC WAAS: {len(jobs)} jobs found")
 
         except Exception as e:
             logger.warning(f"⚠️ YC WAAS failed: {e}")
+
+        return jobs
+    
+    async def _search_wellfound(self) -> List[Dict]:
+        """
+        Wellfound (formerly AngelList Talent) - GraphQL API
+        
+        Searches for AI/ML/Founding roles at startups.
+        """
+        logger.info("🔍 Checking Wellfound (AngelList)...")
+        jobs = []
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Wellfound GraphQL endpoint
+                graphql_url = "https://wellfound.com/graphql"
+                
+                headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/json",
+                    "Origin": "https://wellfound.com",
+                    "Referer": "https://wellfound.com/jobs",
+                }
+                
+                # GraphQL query for job listings
+                queries = [
+                    {"role": "AI Engineer", "remote": True},
+                    {"role": "Founding Engineer", "remote": False},
+                    {"role": "Machine Learning Engineer", "remote": True},
+                    {"role": "Staff Engineer", "remote": True},
+                ]
+                
+                for query_params in queries:
+                    graphql_query = {
+                        "operationName": "JobSearchResults",
+                        "variables": {
+                            "query": query_params["role"],
+                            "page": 1,
+                            "perPage": 30,
+                            "remote": query_params["remote"],
+                            "sortBy": "posted_at",
+                        },
+                        "query": """
+                            query JobSearchResults($query: String, $page: Int, $perPage: Int, $remote: Boolean) {
+                                jobListings(query: $query, page: $page, perPage: $perPage, remote: $remote) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                            slug
+                                            remote
+                                            locationNames
+                                            compensation
+                                            description
+                                            startup {
+                                                name
+                                                slug
+                                                companySize
+                                                highConcept
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        """
+                    }
+                    
+                    try:
+                        async with session.post(
+                            graphql_url,
+                            json=graphql_query,
+                            headers=headers,
+                            timeout=15
+                        ) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                
+                                edges = data.get("data", {}).get("jobListings", {}).get("edges", [])
+                                
+                                for edge in edges:
+                                    node = edge.get("node", {})
+                                    startup = node.get("startup", {})
+                                    
+                                    job_id = node.get("id", "")
+                                    slug = node.get("slug", "")
+                                    startup_slug = startup.get("slug", "")
+                                    
+                                    jobs.append({
+                                        "id": f"wellfound_{job_id}",
+                                        "title": node.get("title", ""),
+                                        "company": startup.get("name", ""),
+                                        "location": ", ".join(node.get("locationNames", ["Remote"])[:3]),
+                                        "description": (node.get("description") or startup.get("highConcept") or "")[:2000],
+                                        "source": "wellfound",
+                                        "url": f"https://wellfound.com/jobs/{slug}" if slug else "https://wellfound.com/jobs",
+                                        "compensation": node.get("compensation"),
+                                        "company_size": startup.get("companySize"),
+                                        "remote": node.get("remote", False),
+                                    })
+                            else:
+                                logger.debug(f"Wellfound returned {resp.status}")
+                                
+                    except Exception as e:
+                        logger.debug(f"Wellfound query for '{query_params['role']}' failed: {e}")
+                
+                # Fallback: Try the public job listings page
+                if len(jobs) == 0:
+                    try:
+                        # Simple HTML scrape fallback
+                        search_url = "https://wellfound.com/role/r/ai-engineer"
+                        async with session.get(search_url, headers=headers, timeout=15) as resp:
+                            if resp.status == 200:
+                                html = await resp.text()
+                                # Basic parsing - look for job data in script tags
+                                if "__NEXT_DATA__" in html:
+                                    import re
+                                    match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.+?)</script>', html)
+                                    if match:
+                                        try:
+                                            next_data = json.loads(match.group(1))
+                                            # Extract job listings from Next.js data
+                                            page_props = next_data.get("props", {}).get("pageProps", {})
+                                            listings = page_props.get("jobListings", []) or page_props.get("results", [])
+                                            
+                                            for listing in listings[:20]:
+                                                jobs.append({
+                                                    "id": f"wellfound_{listing.get('id', '')}",
+                                                    "title": listing.get("title", "AI Engineer"),
+                                                    "company": listing.get("company", {}).get("name", "Startup"),
+                                                    "location": listing.get("location", "Remote"),
+                                                    "description": listing.get("description", "")[:2000],
+                                                    "source": "wellfound",
+                                                    "url": listing.get("url", "https://wellfound.com/jobs"),
+                                                })
+                                        except json.JSONDecodeError:
+                                            pass
+                    except Exception as e:
+                        logger.debug(f"Wellfound fallback failed: {e}")
+
+            logger.info(f"✅ Wellfound: {len(jobs)} jobs found")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Wellfound failed: {e}")
+
+        return jobs
+
+    async def _search_weworkremotely(self) -> List[Dict]:
+        """
+        WeWorkRemotely - RSS/JSON API
+        
+        Programming and DevOps categories for engineering roles.
+        """
+        logger.info("🔍 Checking WeWorkRemotely...")
+        jobs = []
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {"User-Agent": "VibeJobHunter/1.0"}
+                
+                # WWR has category-based RSS feeds we can parse
+                categories = [
+                    "programming",
+                    "devops-sysadmin",
+                ]
+                
+                for category in categories:
+                    url = f"https://weworkremotely.com/categories/{category}.rss"
+                    
+                    try:
+                        async with session.get(url, headers=headers, timeout=15) as resp:
+                            if resp.status == 200:
+                                xml_text = await resp.text()
+                                
+                                # Parse RSS XML manually (no external dependency)
+                                import re
+                                items = re.findall(r'<item>(.*?)</item>', xml_text, re.DOTALL)
+                                
+                                for item in items[:20]:
+                                    title_match = re.search(r'<title><!\[CDATA\[(.*?)\]\]></title>', item)
+                                    link_match = re.search(r'<link>(.*?)</link>', item)
+                                    desc_match = re.search(r'<description><!\[CDATA\[(.*?)\]\]></description>', item, re.DOTALL)
+                                    
+                                    title = title_match.group(1) if title_match else ""
+                                    link = link_match.group(1) if link_match else ""
+                                    desc = desc_match.group(1) if desc_match else ""
+                                    
+                                    # Filter for relevant roles
+                                    title_lower = title.lower()
+                                    if any(kw in title_lower for kw in ["ai", "ml", "engineer", "founding", "senior", "staff", "full stack", "fullstack"]):
+                                        # Extract company from title (format: "Company: Job Title")
+                                        parts = title.split(":", 1)
+                                        company = parts[0].strip() if len(parts) > 1 else "Remote Company"
+                                        job_title = parts[1].strip() if len(parts) > 1 else title
+                                        
+                                        jobs.append({
+                                            "id": f"wwr_{hash(link) % 10000000}",
+                                            "title": job_title,
+                                            "company": company,
+                                            "location": "Remote",
+                                            "description": desc[:2000],
+                                            "source": "weworkremotely",
+                                            "url": link,
+                                            "remote": True,
+                                        })
+                    except Exception as e:
+                        logger.debug(f"WWR category {category} failed: {e}")
+
+            logger.info(f"✅ WeWorkRemotely: {len(jobs)} jobs found")
+
+        except Exception as e:
+            logger.warning(f"⚠️ WeWorkRemotely failed: {e}")
+
+        return jobs
+
+    async def _search_aijobs(self) -> List[Dict]:
+        """
+        AI-Jobs.net - AI/ML focused job board
+        
+        Scrapes the main listings page.
+        """
+        logger.info("🔍 Checking AI-Jobs.net...")
+        jobs = []
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "text/html,application/xhtml+xml",
+                }
+                
+                # Try to get the jobs listing
+                url = "https://ai-jobs.net/api/jobs/"
+                
+                try:
+                    async with session.get(url, headers=headers, timeout=15) as resp:
+                        if resp.status == 200:
+                            try:
+                                data = await resp.json()
+                                
+                                for job in data[:50]:
+                                    title = job.get("title", "")
+                                    
+                                    jobs.append({
+                                        "id": f"aijobs_{job.get('id', '')}",
+                                        "title": title,
+                                        "company": job.get("company", "AI Company"),
+                                        "location": job.get("location", "Remote"),
+                                        "description": job.get("description", "")[:2000],
+                                        "source": "ai_jobs_net",
+                                        "url": job.get("url", "https://ai-jobs.net"),
+                                        "salary_min": job.get("salary_min"),
+                                        "salary_max": job.get("salary_max"),
+                                    })
+                            except json.JSONDecodeError:
+                                # Not JSON, try HTML parsing
+                                pass
+                except Exception as e:
+                    logger.debug(f"AI-Jobs API failed: {e}")
+                
+                # Fallback: scrape HTML if API doesn't work
+                if len(jobs) == 0:
+                    try:
+                        html_url = "https://ai-jobs.net/"
+                        async with session.get(html_url, headers=headers, timeout=15) as resp:
+                            if resp.status == 200:
+                                html = await resp.text()
+                                
+                                # Look for job cards in HTML
+                                import re
+                                
+                                # Extract job data from structured data or job cards
+                                job_pattern = r'<a[^>]*href="(/job/[^"]+)"[^>]*>([^<]+)</a>'
+                                matches = re.findall(job_pattern, html)
+                                
+                                for link, title in matches[:30]:
+                                    if any(kw in title.lower() for kw in ["ai", "ml", "engineer", "machine learning", "data"]):
+                                        jobs.append({
+                                            "id": f"aijobs_{hash(link) % 10000000}",
+                                            "title": title.strip(),
+                                            "company": "AI Company",
+                                            "location": "Remote",
+                                            "description": f"AI/ML role from ai-jobs.net. Full details at https://ai-jobs.net{link}",
+                                            "source": "ai_jobs_net",
+                                            "url": f"https://ai-jobs.net{link}",
+                                        })
+                    except Exception as e:
+                        logger.debug(f"AI-Jobs HTML scrape failed: {e}")
+
+            logger.info(f"✅ AI-Jobs.net: {len(jobs)} jobs found")
+
+        except Exception as e:
+            logger.warning(f"⚠️ AI-Jobs.net failed: {e}")
 
         return jobs
 
