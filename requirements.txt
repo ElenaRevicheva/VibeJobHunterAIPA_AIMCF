@@ -76,6 +76,11 @@ python-telegram-bot==20.7
 resend==0.8.0
 
 # ----------------------------------------------------------
+# ATS Form Submission (December 2025)
+# ----------------------------------------------------------
+playwright>=1.40.0  # Browser automation for ATS forms
+
+# ----------------------------------------------------------
 # Performance Tracking & Analytics (GA4)
 # ----------------------------------------------------------
 google-analytics-data>=0.18.0     # GA4 Data API

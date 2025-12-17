@@ -15,7 +15,7 @@ from ..utils.logger import setup_logger
 
 from .job_monitor import JobMonitor
 from .company_researcher import CompanyResearcher
-from .founder_finder import FounderFinder
+from .founder_finder_v2 import FounderFinderV2  # UPGRADED: Real email discovery
 from .message_generator import MessageGenerator
 from .multi_channel_sender import MultiChannelSender
 from .demo_tracker import DemoTracker
@@ -99,7 +99,7 @@ class AutonomousOrchestrator:
         # ─────────────────────────────
         self.job_monitor = JobMonitor()
         self.company_researcher = CompanyResearcher()
-        self.founder_finder = FounderFinder()
+        self.founder_finder = FounderFinderV2()  # UPGRADED: Hunter.io + real email discovery
         self.message_generator = MessageGenerator(self.profile)
         self.multi_channel_sender = MultiChannelSender()
         self.demo_tracker = DemoTracker()
@@ -397,22 +397,25 @@ class AutonomousOrchestrator:
                     # ──────────────────────────────────
                     # STEP 3b: Find founder (HIGH-PRIORITY JOBS ONLY)
                     # Per Golden Roadmap: Direct founder email > ATS
+                    # UPGRADED: Now uses Hunter.io + real email discovery
                     # ──────────────────────────────────
                     founder_info = None
                     if job.match_score >= 70 and self.founder_finder:
                         try:
                             founder_info = await self.founder_finder.find_founder(
-                                job.company,
-                                company_intel
+                                company_name=job.company,
+                                company_url=company_intel.get('url', ''),
+                                job_url=job.url
                             )
-                            if founder_info:
-                                logger.info(f"👤 Found founder info for {job.company}")
+                            if founder_info and founder_info.get('emails'):
+                                logger.info(f"👤 Found {len(founder_info.get('emails', []))} emails for {job.company}")
                                 self.stats["founders_found"] = self.stats.get("founders_found", 0) + 1
                                 
                                 # Determine best outreach channel
-                                channels = self.founder_finder.generate_contact_priority(founder_info)
+                                channels = self.founder_finder.generate_outreach_priority(founder_info)
                                 if channels:
-                                    logger.info(f"📧 Outreach priority: {' > '.join(channels)}")
+                                    top_channel = channels[0] if channels else {}
+                                    logger.info(f"📧 Best contact: {top_channel.get('target', 'N/A')} ({top_channel.get('confidence', 0)}% confidence)")
                         except Exception as e:
                             logger.debug(f"Founder finder: {e}")
                     

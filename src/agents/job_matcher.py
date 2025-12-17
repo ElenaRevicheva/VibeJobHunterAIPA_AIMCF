@@ -10,10 +10,14 @@ Dimensional Scoring (from roadmap):
 - Web3 (optional): 10 points
 
 Total: 100 points
-Threshold: ≥55 to apply (configurable)
+Threshold: ≥75 to apply (Golden Roadmap v2)
+
+FIXED: December 2025 - AI analysis now actually runs!
 """
 import logging
-from typing import List, Tuple, Dict
+import json
+import os
+from typing import List, Tuple, Dict, Optional
 from anthropic import Anthropic
 
 from ..core.models import Profile, JobPosting
@@ -21,6 +25,9 @@ from ..core.config import get_settings
 from .founding_engineer_scorer import FoundingEngineerScorer
 
 logger = logging.getLogger(__name__)
+
+# Feature flag for deep AI analysis (costs API tokens)
+USE_AI_DEEP_ANALYSIS = os.getenv("USE_AI_JOB_ANALYSIS", "true").lower() == "true"
 
 
 class JobMatcher:
@@ -97,42 +104,74 @@ class JobMatcher:
     
     def __init__(self):
         self.settings = get_settings()
+        self.ai = None
         try:
-            self.ai = Anthropic(api_key=self.settings.anthropic_api_key)
-        except Exception:
+            api_key = self.settings.anthropic_api_key
+            if api_key:
+                self.ai = Anthropic(api_key=api_key)
+                logger.info("✅ AI Job Analyzer: Claude API enabled")
+            else:
+                logger.warning("⚠️ AI Job Analyzer: No API key, using keyword matching only")
+        except Exception as e:
+            logger.warning(f"⚠️ AI Job Analyzer init failed: {e}")
             self.ai = None
         self.founding_scorer = FoundingEngineerScorer()
     
     def calculate_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
         """
-        Calculate DIMENSIONAL match score
+        Calculate match score using HYBRID approach:
+        1. Fast keyword-based dimensional scoring (always runs)
+        2. Deep AI analysis via Claude (for jobs scoring 50+)
         
         Returns: (score 0-100, list of reasons)
         """
-        # Get dimensional score (primary method)
+        # PHASE 1: Fast dimensional scoring (keyword-based)
         dimensional_score, dimensional_reasons = self._dimensional_score(job)
         
         # Get founding engineer bonus
+        founding_score = 0
+        strengths = []
         try:
             founding_score, strengths, talking_points = self.founding_scorer.calculate_founding_fit_score(job, profile)
             job.talking_points = talking_points
-        except Exception:
-            founding_score = 0
-            strengths = []
+        except Exception as e:
+            logger.debug(f"Founding scorer error: {e}")
         
-        # Combine: preserve base score, add weighted bonuses
-        # Base score (40) is GUARANTEED for passing career gate
-        # Dimensional bonus (0-60) weighted at 80%
-        # Founding bonus (0-100) contributes up to 20 points
+        # Calculate preliminary score
         BASE_SCORE = 40.0
-        dimensional_bonus = max(0, dimensional_score - BASE_SCORE)  # Extract bonus (0-60)
-        founding_contribution = founding_score * 0.2  # Up to 20 points
+        dimensional_bonus = max(0, dimensional_score - BASE_SCORE)
+        founding_contribution = founding_score * 0.2
         
-        combined_score = BASE_SCORE + (dimensional_bonus * 0.8) + founding_contribution
-        combined_score = min(combined_score, 100)  # Cap at 100
+        preliminary_score = BASE_SCORE + (dimensional_bonus * 0.8) + founding_contribution
+        preliminary_score = min(preliminary_score, 100)
         
-        # Combine reasons
-        all_reasons = dimensional_reasons + strengths[:2]
+        # PHASE 2: Deep AI analysis (only for promising jobs)
+        # This is the FIX - AI analysis now actually runs!
+        ai_score = None
+        ai_reasons = []
+        
+        if USE_AI_DEEP_ANALYSIS and self.ai and preliminary_score >= 50:
+            try:
+                ai_result = self._ai_deep_analysis(profile, job)
+                if ai_result:
+                    ai_score = ai_result.get('score', 0)
+                    ai_reasons = ai_result.get('reasons', [])
+                    
+                    # Log AI analysis
+                    logger.info(f"🧠 AI Analysis for {job.company}: {ai_score}/100")
+            except Exception as e:
+                logger.warning(f"AI analysis failed: {e}")
+        
+        # PHASE 3: Combine scores
+        if ai_score is not None:
+            # Weight: 40% keyword, 60% AI (AI is more accurate)
+            combined_score = (preliminary_score * 0.4) + (ai_score * 0.6)
+            all_reasons = ai_reasons[:3] + dimensional_reasons[:2] + strengths[:2]
+        else:
+            combined_score = preliminary_score
+            all_reasons = dimensional_reasons + strengths[:2]
+        
+        combined_score = min(combined_score, 100)
         
         # Flag high-priority jobs
         if combined_score >= 75:
@@ -141,6 +180,116 @@ class JobMatcher:
             all_reasons.insert(0, "⭐ STRONG MATCH")
         
         return combined_score, all_reasons
+    
+    def _ai_deep_analysis(self, profile: Profile, job: JobPosting) -> Optional[Dict]:
+        """
+        Deep AI analysis using Claude - THE FIX!
+        
+        This actually runs Claude to analyze the job posting deeply.
+        Only called for jobs that passed preliminary screening (score >= 50).
+        """
+        if not self.ai:
+            return None
+        
+        try:
+            title = getattr(job, 'title', '') or ''
+            company = getattr(job, 'company', '') or ''
+            description = getattr(job, 'description', '') or ''
+            location = getattr(job, 'location', '') or 'Remote'
+            remote = getattr(job, 'remote_allowed', True)
+            requirements = getattr(job, 'requirements', []) or []
+            
+            # Truncate description to save tokens
+            desc_truncated = description[:2000] if len(description) > 2000 else description
+            req_text = '\n'.join([f"  • {r}" for r in requirements[:8]])
+            
+            prompt = f"""Analyze this job posting against Elena's profile. Return a JSON score and reasons.
+
+ELENA'S PROFILE:
+- 11 AI products built solo in 10 months (5 AIPAs running 24/7)
+- Ex-CEO & CLO (7 years strategic leadership)
+- Tech: Python, TypeScript, React, Claude, GPT, Groq, LangChain, MCP
+- 19 countries reach, PayPal subscriptions LIVE
+- 99%+ cost reduction ($900K → <$15K)
+- AI Co-Founders: CTO AIPA (code reviews) + CMO AIPA (LinkedIn)
+- Target: Founding Engineer, AI Product Manager, Staff/Principal Engineer
+
+JOB:
+Title: {title}
+Company: {company}
+Location: {location}
+Remote: {remote}
+Description: {desc_truncated}
+Requirements:
+{req_text}
+
+SCORING CRITERIA:
++30: Founding Engineer / AI Product roles
++25: YC / Seed / Series A stage
++20: Equity mentioned (0.5-3%)
++15: Values traction/PMF
++15: Fast-paced builder culture
++10: Web3 + AI combo
+-20: Big corp (Google, Meta, etc.)
+-15: Pure maintenance role
+-10: Junior/Mid level
+
+Return ONLY valid JSON (no markdown):
+{{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""
+
+            response = self.ai.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            result_text = response.content[0].text.strip()
+            
+            # Extract JSON from response
+            if "```json" in result_text:
+                result_text = result_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in result_text:
+                result_text = result_text.split("```")[1].split("```")[0].strip()
+            
+            # Handle potential JSON issues
+            result_text = result_text.strip()
+            if not result_text.startswith('{'):
+                # Try to find JSON object
+                start = result_text.find('{')
+                end = result_text.rfind('}') + 1
+                if start >= 0 and end > start:
+                    result_text = result_text[start:end]
+            
+            result = json.loads(result_text)
+            
+            # Validate result
+            score = float(result.get('score', 0))
+            reasons = result.get('reasons', [])
+            
+            if not reasons:
+                reasons = [result.get('fit_summary', 'AI analyzed this role')]
+            
+            # Add recommendation to reasons
+            rec = result.get('recommendation', 'maybe')
+            if rec == 'apply':
+                reasons.insert(0, "🤖 AI: Strong fit - APPLY")
+            elif rec == 'skip':
+                reasons.insert(0, "🤖 AI: Poor fit")
+            else:
+                reasons.insert(0, "🤖 AI: Moderate fit")
+            
+            return {
+                'score': score,
+                'reasons': reasons,
+                'recommendation': rec,
+            }
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"AI analysis JSON parse error: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"AI analysis error: {e}")
+            return None
     
     def _dimensional_score(self, job: JobPosting) -> Tuple[float, List[str]]:
         """
@@ -213,115 +362,6 @@ class JobMatcher:
             logger.info(f"🎯 MATCH ({total_score:.0f}): {company} - {title[:40]}")
         
         return total_score, reasons
-        
-        prompt = f"""Analyze this job posting against the candidate's profile and provide:
-1. A match score from 0-100 (higher is better)
-2. 3-5 specific reasons why this is a good/bad match
-3. Key skills/experience that align with the job
-
-Candidate Profile:
-- Name: {profile.name}
-- Location: {profile.location}
-- Experience: {profile.experience_years} years TOTAL (7 years C-suite exec + 10 months hands-on AI/ML engineering)
-
-UNIQUE DIFFERENTIATORS (emphasize these!):
-- 🔥 11 AI products (7 LIVE AI agents) with PAYING USERS in 19 countries
-- 🤖 AI Co-Founders: CTO AIPA (autonomous code reviews, 8 repos) + CMO AIPA (LinkedIn automation) - $0/month operational cost
-- 💰 Revenue: PayPal Subscriptions ACTIVE (not just demo!)
-- ⚡ Speed: 11 production apps in 10 months (March-Dec 2025, solo-built)
-- 💎 Cost: 99%+ reduction ($15K vs $900K traditional estimate)
-- 🤖 Tech: Claude, GPT, Groq (Llama 3.3 70B), Whisper, TTS, OCR, ElizaOS, HeyGen, MCP, Oracle Cloud
-- 🌎 Bilingual: EN/ES dual-sided market
-- 👔 Executive: Ex-CEO & CLO at E-Government Russia (7 years strategic leadership)
-- 🦄 Unique: Web3 + AI combination (DAO LLC, tokenomics + LLM)
-- 🏢 Enterprise: Oracle Autonomous Database 26ai, mTLS encryption
-- 💬 Live Demo: wa.me/50766623757 (instant credibility!)
-
-- Skills: {', '.join(profile.skills[:15])}
-- Key Achievements:
-{chr(10).join([f"  • {ach}" for ach in profile.key_achievements[:5]])}
-- Target Roles: {', '.join(profile.target_roles)}
-- Languages: {', '.join(profile.languages)}
-
-Job Posting:
-- Title: {job.title}
-- Company: {job.company}
-- Location: {job.location}
-- Remote: {job.remote_allowed}
-- Description: {job.description[:1000]}
-- Requirements: {chr(10).join([f"  • {req}" for req in job.requirements[:8]])}
-
-Return JSON format:
-{{
-  "score": <0-100>,
-  "reasons": ["reason1", "reason2", ...],
-  "aligned_skills": ["skill1", "skill2", ...],
-  "missing_skills": ["skill1", "skill2", ...],
-  "recommendation": "apply|maybe|skip"
-}}
-
-Consider:
-- Skill match (technical and soft skills)
-- Experience level fit
-- Location/remote compatibility
-- Company culture fit based on achievements
-- Growth potential
-- Role alignment with target roles
-
-SCORING PRIORITY FOR ELENA:
-+30 points: Founding Engineer / AI Product Manager / LLM Engineer roles
-+25 points: YC companies or Seed/Series A startups
-+20 points: Mentions equity (0.5-3%)
-+15 points: Values traction/PMF (she has 19 countries proof!)
-+15 points: Fast-paced/builder culture (she ships 10x faster)
-+10 points: Web3 + AI combination
--20 points: Big corp (Google, Meta, etc.) - not her fit
--15 points: Pure maintenance role - she's a 0→1 builder
-"""
-
-        try:
-            response = self.ai.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            
-            import json
-            result_text = response.content[0].text
-            
-            # Extract JSON
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-            
-            result = json.loads(result_text)
-            
-            score = float(result.get("score", 0))
-            reasons = result.get("reasons", [])
-            
-            # Add aligned skills to reasons
-            aligned = result.get("aligned_skills", [])
-            if aligned:
-                reasons.append(f"Aligned skills: {', '.join(aligned[:3])}")
-            
-            # BOOST score with founding engineer bonus
-            combined_score = (score * 0.7) + (founding_score * 0.3)  # 70% AI, 30% founding fit
-            
-            # Add founding engineer strengths to reasons
-            if strengths:
-                reasons.extend(strengths[:3])  # Top 3 strengths
-            
-            # Flag high-priority jobs
-            if self.founding_scorer.should_apply_immediately(job, combined_score):
-                reasons.insert(0, "🚨 HIGH PRIORITY - APPLY IMMEDIATELY!")
-            
-            return combined_score, reasons
-        
-        except Exception as e:
-            print(f"Error calculating match score: {e}")
-            # Fallback to basic scoring
-            return self._basic_match_score(profile, job)
     
     def _basic_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
         """
