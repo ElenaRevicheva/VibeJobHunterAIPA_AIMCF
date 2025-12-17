@@ -48,31 +48,37 @@ class JobMatcher:
         "ai_product_ownership": {
             "high": ["ai product", "llm product", "ai engineer", "ml engineer", "ai solutions",
                      "machine learning", "nlp", "computer vision", "ai infrastructure",
-                     "ai platform", "llm engineer", "ai systems"],
+                     "ai platform", "llm engineer", "ai systems", "solutions architect",
+                     "applied ai", "ai researcher"],
             "medium": ["ai", "ml", "gpt", "claude", "openai", "anthropic", "llm", 
-                       "neural", "deep learning", "transformer", "embedding"],
-            "low": ["data science", "analytics", "automation"]
+                       "neural", "deep learning", "transformer", "embedding", "langchain",
+                       "rag", "agent", "chatbot"],
+            "low": ["data science", "analytics", "automation", "data engineer"]
         },
         "zero_to_one_autonomy": {
             "high": ["founding engineer", "founding", "0-1", "zero to one", "first engineer",
                      "build from scratch", "greenfield", "staff engineer", "principal",
-                     "technical lead", "tech lead", "lead engineer"],
+                     "technical lead", "tech lead", "lead engineer", "senior engineer",
+                     "senior software", "staff software"],
             "medium": ["startup", "early stage", "seed", "series a", "small team",
-                       "high autonomy", "ownership", "end-to-end", "full ownership"],
+                       "high autonomy", "ownership", "end-to-end", "full ownership",
+                       "forward deployed", "fde"],
             "low": ["agile", "autonomous", "self-starter", "independent"]
         },
         "fullstack_infra": {
             "high": ["full-stack", "fullstack", "platform engineer", "infrastructure",
-                     "backend", "frontend", "devops", "cloud architect"],
+                     "backend", "frontend", "devops", "cloud architect", "solutions architect"],
             "medium": ["python", "typescript", "react", "node", "fastapi", "docker",
-                       "kubernetes", "aws", "gcp", "postgresql", "api"],
+                       "kubernetes", "aws", "gcp", "postgresql", "api", "microservices",
+                       "rest", "graphql"],
             "low": ["developer", "engineer", "software"]
         },
         "business_exposure": {
             "high": ["product manager", "product engineer", "gtm", "go-to-market",
-                     "technical pm", "founder", "co-founder", "cto", "vp engineering"],
+                     "technical pm", "founder", "co-founder", "cto", "vp engineering",
+                     "director", "head of"],
             "medium": ["product", "strategy", "growth", "revenue", "customer",
-                       "stakeholder", "roadmap", "metrics", "kpi"],
+                       "stakeholder", "roadmap", "metrics", "kpi", "b2b", "enterprise"],
             "low": ["cross-functional", "collaborate", "business"]
         },
         "bilingual_global": {

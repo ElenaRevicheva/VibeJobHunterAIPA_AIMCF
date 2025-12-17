@@ -337,8 +337,21 @@ class AutonomousOrchestrator:
             
             # Sort by score and respect caps
             qualified_jobs.sort(key=lambda j: j.match_score, reverse=True)
-            jobs_to_process = min(len(qualified_jobs), remaining_today, remaining_total, 5)
-            top_jobs = qualified_jobs[:jobs_to_process]
+            
+            # DEDUPLICATE by company+title (prevent processing same job multiple times)
+            seen_jobs = set()
+            unique_jobs = []
+            for job in qualified_jobs:
+                job_key = f"{job.company}::{job.title}".lower()
+                if job_key not in seen_jobs:
+                    seen_jobs.add(job_key)
+                    unique_jobs.append(job)
+            
+            if len(unique_jobs) < len(qualified_jobs):
+                logger.info(f"🔄 Deduplicated: {len(qualified_jobs)} → {len(unique_jobs)} unique jobs")
+            
+            jobs_to_process = min(len(unique_jobs), remaining_today, remaining_total, 5)
+            top_jobs = unique_jobs[:jobs_to_process]
             
             logger.info(f"📊 Processing {len(top_jobs)} jobs (daily: {today_applications}/{daily_cap}, total: {total_applications}/{total_cap})")
             
