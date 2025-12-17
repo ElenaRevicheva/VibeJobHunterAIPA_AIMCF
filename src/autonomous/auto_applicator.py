@@ -1,6 +1,11 @@
 """
-AUTO-APPLICATOR v2: With Elena's Real Resume & Experience
-Generates tailored materials using actual background
+AUTO-APPLICATOR v3: With Real ATS Submission
+Generates tailored materials AND submits to ATS systems.
+
+UPGRADED: December 2025
+- Integrates with ats_submitter for real form submission
+- Uses Playwright for Greenhouse/Lever/Ashby automation
+- Dry-run mode by default (set ATS_DRY_RUN=false for live submission)
 """
 
 import asyncio
@@ -14,6 +19,9 @@ import json
 from anthropic import AsyncAnthropic
 
 logger = logging.getLogger(__name__)
+
+# Feature flag for ATS submission
+ATS_SUBMISSION_ENABLED = os.getenv("ATS_SUBMISSION_ENABLED", "true").lower() == "true"
 
 # ELENA'S ACTUAL BACKGROUND (from resume)
 ELENA_BACKGROUND = """
@@ -230,6 +238,45 @@ Write the cover letter now:"""
             result['materials_generated'] = True
             result['cover_letter_path'] = str(filepath)
             logger.info(f"    ✅ Saved: {filename}")
+            
+            # ──────────────────────────────────
+            # NEW: ATS Form Submission (if enabled)
+            # ──────────────────────────────────
+            if ATS_SUBMISSION_ENABLED and job.get('url'):
+                try:
+                    from .ats_submitter import ATSSubmitter
+                    
+                    async with ATSSubmitter() as submitter:
+                        ats_type = submitter._detect_ats_type(job.get('url', ''), job.get('source', ''))
+                        
+                        if ats_type != 'unknown':
+                            logger.info(f"    🚀 Submitting to {ats_type}...")
+                            
+                            submission_result = await submitter.submit_application(
+                                job=job,
+                                cover_letter=cover_letter,
+                                resume_path=os.getenv('RESUME_PATH')
+                            )
+                            
+                            result['ats_submitted'] = submission_result.success
+                            result['ats_type'] = ats_type
+                            result['ats_dry_run'] = submission_result.dry_run
+                            result['ats_confirmation'] = submission_result.confirmation_id
+                            
+                            if submission_result.success:
+                                if submission_result.dry_run:
+                                    logger.info(f"    🔒 DRY RUN: Would submit to {ats_type}")
+                                else:
+                                    logger.info(f"    ✅ ATS submitted: {submission_result.confirmation_id}")
+                            else:
+                                logger.warning(f"    ⚠️ ATS submission failed: {submission_result.error}")
+                        else:
+                            logger.debug(f"    ℹ️ Unknown ATS type - skipping form submission")
+                            
+                except ImportError:
+                    logger.debug("    ℹ️ ATS submitter not available (playwright not installed)")
+                except Exception as e:
+                    logger.warning(f"    ⚠️ ATS submission error: {e}")
             
             # Send email (if configured)
             if self.email_service:

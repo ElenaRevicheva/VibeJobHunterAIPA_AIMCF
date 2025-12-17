@@ -1,4 +1,4 @@
-﻿"""
+"""
 Database models for VibeJobHunter application tracking
 Uses SQLAlchemy ORM for clean database interactions
 """
@@ -90,6 +90,7 @@ class Application(Base):
     # Relationships
     job = relationship("JobListing", back_populates="applications")
     follow_ups = relationship("FollowUp", back_populates="application")
+    interviews = relationship("Interview", back_populates="application")
 
 
 class FollowUp(Base):
@@ -134,6 +135,53 @@ class Company(Base):
     # Last activity
     last_checked = Column(DateTime, default=datetime.utcnow)
     last_application_sent = Column(DateTime)
+
+
+class Interview(Base):
+    """
+    Track individual interview events and outcomes.
+    
+    ADDED: December 2025 - Proper interview outcome tracking
+    """
+    __tablename__ = 'interviews'
+    
+    id = Column(String, primary_key=True)
+    application_id = Column(String, ForeignKey('applications.id'), nullable=False)
+    
+    # Interview details
+    stage = Column(String, nullable=False)  # phone_screen, technical, behavioral, onsite, final
+    stage_number = Column(Integer, default=1)  # 1st, 2nd, 3rd round
+    interview_date = Column(DateTime, nullable=False)
+    duration_minutes = Column(Integer)
+    interview_format = Column(String)  # video, phone, in_person
+    
+    # Interviewer info
+    interviewer_name = Column(String)
+    interviewer_title = Column(String)
+    interviewer_linkedin = Column(String)
+    
+    # Preparation
+    prep_notes = Column(Text)  # What to prepare
+    questions_expected = Column(Text)  # JSON array of expected questions
+    talking_points = Column(Text)  # Key points to mention
+    
+    # Outcome
+    status = Column(String, default='scheduled')  # scheduled, completed, cancelled, rescheduled
+    outcome = Column(String)  # passed, failed, pending, moved_forward
+    feedback = Column(Text)  # Any feedback received
+    
+    # Self-assessment
+    confidence_before = Column(Integer)  # 1-10 scale
+    confidence_after = Column(Integer)  # 1-10 scale
+    self_assessment = Column(Text)  # How did it go?
+    lessons_learned = Column(Text)  # What to improve
+    
+    # Timing
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    application = relationship("Application", back_populates="interviews")
 
 
 class LearningMetric(Base):
@@ -299,6 +347,283 @@ class DatabaseHelper:
             Company.total_applications >= 2
         ).all()
         return [(c.slug, c.response_rate) for c in companies]
+    
+    # =========================================================================
+    # INTERVIEW TRACKING METHODS (Added December 2025)
+    # =========================================================================
+    
+    def schedule_interview(
+        self,
+        application_id: str,
+        stage: str,
+        interview_date: datetime,
+        **kwargs
+    ) -> 'Interview':
+        """
+        Schedule a new interview.
+        
+        Args:
+            application_id: The application this interview is for
+            stage: Interview stage (phone_screen, technical, behavioral, onsite, final)
+            interview_date: When the interview is scheduled
+            **kwargs: Additional fields (interviewer_name, duration_minutes, etc.)
+        
+        Returns:
+            The created Interview record
+        """
+        import uuid
+        
+        # Get current stage number for this application
+        existing_interviews = self.session.query(Interview).filter_by(
+            application_id=application_id
+        ).count()
+        
+        interview = Interview(
+            id=f"int_{uuid.uuid4().hex[:12]}",
+            application_id=application_id,
+            stage=stage,
+            stage_number=existing_interviews + 1,
+            interview_date=interview_date,
+            status='scheduled',
+            **kwargs
+        )
+        
+        self.session.add(interview)
+        
+        # Update application
+        app = self.session.query(Application).filter_by(id=application_id).first()
+        if app:
+            app.interview_count = existing_interviews + 1
+            app.next_interview_date = interview_date
+            
+            # Update company stats
+            job = app.job
+            if job:
+                company = self.session.query(Company).filter_by(slug=job.company).first()
+                if company:
+                    company.total_interviews += 1
+        
+        self.session.commit()
+        return interview
+    
+    def record_interview_outcome(
+        self,
+        interview_id: str,
+        outcome: str,
+        **kwargs
+    ) -> 'Interview':
+        """
+        Record the outcome of an interview.
+        
+        Args:
+            interview_id: The interview ID
+            outcome: Result (passed, failed, pending, moved_forward)
+            **kwargs: Additional fields (feedback, self_assessment, lessons_learned, etc.)
+        
+        Returns:
+            The updated Interview record
+        """
+        interview = self.session.query(Interview).filter_by(id=interview_id).first()
+        
+        if interview:
+            interview.status = 'completed'
+            interview.outcome = outcome
+            interview.updated_at = datetime.utcnow()
+            
+            for key, value in kwargs.items():
+                if hasattr(interview, key):
+                    setattr(interview, key, value)
+            
+            # Update application
+            app = interview.application
+            if app:
+                app.last_interview_date = interview.interview_date
+                
+                # If passed/moved_forward, update response type
+                if outcome in ['passed', 'moved_forward']:
+                    app.response_type = 'interview'
+                elif outcome == 'failed':
+                    # Check if this was the last stage
+                    pending = self.session.query(Interview).filter(
+                        Interview.application_id == app.id,
+                        Interview.status == 'scheduled'
+                    ).count()
+                    
+                    if pending == 0:
+                        app.response_type = 'rejection'
+                        app.rejection_reason = kwargs.get('feedback', 'Interview rejection')
+            
+            self.session.commit()
+        
+        return interview
+    
+    def record_offer(
+        self,
+        application_id: str,
+        offer_amount: int,
+        **kwargs
+    ) -> 'Application':
+        """
+        Record a job offer.
+        
+        Args:
+            application_id: The application ID
+            offer_amount: Annual salary offered
+            **kwargs: Additional fields (notes, etc.)
+        
+        Returns:
+            The updated Application record
+        """
+        app = self.session.query(Application).filter_by(id=application_id).first()
+        
+        if app:
+            app.offer_received = True
+            app.offer_date = datetime.utcnow()
+            app.offer_amount = offer_amount
+            app.response_type = 'offer'
+            
+            for key, value in kwargs.items():
+                if hasattr(app, key):
+                    setattr(app, key, value)
+            
+            self.session.commit()
+        
+        return app
+    
+    def accept_offer(self, application_id: str) -> 'Application':
+        """Mark an offer as accepted"""
+        app = self.session.query(Application).filter_by(id=application_id).first()
+        if app:
+            app.accepted = True
+            self.session.commit()
+        return app
+    
+    def reject_offer(self, application_id: str, reason: str = None) -> 'Application':
+        """Mark an offer as rejected"""
+        app = self.session.query(Application).filter_by(id=application_id).first()
+        if app:
+            app.accepted = False
+            if reason:
+                app.notes = (app.notes or '') + f"\nRejected offer: {reason}"
+            self.session.commit()
+        return app
+    
+    def get_upcoming_interviews(self, days_ahead: int = 7) -> list:
+        """Get interviews scheduled in the next N days"""
+        from datetime import timedelta
+        
+        now = datetime.utcnow()
+        future = now + timedelta(days=days_ahead)
+        
+        interviews = self.session.query(Interview).filter(
+            Interview.interview_date >= now,
+            Interview.interview_date <= future,
+            Interview.status == 'scheduled'
+        ).order_by(Interview.interview_date).all()
+        
+        return interviews
+    
+    def get_interview_pipeline(self) -> dict:
+        """
+        Get a summary of all interviews in the pipeline.
+        
+        Returns:
+            Dict with counts by stage and outcome
+        """
+        interviews = self.session.query(Interview).all()
+        
+        pipeline = {
+            'total': len(interviews),
+            'by_stage': {},
+            'by_status': {},
+            'by_outcome': {},
+            'upcoming': 0,
+        }
+        
+        now = datetime.utcnow()
+        
+        for interview in interviews:
+            # By stage
+            stage = interview.stage or 'unknown'
+            pipeline['by_stage'][stage] = pipeline['by_stage'].get(stage, 0) + 1
+            
+            # By status
+            status = interview.status or 'unknown'
+            pipeline['by_status'][status] = pipeline['by_status'].get(status, 0) + 1
+            
+            # By outcome
+            if interview.outcome:
+                pipeline['by_outcome'][interview.outcome] = pipeline['by_outcome'].get(interview.outcome, 0) + 1
+            
+            # Upcoming
+            if interview.status == 'scheduled' and interview.interview_date > now:
+                pipeline['upcoming'] += 1
+        
+        return pipeline
+    
+    def get_application_timeline(self, application_id: str) -> list:
+        """
+        Get the full timeline of an application.
+        
+        Returns:
+            List of events in chronological order
+        """
+        app = self.session.query(Application).filter_by(id=application_id).first()
+        if not app:
+            return []
+        
+        timeline = []
+        
+        # Application submitted
+        timeline.append({
+            'event': 'applied',
+            'date': app.applied_date,
+            'details': f"Applied via {app.application_method or 'unknown'}"
+        })
+        
+        # Outreach
+        if app.linkedin_message_sent:
+            timeline.append({
+                'event': 'linkedin_outreach',
+                'date': app.linkedin_message_date,
+                'details': 'LinkedIn message sent'
+            })
+        
+        if app.email_sent:
+            timeline.append({
+                'event': 'email_outreach',
+                'date': app.email_sent_date,
+                'details': 'Email sent'
+            })
+        
+        # Response
+        if app.response_received:
+            timeline.append({
+                'event': 'response',
+                'date': app.response_date,
+                'details': f"Response: {app.response_type}"
+            })
+        
+        # Interviews
+        for interview in sorted(app.interviews, key=lambda i: i.interview_date):
+            timeline.append({
+                'event': f'interview_{interview.stage}',
+                'date': interview.interview_date,
+                'details': f"Stage {interview.stage_number}: {interview.stage} - {interview.outcome or interview.status}"
+            })
+        
+        # Offer
+        if app.offer_received:
+            timeline.append({
+                'event': 'offer',
+                'date': app.offer_date,
+                'details': f"Offer: ${app.offer_amount:,}" if app.offer_amount else "Offer received"
+            })
+        
+        # Sort by date
+        timeline.sort(key=lambda x: x['date'] if x['date'] else datetime.min)
+        
+        return timeline
     
     def close(self):
         """Close database session"""

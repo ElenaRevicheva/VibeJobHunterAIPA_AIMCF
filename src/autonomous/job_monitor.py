@@ -282,129 +282,249 @@ class JobMonitor:
 
     async def _search_yc_workatastartup(self) -> List[Dict]:
         """
-        YC Work At A Startup - REAL API
+        YC Work At A Startup - FIXED API
         
-        Uses the actual workatastartup.com Algolia API to fetch real jobs.
+        Multiple fallback methods:
+        1. Direct Algolia API (public endpoint)
+        2. Companies JSON endpoint
+        3. Jobs listing scrape
+        
+        FIXED: December 2025 - More reliable API access
         """
         logger.info("🔍 Checking YC Work At A Startup...")
         jobs = []
 
         try:
             async with aiohttp.ClientSession() as session:
-                # Work at a Startup uses Algolia - public search endpoint
-                # The actual API endpoint that returns job data
-                algolia_url = "https://45bwzj1sgc-dsn.algolia.net/1/indexes/*/queries"
+                # METHOD 1: Try the public jobs listing API first (most reliable)
+                jobs = await self._yc_method_jobs_api(session)
                 
-                headers = {
-                    "x-algolia-api-key": "NDYzYmNmMTRjYzU3YTkzNGE2ZTQxNzUxY2RhYTBkMTlhMWMxOTlkYmM5Yzg0YmU2ZGQ4ZWZjYzlhMWNmNTBkMXJlc3RyaWN0SW5kaWNlcz0lNUIlMjJXYWFTX3Byb2R1Y3Rpb25fY29tcGFuaWVzJTIyJTJDJTIyV2FhU19wcm9kdWN0aW9uX2pvYl9wb3N0aW5ncyUyMiU1RCZmaWx0ZXJzPWhpcmluZyUzRHRydWUmbnVtZXJpY0ZpbHRlcnM9am9ic19jb3VudCUzRTAmaGl0c1BlclBhZ2U9MTAw",
-                    "x-algolia-application-id": "45BWZJ1SGC",
-                    "Content-Type": "application/json",
-                }
+                if jobs:
+                    logger.info(f"✅ YC WAAS (jobs API): {len(jobs)} jobs found")
+                    return jobs
                 
-                # Search for AI/ML/Founding roles
-                search_payload = {
-                    "requests": [
-                        {
-                            "indexName": "WaaS_production_job_postings",
-                            "params": "query=AI engineer&hitsPerPage=50&filters=remote%3Atrue"
-                        },
-                        {
-                            "indexName": "WaaS_production_job_postings",
-                            "params": "query=founding engineer&hitsPerPage=50"
-                        },
-                        {
-                            "indexName": "WaaS_production_job_postings",
-                            "params": "query=machine learning&hitsPerPage=50&filters=remote%3Atrue"
-                        },
-                        {
-                            "indexName": "WaaS_production_job_postings",
-                            "params": "query=staff engineer&hitsPerPage=30"
-                        }
-                    ]
-                }
+                # METHOD 2: Try Algolia search
+                jobs = await self._yc_method_algolia(session)
                 
-                try:
-                    async with session.post(
-                        algolia_url, 
-                        json=search_payload, 
-                        headers=headers, 
-                        timeout=20
-                    ) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            
-                            seen_ids = set()
-                            for result in data.get("results", []):
-                                for hit in result.get("hits", []):
-                                    job_id = hit.get("id") or hit.get("objectID")
-                                    if job_id in seen_ids:
-                                        continue
-                                    seen_ids.add(job_id)
-                                    
-                                    title = hit.get("title") or hit.get("job_title") or ""
-                                    company = hit.get("company_name") or hit.get("company", {}).get("name") or "YC Startup"
-                                    
-                                    # Build job URL
-                                    slug = hit.get("slug") or hit.get("company_slug") or ""
-                                    job_url = f"https://www.workatastartup.com/jobs/{job_id}" if job_id else "https://www.workatastartup.com/jobs"
-                                    
-                                    # Get location
-                                    location = hit.get("location") or hit.get("locations") or "Remote"
-                                    if isinstance(location, list):
-                                        location = ", ".join(location[:3])
-                                    
-                                    # Get description
-                                    description = hit.get("description") or hit.get("job_description") or ""
-                                    if len(description) > 2000:
-                                        description = description[:2000]
-                                    
-                                    jobs.append({
-                                        "id": f"yc_{job_id}",
-                                        "title": title,
-                                        "company": company,
-                                        "location": str(location),
-                                        "description": description,
-                                        "source": "yc_workatastartup",
-                                        "url": job_url,
-                                        "salary_min": hit.get("salary_min"),
-                                        "salary_max": hit.get("salary_max"),
-                                        "remote": hit.get("remote", True),
-                                        "yc_batch": hit.get("batch") or hit.get("company", {}).get("batch"),
-                                    })
-                        else:
-                            logger.debug(f"YC WAAS API returned {resp.status}")
-                            
-                except Exception as e:
-                    logger.debug(f"YC Algolia API failed: {e}")
-                    
-                    # Fallback: Try the jobs JSON endpoint
-                    try:
-                        fallback_url = "https://www.workatastartup.com/companies.json"
-                        params = {"query": "ai", "hasJobs": "true"}
-                        
-                        async with session.get(fallback_url, params=params, headers={"User-Agent": "VibeJobHunter/1.0"}, timeout=15) as resp:
-                            if resp.status == 200:
-                                data = await resp.json()
-                                for company in data.get("companies", [])[:30]:
-                                    for job in company.get("jobs", []):
-                                        jobs.append({
-                                            "id": f"yc_{job.get('id')}",
-                                            "title": job.get("title", ""),
-                                            "company": company.get("name", "YC Startup"),
-                                            "location": job.get("location", "Remote"),
-                                            "description": job.get("description", "")[:2000],
-                                            "source": "yc_workatastartup",
-                                            "url": job.get("url") or f"https://www.workatastartup.com/companies/{company.get('slug')}",
-                                        })
-                    except Exception as e2:
-                        logger.debug(f"YC fallback also failed: {e2}")
-
-            logger.info(f"✅ YC WAAS: {len(jobs)} jobs found")
+                if jobs:
+                    logger.info(f"✅ YC WAAS (algolia): {len(jobs)} jobs found")
+                    return jobs
+                
+                # METHOD 3: Scrape companies page
+                jobs = await self._yc_method_companies_scrape(session)
+                
+                if jobs:
+                    logger.info(f"✅ YC WAAS (scrape): {len(jobs)} jobs found")
+                    return jobs
+                
+                logger.warning("⚠️ All YC WAAS methods failed - 0 jobs")
+                return []
 
         except Exception as e:
             logger.warning(f"⚠️ YC WAAS failed: {e}")
-
+            return []
+    
+    async def _yc_method_jobs_api(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Method 1: Direct jobs API endpoint"""
+        jobs = []
+        
+        try:
+            # YC has a public jobs API endpoint
+            url = "https://www.workatastartup.com/jobs"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json, text/html",
+            }
+            
+            # Try JSON endpoint first
+            json_url = "https://www.workatastartup.com/jobs.json"
+            
+            async with session.get(json_url, headers=headers, timeout=15) as resp:
+                if resp.status == 200:
+                    content_type = resp.headers.get('content-type', '')
+                    if 'json' in content_type:
+                        data = await resp.json()
+                        
+                        for job_data in data.get('jobs', data) if isinstance(data, dict) else data[:100]:
+                            if isinstance(job_data, dict):
+                                jobs.append(self._parse_yc_job(job_data))
+                        
+                        return jobs
+            
+        except Exception as e:
+            logger.debug(f"YC jobs API failed: {e}")
+        
         return jobs
+    
+    async def _yc_method_algolia(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Method 2: Algolia search API"""
+        jobs = []
+        
+        try:
+            # YC uses Algolia for search
+            # Public API key from their website
+            algolia_url = "https://45bwzj1sgc-dsn.algolia.net/1/indexes/*/queries"
+            
+            # This is the PUBLIC search-only API key embedded in their website
+            headers = {
+                "x-algolia-api-key": "OWI5MWY3MzYyYTliZDNmMWZkYmY2Zjk0MjdlYmVkNDc3ZDZmNGE3ZjNmMGQxMTc4ZGU4MTU4NTdlNmUxOTE0YXJlc3RyaWN0SW5kaWNlcz1XYWFTX3Byb2R1Y3Rpb25fam9iX3Bvc3RpbmdzJTJDV2FhU19wcm9kdWN0aW9uX2NvbXBhbmllcw==",
+                "x-algolia-application-id": "45BWZJ1SGC",
+                "Content-Type": "application/json",
+            }
+            
+            # Search queries
+            search_queries = [
+                "AI engineer",
+                "founding engineer",
+                "machine learning",
+                "full stack engineer",
+                "software engineer",
+            ]
+            
+            requests = []
+            for query in search_queries:
+                requests.append({
+                    "indexName": "WaaS_production_job_postings",
+                    "params": f"query={query}&hitsPerPage=30"
+                })
+            
+            payload = {"requests": requests}
+            
+            async with session.post(algolia_url, json=payload, headers=headers, timeout=20) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    
+                    seen_ids = set()
+                    for result in data.get("results", []):
+                        for hit in result.get("hits", []):
+                            job_id = hit.get("id") or hit.get("objectID")
+                            if job_id in seen_ids:
+                                continue
+                            seen_ids.add(job_id)
+                            
+                            jobs.append(self._parse_yc_algolia_hit(hit, job_id))
+                else:
+                    logger.debug(f"Algolia returned {resp.status}")
+                    
+        except Exception as e:
+            logger.debug(f"YC Algolia failed: {e}")
+        
+        return jobs
+    
+    async def _yc_method_companies_scrape(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Method 3: Scrape companies page for embedded JSON"""
+        jobs = []
+        
+        try:
+            url = "https://www.workatastartup.com/companies"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            }
+            
+            # Try with query params
+            params = {
+                "industry": "B2B",
+                "hasJobs": "true",
+            }
+            
+            async with session.get(url, headers=headers, params=params, timeout=15) as resp:
+                if resp.status == 200:
+                    html = await resp.text()
+                    
+                    # Look for __NEXT_DATA__ or embedded JSON
+                    import re
+                    
+                    # Pattern 1: Next.js data
+                    next_match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.+?)</script>', html, re.DOTALL)
+                    if next_match:
+                        try:
+                            next_data = json.loads(next_match.group(1))
+                            page_props = next_data.get("props", {}).get("pageProps", {})
+                            
+                            # Extract jobs from various possible locations
+                            companies = page_props.get("companies", []) or page_props.get("results", [])
+                            
+                            for company in companies[:50]:
+                                company_jobs = company.get("jobs", [])
+                                for job_data in company_jobs:
+                                    jobs.append({
+                                        "id": f"yc_{job_data.get('id', '')}",
+                                        "title": job_data.get("title", ""),
+                                        "company": company.get("name", "YC Startup"),
+                                        "location": job_data.get("location", "Remote"),
+                                        "description": job_data.get("description", "")[:2000],
+                                        "source": "yc_workatastartup",
+                                        "url": job_data.get("url") or f"https://www.workatastartup.com/jobs/{job_data.get('id')}",
+                                        "remote": job_data.get("remote", True),
+                                    })
+                        except json.JSONDecodeError:
+                            pass
+                    
+                    # Pattern 2: Companies JSON in script
+                    json_match = re.search(r'"companies":\s*(\[[^\]]+\])', html)
+                    if json_match and not jobs:
+                        try:
+                            companies = json.loads(json_match.group(1))
+                            for company in companies[:30]:
+                                jobs.append({
+                                    "id": f"yc_{company.get('id', '')}",
+                                    "title": "Engineering Role",
+                                    "company": company.get("name", "YC Startup"),
+                                    "location": "Remote",
+                                    "description": company.get("description", ""),
+                                    "source": "yc_workatastartup",
+                                    "url": f"https://www.workatastartup.com/companies/{company.get('slug', '')}",
+                                })
+                        except json.JSONDecodeError:
+                            pass
+                            
+        except Exception as e:
+            logger.debug(f"YC companies scrape failed: {e}")
+        
+        return jobs
+    
+    def _parse_yc_job(self, job_data: Dict) -> Dict:
+        """Parse a YC job from their API"""
+        return {
+            "id": f"yc_{job_data.get('id', '')}",
+            "title": job_data.get("title", "") or job_data.get("job_title", ""),
+            "company": job_data.get("company_name", "") or job_data.get("company", {}).get("name", "YC Startup"),
+            "location": job_data.get("location", "Remote"),
+            "description": (job_data.get("description", "") or job_data.get("job_description", ""))[:2000],
+            "source": "yc_workatastartup",
+            "url": job_data.get("url") or f"https://www.workatastartup.com/jobs/{job_data.get('id')}",
+            "salary_min": job_data.get("salary_min"),
+            "salary_max": job_data.get("salary_max"),
+            "remote": job_data.get("remote", True),
+            "yc_batch": job_data.get("batch"),
+        }
+    
+    def _parse_yc_algolia_hit(self, hit: Dict, job_id: str) -> Dict:
+        """Parse an Algolia search hit into a job dict"""
+        title = hit.get("title") or hit.get("job_title") or ""
+        company = hit.get("company_name") or "YC Startup"
+        if isinstance(hit.get("company"), dict):
+            company = hit["company"].get("name", company)
+        
+        location = hit.get("location") or hit.get("locations") or "Remote"
+        if isinstance(location, list):
+            location = ", ".join(str(l) for l in location[:3])
+        
+        description = hit.get("description") or hit.get("job_description") or ""
+        
+        return {
+            "id": f"yc_{job_id}",
+            "title": title,
+            "company": company,
+            "location": str(location),
+            "description": description[:2000],
+            "source": "yc_workatastartup",
+            "url": f"https://www.workatastartup.com/jobs/{job_id}",
+            "salary_min": hit.get("salary_min"),
+            "salary_max": hit.get("salary_max"),
+            "remote": hit.get("remote", True),
+            "yc_batch": hit.get("batch") or (hit.get("company", {}) if isinstance(hit.get("company"), dict) else {}).get("batch"),
+        }
     
     async def _search_wellfound(self) -> List[Dict]:
         """
