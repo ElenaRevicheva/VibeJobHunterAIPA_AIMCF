@@ -142,10 +142,12 @@ class EmailService:
         """Send email via Resend"""
         
         if not from_email:
-            from_email = os.getenv('FROM_EMAIL', 'elena.revicheva2016@gmail.com')
+            # Use verified domain email - replies go to Zoho inbox
+            from_email = os.getenv('FROM_EMAIL', 'Elena Revicheva <aipa@aideazz.xyz>')
         
         params = {
             "from": from_email,
+            "reply_to": "aipa@aideazz.xyz",  # Ensure replies go to Zoho inbox
             "to": [to],
             "subject": subject,
         }
@@ -295,7 +297,7 @@ class EmailService:
     <div class="signature">
         <p>Best regards,<br>
         Elena Revicheva<br>
-        <a href="mailto:elena.revicheva2016@gmail.com">elena.revicheva2016@gmail.com</a><br>
+        <a href="mailto:aipa@aideazz.xyz">aipa@aideazz.xyz</a><br>
         <a href="https://linkedin.com/in/elenarevicheva">linkedin.com/in/elenarevicheva</a><br>
         <a href="https://aideazz.xyz">aideazz.xyz</a></p>
     </div>

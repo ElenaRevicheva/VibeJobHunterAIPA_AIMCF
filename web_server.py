@@ -33,8 +33,8 @@ from contextlib import asynccontextmanager
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
 DEPLOY_TIMESTAMP = "20251216_210000"  # ⬅️ UPDATE EACH DEPLOY
-DEPLOY_FINGERPRINT = "phase4_score_diversity_FIX"
-GIT_COMMIT_SHORT = "score_formula_company_diversity"
+DEPLOY_FINGERPRINT = "resend_aipa_email_ENABLED"
+GIT_COMMIT_SHORT = "resend_verified_domain"
 
 # ------------------------------------------------------------------
 # Logging setup
