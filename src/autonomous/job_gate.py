@@ -60,9 +60,10 @@ LARGE_COMPANY_BLOCKLIST = {
     # Large Data/Cloud Companies
     "databricks", "snowflake", "palantir", "splunk", "elastic",
     "datadog", "mongodb", "confluent", "cloudera", "teradata",
-    # Large Fintech
+    # Large Fintech (1000+ employees)
     "stripe", "plaid", "square", "block", "paypal", "visa", "mastercard",
-    "robinhood", "coinbase", "kraken",
+    "robinhood", "coinbase", "kraken", "brex", "ramp", "mercury",
+    "chime", "sofi", "affirm", "klarna", "revolut",
     # Large AI Companies (established, not startups)
     "openai", "anthropic", "deepmind", "cohere",  # These are elite but large now
     # Consulting/Enterprise
