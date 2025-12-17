@@ -60,6 +60,10 @@ LARGE_COMPANY_BLOCKLIST = {
     # Large Data/Cloud Companies
     "databricks", "snowflake", "palantir", "splunk", "elastic",
     "datadog", "mongodb", "confluent", "cloudera", "teradata",
+    # Large SaaS/Product Companies (500+ employees)
+    "figma", "notion", "airtable", "dropbox", "twilio", "okta", "zoom",
+    "slack", "atlassian", "asana", "monday", "zendesk", "hubspot",
+    "docusign", "servicenow", "workday", "splunk", "pagerduty",
     # Large Fintech (1000+ employees)
     "stripe", "plaid", "square", "block", "paypal", "visa", "mastercard",
     "robinhood", "coinbase", "kraken", "brex", "ramp", "mercury",

@@ -98,64 +98,48 @@ class JobMonitor:
             logger.error(f"❌ ATS integration failed: {e}")
 
         # ==============================================================
-        # 2️⃣ Hacker News Who's Hiring (API-based, stable)
+        # 2️⃣-7️⃣ SECONDARY SOURCES (run in parallel with timeout)
         # ==============================================================
-        try:
-            hn_jobs = await self._search_hackernews()
-            all_jobs.extend(hn_jobs)
-            source_counts["hn"] = len(hn_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ HN search failed: {e}")
-
-        # ==============================================================
-        # 3️⃣ RemoteOK JSON API (stable)
-        # ==============================================================
-        try:
-            remoteok_jobs = await self._search_remoteok()
-            all_jobs.extend(remoteok_jobs)
-            source_counts["remoteok"] = len(remoteok_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ RemoteOK search failed: {e}")
-
-        # ==============================================================
-        # 4️⃣ YC Work At A Startup (AI focused search)
-        # ==============================================================
-        try:
-            yc_jobs = await self._search_yc_workatastartup()
-            all_jobs.extend(yc_jobs)
-            source_counts["yc"] = len(yc_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ YC WAAS search failed: {e}")
-
-        # ==============================================================
-        # 5️⃣ Wellfound (AngelList) — Startup jobs
-        # ==============================================================
-        try:
-            wellfound_jobs = await self._search_wellfound()
-            all_jobs.extend(wellfound_jobs)
-            source_counts["wellfound"] = len(wellfound_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ Wellfound search failed: {e}")
-
-        # ==============================================================
-        # 6️⃣ WeWorkRemotely — Remote jobs
-        # ==============================================================
-        try:
-            wwr_jobs = await self._search_weworkremotely()
-            all_jobs.extend(wwr_jobs)
-            source_counts["wwr"] = len(wwr_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ WeWorkRemotely search failed: {e}")
-
-        # ==============================================================
-        # 7️⃣ AI-Jobs.net — AI-specific job board
-        # ==============================================================
-        try:
-            ai_jobs = await self._search_aijobs()
-            all_jobs.extend(ai_jobs)
-            source_counts["aijobs"] = len(ai_jobs)
-        except Exception as e:
-            logger.warning(f"⚠️ AI-Jobs search failed: {e}")
+        logger.info("🔍 Fetching from secondary sources...")
+        
+        # Run secondary sources in parallel with individual timeouts
+        async def safe_fetch(name: str, coro, timeout: int = 15):
+            """Wrapper to safely fetch with timeout and error handling"""
+            try:
+                result = await asyncio.wait_for(coro, timeout=timeout)
+                logger.info(f"   ✅ {name}: {len(result)} jobs")
+                return result
+            except asyncio.TimeoutError:
+                logger.warning(f"   ⚠️ {name}: timeout after {timeout}s")
+                return []
+            except Exception as e:
+                logger.warning(f"   ⚠️ {name}: {str(e)[:50]}")
+                return []
+        
+        # Run all secondary sources in parallel
+        secondary_results = await asyncio.gather(
+            safe_fetch("Hacker News", self._search_hackernews(), 15),
+            safe_fetch("RemoteOK", self._search_remoteok(), 15),
+            safe_fetch("YC WAAS", self._search_yc_workatastartup(), 20),
+            safe_fetch("Wellfound", self._search_wellfound(), 20),
+            safe_fetch("WeWorkRemotely", self._search_weworkremotely(), 15),
+            safe_fetch("AI-Jobs.net", self._search_aijobs(), 15),
+            return_exceptions=True
+        )
+        
+        # Unpack results
+        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs = secondary_results
+        
+        # Handle any exceptions that slipped through
+        for name, jobs in [("hn", hn_jobs), ("remoteok", remoteok_jobs), 
+                           ("yc", yc_jobs), ("wellfound", wellfound_jobs),
+                           ("wwr", wwr_jobs), ("aijobs", ai_jobs)]:
+            if isinstance(jobs, Exception):
+                logger.warning(f"   ⚠️ {name} exception: {jobs}")
+                jobs = []
+            if isinstance(jobs, list):
+                all_jobs.extend(jobs)
+                source_counts[name] = len(jobs)
 
         # ==============================================================
         # 📊 SOURCE SUMMARY (visibility into what's working)

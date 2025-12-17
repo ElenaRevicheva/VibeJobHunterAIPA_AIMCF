@@ -8,11 +8,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Cache buster for Railway - forces fresh rebuild
-ENV BUILD_VERSION=4.1_PHASE1_NOCACHE
+ENV BUILD_VERSION=4.2_PLAYWRIGHT_ATS
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV BUILD_TIMESTAMP=20251123_213500
-ENV GIT_COMMIT=ca0320c
+ENV BUILD_TIMESTAMP=20251217_220000
+ENV GIT_COMMIT=d43c9e3
 ENV STRATEGIC_CAPABILITIES=true
 
 # Set environment variables
@@ -21,11 +21,27 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies (minimal for web scraping)
+# Install system dependencies (including Playwright browser requirements)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    # Playwright Chromium dependencies
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for better caching)
@@ -33,6 +49,10 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browsers (Chromium only to save space)
+RUN playwright install chromium && \
+    echo "✅ Playwright Chromium installed"
 
 # Copy application code (v4.0 AI CO-FOUNDER - Cache bust timestamp: 2025-11-23 21:30)
 # Force rebuild: Changing this comment breaks Docker cache layer
