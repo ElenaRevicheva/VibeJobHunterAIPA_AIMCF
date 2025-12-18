@@ -1,5 +1,11 @@
 """
-AI-powered job matching and scoring - GOLDEN ROADMAP v2 ALIGNED
+AI-powered job matching and scoring - PRODUCTION v3.0
+
+CHANGES (2024-12-18):
+✅ Added bias compensation (post-processing scores)
+✅ Evidence-based threshold tuning (60 auto-apply, 58 outreach, 55 review)
+✅ Enhanced logging for transparency
+✅ Multi-channel routing support
 
 Dimensional Scoring (from roadmap):
 - AI product ownership: 25 points
@@ -9,13 +15,7 @@ Dimensional Scoring (from roadmap):
 - Bilingual / global: 5 points
 - Web3 (optional): 10 points
 
-Total: 100 points
-Threshold: ≥75 to apply (Golden Roadmap v2)
-
-FIXED: December 2025
-- AI analysis now actually runs!
-- AI weight reduced to 25% (was 40%) to prevent over-penalization
-- Keyword matching now trusted more for high-scoring jobs
+Total: 100 points base → bias compensation → final routing
 """
 import logging
 import json
@@ -35,8 +35,8 @@ USE_AI_DEEP_ANALYSIS = os.getenv("USE_AI_JOB_ANALYSIS", "true").lower() == "true
 
 class JobMatcher:
     """
-    Match jobs to Elena's profile using DIMENSIONAL SCORING
-    Based on Golden Roadmap v2 criteria
+    Match jobs to Elena's profile using DIMENSIONAL SCORING + BIAS COMPENSATION
+    Based on Golden Roadmap v2 criteria with production tuning
     """
     
     # ─────────────────────────────────────────────────────────
@@ -59,10 +59,11 @@ class JobMatcher:
             "high": ["ai product", "llm product", "ai engineer", "ml engineer", "ai solutions",
                      "machine learning", "nlp", "computer vision", "ai infrastructure",
                      "ai platform", "llm engineer", "ai systems", "solutions architect",
-                     "applied ai", "ai researcher"],
+                     "applied ai", "ai researcher", "ai developer productivity", 
+                     "developer productivity", "ai tooling", "llm tooling"],
             "medium": ["ai", "ml", "gpt", "claude", "openai", "anthropic", "llm", 
                        "neural", "deep learning", "transformer", "embedding", "langchain",
-                       "rag", "agent", "chatbot"],
+                       "rag", "agent", "chatbot", "developer experience", "dx"],
             "low": ["data science", "analytics", "automation", "data engineer"]
         },
         "zero_to_one_autonomy": {
@@ -77,7 +78,8 @@ class JobMatcher:
         },
         "fullstack_infra": {
             "high": ["full-stack", "fullstack", "platform engineer", "infrastructure",
-                     "backend", "frontend", "devops", "cloud architect", "solutions architect"],
+                     "backend", "frontend", "devops", "cloud architect", "solutions architect",
+                     "distributed systems"],
             "medium": ["python", "typescript", "react", "node", "fastapi", "docker",
                        "kubernetes", "aws", "gcp", "postgresql", "api", "microservices",
                        "rest", "graphql"],
@@ -120,15 +122,133 @@ class JobMatcher:
             self.ai = None
         self.founding_scorer = FoundingEngineerScorer()
     
+    def apply_bias_compensation(self, base_score: float, job: JobPosting) -> Tuple[float, List[str]]:
+        """
+        Post-process score with evidence-based adjustments
+        
+        CRITICAL: This is ADDITIVE ONLY - does not change base scoring logic
+        Ensures no regression, auditable adjustments, reversible tuning
+        
+        Returns: (adjusted_score, list of adjustments made)
+        """
+        score = base_score
+        adjustments = []
+        
+        # Extract job data safely
+        title = (getattr(job, 'title', '') or '').lower()
+        description = (getattr(job, 'description', '') or '').lower()
+        company_size = getattr(job, 'company_size', '')
+        source = getattr(job, 'source', '')
+        company = getattr(job, 'company', '')
+        
+        # ──────────────────────────────────────────────────────
+        # 1. SENIOR ROLE BONUS (+4)
+        # Rationale: Elena has 10y experience, CEO background
+        # ──────────────────────────────────────────────────────
+        senior_keywords = ["staff", "principal", "senior", "lead", "head of", "director"]
+        if any(kw in title for kw in senior_keywords):
+            score += 4
+            adjustments.append("+4_senior_role")
+        
+        # ──────────────────────────────────────────────────────
+        # 2. AI DEVELOPER PRODUCTIVITY BONUS (+5)
+        # Rationale: Elena's core expertise (5 AIPAs, dev tools)
+        # ──────────────────────────────────────────────────────
+        productivity_keywords = [
+            "ai developer productivity",
+            "developer productivity",
+            "internal ai",
+            "dx",
+            "developer experience",
+            "llm tooling",
+            "ai tooling",
+            "agents",
+            "automation platform",
+            "developer tools",
+            "ai platform",
+            "internal tools"
+        ]
+        if any(kw in description for kw in productivity_keywords):
+            score += 5
+            adjustments.append("+5_ai_productivity")
+        
+        # ──────────────────────────────────────────────────────
+        # 3. SMALL COMPANY BONUS (+3)
+        # Rationale: Founding engineer targets (1-200 people)
+        # ──────────────────────────────────────────────────────
+        if company_size in ["1-10", "11-50", "51-200"]:
+            score += 3
+            adjustments.append("+3_small_company")
+        
+        # Alternative: Check for startup indicators in description
+        startup_indicators = ["seed", "series a", "early stage", "startup", "founding team"]
+        if not company_size and any(ind in description for ind in startup_indicators):
+            score += 3
+            adjustments.append("+3_startup_stage")
+        
+        # ──────────────────────────────────────────────────────
+        # 4. HIGH-QUALITY SOURCE BONUS (+3)
+        # Rationale: YC/HN have better signal than generic boards
+        # ──────────────────────────────────────────────────────
+        quality_sources = ["yc_workatastartup", "hackernews", "hn"]
+        if source in quality_sources or any(qs in source.lower() for qs in quality_sources):
+            score += 3
+            adjustments.append("+3_quality_source")
+        
+        # ──────────────────────────────────────────────────────
+        # 5. DISTRIBUTED SYSTEMS / INFRA BONUS (+3)
+        # Rationale: Elena's background (scalability, architecture)
+        # ──────────────────────────────────────────────────────
+        infra_keywords = ["distributed systems", "infrastructure", "platform", "scalability"]
+        if any(kw in description for kw in infra_keywords):
+            score += 3
+            adjustments.append("+3_infra_platform")
+        
+        # ──────────────────────────────────────────────────────
+        # 6. YC COMPANY BONUS (+2)
+        # Rationale: YC companies are pre-vetted, high-growth
+        # ──────────────────────────────────────────────────────
+        yc_companies = [
+            "anthropic", "stripe", "databricks", "retool", "webflow",
+            "airtable", "brex", "mercury", "ramp", "vanta", "deel",
+            "vercel", "linear", "posthog", "supabase"
+        ]
+        if company.lower() in yc_companies:
+            score += 2
+            adjustments.append("+2_yc_company")
+        
+        # Cap at 100
+        score = min(score, 100)
+        
+        # ──────────────────────────────────────────────────────
+        # TRANSPARENT LOGGING
+        # ──────────────────────────────────────────────────────
+        if adjustments:
+            adjustment_summary = ", ".join(adjustments)
+            total_bonus = sum([int(adj.split('_')[0].replace('+', '')) for adj in adjustments])
+            logger.info(
+                f"🔧 [{company}] Score adjusted: "
+                f"{base_score:.0f} → {score:.0f} (+{total_bonus}) "
+                f"[{adjustment_summary}]"
+            )
+        
+        return score, adjustments
+    
     def calculate_match_score(self, profile: Profile, job: JobPosting) -> Tuple[float, List[str]]:
         """
-        Calculate match score using HYBRID approach:
+        Calculate match score using HYBRID approach + BIAS COMPENSATION:
         1. Fast keyword-based dimensional scoring (always runs)
         2. Deep AI analysis via Claude (for jobs scoring 50+)
+        3. Post-process with bias compensation (evidence-based adjustments)
         
-        Returns: (score 0-100, list of reasons)
+        Returns: (final_score 0-100, list of reasons)
         """
+        company = getattr(job, 'company', 'Unknown')
+        title = getattr(job, 'title', '')
+        
+        # ══════════════════════════════════════════════════════
         # PHASE 1: Fast dimensional scoring (keyword-based)
+        # ══════════════════════════════════════════════════════
         dimensional_score, dimensional_reasons = self._dimensional_score(job)
         
         # Get founding engineer bonus
@@ -148,7 +268,9 @@ class JobMatcher:
         preliminary_score = BASE_SCORE + (dimensional_bonus * 0.8) + founding_contribution
         preliminary_score = min(preliminary_score, 100)
         
+        # ══════════════════════════════════════════════════════
         # PHASE 2: Deep AI analysis (only for promising jobs)
+        # ══════════════════════════════════════════════════════
         ai_score = None
         ai_reasons = []
         
@@ -160,14 +282,13 @@ class JobMatcher:
                     ai_reasons = ai_result.get('reasons', [])
                     
                     # Log AI analysis
-                    logger.info(f"🧠 AI Analysis for {job.company}: {ai_score}/100")
+                    logger.info(f"🧠 AI Analysis for {company}: {ai_score}/100")
             except Exception as e:
-                logger.warning(f"AI analysis failed: {e}")
+                logger.warning(f"AI analysis failed for {company}: {e}")
         
+        # ══════════════════════════════════════════════════════
         # PHASE 3: Combine scores - CALIBRATED FOR REAL RESULTS
-        # FIX: Reduced AI weight from 40% to 25% to trust keyword matching more
-        # Problem: AI was giving 10-45 scores, tanking 70+ keyword matches
-        # Solution: Trust keywords (75%) more than AI (25%) for high-scoring jobs
+        # ══════════════════════════════════════════════════════
         if ai_score is not None:
             # AI floor: Prevent AI from completely tanking a good keyword match
             ai_score_adjusted = max(ai_score, 50)  # Raised floor from 35 to 50
@@ -187,13 +308,38 @@ class JobMatcher:
         
         combined_score = min(combined_score, 100)
         
-        # Flag high-priority jobs
-        if combined_score >= 75:
-            all_reasons.insert(0, "🚨 HIGH PRIORITY - APPLY IMMEDIATELY!")
-        elif combined_score >= 65:
-            all_reasons.insert(0, "⭐ STRONG MATCH")
+        # ══════════════════════════════════════════════════════
+        # PHASE 4: BIAS COMPENSATION (NEW - PRODUCTION v3.0)
+        # ══════════════════════════════════════════════════════
+        final_score, adjustments = self.apply_bias_compensation(combined_score, job)
         
-        return combined_score, all_reasons
+        # Add adjustment notes to reasons if significant
+        if adjustments and final_score >= 60:
+            bonus = final_score - combined_score
+            all_reasons.insert(0, f"🎯 Adjusted +{bonus:.0f} pts for Elena's profile fit")
+        
+        # ══════════════════════════════════════════════════════
+        # PHASE 5: Priority flagging
+        # ══════════════════════════════════════════════════════
+        if final_score >= 75:
+            all_reasons.insert(0, "🚨 HIGH PRIORITY - APPLY IMMEDIATELY!")
+        elif final_score >= 65:
+            all_reasons.insert(0, "⭐ STRONG MATCH - AUTO-APPLY")
+        elif final_score >= 60:
+            all_reasons.insert(0, "✅ GOOD MATCH - AUTO-APPLY")
+        elif final_score >= 58:
+            all_reasons.insert(0, "🤝 OUTREACH CANDIDATE - Find founder")
+        elif final_score >= 55:
+            all_reasons.insert(0, "📋 REVIEW QUEUE - Human decision")
+        
+        # Final comprehensive log
+        logger.info(
+            f"📊 [{company}] FINAL SCORE: {final_score:.0f} "
+            f"(base: {combined_score:.0f}, prelim: {preliminary_score:.0f}) "
+            f"| {title[:50]}"
+        )
+        
+        return final_score, all_reasons
     
     def _ai_deep_analysis(self, profile: Profile, job: JobPosting) -> Optional[Dict]:
         """
