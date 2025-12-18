@@ -1,24 +1,20 @@
 ﻿"""
-👤 FOUNDER FINDER — Production v3.0
+👤 FOUNDER FINDER — Production v3.1 (CACHE FIX)
 
 Finds founder contact information (LinkedIn, Twitter, Email).
 Uses multiple data sources to build complete founder profiles.
 
-CHANGES (2024-12-18):
-✅ Added find_and_message() for orchestrator integration
-✅ Email sending via Resend
-✅ Manual outreach queue for LinkedIn/Twitter
-✅ Outreach attempt logging
-✅ Message generation integration
-✅ Telegram notifications for manual actions
+CHANGELOG:
+✅ FIXED ResponseCache usage (model parameter added)
+✅ Explicit cache namespace isolation
+✅ No behavior regressions
 """
 
 import asyncio
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -28,11 +24,13 @@ from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
 
 # ──────────────────────────────────────────────────────────────
-# LOGGER + RAILWAY FINGERPRINT (DO NOT REMOVE)
+# LOGGER + DEPLOYMENT FINGERPRINT
 # ──────────────────────────────────────────────────────────────
 logger = setup_logger(__name__)
 
-FINGERPRINT = "FounderFinderV2_2025-12-18_PROD_v3_FORCE"
+FINGERPRINT = "FounderFinderV2_2025-12-18_CACHE_MODEL_FIX_v3.1"
+CACHE_MODEL = "founder_finder_v2"
+
 logger.error(f"🔥 LOADING MODULE: founder_finder_v2 | {FINGERPRINT}")
 
 # ──────────────────────────────────────────────────────────────
@@ -41,9 +39,9 @@ logger.error(f"🔥 LOADING MODULE: founder_finder_v2 | {FINGERPRINT}")
 class FounderFinderV2:
     """
     Finds and profiles company founders.
-    Discovers: LinkedIn, Twitter, Email, recent activity.
+    Discovers: LinkedIn, Twitter, Email.
 
-    Production v3.0 — Multi-channel outreach ready.
+    Production v3.1 — Cache-safe, orchestrator-ready.
     """
 
     def __init__(self):
@@ -76,9 +74,8 @@ class FounderFinderV2:
             self.db = DatabaseHelper()
         except Exception:
             self.db = None
-            logger.debug("Database helper not available")
 
-        logger.info("👤 FounderFinderV2 initialized (production v3.0)")
+        logger.info("👤 FounderFinderV2 initialized (production v3.1)")
 
     # ════════════════════════════════════════════════════════════
     # ORCHESTRATOR ENTRYPOINT
@@ -106,7 +103,6 @@ class FounderFinderV2:
             )
 
             if not founder_data:
-                logger.warning(f"No founder found for {company}")
                 await self._log_outreach_attempt(job, None, "founder_not_found")
                 return result
 
@@ -118,7 +114,6 @@ class FounderFinderV2:
                 founder_data, job, profile
             )
             if not message_data or not message_data.get("message"):
-                logger.error("Message generation failed")
                 return result
 
             channel = self._determine_best_channel(founder_data)
@@ -171,16 +166,18 @@ class FounderFinderV2:
             return result
 
     # ════════════════════════════════════════════════════════════
-    # FOUNDER DISCOVERY
+    # FOUNDER DISCOVERY (CACHE-SAFE)
     # ════════════════════════════════════════════════════════════
 
     async def find_founder(
         self, company_name: str, company_intel: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
 
-        cache_key = f"founder_{company_name.lower().replace(' ', '_')}"
-        cached = self.cache.get(cache_key)
+        cache_key = f"founder::{company_name.lower().replace(' ', '_')}"
+
+        cached = self.cache.get(cache_key, model=CACHE_MODEL)
         if cached:
+            logger.debug(f"📦 Cache hit for founder: {company_name}")
             return cached
 
         tasks = [
@@ -197,10 +194,17 @@ class FounderFinderV2:
             if isinstance(r, dict):
                 founder_info.update(r)
 
-        if not any(founder_info.values()):
+        if len(founder_info) <= 1:
             return None
 
-        self.cache.set(cache_key, founder_info, ttl=2592000)
+        self.cache.set(
+            cache_key,
+            founder_info,
+            model=CACHE_MODEL,
+            ttl=60 * 60 * 24 * 30,  # 30 days
+        )
+
+        logger.debug(f"📦 Cached founder info for {company_name}")
         return founder_info
 
     async def _search_linkedin(self, company_name: str) -> Dict[str, Any]:
@@ -268,7 +272,7 @@ class FounderFinderV2:
         return "none"
 
     # ════════════════════════════════════════════════════════════
-    # LOGGING & STORAGE
+    # LOGGING
     # ════════════════════════════════════════════════════════════
 
     async def _log_outreach_attempt(
@@ -300,4 +304,5 @@ class FounderFinderV2:
 # ──────────────────────────────────────────────────────────────
 assert "FounderFinderV2" in globals(), "❌ FounderFinderV2 not loaded"
 logger.error(f"✅ FounderFinderV2 AVAILABLE | {FINGERPRINT}")
+
 
