@@ -12,7 +12,10 @@ Dimensional Scoring (from roadmap):
 Total: 100 points
 Threshold: ≥75 to apply (Golden Roadmap v2)
 
-FIXED: December 2025 - AI analysis now actually runs!
+FIXED: December 2025
+- AI analysis now actually runs!
+- AI weight reduced to 25% (was 40%) to prevent over-penalization
+- Keyword matching now trusted more for high-scoring jobs
 """
 import logging
 import json
@@ -146,7 +149,6 @@ class JobMatcher:
         preliminary_score = min(preliminary_score, 100)
         
         # PHASE 2: Deep AI analysis (only for promising jobs)
-        # This is the FIX - AI analysis now actually runs!
         ai_score = None
         ai_reasons = []
         
@@ -163,20 +165,20 @@ class JobMatcher:
                 logger.warning(f"AI analysis failed: {e}")
         
         # PHASE 3: Combine scores - CALIBRATED FOR REAL RESULTS
-        # Problem: AI was giving 10-25 scores, tanking 70+ keyword matches
-        # Fix: Balance weights and add AI floor to prevent over-penalization
+        # FIX: Reduced AI weight from 40% to 25% to trust keyword matching more
+        # Problem: AI was giving 10-45 scores, tanking 70+ keyword matches
+        # Solution: Trust keywords (75%) more than AI (25%) for high-scoring jobs
         if ai_score is not None:
             # AI floor: Prevent AI from completely tanking a good keyword match
-            # If keywords say 70+ and AI says 15, something's wrong with AI prompt
-            ai_score_adjusted = max(ai_score, 35)  # Floor at 35
+            ai_score_adjusted = max(ai_score, 50)  # Raised floor from 35 to 50
             
-            # If keyword score is strong (65+), trust it more
+            # Trust keyword matching more for strong preliminary scores
             if preliminary_score >= 65:
-                # 60% keyword, 40% AI for strong keyword matches
-                combined_score = (preliminary_score * 0.6) + (ai_score_adjusted * 0.4)
+                # 75% keyword, 25% AI for strong keyword matches
+                combined_score = (preliminary_score * 0.75) + (ai_score_adjusted * 0.25)
             else:
-                # 50/50 for weaker keyword matches
-                combined_score = (preliminary_score * 0.5) + (ai_score_adjusted * 0.5)
+                # 65% keyword, 35% AI for weaker keyword matches
+                combined_score = (preliminary_score * 0.65) + (ai_score_adjusted * 0.35)
             
             all_reasons = ai_reasons[:3] + dimensional_reasons[:2] + strengths[:2]
         else:
@@ -195,7 +197,7 @@ class JobMatcher:
     
     def _ai_deep_analysis(self, profile: Profile, job: JobPosting) -> Optional[Dict]:
         """
-        Deep AI analysis using Claude - THE FIX!
+        Deep AI analysis using Claude
         
         This actually runs Claude to analyze the job posting deeply.
         Only called for jobs that passed preliminary screening (score >= 50).
@@ -235,8 +237,8 @@ Description: {desc_truncated}
 Requirements:
 {req_text}
 
-SCORING CRITERIA (start at 50, adjust up/down):
-BASE: 50 (neutral starting point)
+SCORING CRITERIA (start at 60 for AI roles, adjust):
+BASE: 60 (for AI/ML roles) or 50 (for other engineering)
 
 POSITIVE (add points):
 +25: Founding Engineer / First Engineer / 0-1 role
@@ -249,14 +251,15 @@ POSITIVE (add points):
 +5: Remote-friendly
 +5: Web3 + AI combo
 
-NEGATIVE (subtract points):
--30: Big corp (Google, Meta, Microsoft, Amazon, Databricks, Snowflake)
--20: Junior/Entry level
--15: Pure research / PhD required
+NEGATIVE (subtract points - BE CONSERVATIVE):
+-10: Big corp (Google, Meta, Microsoft, Amazon, Databricks) - they still pay well!
+-15: Junior/Entry level
+-10: Pure research / PhD required
 -10: Maintenance-focused role
--10: Large engineering team (50+ engineers)
+-5: Large engineering team (100+ engineers)
 
-Be generous with AI/startup roles. Elena has 11 AI products shipped.
+IMPORTANT: Elena has 11 AI products shipped. Be generous with AI/startup roles.
+She's overqualified for most roles, not underqualified.
 
 Return ONLY valid JSON (no markdown):
 {{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""
