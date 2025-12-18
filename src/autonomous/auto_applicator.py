@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 # Feature flag for ATS submission
 ATS_SUBMISSION_ENABLED = os.getenv("ATS_SUBMISSION_ENABLED", "true").lower() == "true"
 
+# === Application Decision Thresholds ===
+AUTO_APPLY_SCORE = 65      # High-confidence auto-apply
+REVIEW_SCORE = 55          # Queue for review / soft apply
+
 # ELENA'S ACTUAL BACKGROUND (from resume)
 ELENA_BACKGROUND = """
 ABOUT ELENA REVICHEVA:
@@ -463,44 +467,99 @@ Elena Revicheva
         jobs: List[Dict[str, Any]], 
         max_applications: int = 3
     ) -> Dict[str, Any]:
-        """Process multiple jobs in batch"""
+        """Process multiple jobs in batch with intelligent threshold-based decisions"""
         logger.info(f"🚀 Processing {len(jobs)} jobs (max {max_applications})")
         
         results = []
+        auto_applied = 0
+        queued_for_review = 0
+        skipped = 0
+        
         for i, job in enumerate(jobs[:max_applications], 1):
-            logger.info(f"\n📍 Job {i}/{min(len(jobs), max_applications)}")
+            score = job.get('match_score', 0)
             
-            result = await self.process_job(job)
-            results.append(result)
+            # ═══════════════════════════════════════════════
+            # THRESHOLD-BASED DECISION LOGIC
+            # ═══════════════════════════════════════════════
             
-            # Rate limiting
-            if i < min(len(jobs), max_applications):
+            if score >= AUTO_APPLY_SCORE:
+                # HIGH CONFIDENCE: Auto-apply immediately
+                logger.info(f"\n📍 Job {i}/{min(len(jobs), max_applications)} - 🚀 AUTO-APPLY (score: {score})")
+                result = await self.process_job(job)
+                result['decision'] = 'auto_apply'
+                results.append(result)
+                auto_applied += 1
+                
+            elif score >= REVIEW_SCORE:
+                # MEDIUM CONFIDENCE: Queue for human review
+                logger.info(f"\n📍 Job {i}/{min(len(jobs), max_applications)} - 📋 REVIEW QUEUE (score: {score})")
+                
+                # Generate materials but don't send yet
+                result = await self.process_job(job)
+                result['decision'] = 'review'
+                result['needs_human_review'] = True
+                results.append(result)
+                queued_for_review += 1
+                
+            else:
+                # LOW CONFIDENCE: Skip
+                logger.info(f"\n📍 Job {i}/{min(len(jobs), max_applications)} - ⏭️  SKIP (score: {score} < {REVIEW_SCORE})")
+                result = {
+                    'company': job.get('company', 'Unknown'),
+                    'title': job.get('title', 'Unknown'),
+                    'match_score': score,
+                    'decision': 'skip',
+                    'reason': f'Score below review threshold ({REVIEW_SCORE})',
+                    'timestamp': datetime.now().isoformat()
+                }
+                results.append(result)
+                skipped += 1
+                continue
+            
+            # Rate limiting (only for jobs we actually processed)
+            if score >= REVIEW_SCORE and i < min(len(jobs), max_applications):
                 await asyncio.sleep(5)
         
-        # Summary
+        # ═══════════════════════════════════════════════
+        # SUMMARY
+        # ═══════════════════════════════════════════════
         summary = {
             'total_jobs': len(jobs),
             'processed': len(results),
+            'auto_applied': auto_applied,
+            'queued_for_review': queued_for_review,
+            'skipped': skipped,
             'materials_generated': sum(1 for r in results if r.get('materials_generated')),
             'emails_sent': sum(1 for r in results if r.get('email_sent')),
+            'ats_submitted': sum(1 for r in results if r.get('ats_submitted')),
             'db_tracked': sum(1 for r in results if r.get('db_tracked')),
             'errors': sum(1 for r in results if 'error' in r),
+            'thresholds': {
+                'auto_apply': AUTO_APPLY_SCORE,
+                'review': REVIEW_SCORE
+            },
             'results': results,
             'timestamp': datetime.now().isoformat()
         }
         
         # Log summary
-        logger.info(f"\n📊 BATCH COMPLETE:")
+        logger.info(f"\n{'═'*60}")
+        logger.info(f"📊 BATCH COMPLETE:")
         logger.info(f"  Jobs processed: {summary['processed']}/{summary['total_jobs']}")
-        logger.info(f"  Materials: {summary['materials_generated']}")
-        logger.info(f"  Emails sent: {summary['emails_sent']}")
-        logger.info(f"  DB tracked: {summary['db_tracked']}")
+        logger.info(f"  🚀 Auto-applied: {auto_applied} (score ≥ {AUTO_APPLY_SCORE})")
+        logger.info(f"  📋 Review queue: {queued_for_review} (score {REVIEW_SCORE}-{AUTO_APPLY_SCORE-1})")
+        logger.info(f"  ⏭️  Skipped: {skipped} (score < {REVIEW_SCORE})")
+        logger.info(f"  📝 Materials: {summary['materials_generated']}")
+        logger.info(f"  📧 Emails sent: {summary['emails_sent']}")
+        logger.info(f"  🤖 ATS submitted: {summary['ats_submitted']}")
+        logger.info(f"  💾 DB tracked: {summary['db_tracked']}")
+        logger.info(f"{'═'*60}")
         
         # Save summary
         summary_file = self.output_dir / f"summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(summary_file, 'w') as f:
             json.dump(summary, f, indent=2)
-        logger.info(f"  Summary: {summary_file.name}")
+        logger.info(f"📄 Summary saved: {summary_file.name}")
         
         return summary
 
@@ -510,30 +569,51 @@ AutoApplicator = AutoApplicatorV2
 
 
 async def test_applicator():
-    """Test with a sample AI Engineer job"""
-    sample_job = {
-        'company': 'Anthropic',
-        'title': 'AI Engineer',
-        'description': '''We're looking for an AI Engineer to help build Claude. 
-        You'll work on LLM integration, prompt engineering, and AI product development.
-        Experience with Python, React, and AI APIs required.''',
-        'url': 'https://anthropic.com/careers',
-        'match_score': 95,
-        'source': 'greenhouse'
-    }
+    """Test with sample AI Engineer jobs at different score levels"""
+    sample_jobs = [
+        {
+            'company': 'Anthropic',
+            'title': 'AI Engineer',
+            'description': '''We're looking for an AI Engineer to help build Claude. 
+            You'll work on LLM integration, prompt engineering, and AI product development.
+            Experience with Python, React, and AI APIs required.''',
+            'url': 'https://anthropic.com/careers',
+            'match_score': 95,  # Should AUTO-APPLY
+            'source': 'greenhouse'
+        },
+        {
+            'company': 'YC Startup',
+            'title': 'Founding Engineer',
+            'description': '''Early-stage startup building AI tools. Looking for a full-stack
+            engineer who can ship fast and wear many hats.''',
+            'url': 'https://example.com/job',
+            'match_score': 60,  # Should go to REVIEW
+            'source': 'yc_workatastartup'
+        },
+        {
+            'company': 'BigCorp',
+            'title': 'Junior Developer',
+            'description': '''Entry-level position maintaining legacy Java systems.
+            No AI experience required.''',
+            'url': 'https://example.com/job2',
+            'match_score': 35,  # Should SKIP
+            'source': 'linkedin'
+        }
+    ]
     
     applicator = AutoApplicatorV2(profile=None)
-    result = await applicator.process_job(sample_job)
+    summary = await applicator.batch_process_jobs(sample_jobs, max_applications=3)
     
-    print("\n✅ TEST COMPLETE")
-    print(f"Materials generated: {result.get('materials_generated')}")
-    print(f"Cover letter: {result.get('cover_letter_path')}")
-    
-    if result.get('cover_letter_path'):
-        with open(result['cover_letter_path']) as f:
-            print("\n" + "="*80)
-            print(f.read())
-            print("="*80)
+    print("\n" + "="*80)
+    print("✅ TEST COMPLETE")
+    print("="*80)
+    print(f"\n📊 Results:")
+    print(f"  Auto-applied: {summary['auto_applied']}")
+    print(f"  Review queue: {summary['queued_for_review']}")
+    print(f"  Skipped: {summary['skipped']}")
+    print(f"\n💡 Thresholds used:")
+    print(f"  AUTO_APPLY_SCORE: {AUTO_APPLY_SCORE}")
+    print(f"  REVIEW_SCORE: {REVIEW_SCORE}")
 
 
 if __name__ == '__main__':
