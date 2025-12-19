@@ -1,15 +1,135 @@
 """
 Email Integration Service for VibeJobHunter
 Supports multiple providers: Resend, SendGrid, Gmail API
+
+🚨 PHASE 1: EMERGENCY FIX + DUAL-TRACK FOUNDATION
+- Blocks careers@ emails from Resend (stops bouncing)
+- Validates emails before sending
+- Adds dual-track routing logic
+- Preserves all existing functionality
 """
 
 import os
 from typing import Optional, Dict, List
 from datetime import datetime
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# EMERGENCY FIX: EMAIL VALIDATION RULES
+# =============================================================================
+
+BLOCKED_EMAIL_PATTERNS = [
+    'careers@',
+    'jobs@',
+    'hr@',
+    'recruiting@',
+    'talent@',
+    'apply@',
+    'applications@'
+]
+
+ALLOWED_FOUNDER_PATTERNS = [
+    r'^[a-z]+@',              # firstname@company.com
+    r'^[a-z]+\.[a-z]+@',      # firstname.lastname@company.com
+    r'^founder@',
+    r'^ceo@',
+    r'^hello@',               # Only for small startups
+    r'^contact@'              # Only if verified human-monitored
+]
+
+
+def validate_email_for_resend(email: str) -> Dict:
+    """
+    🚨 CRITICAL: Validates if email should be sent via Resend
+    
+    Returns:
+        {
+            'allowed': bool,
+            'reason': str,
+            'email_type': 'ats' | 'founder' | 'blocked',
+            'suggested_action': str
+        }
+    """
+    email_lower = email.lower()
+    
+    # Check 1: Block ATS/generic emails
+    for blocked_pattern in BLOCKED_EMAIL_PATTERNS:
+        if blocked_pattern in email_lower:
+            logger.warning(f"🚫 BLOCKED: {email} matches pattern '{blocked_pattern}'")
+            logger.info(f"   → This should go through ATS submission instead")
+            return {
+                'allowed': False,
+                'reason': f'Blocked pattern: {blocked_pattern}',
+                'email_type': 'ats',
+                'suggested_action': 'use_ats_api_or_portal',
+                'email': email
+            }
+    
+    # Check 2: Validate founder/personal email patterns
+    is_founder_pattern = any(
+        re.match(pattern, email_lower) 
+        for pattern in ALLOWED_FOUNDER_PATTERNS
+    )
+    
+    if not is_founder_pattern:
+        logger.warning(f"⚠️ SUSPICIOUS: {email} doesn't match founder patterns")
+        logger.info(f"   → Verify this is a real person's email")
+        return {
+            'allowed': False,
+            'reason': 'Does not match founder/executive pattern',
+            'email_type': 'unknown',
+            'suggested_action': 'verify_email_is_personal',
+            'email': email
+        }
+    
+    # Passed validation
+    logger.info(f"✅ VALIDATED: {email} is allowed for Resend")
+    return {
+        'allowed': True,
+        'reason': 'Valid founder/executive email pattern',
+        'email_type': 'founder',
+        'suggested_action': 'proceed_with_founder_outreach',
+        'email': email
+    }
+
+
+def should_use_dual_track(job_data: Dict) -> bool:
+    """
+    Determines if job qualifies for dual-track (ATS + Founder)
+    
+    Args:
+        job_data: Dict with keys: score, seniority, company_size, founder_email
+    
+    Returns:
+        bool: True if job should use dual-track approach
+    """
+    criteria = {
+        'high_score': job_data.get('score', 0) >= 65,
+        'senior_role': job_data.get('seniority') in ['senior', 'staff', 'principal', 'lead', 'director', 'vp'],
+        'has_founder_email': job_data.get('founder_email') is not None,
+        'email_verified': job_data.get('founder_email_verified', False),
+        'not_too_big': job_data.get('company_size', 0) < 5000
+    }
+    
+    # All criteria must be met
+    qualifies = all(criteria.values())
+    
+    if qualifies:
+        logger.info(f"✅ Job qualifies for DUAL-TRACK approach")
+    else:
+        failed = [k for k, v in criteria.items() if not v]
+        logger.info(f"ℹ️ Job uses ATS-ONLY (failed: {', '.join(failed)})")
+    
+    return qualifies
+
+
+# =============================================================================
+# EMAIL SERVICE CLASS
+# =============================================================================
 
 class EmailService:
     """
@@ -19,6 +139,8 @@ class EmailService:
     1. Resend (recommended - easiest to set up)
     2. SendGrid (enterprise option)
     3. Gmail API (requires OAuth setup)
+    
+    🚨 NEW: Built-in validation to prevent careers@ emails
     """
     
     def __init__(self, provider: str = "resend"):
@@ -93,10 +215,13 @@ class EmailService:
         body: str,
         from_email: Optional[str] = None,
         html: bool = True,
-        attachments: Optional[List[Dict]] = None
+        attachments: Optional[List[Dict]] = None,
+        skip_validation: bool = False  # 🆕 Emergency override
     ) -> Dict:
         """
         Send an email using configured provider
+        
+        🚨 NEW: Validates recipient email before sending
         
         Args:
             to: Recipient email
@@ -105,10 +230,27 @@ class EmailService:
             from_email: Sender email (defaults to configured sender)
             html: Whether body is HTML
             attachments: List of attachment dicts
+            skip_validation: Skip email validation (use carefully!)
         
         Returns:
-            Dict with 'success', 'message_id', and optional 'error'
+            Dict with 'success', 'message_id', 'validation', and optional 'error'
         """
+        # 🚨 CRITICAL: Validate email BEFORE sending
+        if not skip_validation:
+            validation = validate_email_for_resend(to)
+            
+            if not validation['allowed']:
+                logger.error(f"🚫 Email send BLOCKED: {to}")
+                logger.error(f"   Reason: {validation['reason']}")
+                logger.error(f"   Suggested action: {validation['suggested_action']}")
+                
+                return {
+                    'success': False,
+                    'blocked': True,
+                    'validation': validation,
+                    'error': f"Email blocked: {validation['reason']}"
+                }
+        
         if not self.client:
             return {
                 'success': False,
@@ -117,11 +259,17 @@ class EmailService:
         
         try:
             if self.provider == "resend":
-                return await self._send_resend(to, subject, body, from_email, html, attachments)
+                result = await self._send_resend(to, subject, body, from_email, html, attachments)
             elif self.provider == "sendgrid":
-                return await self._send_sendgrid(to, subject, body, from_email, html, attachments)
+                result = await self._send_sendgrid(to, subject, body, from_email, html, attachments)
             elif self.provider == "gmail":
-                return await self._send_gmail(to, subject, body, html, attachments)
+                result = await self._send_gmail(to, subject, body, html, attachments)
+            
+            # Add validation info to result
+            if not skip_validation:
+                result['validation'] = validation
+            
+            return result
         
         except Exception as e:
             logger.error(f"❌ Email send failed: {e}")
@@ -266,15 +414,39 @@ class EmailService:
     ) -> Dict:
         """
         Send a job application email with standard formatting
-        🔧 FIXED: No f-string with backslashes
+        
+        🚨 NEW: Validates recipient before sending
+        ⚠️ IMPORTANT: This should ONLY be used for founder outreach emails,
+                      NOT for ATS submissions (which should use proper APIs)
         """
+        
+        # 🚨 VALIDATE: Check if this is an ATS email that should be blocked
+        validation = validate_email_for_resend(to)
+        
+        if not validation['allowed']:
+            logger.error(f"🚫 Application email BLOCKED to {to}")
+            logger.error(f"   Company: {company}, Role: {role}")
+            logger.error(f"   Reason: {validation['reason']}")
+            logger.info(f"   ✅ Use ATS submission API instead")
+            
+            return {
+                'success': False,
+                'blocked': True,
+                'validation': validation,
+                'company': company,
+                'role': role,
+                'error': f"Cannot send to {validation['email_type']} address via Resend"
+            }
+        
+        # Passed validation - proceed with sending
+        logger.info(f"✅ Sending application to FOUNDER email: {to}")
         
         subject = f"Application for {role} at {company}"
         
-        # 🔧 FIX: Convert newlines to <br> tags OUTSIDE f-string
+        # Convert newlines to <br> tags OUTSIDE f-string
         cover_letter_html = cover_letter.replace('\n', '<br>')
         
-        # 🔧 FIX: Build HTML template without backslashes in f-string
+        # Build HTML template without backslashes in f-string
         html_body = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -311,7 +483,8 @@ class EmailService:
             subject=subject,
             body=html_body,
             html=True,
-            attachments=attachments
+            attachments=attachments,
+            skip_validation=True  # Already validated above
         )
         
         if result['success']:
@@ -354,6 +527,38 @@ def create_email_service(provider: str = None) -> EmailService:
 if __name__ == '__main__':
     import asyncio
     
+    async def test_email_validation():
+        """Test email validation logic"""
+        print("\n🧪 Testing email validation...")
+        print("=" * 60)
+        
+        test_cases = [
+            # Should BLOCK (ATS emails)
+            ('careers@webflow.com', False, 'ats'),
+            ('jobs@gitlab.com', False, 'ats'),
+            ('hr@vercel.com', False, 'ats'),
+            ('recruiting@stripe.com', False, 'ats'),
+            
+            # Should ALLOW (founder/personal emails)
+            ('sid@gitlab.com', True, 'founder'),
+            ('guillermo@vercel.com', True, 'founder'),
+            ('elena@company.com', True, 'founder'),
+            ('john.doe@startup.com', True, 'founder'),
+            ('hello@smallstartup.com', True, 'founder'),
+        ]
+        
+        print("\n📋 Test Results:")
+        for email, should_allow, expected_type in test_cases:
+            result = validate_email_for_resend(email)
+            
+            status = "✅" if result['allowed'] == should_allow else "❌"
+            print(f"{status} {email:30} | Allowed: {result['allowed']:5} | Type: {result['email_type']}")
+            
+            if result['allowed'] != should_allow:
+                print(f"   ERROR: Expected allowed={should_allow}, got {result['allowed']}")
+        
+        print("=" * 60)
+    
     async def test_email_service():
         """Test email service configuration"""
         print("\n🧪 Testing email service...")
@@ -365,14 +570,27 @@ if __name__ == '__main__':
             print("✅ Email service ready!")
             print(f"📧 Provider: {service.provider}")
             
-            # Test sending (commented out to avoid accidental sends)
-            # result = await service.send_email(
-            #     to="test@example.com",
-            #     subject="Test Email",
-            #     body="<p>This is a test email from VibeJobHunter</p>",
-            #     html=True
+            # Test validation integration
+            print("\n📧 Testing send with validation:")
+            
+            # This should be BLOCKED
+            result = await service.send_application_email(
+                to="careers@testcompany.com",
+                company="TestCompany",
+                role="Software Engineer",
+                cover_letter="This should be blocked"
+            )
+            print(f"careers@ email: {result}")
+            
+            # This should be ALLOWED (but won't actually send in test)
+            # Uncomment to test real sending
+            # result = await service.send_application_email(
+            #     to="founder@testcompany.com",
+            #     company="TestCompany",
+            #     role="Software Engineer",
+            #     cover_letter="This should go through"
             # )
-            # print(f"Send result: {result}")
+            # print(f"founder@ email: {result}")
             
         else:
             print("\n❌ Email service not configured. Set up one of:")
@@ -383,4 +601,8 @@ if __name__ == '__main__':
         
         print("=" * 60)
     
-    asyncio.run(test_email_service())
+    async def main():
+        await test_email_validation()
+        await test_email_service()
+    
+    asyncio.run(main())
