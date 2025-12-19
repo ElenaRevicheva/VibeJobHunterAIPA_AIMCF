@@ -2,11 +2,13 @@
 ✍️ MESSAGE GENERATOR
 Generates hyper-personalized outreach messages for each channel.
 Uses AI to create context-aware, compelling messages.
+
+🆕 PHASE 2: Added generate_founder_message method
 """
 
 import asyncio
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import anthropic
 from datetime import datetime
 
@@ -22,6 +24,8 @@ class MessageGenerator:
     """
     AI-powered message generation
     Creates personalized messages for LinkedIn, Email, and Twitter
+    
+    🆕 PHASE 2: Now includes founder outreach message generation
     """
     
     def __init__(self, profile: Profile):
@@ -30,6 +34,252 @@ class MessageGenerator:
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         logger.info("✍️ Message Generator initialized")
+    
+    # =========================================================================
+    # 🆕 PHASE 2: FOUNDER MESSAGE GENERATION (NEW METHOD)
+    # =========================================================================
+    
+    async def generate_founder_message(
+        self,
+        company: Dict[str, Any],
+        job: Dict[str, Any],
+        candidate_background: Optional[Dict] = None,
+        ats_confirmation_id: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        🆕 PHASE 2: Generate personalized founder outreach message
+        
+        This method was MISSING and causing the error:
+        'MessageGenerator' object has no attribute 'generate_founder_message'
+        
+        Args:
+            company: Company info dict with name, founder_name, domain, etc.
+            job: Job info dict with title, description, requirements
+            candidate_background: Optional candidate info (uses self.profile if not provided)
+            ats_confirmation_id: Optional ATS confirmation ID to reference
+        
+        Returns:
+            Dict with 'subject' and 'body' keys
+        """
+        
+        company_name = company.get('name', 'Your Company')
+        founder_name = company.get('founder_name', company.get('founder_first_name', 'there'))
+        job_title = job.get('title', 'the position')
+        
+        logger.info(f"✍️ Generating founder message for {company_name}...")
+        
+        # Check cache
+        cache_key = f"founder_msg_{company_name.lower().replace(' ', '_')}_{job_title.lower().replace(' ', '_')}"
+        cached = self.cache.get(cache_key)
+        if cached:
+            logger.info(f"✅ Using cached founder message for {company_name}")
+            return cached
+        
+        try:
+            # Generate with Claude for best quality
+            result = await self._generate_founder_message_with_claude(
+                company, job, ats_confirmation_id
+            )
+            
+            # Cache for 7 days
+            self.cache.set(cache_key, result)
+            
+            logger.info(f"✅ Generated founder message for {company_name}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Claude generation failed: {e}, using template fallback")
+            return self._generate_founder_message_template(company, job, ats_confirmation_id)
+    
+    async def _generate_founder_message_with_claude(
+        self,
+        company: Dict[str, Any],
+        job: Dict[str, Any],
+        ats_confirmation_id: Optional[str]
+    ) -> Dict[str, str]:
+        """Generate founder message using Claude API"""
+        
+        company_name = company.get('name', 'the company')
+        founder_name = company.get('founder_name', company.get('founder_first_name', 'there'))
+        job_title = job.get('title', 'the position')
+        job_description = job.get('description', '')[:500]  # First 500 chars
+        
+        # Infer company focus from job/description
+        focus_area = self._infer_company_focus(company, job)
+        
+        prompt = f"""Generate a founder outreach email for a job application.
+
+COMPANY: {company_name}
+FOUNDER: {founder_name}
+JOB TITLE: {job_title}
+COMPANY FOCUS: {focus_area}
+JOB CONTEXT: {job_description}
+
+CANDIDATE (Elena Revicheva):
+• 2 LIVE AI agents with PAYING USERS in 19 countries
+• Demo link: wa.me/50766623757 (instant credibility!)
+• Built 6 production apps solo in 7 months
+• Ex-CEO/CLO in E-Government (Russia) - led platform transformations
+• Technical depth: Python, Claude, GPT, AI/ML, automation
+• Cost optimization expert: 99%+ automation rate
+• Bilingual: EN/ES, Web3 native
+• Recent: 9 AI products shipped for <$15K
+
+ATS STATUS: {"Application submitted (ID: " + ats_confirmation_id + ")" if ats_confirmation_id else "Application submitted via careers page"}
+
+REQUIREMENTS:
+1. Keep it under 150 words total
+2. Reference something SPECIFIC about the company's work in {focus_area}
+3. Mention that ATS application was submitted
+4. Professional but warm, founder-to-founder tone
+5. Highlight Elena's LIVE products (demo link) as proof
+6. Don't ask for anything - just surface the strong fit
+7. Subject line: insight-based, not "Application for X"
+
+FORMAT:
+Return JSON:
+{{
+  "subject": "compelling subject line",
+  "body": "email body"
+}}
+
+CRITICAL: Make it feel personally researched and founder-to-founder, not applicant-to-employer!"""
+
+        try:
+            message = await asyncio.to_thread(
+                self.client.messages.create,
+                model="claude-sonnet-4-20250514",
+                max_tokens=800,
+                temperature=0.7,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            content = message.content[0].text.strip()
+            
+            # Parse JSON response
+            import json
+            if '{' in content and '}' in content:
+                start = content.index('{')
+                end = content.rindex('}') + 1
+                json_str = content[start:end]
+                result = json.loads(json_str)
+                
+                logger.info(f"✅ Claude generated founder message for {company_name}")
+                return result
+            else:
+                raise ValueError("Could not parse Claude response as JSON")
+        
+        except Exception as e:
+            logger.error(f"❌ Claude founder message generation failed: {e}")
+            raise
+    
+    def _generate_founder_message_template(
+        self,
+        company: Dict[str, Any],
+        job: Dict[str, Any],
+        ats_confirmation_id: Optional[str]
+    ) -> Dict[str, str]:
+        """Fallback template-based generation"""
+        
+        company_name = company.get('name', 'your company')
+        founder_name = company.get('founder_name', company.get('founder_first_name', 'there'))
+        job_title = job.get('title', 'the position')
+        focus_area = self._infer_company_focus(company, job)
+        
+        # Use different templates based on role type
+        if any(kw in job_title.lower() for kw in ['ai', 'engineer', 'developer', 'technical', 'staff', 'senior']):
+            subject = f"Re: {job_title} application—live AI demo"
+            
+            body = f"""Hi {founder_name},
+
+Just submitted my application for {job_title} at {company_name}{"" if not ats_confirmation_id else f" (confirmation: {ats_confirmation_id})"}.
+
+Instead of a traditional pitch, here's what I've built:
+👉 wa.me/50766623757 (live AI agent, paying users, 19 countries)
+
+Quick context:
+• 2 live AI agents in production with revenue
+• Built 6 AI products solo in 7 months
+• Ex-CEO/CLO with platform transformation experience
+• Deep in Python, Claude, AI/ML, automation
+• Cost optimization: 99%+ via automation
+
+Given {company_name}'s work in {focus_area}, thought there might be strong alignment beyond what a resume shows.
+
+Happy to elaborate if useful.
+
+Elena Revicheva
+https://linkedin.com/in/elenarevicheva
+https://aideazz.xyz"""
+        
+        elif any(kw in job_title.lower() for kw in ['product', 'manager', 'director', 'lead', 'vp']):
+            subject = f"Quick thought on {company_name}'s {focus_area}"
+            
+            body = f"""Hi {founder_name},
+
+Applied for {job_title} at {company_name} today.
+
+While researching the role, I was particularly interested in {company_name}'s approach to {focus_area}.
+
+What I've built that might be relevant:
+• 2 live AI agents with paying users (try: wa.me/50766623757)
+• Built solo, already generating revenue
+• Ex-CEO/CLO background - led large-scale platform transformations
+
+Not trying to bypass your process, just wanted to flag that there might be interesting alignment here.
+
+Worth a conversation?
+
+Elena Revicheva
+https://linkedin.com/in/elenarevicheva"""
+        
+        else:
+            subject = f"{job_title} application—founder context"
+            
+            body = f"""Hi {founder_name},
+
+Just submitted my application for {job_title}.
+
+Quick background:
+• 2 live AI agents with paying users (wa.me/50766623757)
+• Built 6 AI products in 7 months (solo, <$15K total cost)
+• Ex-CEO/CLO - led platform transformations
+• Technical: Python, AI/ML, automation, cost optimization
+• Bilingual (EN/ES), Web3 native
+
+I know you have a process—just wanted to make sure this doesn't get lost in the queue.
+
+Thanks for building {company_name}.
+
+Elena Revicheva
+https://aideazz.xyz"""
+        
+        logger.info(f"✅ Template generated founder message for {company_name}")
+        
+        return {
+            'subject': subject,
+            'body': body
+        }
+    
+    def _infer_company_focus(self, company: Dict, job: Dict) -> str:
+        """Infer what the company focuses on"""
+        
+        text = (job.get('title', '') + ' ' + job.get('description', '')).lower()
+        
+        if 'ai' in text or 'machine learning' in text or 'ml' in text:
+            return 'AI/ML infrastructure'
+        elif 'developer' in text or 'productivity' in text:
+            return 'developer productivity'
+        elif 'infra' in text or 'platform' in text:
+            return 'platform infrastructure'
+        elif 'product' in text:
+            return 'product development'
+        else:
+            return company.get('industry', 'technical innovation')
+    
+    # =========================================================================
+    # EXISTING METHODS (unchanged)
+    # =========================================================================
     
     async def generate_multi_channel_messages(
         self,
