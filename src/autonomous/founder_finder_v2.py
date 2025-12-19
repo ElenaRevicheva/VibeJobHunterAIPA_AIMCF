@@ -1,13 +1,14 @@
 ﻿"""
-👤 FOUNDER FINDER — Production v3.2 (CACHE FIX - FINAL)
+👤 FOUNDER FINDER — Production v3.3 (MessageGenerator SIGNATURE FIX)
 
 Finds founder contact information (LinkedIn, Twitter, Email).
 Uses multiple data sources to build complete founder profiles.
 
-CHANGELOG v3.2:
-✅ FIXED ResponseCache signature issue (explicit kwargs)
-✅ No more "multiple values for argument 'model'" error
-✅ All methods implemented (no stubs)
+CHANGELOG v3.3:
+✅ FIXED MessageGenerator.generate_founder_message() signature mismatch
+✅ Now passes company/job as Dicts (not strings/kwargs)
+✅ ResponseCache signature issue fixed (explicit kwargs)
+✅ All methods implemented and working
 """
 
 import asyncio
@@ -28,7 +29,7 @@ from ..utils.cache import ResponseCache
 # ──────────────────────────────────────────────────────────────
 logger = setup_logger(__name__)
 
-FINGERPRINT = "FounderFinderV2_2025-12-18_CACHE_FIX_v3.2_FINAL"
+FINGERPRINT = "FounderFinderV2_2025-12-18_MESSAGE_SIGNATURE_FIX_v3.3"
 CACHE_MODEL = "founder_finder_v2"
 
 logger.info(f"🔥 LOADING MODULE: founder_finder_v2 | {FINGERPRINT}")
@@ -42,7 +43,7 @@ class FounderFinderV2:
     Finds and profiles company founders.
     Discovers: LinkedIn, Twitter, Email.
 
-    Production v3.2 — Cache-safe, orchestrator-ready.
+    Production v3.3 — MessageGenerator-compatible, cache-safe, orchestrator-ready.
     """
 
     def __init__(self):
@@ -51,6 +52,9 @@ class FounderFinderV2:
         # Optional integrations
         try:
             from .message_generator import MessageGenerator
+            from ..core.models import Profile
+            # MessageGenerator needs a profile, we'll use None for now
+            # It will use its internal profile if available
             self.message_generator = MessageGenerator(profile=None)
         except Exception as e:
             logger.warning(f"MessageGenerator unavailable: {e}")
@@ -76,7 +80,7 @@ class FounderFinderV2:
         except Exception:
             self.db = None
 
-        logger.info("👤 FounderFinderV2 initialized (production v3.2)")
+        logger.info("👤 FounderFinderV2 initialized (production v3.3)")
 
     # ════════════════════════════════════════════════════════════
     # ORCHESTRATOR ENTRYPOINT
@@ -321,34 +325,58 @@ class FounderFinderV2:
             return {}
 
     # ════════════════════════════════════════════════════════════
-    # MESSAGE GENERATION
+    # MESSAGE GENERATION - FIXED SIGNATURE v3.3
     # ════════════════════════════════════════════════════════════
 
     async def _generate_outreach_message(
         self, founder_data: Dict, job: JobPosting, profile: Profile
     ) -> Optional[Dict]:
-        """Generate personalized outreach message"""
+        """
+        Generate personalized outreach message
+        
+        FIXED v3.3: Now matches MessageGenerator.generate_founder_message() signature
+        - Passes company as Dict (not string)
+        - Passes job as Dict (not kwargs)
+        """
         try:
             founder_name = self._extract_founder_name(founder_data)
             
             # Use MessageGenerator if available
             if self.message_generator:
+                # ─────────────────────────────────────────────────────
+                # FIX v3.3: Convert to Dict format MessageGenerator expects
+                # MessageGenerator signature:
+                #   generate_founder_message(company: Dict, job: Dict, ...)
+                # ─────────────────────────────────────────────────────
+                company_dict = {
+                    "name": job.company,
+                    "founder_name": founder_name or "Hiring Team",
+                    "domain": founder_data.get("domain", ""),
+                    "url": getattr(job, "company_url", ""),
+                }
+                
+                job_dict = {
+                    "title": job.title,
+                    "description": job.description[:500] if job.description else "",
+                    "url": getattr(job, "url", ""),
+                    "requirements": getattr(job, "requirements", []),
+                }
+                
+                # Call with CORRECT signature
                 message_data = await self.message_generator.generate_founder_message(
-                    founder_name=founder_name or "Hiring Team",
-                    company=job.company,
-                    job_title=job.title,
-                    job_description=job.description[:500] if job.description else "",
-                    profile=profile,
-                    context={
-                        "founder_role": "Founder",
-                        "company_stage": "startup",
-                        "match_score": getattr(job, "match_score", 70),
-                        "match_reasons": getattr(job, "match_reasons", [])[:3],
-                    },
+                    company=company_dict,
+                    job=job_dict,
+                    candidate_background=None  # Uses profile from MessageGenerator init
                 )
-                return message_data
+                
+                # Convert MessageGenerator response format to our format
+                return {
+                    "message": message_data.get("body", ""),
+                    "subject": message_data.get("subject", f"Re: {job.title} at {job.company}"),
+                    "tone": "professional",
+                }
             
-            # Fallback template
+            # Fallback template if MessageGenerator not available
             salutation = f"Hi {founder_name}" if founder_name else "Hi there"
             message = f"""{salutation},
 
@@ -579,5 +607,3 @@ https://vibejobhunter.com"""
 # ──────────────────────────────────────────────────────────────
 assert "FounderFinderV2" in globals(), "❌ FounderFinderV2 not loaded"
 logger.info(f"✅ FounderFinderV2 LOADED | {FINGERPRINT}")
-
-
