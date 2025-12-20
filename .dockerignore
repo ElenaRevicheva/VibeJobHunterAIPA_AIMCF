@@ -33,8 +33,9 @@ ENV/
 *.md
 !README.md
 
-# Local data (will be created fresh)
-autonomous_data/
+# Local data (will be created fresh, except resumes)
+autonomous_data/*
+!autonomous_data/resumes/
 logs/
 tailored_resumes/
 cover_letters/
