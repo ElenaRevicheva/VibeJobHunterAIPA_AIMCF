@@ -400,7 +400,10 @@ class ATSSubmitter:
         # ═══════════════════════════════════════════════════════════
         # GREENHOUSE FORM SELECTORS - Updated December 2025
         # Modern Greenhouse uses specific patterns for field IDs
-        # Some companies (like xAI) use "Full Legal Name" instead of first/last
+        # IMPORTANT: Some companies (like xAI) have BOTH:
+        #   - A "Full Legal Name" field (optional)
+        #   - Required "First Name" and "Last Name" fields
+        # We try to fill ALL name fields to handle both cases
         # ═══════════════════════════════════════════════════════════
         
         # Full Legal Name (for companies like xAI that use combined name field)
@@ -414,30 +417,36 @@ class ATSSubmitter:
             'input[placeholder*="Full name"]',
             'input[placeholder*="Legal name"]',
         ]
-        full_name_filled = await self._fill_field_with_selectors(page, full_name_selectors, full_name, "full_name")
+        await self._fill_field_with_selectors(page, full_name_selectors, full_name, "full_name")
         
-        # First Name - try multiple patterns (skip if full name was filled)
-        if not full_name_filled:
-            first_name_selectors = [
-                'input#first_name',
-                'input[name="job_application[first_name]"]',
-                'input[name*="first_name"]',
-                'input[id*="first_name"]',
-                'input[autocomplete="given-name"]',
-                'input[aria-label*="First"]',
-            ]
-            await self._fill_field_with_selectors(page, first_name_selectors, self.applicant_data['first_name'], "first_name")
-            
-            # Last Name
-            last_name_selectors = [
-                'input#last_name',
-                'input[name="job_application[last_name]"]',
-                'input[name*="last_name"]',
-                'input[id*="last_name"]',
-                'input[autocomplete="family-name"]',
-                'input[aria-label*="Last"]',
-            ]
-            await self._fill_field_with_selectors(page, last_name_selectors, self.applicant_data['last_name'], "last_name")
+        # First Name - ALWAYS try to fill (some forms have BOTH full name AND first/last name fields)
+        # xAI Greenhouse forms have "Legal Name" field PLUS required "First Name" and "Last Name" fields
+        first_name_selectors = [
+            'input#first_name',
+            'input[name="job_application[first_name]"]',
+            'input[name*="first_name"]',
+            'input[id*="first_name"]',
+            'input[autocomplete="given-name"]',
+            'input[aria-label*="First Name"]',
+            'input[aria-label*="First name"]',
+            'input[placeholder*="First Name"]',
+            'input[placeholder*="First name"]',
+        ]
+        await self._fill_field_with_selectors(page, first_name_selectors, self.applicant_data['first_name'], "first_name")
+        
+        # Last Name - ALWAYS try to fill
+        last_name_selectors = [
+            'input#last_name',
+            'input[name="job_application[last_name]"]',
+            'input[name*="last_name"]',
+            'input[id*="last_name"]',
+            'input[autocomplete="family-name"]',
+            'input[aria-label*="Last Name"]',
+            'input[aria-label*="Last name"]',
+            'input[placeholder*="Last Name"]',
+            'input[placeholder*="Last name"]',
+        ]
+        await self._fill_field_with_selectors(page, last_name_selectors, self.applicant_data['last_name'], "last_name")
         
         # Email - CRITICAL: Must fill this correctly
         email_selectors = [
