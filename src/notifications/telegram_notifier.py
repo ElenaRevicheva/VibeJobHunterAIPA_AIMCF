@@ -105,6 +105,19 @@ class TelegramNotifier:
             logger.error(f"Failed to send Telegram message: {e}")
             return False
     
+    async def send_notification(self, text: str) -> bool:
+        """
+        ✅ PHASE 2.5 FIX: Compatibility alias for send_notification
+        Used by founder_finder_v2 for outreach notifications
+        
+        Args:
+            text: Message text (supports HTML formatting)
+        
+        Returns:
+            True if sent successfully
+        """
+        return await self.send_message(text)
+    
     async def notify_hot_job(self, job: JobPosting) -> bool:
         """
         Notify about a hot job (score >85)
