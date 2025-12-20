@@ -23,7 +23,15 @@ class ResumeSelector:
     Intelligent resume selection based on job characteristics
     """
     
-    # Resume paths
+    # Resume paths - PDFs for ATS submission
+    RESUME_PDFS = {
+        "founding": "autonomous_data/resumes/founding_engineer.pdf",
+        "senior_ai": "autonomous_data/resumes/senior_ai_engineer.pdf",
+        "architect": "autonomous_data/resumes/ai_solutions_architect.pdf",
+        "default": "autonomous_data/resumes/elena_resume.pdf",
+    }
+    
+    # Markdown versions for content display (backwards compatibility)
     RESUMES = {
         "founding": "src/templates/resume_founding_engineer.md",
         "senior_ai": "src/templates/resume_senior_ai_engineer.md",
@@ -145,6 +153,26 @@ class ResumeSelector:
         resume_path, resume_type = self.select_resume(job)
         content = self.get_resume_content(resume_type)
         return content, resume_type
+    
+    def get_pdf_path_for_job(self, job: Dict[str, Any]) -> Tuple[Optional[str], str]:
+        """
+        Get the PDF resume path for ATS submission
+        
+        Returns:
+            Tuple of (pdf_path, resume_type)
+        """
+        _, resume_type = self.select_resume(job)
+        pdf_rel_path = self.RESUME_PDFS.get(resume_type, self.RESUME_PDFS["default"])
+        
+        # Check multiple locations for Docker/local compatibility
+        for base in ["/app", "/workspace", "."]:
+            pdf_path = Path(base) / pdf_rel_path
+            if pdf_path.exists():
+                logger.info(f"📄 PDF resume found: {pdf_path}")
+                return str(pdf_path), resume_type
+        
+        # Fallback to relative path (let caller handle)
+        return pdf_rel_path, resume_type
     
     def explain_selection(self, job: Dict[str, Any]) -> str:
         """

@@ -70,17 +70,39 @@ class ATSSubmitter:
         self.submissions_dir = Path("autonomous_data/submissions")
         self.submissions_dir.mkdir(parents=True, exist_ok=True)
         
-        # Load resume path - check multiple locations
+        # Load resume path - check multiple locations for Docker/local compatibility
         self.resume_path = os.getenv("RESUME_PATH", "autonomous_data/resumes/elena_resume.pdf")
         
-        # Verify resume exists
+        # Verify resume exists - try multiple paths
         if not Path(self.resume_path).exists():
-            # Try relative to workspace
-            alt_path = Path("/workspace") / self.resume_path
-            if alt_path.exists():
-                self.resume_path = str(alt_path)
+            # Try relative to /app (Docker)
+            app_path = Path("/app") / self.resume_path
+            # Try relative to /workspace (local dev)
+            workspace_path = Path("/workspace") / self.resume_path
+            # Try absolute path
+            abs_path = Path(self.resume_path)
+            
+            if app_path.exists():
+                self.resume_path = str(app_path)
+                logger.info(f"✅ Resume found at {self.resume_path}")
+            elif workspace_path.exists():
+                self.resume_path = str(workspace_path)
+                logger.info(f"✅ Resume found at {self.resume_path}")
+            elif abs_path.exists():
+                self.resume_path = str(abs_path)
+                logger.info(f"✅ Resume found at {self.resume_path}")
             else:
-                logger.warning(f"⚠️ Resume not found at {self.resume_path}")
+                # Check all available resumes in both directories
+                for base in ["/app", "/workspace", "."]:
+                    resume_dir = Path(base) / "autonomous_data/resumes"
+                    if resume_dir.exists():
+                        pdfs = list(resume_dir.glob("*.pdf"))
+                        if pdfs:
+                            self.resume_path = str(pdfs[0])
+                            logger.info(f"✅ Using available resume: {self.resume_path}")
+                            break
+                else:
+                    logger.warning(f"⚠️ Resume not found at {self.resume_path}")
         
         # Application data
         self.applicant_data = {
@@ -150,6 +172,14 @@ class ATSSubmitter:
         company = job.get('company', 'Unknown')
         job_id = job.get('id', 'unknown')
         
+        # Use provided resume_path or fall back to default
+        effective_resume_path = resume_path or self.resume_path
+        if effective_resume_path and os.path.exists(effective_resume_path):
+            logger.info(f"📄 Using resume: {effective_resume_path}")
+        else:
+            logger.warning(f"⚠️ Resume not found: {effective_resume_path}")
+            effective_resume_path = None
+        
         logger.info(f"📝 Submitting application to {company}")
         logger.info(f"   URL: {job_url}")
         
@@ -201,11 +231,11 @@ class ATSSubmitter:
         # Actual submission
         try:
             if ats_type == "greenhouse":
-                result = await self._submit_greenhouse(job, cover_letter, resume_path)
+                result = await self._submit_greenhouse(job, cover_letter, effective_resume_path)
             elif ats_type == "lever":
-                result = await self._submit_lever(job, cover_letter, resume_path)
+                result = await self._submit_lever(job, cover_letter, effective_resume_path)
             elif ats_type == "ashby":
-                result = await self._submit_ashby(job, cover_letter, resume_path)
+                result = await self._submit_ashby(job, cover_letter, effective_resume_path)
             else:
                 result = SubmissionResult(
                     success=False,

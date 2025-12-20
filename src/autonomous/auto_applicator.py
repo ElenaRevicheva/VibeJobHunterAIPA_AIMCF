@@ -185,11 +185,15 @@ Write the cover letter now:"""
             # SELECT OPTIMAL RESUME VARIANT
             # ──────────────────────────────────
             resume_type = "default"
+            resume_pdf_path = None
             try:
                 from ..templates.resume_selector import get_resume_selector
                 selector = get_resume_selector()
                 resume_content, resume_type = selector.get_resume_for_job(job)
+                # Also get PDF path for ATS submission
+                resume_pdf_path, _ = selector.get_pdf_path_for_job(job)
                 result['resume_variant'] = resume_type
+                result['resume_pdf_path'] = resume_pdf_path
                 logger.info(f"  📄 Selected resume: {resume_type}")
             except Exception as e:
                 logger.debug(f"Resume selector unavailable: {e}")
@@ -256,10 +260,13 @@ Write the cover letter now:"""
                         if ats_type != 'unknown':
                             logger.info(f"    🚀 Submitting to {ats_type}...")
                             
+                            # Use selected PDF resume or fallback to env var
+                            ats_resume_path = resume_pdf_path or os.getenv('RESUME_PATH') or submitter.resume_path
+                            
                             submission_result = await submitter.submit_application(
                                 job=job,
                                 cover_letter=cover_letter,
-                                resume_path=os.getenv('RESUME_PATH')
+                                resume_path=ats_resume_path
                             )
                             
                             result['ats_submitted'] = submission_result.success

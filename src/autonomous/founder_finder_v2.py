@@ -1,4 +1,4 @@
-﻿"""
+"""
 👤 FOUNDER FINDER — Production v3.3 (MessageGenerator SIGNATURE FIX)
 
 Finds founder contact information (LinkedIn, Twitter, Email).
@@ -29,7 +29,7 @@ from ..utils.cache import ResponseCache
 # ──────────────────────────────────────────────────────────────
 logger = setup_logger(__name__)
 
-FINGERPRINT = "FounderFinderV2_2025-12-18_MESSAGE_SIGNATURE_FIX_v3.3"
+FINGERPRINT = "FounderFinderV2_2025-12-20_CACHE_FIX_v3.4"
 CACHE_MODEL = "founder_finder_v2"
 
 logger.info(f"🔥 LOADING MODULE: founder_finder_v2 | {FINGERPRINT}")
@@ -211,10 +211,10 @@ class FounderFinderV2:
         cache_key = f"founder::{company_name.lower().replace(' ', '_')}"
 
         # ─────────────────────────────────────────────────────────
-        # FIX: Use explicit keyword arguments for cache.get()
+        # FIX v3.4: Use get_data() for arbitrary data caching
         # ─────────────────────────────────────────────────────────
         try:
-            cached = self.cache.get(key=cache_key, model=CACHE_MODEL)
+            cached = self.cache.get_data(cache_key)
             if cached:
                 logger.debug(f"📦 Cache hit for founder: {company_name}")
                 return cached
@@ -242,16 +242,10 @@ class FounderFinderV2:
             return None
 
         # ─────────────────────────────────────────────────────────
-        # FIX: Use explicit keyword arguments for cache.set()
-        # This prevents "multiple values for argument 'model'" error
+        # FIX v3.4: Use set_data() for arbitrary data caching
         # ─────────────────────────────────────────────────────────
         try:
-            self.cache.set(
-                key=cache_key,
-                value=founder_info,
-                model=CACHE_MODEL,
-                ttl=60 * 60 * 24 * 30,  # 30 days
-            )
+            self.cache.set_data(cache_key, founder_info)
             logger.debug(f"📦 Cached founder info for {company_name}")
         except Exception as e:
             logger.warning(f"Cache set failed (non-fatal): {e}")
