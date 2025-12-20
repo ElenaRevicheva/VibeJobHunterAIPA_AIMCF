@@ -4,6 +4,7 @@ Generates hyper-personalized outreach messages for each channel.
 Uses AI to create context-aware, compelling messages.
 
 🆕 PHASE 2: Added generate_founder_message method
+✅ CACHE FIX: Updated cache calls to match cache.py API
 """
 
 import asyncio
@@ -26,6 +27,7 @@ class MessageGenerator:
     Creates personalized messages for LinkedIn, Email, and Twitter
     
     🆕 PHASE 2: Now includes founder outreach message generation
+    ✅ CACHE FIX: All cache calls now use correct API signature
     """
     
     def __init__(self, profile: Profile):
@@ -68,9 +70,9 @@ class MessageGenerator:
         
         logger.info(f"✍️ Generating founder message for {company_name}...")
         
-        # Check cache
-        cache_key = f"founder_msg_{company_name.lower().replace(' ', '_')}_{job_title.lower().replace(' ', '_')}"
-        cached = self.cache.get(cache_key)
+        # ✅ CACHE FIX: Use correct cache API signature
+        cache_prompt = f"founder_msg_{company_name}_{job_title}"
+        cached = self.cache.get(prompt=cache_prompt, model="founder_message")
         if cached:
             logger.info(f"✅ Using cached founder message for {company_name}")
             return cached
@@ -81,8 +83,8 @@ class MessageGenerator:
                 company, job, ats_confirmation_id
             )
             
-            # Cache for 7 days
-            self.cache.set(cache_key, result)
+            # ✅ CACHE FIX: Use correct cache API signature
+            self.cache.set(prompt=cache_prompt, model="founder_message", response=result)
             
             logger.info(f"✅ Generated founder message for {company_name}")
             return result
@@ -116,14 +118,14 @@ COMPANY FOCUS: {focus_area}
 JOB CONTEXT: {job_description}
 
 CANDIDATE (Elena Revicheva):
-• 2 LIVE AI agents with PAYING USERS in 19 countries
-• Demo link: wa.me/50766623757 (instant credibility!)
-• Built 6 production apps solo in 7 months
-• Ex-CEO/CLO in E-Government (Russia) - led platform transformations
-• Technical depth: Python, Claude, GPT, AI/ML, automation
-• Cost optimization expert: 99%+ automation rate
-• Bilingual: EN/ES, Web3 native
-• Recent: 9 AI products shipped for <$15K
+• 11 AI PRODUCTS (7 live agents) in 10 months — SOLO-BUILT, production-grade
+• 2 AI CO-FOUNDERS: CTO AIPA (autonomous code review, $0/month) + CMO AIPA (marketing automation, $0/month)
+• Demo link: wa.me/50766623757 (try EspaLuz — live Spanish tutor, 19 countries, paying users)
+• 99%+ COST REDUCTION: $900K → $15K (10x faster shipping than teams)
+• Ex-CEO/CLO in E-Government (Russia) - led regional digital transformation
+• TECHNICAL STACK: Python/TypeScript, FastAPI/Express, Claude/GPT/Groq, PostgreSQL/Oracle DB, Railway/OCI
+• Production systems: 99.9% uptime, PayPal subscriptions live, GitHub (8 active repos)
+• Bilingual: EN/ES architecture from day one, Web3 native (DAO design, tokenomics)
 
 ATS STATUS: {"Application submitted (ID: " + ats_confirmation_id + ")" if ats_confirmation_id else "Application submitted via careers page"}
 
@@ -195,14 +197,14 @@ CRITICAL: Make it feel personally researched and founder-to-founder, not applica
 Just submitted my application for {job_title} at {company_name}{"" if not ats_confirmation_id else f" (confirmation: {ats_confirmation_id})"}.
 
 Instead of a traditional pitch, here's what I've built:
-👉 wa.me/50766623757 (live AI agent, paying users, 19 countries)
+👉 wa.me/50766623757 (EspaLuz — live Spanish tutor, 19 countries, paying users)
 
 Quick context:
-• 2 live AI agents in production with revenue
-• Built 6 AI products solo in 7 months
+• 11 AI products (7 live agents) in 10 months — solo-built, production-grade
+• 2 AI Co-Founders: CTO AIPA (autonomous code review, $0/month) + CMO AIPA (marketing automation, $0/month)
+• 99%+ cost reduction: $900K → $15K (10x faster shipping than teams)
 • Ex-CEO/CLO with platform transformation experience
-• Deep in Python, Claude, AI/ML, automation
-• Cost optimization: 99%+ via automation
+• Stack: Python/TypeScript, FastAPI/Express, Claude/GPT/Groq, PostgreSQL/Oracle DB, 99.9% uptime
 
 Given {company_name}'s work in {focus_area}, thought there might be strong alignment beyond what a resume shows.
 
@@ -222,9 +224,11 @@ Applied for {job_title} at {company_name} today.
 While researching the role, I was particularly interested in {company_name}'s approach to {focus_area}.
 
 What I've built that might be relevant:
-• 2 live AI agents with paying users (try: wa.me/50766623757)
-• Built solo, already generating revenue
-• Ex-CEO/CLO background - led large-scale platform transformations
+• 11 AI products (7 live agents) in 10 months — solo-built full-stack
+• 2 AI Co-Founders running my entire tech + marketing ops at $0/month
+• 99%+ cost reduction vs traditional development ($900K → $15K)
+• Live demo: wa.me/50766623757 (EspaLuz Spanish tutor, paying users, 19 countries)
+• Ex-CEO/CLO background - led large-scale digital transformation
 
 Not trying to bypass your process, just wanted to flag that there might be interesting alignment here.
 
@@ -241,11 +245,13 @@ https://linkedin.com/in/elenarevicheva"""
 Just submitted my application for {job_title}.
 
 Quick background:
-• 2 live AI agents with paying users (wa.me/50766623757)
-• Built 6 AI products in 7 months (solo, <$15K total cost)
-• Ex-CEO/CLO - led platform transformations
-• Technical: Python, AI/ML, automation, cost optimization
-• Bilingual (EN/ES), Web3 native
+• 11 AI products in 10 months — 7 live agents with paying users
+• 2 AI Co-Founders (CTO + CMO) running 24/7 at $0/month
+• Demo: wa.me/50766623757 (EspaLuz Spanish tutor, 19 countries)
+• 99%+ cost reduction: $900K → $15K (10x faster than teams)
+• Ex-CEO/CLO - led digital transformation, now full-stack AI engineer
+• Stack: Python/TypeScript, FastAPI/Express, Claude/GPT/Groq, 99.9% uptime
+• Bilingual (EN/ES), Web3 native (DAO design, tokenomics)
 
 I know you have a process—just wanted to make sure this doesn't get lost in the queue.
 
@@ -278,7 +284,7 @@ https://aideazz.xyz"""
             return company.get('industry', 'technical innovation')
     
     # =========================================================================
-    # EXISTING METHODS (unchanged)
+    # EXISTING METHODS (unchanged except cache calls)
     # =========================================================================
     
     async def generate_multi_channel_messages(
@@ -294,9 +300,9 @@ https://aideazz.xyz"""
         """
         logger.info(f"✍️ Generating messages for {company}...")
         
-        # Check cache
-        cache_key = f"messages_{company.lower().replace(' ', '_')}_{job_role.lower().replace(' ', '_')}"
-        cached = self.cache.get(cache_key)
+        # ✅ CACHE FIX: Use correct cache API signature
+        cache_prompt = f"messages_{company}_{job_role}"
+        cached = self.cache.get(prompt=cache_prompt, model="multi_channel_message")
         if cached:
             logger.info(f"✅ Using cached messages for {company}")
             return cached
@@ -318,8 +324,8 @@ https://aideazz.xyz"""
                 logger.error(f"Failed to generate {channel} message: {results[i]}")
                 messages[channel] = self._get_fallback_message(channel, founder_name, company)
         
-        # Cache for 7 days
-        self.cache.set(cache_key, messages)
+        # ✅ CACHE FIX: Use correct cache API signature
+        self.cache.set(prompt=cache_prompt, model="multi_channel_message", response=messages)
         
         logger.info(f"✅ Generated all messages for {company}")
         return messages
