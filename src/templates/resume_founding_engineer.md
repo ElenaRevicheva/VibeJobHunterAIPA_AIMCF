@@ -3,7 +3,7 @@
 **Founding Engineer | 0→1 Builder | AI-First Full-Stack Developer**
 
 📍 Panama City, Panama (Remote-First) | 🌎 Bilingual EN/ES  
-📧 aipa@aideazz.xyz | 📱 +507 66623757 (WhatsApp)  
+📧 aipa@aideazz.xyz | 📱 +507 6166-6716 (WhatsApp) | 💬 [Telegram](https://t.me/ElenaRevicheva)  
 🔗 [Portfolio](https://aideazz.xyz/card) | [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva)
 
 ---

@@ -114,7 +114,8 @@ class ATSSubmitter:
             "last_name": os.getenv("APPLICANT_LAST_NAME", "Revicheva"),
             "full_name": os.getenv("APPLICANT_FULL_NAME", "Elena Revicheva"),
             "email": os.getenv("APPLICANT_EMAIL", "aipa@aideazz.xyz"),
-            "phone": os.getenv("APPLICANT_PHONE", "+507-6662-3757"),  # Panama number
+            "phone": os.getenv("APPLICANT_PHONE", "+507-6166-6716"),  # Elena's PERSONAL Panama number
+            # NOTE: +507-6662-3757 is for EspaLuz AI Product, NOT for job applications
             
             # Professional Links
             "linkedin": os.getenv("APPLICANT_LINKEDIN", "https://linkedin.com/in/elenarevicheva"),

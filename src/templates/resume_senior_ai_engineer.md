@@ -3,7 +3,7 @@
 **Senior AI Engineer | LLM Systems | Production AI at Scale**
 
 📍 Panama City, Panama (Remote) | 🌎 Bilingual EN/ES  
-📧 aipa@aideazz.xyz | 📱 +507 66623757 (WhatsApp)  
+📧 aipa@aideazz.xyz | 📱 +507 6166-6716 (WhatsApp) | 💬 [Telegram](https://t.me/ElenaRevicheva)  
 🔗 [Portfolio](https://aideazz.xyz/card) | [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva)
 
 ---
