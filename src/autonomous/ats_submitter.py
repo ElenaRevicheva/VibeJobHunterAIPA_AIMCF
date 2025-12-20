@@ -395,32 +395,49 @@ class ATSSubmitter:
         # Wait for form to be ready
         await asyncio.sleep(1)
         
+        full_name = f"{self.applicant_data['first_name']} {self.applicant_data['last_name']}"
+        
         # ═══════════════════════════════════════════════════════════
         # GREENHOUSE FORM SELECTORS - Updated December 2025
         # Modern Greenhouse uses specific patterns for field IDs
+        # Some companies (like xAI) use "Full Legal Name" instead of first/last
         # ═══════════════════════════════════════════════════════════
         
-        # First Name - try multiple patterns
-        first_name_selectors = [
-            'input#first_name',
-            'input[name="job_application[first_name]"]',
-            'input[name*="first_name"]',
-            'input[id*="first_name"]',
-            'input[autocomplete="given-name"]',
-            'input[aria-label*="First"]',
+        # Full Legal Name (for companies like xAI that use combined name field)
+        full_name_selectors = [
+            'input[name*="full_name"]',
+            'input[id*="full_name"]',
+            'input[name*="legal_name"]',
+            'input[id*="legal_name"]',
+            'input[aria-label*="Full Name"]',
+            'input[aria-label*="Legal Name"]',
+            'input[placeholder*="Full name"]',
+            'input[placeholder*="Legal name"]',
         ]
-        await self._fill_field_with_selectors(page, first_name_selectors, self.applicant_data['first_name'], "first_name")
+        full_name_filled = await self._fill_field_with_selectors(page, full_name_selectors, full_name, "full_name")
         
-        # Last Name
-        last_name_selectors = [
-            'input#last_name',
-            'input[name="job_application[last_name]"]',
-            'input[name*="last_name"]',
-            'input[id*="last_name"]',
-            'input[autocomplete="family-name"]',
-            'input[aria-label*="Last"]',
-        ]
-        await self._fill_field_with_selectors(page, last_name_selectors, self.applicant_data['last_name'], "last_name")
+        # First Name - try multiple patterns (skip if full name was filled)
+        if not full_name_filled:
+            first_name_selectors = [
+                'input#first_name',
+                'input[name="job_application[first_name]"]',
+                'input[name*="first_name"]',
+                'input[id*="first_name"]',
+                'input[autocomplete="given-name"]',
+                'input[aria-label*="First"]',
+            ]
+            await self._fill_field_with_selectors(page, first_name_selectors, self.applicant_data['first_name'], "first_name")
+            
+            # Last Name
+            last_name_selectors = [
+                'input#last_name',
+                'input[name="job_application[last_name]"]',
+                'input[name*="last_name"]',
+                'input[id*="last_name"]',
+                'input[autocomplete="family-name"]',
+                'input[aria-label*="Last"]',
+            ]
+            await self._fill_field_with_selectors(page, last_name_selectors, self.applicant_data['last_name'], "last_name")
         
         # Email - CRITICAL: Must fill this correctly
         email_selectors = [
@@ -455,27 +472,55 @@ class ATSSubmitter:
         ]
         await self._fill_field_with_selectors(page, linkedin_selectors, self.applicant_data['linkedin'], "linkedin")
         
-        # Location
+        # Location - many forms don't have this field
         location_selectors = [
             'input[name*="location"]',
             'input[id*="location"]',
             'input[name*="city"]',
+            'input[name*="address"]',
             'input[placeholder*="Location"]',
             'input[placeholder*="City"]',
+            'input[placeholder*="Address"]',
+            'input[aria-label*="Location"]',
+            'input[aria-label*="City"]',
+            'input[autocomplete="address-level2"]',  # City autocomplete
         ]
         await self._fill_field_with_selectors(page, location_selectors, self.applicant_data['location'], "location")
         
-        # Cover letter textarea
+        # Cover letter textarea - try multiple patterns
+        # Some forms use different field names or may not have a cover letter field
         cover_letter_selectors = [
             'textarea[name*="cover_letter"]',
             'textarea[id*="cover_letter"]',
             'textarea[placeholder*="cover letter"]',
             'textarea[placeholder*="Cover Letter"]',
+            'textarea[placeholder*="Cover letter"]',
             'textarea[name*="message"]',
+            'textarea[name*="additional"]',
+            'textarea[name*="comments"]',
             'textarea[aria-label*="cover"]',
-            'textarea',  # Last resort - first textarea
+            'textarea[aria-label*="Cover"]',
+            'textarea[aria-label*="additional"]',
+            'textarea[aria-label*="message"]',
+            '#cover_letter',
+            '#additional_information',
         ]
-        await self._fill_field_with_selectors(page, cover_letter_selectors, cover_letter, "cover_letter")
+        cover_filled = await self._fill_field_with_selectors(page, cover_letter_selectors, cover_letter, "cover_letter")
+        
+        # If no textarea found, try looking for any visible textarea
+        if not cover_filled:
+            try:
+                textareas = await page.query_selector_all('textarea:visible')
+                if textareas:
+                    for ta in textareas:
+                        # Skip if it's a short field (likely not cover letter)
+                        placeholder = await ta.get_attribute('placeholder') or ""
+                        if 'cover' in placeholder.lower() or 'additional' in placeholder.lower() or 'why' in placeholder.lower():
+                            await ta.fill(cover_letter)
+                            logger.info(f"✅ Filled cover_letter via fallback textarea")
+                            break
+            except Exception as e:
+                logger.debug(f"Fallback textarea fill failed: {e}")
         
         # Resume upload - try multiple file input patterns
         if resume_path and os.path.exists(resume_path):
