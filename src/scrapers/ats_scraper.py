@@ -31,83 +31,152 @@ RUN_ID = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 # =====================================
 
 GREENHOUSE_COMPANIES = [
-    # 🎯 VERIFIED WORKING - December 2025
-    # Total: 2000+ jobs from these companies!
+    # ═══════════════════════════════════════════════════════════════
+    # 🎯 TOP AI COMPANIES - December 2025 (PRIORITY 1)
+    # ═══════════════════════════════════════════════════════════════
     
-    # AI/ML Companies (Priority 1)
-    "anthropic",      # 289 jobs - TOP PRIORITY!
-    "databricks",     # 700 jobs
-    "jasper",         # 5 jobs
-    "openai",         # Check if available
-    "replicate",
-    "modal",
-    "anyscale",
-    "perplexity",
-    "runway",
-    "scale",
-    "labelbox",
-    "roboflow",
-    "weights-biases",
+    # Frontier AI Labs (HIGHEST PRIORITY)
+    "anthropic",      # Claude - TOP PRIORITY! ~300 jobs
+    "openai",         # GPT/ChatGPT
+    "deepmind",       # Google DeepMind
+    "meta",           # Meta AI (LLaMA)
+    "xai",            # Elon Musk's AI company
     
-    # Dev Tools / Infrastructure (Priority 2)
-    "stripe",         # 538 jobs
-    "figma",          # 146 jobs
-    "vercel",         # 77 jobs
-    "retool",         # 46 jobs
-    "webflow",        # 56 jobs
-    "airtable",       # 51 jobs
-    "calendly",       # 18 jobs
-    "notion",
-    "linear",
-    "cursor",
-    "replit",
-    "sourcegraph",
+    # AI Infrastructure & MLOps
+    "databricks",     # Data + AI platform ~700 jobs
+    "scale",          # Scale AI - data labeling
+    "labelbox",       # Data labeling for ML
+    "weights-biases", # ML experiment tracking
+    "roboflow",       # Computer vision platform
+    "huggingface",    # ML model hub
+    "replicate",      # ML model deployment
+    "modal",          # Cloud for AI/ML
+    "anyscale",       # Ray - distributed ML
+    "together-ai",    # Open source AI
+    "fireworks-ai",   # AI inference
+    "baseten",        # ML deployment
     
-    # Fintech (Good for AI roles)
-    "mercury",        # 46 jobs
-    "brex",           # 173 jobs
-    "ramp",
-    "plaid",
+    # AI Products & Applications
+    "perplexity",     # AI search
+    "runway",         # AI video generation
+    "midjourney",     # AI image generation
+    "character",      # Character.AI
+    "jasper",         # AI writing
+    "grammarly",      # AI writing assistant
+    "copy-ai",        # AI copywriting
+    "stability-ai",   # Stable Diffusion
+    "inflection",     # Personal AI (Pi)
+    "adept",          # AI agents
+    "cohere",         # Enterprise LLMs
+    "ai21labs",       # Jurassic models
     
-    # Remote Companies
-    "remote",
-    "gitlab",
+    # AI in Robotics & Autonomous Systems  
+    "figure",         # Figure AI - humanoid robots
+    "nuro",           # Autonomous delivery
+    "waymo",          # Self-driving
+    "cruise",         # Self-driving
+    "covariant",      # AI for robotics
     
-    # More AI/ML companies
-    "character",
-    "midjourney",
-    "grammarly",
-    "copy-ai",
+    # AI Developer Tools (PRIORITY 2)
+    "cursor",         # AI code editor - RELEVANT!
+    "replit",         # AI coding
+    "sourcegraph",    # Code intelligence
+    "codeium",        # AI code completion
+    "tabnine",        # AI code assistant
     
-    # Additional verified companies
-    "loom", "miro", "asana", "zapier",
-    "deel", "gusto", "rippling",
-    "dbt-labs", "airbyte", "fivetran",
-    "snowflake", "datadog", "sentry",
+    # ═══════════════════════════════════════════════════════════════
+    # Dev Tools / Infrastructure
+    # ═══════════════════════════════════════════════════════════════
+    "stripe",         # Payments ~550 jobs
+    "figma",          # Design tool ~150 jobs
+    "vercel",         # Frontend cloud ~80 jobs
+    "retool",         # Internal tools
+    "webflow",        # No-code web
+    "airtable",       # No-code database
+    "notion",         # Knowledge management
+    "linear",         # Project management
+    "supabase",       # Backend as a service
+    "neon",           # Serverless Postgres
+    "planetscale",    # MySQL platform
+    "convex",         # Backend platform
+    
+    # ═══════════════════════════════════════════════════════════════
+    # Fintech with AI (Good roles)
+    # ═══════════════════════════════════════════════════════════════
+    "mercury",        # Banking
+    "brex",           # Corporate cards
+    "ramp",           # Expense management
+    "plaid",          # Financial data
+    
+    # ═══════════════════════════════════════════════════════════════
+    # Data & Analytics
+    # ═══════════════════════════════════════════════════════════════
+    "snowflake",      # Data cloud
+    "datadog",        # Monitoring
+    "dbt-labs",       # Data transformation
+    "airbyte",        # Data integration
+    "fivetran",       # Data pipelines
+    "hex",            # Data notebooks
+    "observable",     # Data visualization
+    
+    # ═══════════════════════════════════════════════════════════════
+    # Remote-first (Good for Panama timezone)
+    # ═══════════════════════════════════════════════════════════════
+    "remote",         # Remote HR
+    "gitlab",         # DevOps - fully remote
+    "zapier",         # Automation
+    "calendly",       # Scheduling
+    "loom",           # Video messaging
+    "miro",           # Whiteboarding
+    "asana",          # Project management
+    "deel",           # Global payroll
+    "gusto",          # HR/Payroll
+    "rippling",       # HR platform
+    "sentry",         # Error tracking
 ]
 
 LEVER_COMPANIES = [
-    # Lever companies that are confirmed working
-    "huggingface",
-    "cohere",
-    "mistral",
+    # ═══════════════════════════════════════════════════════════════
+    # AI/ML Companies on Lever
+    # ═══════════════════════════════════════════════════════════════
+    "huggingface",    # ML model hub - PRIORITY!
+    "cohere",         # Enterprise LLMs
+    "mistral",        # Open source LLMs - PRIORITY!
+    "stability",      # Stable Diffusion
+    "together",       # Together AI
+    "lightning-ai",   # PyTorch Lightning
+    "weights-and-biases",
+    
+    # Data/Infrastructure
     "databricks",
     "mongodb",
     "redis",
     "elastic",
     "confluent",
     "clickhouse",
+    "timescale",
+    "cockroachlabs",
+    
+    # Developer Tools
     "postman",
     "hashicorp",
+    "pulumi",
+    "gitpod",
 ]
 
 WORKABLE_COMPANIES = [
-    # Smaller AI startups
+    # ═══════════════════════════════════════════════════════════════
+    # AI Startups on Workable
+    # ═══════════════════════════════════════════════════════════════
     "stability-ai",
     "relevance-ai",
     "dust-ai",
     "fixie-ai",
     "baseten",
+    "predibase",
+    "descript",
+    "assembly-ai",
+    "deepgram",
 ]
 
 # =====================================
@@ -116,41 +185,58 @@ WORKABLE_COMPANIES = [
 # Ashby is used by many YC companies for modern hiring
 # API: https://jobs.ashbyhq.com/{company}/api/jobs
 ASHBY_COMPANIES = [
-    # AI/ML Startups (YC backed)
-    "ramp",
-    "brex",
-    "deel",
-    "vanta",
-    "mercury",
-    "gusto",
-    "scale-ai",
-    "lattice",
-    "gem",
-    "rippling",
+    # ═══════════════════════════════════════════════════════════════
+    # AI/ML Companies (HIGHEST PRIORITY)
+    # ═══════════════════════════════════════════════════════════════
+    "cohere",         # Enterprise LLMs
+    "adept",          # AI agents
+    "inflection",     # Pi AI
+    "together-ai",    # Open source AI
+    "cerebras",       # AI chips/hardware
+    "anyscale",       # Ray distributed ML
+    "replicate",      # ML deployment
+    "modal",          # AI cloud
+    "perplexity",     # AI search
+    "character-ai",   # Character AI
+    "notion-ai",      # Notion AI features
     
-    # Dev Tools
-    "linear",
-    "raycast",
-    "posthog",
-    "airplane",
-    "dagster",
+    # ═══════════════════════════════════════════════════════════════
+    # YC-backed Startups (Good AI roles)
+    # ═══════════════════════════════════════════════════════════════
+    "ramp",           # Fintech with AI
+    "brex",           # Corporate cards
+    "deel",           # Global payroll
+    "vanta",          # Security compliance
+    "mercury",        # Banking
+    "gusto",          # HR/Payroll
+    "scale-ai",       # Data labeling
+    "lattice",        # HR platform
+    "gem",            # Recruiting
+    "rippling",       # HR platform
     
-    # AI Companies
-    "cohere",
-    "adept",
-    "inflection",
-    "together-ai",
-    "cerebras",
-    "anyscale",
+    # ═══════════════════════════════════════════════════════════════
+    # Dev Tools (Good engineering roles)
+    # ═══════════════════════════════════════════════════════════════
+    "linear",         # Project management
+    "raycast",        # Productivity app
+    "posthog",        # Product analytics
+    "airplane",       # Internal tools
+    "dagster",        # Data orchestration
+    "dbt-labs",       # Data transformation
+    "hex",            # Data notebooks
     
-    # Other YC companies
-    "retool",
-    "zip",
-    "ashby",  # They use their own product!
-    "vercel",
-    "neon",
-    "supabase",
-    "convex",
+    # ═══════════════════════════════════════════════════════════════
+    # Infrastructure
+    # ═══════════════════════════════════════════════════════════════
+    "retool",         # Internal tools
+    "zip",            # Procurement
+    "ashby",          # ATS (meta!)
+    "vercel",         # Frontend cloud
+    "neon",           # Serverless Postgres
+    "supabase",       # Backend as a service
+    "convex",         # Backend platform
+    "planetscale",    # MySQL platform
+    "railway",        # Cloud deployment
 ]
 
 

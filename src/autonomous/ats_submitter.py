@@ -390,63 +390,131 @@ class ATSSubmitter:
             await page.close()
     
     async def _fill_greenhouse_form(self, page, cover_letter: str, resume_path: Optional[str]):
-        """Fill Greenhouse application form fields"""
+        """Fill Greenhouse application form fields with robust selectors"""
         
-        # Common field selectors for Greenhouse
-        field_mappings = [
-            # Name fields
-            ('input[name*="first_name"], input[id*="first_name"], input[autocomplete="given-name"]', self.applicant_data['first_name']),
-            ('input[name*="last_name"], input[id*="last_name"], input[autocomplete="family-name"]', self.applicant_data['last_name']),
-            
-            # Contact
-            ('input[name*="email"], input[type="email"]', self.applicant_data['email']),
-            ('input[name*="phone"], input[type="tel"]', self.applicant_data['phone']),
-            
-            # Links
-            ('input[name*="linkedin"], input[placeholder*="LinkedIn"]', self.applicant_data['linkedin']),
-            ('input[name*="github"], input[placeholder*="GitHub"]', self.applicant_data['github']),
-            ('input[name*="portfolio"], input[name*="website"]', self.applicant_data['portfolio']),
-            
-            # Location
-            ('input[name*="location"], input[name*="city"]', self.applicant_data['location']),
+        # Wait for form to be ready
+        await asyncio.sleep(1)
+        
+        # ═══════════════════════════════════════════════════════════
+        # GREENHOUSE FORM SELECTORS - Updated December 2025
+        # Modern Greenhouse uses specific patterns for field IDs
+        # ═══════════════════════════════════════════════════════════
+        
+        # First Name - try multiple patterns
+        first_name_selectors = [
+            'input#first_name',
+            'input[name="job_application[first_name]"]',
+            'input[name*="first_name"]',
+            'input[id*="first_name"]',
+            'input[autocomplete="given-name"]',
+            'input[aria-label*="First"]',
         ]
+        await self._fill_field_with_selectors(page, first_name_selectors, self.applicant_data['first_name'], "first_name")
         
-        for selector, value in field_mappings:
-            try:
-                field = await page.query_selector(selector)
-                if field:
-                    await field.fill(value)
-                    logger.debug(f"Filled field: {selector}")
-            except Exception as e:
-                logger.debug(f"Could not fill {selector}: {e}")
+        # Last Name
+        last_name_selectors = [
+            'input#last_name',
+            'input[name="job_application[last_name]"]',
+            'input[name*="last_name"]',
+            'input[id*="last_name"]',
+            'input[autocomplete="family-name"]',
+            'input[aria-label*="Last"]',
+        ]
+        await self._fill_field_with_selectors(page, last_name_selectors, self.applicant_data['last_name'], "last_name")
+        
+        # Email - CRITICAL: Must fill this correctly
+        email_selectors = [
+            'input#email',
+            'input[name="job_application[email]"]',
+            'input[type="email"]',
+            'input[name*="email"]',
+            'input[id*="email"]',
+            'input[autocomplete="email"]',
+            'input[aria-label*="Email"]',
+        ]
+        await self._fill_field_with_selectors(page, email_selectors, self.applicant_data['email'], "email")
+        
+        # Phone
+        phone_selectors = [
+            'input#phone',
+            'input[name="job_application[phone]"]',
+            'input[type="tel"]',
+            'input[name*="phone"]',
+            'input[id*="phone"]',
+            'input[autocomplete="tel"]',
+        ]
+        await self._fill_field_with_selectors(page, phone_selectors, self.applicant_data['phone'], "phone")
+        
+        # LinkedIn
+        linkedin_selectors = [
+            'input[name*="linkedin"]',
+            'input[id*="linkedin"]',
+            'input[placeholder*="linkedin"]',
+            'input[placeholder*="LinkedIn"]',
+            'input[aria-label*="LinkedIn"]',
+        ]
+        await self._fill_field_with_selectors(page, linkedin_selectors, self.applicant_data['linkedin'], "linkedin")
+        
+        # Location
+        location_selectors = [
+            'input[name*="location"]',
+            'input[id*="location"]',
+            'input[name*="city"]',
+            'input[placeholder*="Location"]',
+            'input[placeholder*="City"]',
+        ]
+        await self._fill_field_with_selectors(page, location_selectors, self.applicant_data['location'], "location")
         
         # Cover letter textarea
         cover_letter_selectors = [
             'textarea[name*="cover_letter"]',
             'textarea[id*="cover_letter"]',
             'textarea[placeholder*="cover letter"]',
+            'textarea[placeholder*="Cover Letter"]',
             'textarea[name*="message"]',
+            'textarea[aria-label*="cover"]',
+            'textarea',  # Last resort - first textarea
         ]
+        await self._fill_field_with_selectors(page, cover_letter_selectors, cover_letter, "cover_letter")
         
-        for selector in cover_letter_selectors:
-            try:
-                textarea = await page.query_selector(selector)
-                if textarea:
-                    await textarea.fill(cover_letter)
-                    logger.debug("Filled cover letter")
-                    break
-            except Exception:
-                pass
-        
-        # Resume upload
+        # Resume upload - try multiple file input patterns
         if resume_path and os.path.exists(resume_path):
+            file_selectors = [
+                'input[type="file"][name*="resume"]',
+                'input[type="file"][id*="resume"]',
+                'input[type="file"][accept*="pdf"]',
+                'input[type="file"]',
+            ]
+            for selector in file_selectors:
+                try:
+                    file_input = await page.query_selector(selector)
+                    if file_input:
+                        await file_input.set_input_files(resume_path)
+                        logger.info(f"✅ Uploaded resume: {resume_path}")
+                        break
+                except Exception as e:
+                    logger.debug(f"Could not upload with {selector}: {e}")
+        
+        # Wait for form to process
+        await asyncio.sleep(0.5)
+    
+    async def _fill_field_with_selectors(self, page, selectors: List[str], value: str, field_name: str) -> bool:
+        """Try multiple selectors to fill a field"""
+        for selector in selectors:
             try:
-                file_input = await page.query_selector('input[type="file"]')
-                if file_input:
-                    await file_input.set_input_files(resume_path)
-                    logger.debug("Uploaded resume")
+                field = await page.query_selector(selector)
+                if field:
+                    # Clear existing value first
+                    await field.click()
+                    await field.fill("")
+                    await field.fill(value)
+                    logger.info(f"✅ Filled {field_name}: {selector}")
+                    return True
             except Exception as e:
-                logger.warning(f"Could not upload resume: {e}")
+                logger.debug(f"Selector {selector} failed for {field_name}: {e}")
+        
+        logger.warning(f"⚠️ Could not fill {field_name} - no selector matched")
+        return False
     
     # =========================================================================
     # LEVER SUBMISSION
