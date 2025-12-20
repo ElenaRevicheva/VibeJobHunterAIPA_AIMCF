@@ -3,6 +3,11 @@ Autonomous Job Hunting Engine
 
 The most advanced AI-powered job hunting system ever built.
 Runs 24/7, finds jobs, researches companies, contacts founders, and tracks results.
+
+December 2025 Updates:
+- Rate limiting for email protection
+- Email verification (Hunter.io)
+- Improved ATS submission
 """
 
 from .orchestrator import AutonomousOrchestrator
@@ -24,6 +29,14 @@ except ImportError:
     async def get_ats_jobs_safely(*args, **kwargs):
         return []
 
+# NEW: Rate limiting and email verification (December 2025)
+try:
+    from .rate_limiter import ResendRateLimiter, get_rate_limiter
+    from .email_verifier import EmailVerifier, get_email_verifier, verify_before_send
+except ImportError as e:
+    import logging
+    logging.warning(f"Rate limiter/verifier import failed: {e}")
+
 __all__ = [
     "AutonomousOrchestrator",
     "JobMonitor",
@@ -34,4 +47,10 @@ __all__ = [
     "DemoTracker",
     "ResponseHandler",
     "get_ats_jobs_safely",
+    # New modules
+    "ResendRateLimiter",
+    "get_rate_limiter",
+    "EmailVerifier", 
+    "get_email_verifier",
+    "verify_before_send",
 ]

@@ -98,7 +98,8 @@ class Settings(BaseSettings):
     # -------------------------------------------------
     # LINKS & FILES
     # -------------------------------------------------
-    RESUME_PATH: str = "src/templates/resume_final_elena.md"
+    # PDF resume for ATS submissions (env var takes precedence)
+    RESUME_PATH: str = os.getenv("RESUME_PATH", "autonomous_data/resumes/elena_resume.pdf")
 
     LINKEDIN_URL: str = "https://www.linkedin.com/in/elenarevicheva/"
     GITHUB_URL: str = "https://github.com/ElenaRevicheva"

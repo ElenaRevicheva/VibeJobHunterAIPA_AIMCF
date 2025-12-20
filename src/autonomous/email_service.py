@@ -7,6 +7,11 @@ Supports multiple providers: Resend, SendGrid, Gmail API
 - Validates emails before sending
 - Adds dual-track routing logic
 - Preserves all existing functionality
+
+🛡️ PHASE 2: RATE LIMITING (December 2025)
+- Integrated ResendRateLimiter to protect email reputation
+- Max 10 emails/day, 3 emails/hour by default
+- Auto-disable on bounces
 """
 
 import os
@@ -14,6 +19,8 @@ from typing import Optional, Dict, List
 from datetime import datetime
 import logging
 import re
+
+from .rate_limiter import get_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -216,12 +223,14 @@ class EmailService:
         from_email: Optional[str] = None,
         html: bool = True,
         attachments: Optional[List[Dict]] = None,
-        skip_validation: bool = False  # 🆕 Emergency override
+        skip_validation: bool = False,  # 🆕 Emergency override
+        skip_rate_limit: bool = False   # 🆕 Skip rate limit check
     ) -> Dict:
         """
         Send an email using configured provider
         
         🚨 NEW: Validates recipient email before sending
+        🛡️ NEW: Rate limiting to protect email reputation
         
         Args:
             to: Recipient email
@@ -231,10 +240,25 @@ class EmailService:
             html: Whether body is HTML
             attachments: List of attachment dicts
             skip_validation: Skip email validation (use carefully!)
+            skip_rate_limit: Skip rate limit check (use for critical emails only)
         
         Returns:
             Dict with 'success', 'message_id', 'validation', and optional 'error'
         """
+        # 🛡️ RATE LIMITING CHECK (Phase 2)
+        if not skip_rate_limit:
+            rate_limiter = get_rate_limiter()
+            can_send, rate_reason = rate_limiter.can_send_email(to)
+            
+            if not can_send:
+                logger.warning(f"🛡️ Rate limited: {rate_reason}")
+                return {
+                    'success': False,
+                    'rate_limited': True,
+                    'error': f"Rate limited: {rate_reason}",
+                    'rate_limit_status': rate_limiter.get_status()
+                }
+        
         # 🚨 CRITICAL: Validate email BEFORE sending
         if not skip_validation:
             validation = validate_email_for_resend(to)
@@ -264,6 +288,11 @@ class EmailService:
                 result = await self._send_sendgrid(to, subject, body, from_email, html, attachments)
             elif self.provider == "gmail":
                 result = await self._send_gmail(to, subject, body, html, attachments)
+            
+            # 🛡️ Record successful send in rate limiter
+            if result.get('success') and not skip_rate_limit:
+                rate_limiter = get_rate_limiter()
+                rate_limiter.record_sent(to, "founder")
             
             # Add validation info to result
             if not skip_validation:

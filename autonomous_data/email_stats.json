@@ -1,0 +1,12 @@
+{
+  "total_sent": 0,
+  "total_bounced": 0,
+  "sent_today": 0,
+  "sent_this_hour": 0,
+  "last_sent_at": null,
+  "last_reset_date": "2025-12-20",
+  "last_reset_hour": "2025-12-20-18",
+  "disabled": false,
+  "disabled_reason": null,
+  "sent_emails": []
+}

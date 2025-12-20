@@ -70,8 +70,17 @@ class ATSSubmitter:
         self.submissions_dir = Path("autonomous_data/submissions")
         self.submissions_dir.mkdir(parents=True, exist_ok=True)
         
-        # Load resume path
-        self.resume_path = os.getenv("RESUME_PATH", "resume.pdf")
+        # Load resume path - check multiple locations
+        self.resume_path = os.getenv("RESUME_PATH", "autonomous_data/resumes/elena_resume.pdf")
+        
+        # Verify resume exists
+        if not Path(self.resume_path).exists():
+            # Try relative to workspace
+            alt_path = Path("/workspace") / self.resume_path
+            if alt_path.exists():
+                self.resume_path = str(alt_path)
+            else:
+                logger.warning(f"⚠️ Resume not found at {self.resume_path}")
         
         # Application data
         self.applicant_data = {
