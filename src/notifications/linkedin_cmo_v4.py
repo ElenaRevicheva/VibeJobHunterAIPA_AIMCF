@@ -721,9 +721,18 @@ Generate FRESH, creative content (not templates). Think strategically about what
                 
                 logger.info(f"🎯 [CTO Integration] Generating post about tech update: {latest_update.get('title')}")
                 
-                # Determine language for tech update post
+                # Determine language for tech update post - TRUE ALTERNATION
                 if language == "random":
-                    language = random.choice(["en", "es"])
+                    last_language_file = self.data_dir / "last_used_language.txt"
+                    try:
+                        with open(last_language_file, "r") as f:
+                            last_language = f.read().strip()
+                    except FileNotFoundError:
+                        last_language = "es"
+                    language = "es" if last_language == "en" else "en"
+                    with open(last_language_file, "w") as f:
+                        f.write(language)
+                    logger.info(f"🌍 [CTO Integration] Language alternation: {last_language.upper()} → {language.upper()}")
                 
                 # Generate prompt for tech update
                 prompt = self._generate_tech_update_prompt(latest_update, language.upper())
@@ -780,9 +789,24 @@ Generate FRESH, creative content (not templates). Think strategically about what
         
         logger.info("📝 Generating regular daily content (no tech updates pending)")
         
-        # Choose language
+        # Choose language - TRUE ALTERNATION (not random!)
         if language == "random":
-            language = random.choice(["en", "es"])
+            # Load last used language to alternate
+            last_language_file = self.data_dir / "last_used_language.txt"
+            try:
+                with open(last_language_file, "r") as f:
+                    last_language = f.read().strip()
+            except FileNotFoundError:
+                last_language = "es"  # Start with ES so first post is EN
+            
+            # Alternate: if last was EN, use ES; if last was ES, use EN
+            language = "es" if last_language == "en" else "en"
+            
+            # Save for next run
+            with open(last_language_file, "w") as f:
+                f.write(language)
+            
+            logger.info(f"🌍 Language alternation: {last_language.upper()} → {language.upper()}")
         
         # Choose post type
         if post_type == "random":
