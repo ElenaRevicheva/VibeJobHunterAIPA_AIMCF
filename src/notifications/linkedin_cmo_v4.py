@@ -383,6 +383,66 @@ Interested? DM me or email: [your email]
 
 #PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising""",
             "hashtags": "#PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising"
+        },
+        
+        "vibe_coding_philosophy": {
+            "content": """I apply for jobs using my own AI agent. Let me tell you why. 🤖
+
+Yes, I built VibeJobHunter—an autonomous AI that finds jobs, researches companies, and sends applications while I sleep.
+
+But here's what I want every employer and investor to understand:
+
+🎯 THIS IS NOT ABOUT REPLACING MY SKILLS WITH AI.
+
+Vibe coding is not about being lazy. It's not about scamming employers with fake personalization. It's not about letting robots do my job while I collect paychecks.
+
+Vibe coding is a PHILOSOPHY:
+
+💡 It means I build WITH AI, not behind it
+💡 It means I understand systems deeply enough to automate them
+💡 It means I choose to spend my time on high-value work, not copy-paste
+💡 It means I prove my skills by BUILDING the tool, not just using it
+
+When my VibeJobHunter sends an application, it's:
+• My code running
+• My strategy executing
+• My judgment (encoded in scoring algorithms)
+• My resume variants (I wrote all 3)
+• My research prompts (I designed them)
+
+The AI is the vehicle. I am the driver.
+
+🔍 TRANSPARENCY IS MY EDGE:
+
+I'm not hiding that I use AI. I'm showcasing it.
+
+Because any employer who rejects candidates for being smart about their job search is not the employer I want.
+
+The future belongs to people who can orchestrate AI—not compete against it.
+
+I apply 3-5x per day, highly targeted, with genuine personalization. Not 100 spray-and-pray applications.
+
+Quality over quantity. Strategy over desperation.
+
+This is what "founder mindset" looks like in 2025.
+
+🧠 WHAT VIBE CODING MEANS FOR MY LIFE:
+
+It's not a shortcut—it's a transformation.
+It's not replacing skills—it's multiplying them.
+It's not hiding behind AI—it's building AI Co-Founders.
+
+I went from CEO (zero code) to shipping 11 AI products in 10 months.
+Not because AI did it for me. Because I learned to THINK with AI.
+
+If you're looking for someone who can build autonomous systems that actually work in production—I'm that person.
+
+And yes, I'm transparent about it.
+
+🤖 Built with my AI Co-Founders at AIdeazz.xyz
+
+#VibeCoding #AICoFounders #TransparentJobSearch #FutureOfWork #BuildInPublic #FoundingEngineer""",
+            "hashtags": "#VibeCoding #AICoFounders #TransparentJobSearch #FutureOfWork #BuildInPublic"
         }
     }
     
@@ -482,6 +542,66 @@ No busco trabajo. Construyo leverage.
 
 #BuildInPublic #JourneyFundadora #IngenieríaIA #FundadoraSolo #VibeCoding""",
             "hashtags": "#BuildInPublic #TransiciónDeCarrera #IngenieríaIA #FundadoraSolo #BuscoTrabajo"
+        },
+        
+        "filosofia_vibe_coding": {
+            "content": """Aplico a trabajos usando mi propio agente de IA. Déjame contarte por qué. 🤖
+
+Sí, construí VibeJobHunter—una IA autónoma que encuentra trabajos, investiga empresas y envía aplicaciones mientras duermo.
+
+Pero esto es lo que quiero que entiendan todos los empleadores e inversores:
+
+🎯 ESTO NO SE TRATA DE REEMPLAZAR MIS HABILIDADES CON IA.
+
+Vibe coding no es sobre ser perezosa. No es sobre estafar empleadores con personalización falsa. No es sobre dejar que los robots hagan mi trabajo mientras cobro.
+
+Vibe coding es una FILOSOFÍA:
+
+💡 Significa que construyo CON IA, no detrás de ella
+💡 Significa que entiendo los sistemas lo suficientemente profundo para automatizarlos
+💡 Significa que elijo dedicar mi tiempo a trabajo de alto valor, no a copiar y pegar
+💡 Significa que demuestro mis habilidades CONSTRUYENDO la herramienta, no solo usándola
+
+Cuando mi VibeJobHunter envía una aplicación, es:
+• Mi código ejecutándose
+• Mi estrategia ejecutándose
+• Mi juicio (codificado en algoritmos de puntuación)
+• Mis variantes de CV (escribí las 3)
+• Mis prompts de investigación (los diseñé)
+
+La IA es el vehículo. Yo soy la conductora.
+
+🔍 LA TRANSPARENCIA ES MI VENTAJA:
+
+No estoy ocultando que uso IA. Lo estoy exhibiendo.
+
+Porque cualquier empleador que rechace candidatos por ser inteligentes en su búsqueda de empleo no es el empleador que quiero.
+
+El futuro pertenece a las personas que pueden orquestar IA—no competir contra ella.
+
+Aplico 3-5 veces por día, altamente segmentado, con personalización genuina. No 100 aplicaciones spray-and-pray.
+
+Calidad sobre cantidad. Estrategia sobre desesperación.
+
+Esto es lo que significa "mentalidad fundadora" en 2025.
+
+🧠 LO QUE VIBE CODING SIGNIFICA PARA MI VIDA:
+
+No es un atajo—es una transformación.
+No es reemplazar habilidades—es multiplicarlas.
+No es esconderse detrás de IA—es construir Co-Fundadores de IA.
+
+Pasé de CEO (cero código) a lanzar 11 productos de IA en 10 meses.
+No porque la IA lo hizo por mí. Porque aprendí a PENSAR con IA.
+
+Si buscas a alguien que pueda construir sistemas autónomos que realmente funcionen en producción—soy esa persona.
+
+Y sí, soy transparente al respecto.
+
+🤖 Construido con mis Co-Fundadores de IA en AIdeazz.xyz
+
+#VibeCoding #CoFundadoresIA #BúsquedaTransparente #FuturoDelTrabajo #BuildInPublic #FoundingEngineer""",
+            "hashtags": "#VibeCoding #CoFundadoresIA #BúsquedaTransparente #FuturoDelTrabajo #BuildInPublic"
         }
     }
     
@@ -516,7 +636,9 @@ Elena Revicheva - AI-First Engineer & Founder
                 "open_to_work": "Attract founding engineer roles + strategic collaborations. Show founder mindset, not job seeker. Emphasize Ex-CEO background + AI Co-Founder concept. POWERFUL tone, full dignity.",
                 "technical_showcase": "Demonstrate technical depth - 5 AIPAs running autonomously. Show AI Co-Founder concept in action. Position as builder who ships fast.",
                 "transformation_story": "CEO → Founder journey. Emphasize urgency + AI-assisted vibe coding. Show AI Co-Founders enable solo building at team speed.",
-                "seeking_funding": "Pitch AIdeazz pre-seed ($100K-500K). Emphasize AI Co-Founder differentiation, not just AI tools. Show traction: 9 products, users in 19 countries."
+                "seeking_funding": "Pitch AIdeazz pre-seed ($100K-500K). Emphasize AI Co-Founder differentiation, not just AI tools. Show traction: 9 products, users in 19 countries.",
+                "vibe_coding_philosophy": "PHILOSOPHICAL & VISIONARY post about transparency in using AI for job search. Explain that vibe coding is NOT about replacing skills with AI, but about a new vision, new strategy, life transformation. Show that VibeJobHunter is proof of skills, not laziness. Be transparent about using AI while showing it's the vehicle, not the driver. Emphasize: I built the tool, I designed the strategy, AI executes MY vision. Counter the narrative that AI job tools are scams - this is HONEST automation by a real builder.",
+                "filosofia_vibe_coding": "POST FILOSÓFICO Y VISIONARIO sobre transparencia en usar IA para búsqueda de empleo. Explicar que vibe coding NO es sobre reemplazar habilidades con IA, sino sobre una nueva visión, nueva estrategia, transformación de vida. Mostrar que VibeJobHunter es prueba de habilidades, no pereza. Ser transparente sobre usar IA mientras muestras que es el vehículo, no el conductor."
             }
             
             prompt = f"""You are LinkedIn CMO, an AI Co-Founder (not just an assistant) for AIdeazz.
