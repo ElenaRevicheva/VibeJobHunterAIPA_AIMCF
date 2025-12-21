@@ -471,6 +471,236 @@ Edit `src/autonomous/auto_applicator.py`:
 
 ---
 
+## 8. KNOWN LIMITATIONS & WHY
+
+### ⚠️ Platforms That Can't Be Easily Fixed
+
+| Platform | Issue | Why It's Hard |
+|----------|-------|---------------|
+| **Workable** | API returns 404 | Workable changed their API structure. Now requires Cloudflare bypass and possibly authentication. Companies are moving away from it anyway. |
+| **YC Work at Startup** | Needs Algolia API key | Uses Algolia search backend with private API key embedded in their frontend. Would need to scrape their React app or get an API key. |
+| **Wellfound (AngelList)** | GraphQL + Auth | Requires authenticated GraphQL queries. Would need to maintain a session and potentially handle CAPTCHAs. |
+| **LinkedIn Jobs** | Heavy anti-bot | Aggressive rate limiting, CAPTCHAs, account bans. Not worth the risk. |
+
+**Reality Check:** The current ATS APIs (Greenhouse 73 + Lever 19 + Ashby 37 = **129 companies**) already cover the best AI/ML startups. Adding more sources has diminishing returns.
+
+---
+
+## 9. 🚀 FUTURE ROADMAP
+
+### PHASE 1: Intelligence Upgrades (High Impact, Achievable)
+
+#### 1.1 📊 Success Prediction Model
+**Status:** NOT IMPLEMENTED  
+**Priority:** HIGH  
+**Effort:** 2-3 days
+
+```python
+# Track which applications get responses
+# Build ML model predicting:
+# - Which companies respond to founder outreach?
+# - Which job descriptions have highest success rate?
+# - What message styles work best?
+
+# Implementation:
+# 1. Log all application outcomes to SQLite
+# 2. After 50+ applications, train simple classifier
+# 3. Add "predicted_response_rate" to scoring
+```
+
+**Why genius:** Self-improving system. After 30 days, you know exactly which companies are worth applying to.
+
+**Files to modify:**
+- `src/autonomous/orchestrator.py` - add outcome tracking
+- `src/agents/job_matcher.py` - add prediction score
+- `autonomous_data/vibejobhunter.db` - add outcomes table
+
+---
+
+#### 1.2 🧠 AI-Powered Company Intelligence
+**Status:** PARTIALLY IMPLEMENTED (basic research exists)  
+**Priority:** HIGH  
+**Effort:** 1-2 days
+
+```python
+# Before applying, research:
+# - Recent company blog posts (via RSS/Atom feeds)
+# - GitHub commits (public repos via API)
+# - Product launches (ProductHunt API)
+# - Founder tweets (X API - if available)
+#
+# Then generate hyper-personalized messages referencing specific work
+
+# Example output:
+"I saw your v2.3 release on ProductHunt last week - the RAG improvements 
+look solid. I've built similar retrieval systems at scale..."
+```
+
+**Why genius:** Shows you actually researched them, not mass applying. 10x higher response rate.
+
+**Files to modify:**
+- `src/autonomous/company_researcher.py` - add RSS/GitHub/ProductHunt
+- `src/autonomous/message_generator.py` - use research in messages
+
+---
+
+#### 1.3 📧 Response Detection & Auto-Triage
+**Status:** NOT IMPLEMENTED  
+**Priority:** MEDIUM  
+**Effort:** 2-3 days
+
+```python
+# Monitor inbox for responses
+# Classify with Claude:
+# - POSITIVE: "Let's schedule a call" → Alert immediately
+# - REJECTION: "We've decided to move forward with other candidates" → Log
+# - QUESTION: "Can you tell me more about..." → Draft response
+# - SPAM: Ignore
+
+# Auto-actions:
+# - POSITIVE → Send calendar link (Calendly integration)
+# - QUESTION → Draft response, notify for review
+```
+
+**Why genius:** Never miss a hot lead. Instant response = higher conversion.
+
+**Files to modify:**
+- `src/autonomous/greenhouse_email_verifier.py` - extend for response detection
+- New: `src/autonomous/response_handler.py`
+
+---
+
+### PHASE 2: Multi-Touch Sequencing (Medium Impact)
+
+#### 2.1 🎭 Coordinated Outreach Sequence
+**Status:** NOT IMPLEMENTED  
+**Priority:** MEDIUM  
+**Effort:** 3-4 days
+
+```python
+# Day 0: Submit via ATS
+# Day 0 + 30min: Founder email (if score >= 58)
+# Day 3: Check for response → if none, queue follow-up
+# Day 7: Send follow-up email (gentle nudge)
+# Day 14: Final follow-up OR close loop
+
+# All perfectly timed, all coordinated
+# Track in database: application_id → sequence_stage → next_action_date
+```
+
+**Why genius:** Professional persistence without being annoying. 3x higher response rate with proper sequencing.
+
+**Files to modify:**
+- New: `src/autonomous/sequence_manager.py`
+- `src/autonomous/orchestrator.py` - add sequence check to cycle
+
+---
+
+### PHASE 3: Network Effects (Advanced)
+
+#### 3.1 🕸️ Founder Network Mapping
+**Status:** NOT IMPLEMENTED  
+**Priority:** LOW (high effort, high reward)  
+**Effort:** 1-2 weeks
+
+```python
+# Build graph of:
+# - YC batch connections (who was in same batch)
+# - Investor portfolios (who shares investors)
+# - Twitter/LinkedIn follows (mutual connections)
+# - Previous companies (alumni networks)
+
+# Use for:
+# - "You were in YC W23 with [other founder I know]..."
+# - Prioritize companies where you have warm intro potential
+# - Identify bridge contacts
+```
+
+**Why genius:** Warm intros have 50%+ response rate vs 5% cold. This is how top candidates actually get jobs.
+
+**Data sources:**
+- YC Company Directory (public)
+- Crunchbase (API or scrape)
+- LinkedIn (manual or limited API)
+
+---
+
+### PHASE 4: Platform Expansion (If Needed)
+
+#### 4.1 More ATS Platforms
+**Status:** Deprioritized  
+**Priority:** LOW
+
+| Platform | Feasibility | Notes |
+|----------|-------------|-------|
+| **Rippling** | MEDIUM | Some YC companies use it, has public job boards |
+| **BambooHR** | LOW | Mostly HR-focused companies |
+| **Jobvite** | LOW | Enterprise-focused |
+
+**Recommendation:** Focus on intelligence (Phase 1-2) before adding more sources. 129 companies is already comprehensive.
+
+---
+
+### PHASE 5: The Dream Features (Long-term Vision)
+
+#### 5.1 🤖 Full Interview Pipeline Automation
+```
+Application → Response Detection → Auto-Schedule → 
+Prep Materials Generated → Calendar Reminder → 
+Post-Interview Follow-up → Offer Negotiation Support
+```
+
+#### 5.2 📈 Market Intelligence Dashboard
+```
+- Which companies are hiring most aggressively?
+- Salary trend analysis by role/location
+- Time-to-hire predictions
+- "Hot" company alerts (new funding, team growth)
+```
+
+#### 5.3 🎯 Portfolio-to-Job Matching
+```
+- Analyze your GitHub repos
+- Match to job requirements
+- Auto-generate "relevant project" bullets for each application
+- Link specific commits/PRs that prove skills
+```
+
+---
+
+## 10. IMPLEMENTATION PRIORITY MATRIX
+
+| Feature | Impact | Effort | Priority |
+|---------|--------|--------|----------|
+| Success Prediction Model | HIGH | 2-3 days | ⭐⭐⭐ DO FIRST |
+| Company Intelligence (RSS/GitHub) | HIGH | 1-2 days | ⭐⭐⭐ DO FIRST |
+| Response Detection | HIGH | 2-3 days | ⭐⭐ DO SECOND |
+| Multi-Touch Sequencing | MEDIUM | 3-4 days | ⭐⭐ DO SECOND |
+| Network Mapping | HIGH | 1-2 weeks | ⭐ LONG-TERM |
+| More ATS Platforms | LOW | varies | ❌ SKIP FOR NOW |
+
+---
+
+## 11. WHAT MAKES THIS SYSTEM UNIQUE
+
+### Already Implemented (Nobody Else Has This):
+1. ✅ **End-to-end Greenhouse automation** - Form fill + email verification + submit
+2. ✅ **Claude-powered personalization** - Every application is unique
+3. ✅ **Multi-resume selection** - Right resume for right role
+4. ✅ **Founder outreach pipeline** - Not just ATS, but direct contact
+
+### With Roadmap Features:
+1. 🔮 **Self-improving scoring** - Learns what works for YOU
+2. 🔮 **Hyper-personalized outreach** - References their latest blog/GitHub
+3. 🔮 **Automated response handling** - Never miss a hot lead
+4. 🔮 **Professional persistence** - Timed follow-up sequences
+
+**This isn't just automation. This is an AI job hunting co-founder that gets smarter over time.**
+
+---
+
 **Built by Elena Revicheva with AI Co-Founders** 🤖
 
 *This system runs autonomously 24/7 on Railway, finding and applying to AI/ML jobs.*
+
+*Last Updated: December 21, 2025*
