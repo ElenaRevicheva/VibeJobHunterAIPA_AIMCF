@@ -270,8 +270,8 @@ class GreenhouseEmailVerifier:
                 return None
         
         try:
-            # Check multiple folders (inbox and spam)
-            folders_to_check = ["INBOX", "Spam", "Junk", "[Gmail]/Spam"]
+            # Check multiple folders (inbox, spam, and notification folders)
+            folders_to_check = ["INBOX", "Notification", "Notifications", "Spam", "Junk", "[Gmail]/Spam"]
             all_email_ids = []
             
             for folder in folders_to_check:
