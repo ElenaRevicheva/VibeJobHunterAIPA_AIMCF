@@ -81,16 +81,27 @@ class GreenhouseEmailVerifier:
         """
         if not self.email_password:
             logger.error("❌ Cannot connect: No Zoho credentials")
+            logger.error(f"   ZOHO_EMAIL set: {bool(os.getenv('ZOHO_EMAIL'))}")
+            logger.error(f"   ZOHO_APP_PASSWORD set: {bool(os.getenv('ZOHO_APP_PASSWORD'))}")
             return False
         
         try:
+            # Log connection attempt (without password)
+            logger.info(f"🔌 Connecting to {ZOHO_IMAP_HOST}:{ZOHO_IMAP_PORT}")
+            logger.info(f"   Email: {self.email_address}")
+            logger.info(f"   Password length: {len(self.email_password)} chars")
+            
             self.imap_connection = imaplib.IMAP4_SSL(ZOHO_IMAP_HOST, ZOHO_IMAP_PORT)
             self.imap_connection.login(self.email_address, self.email_password)
             logger.info(f"✅ Connected to Zoho Mail: {self.email_address}")
             return True
         except imaplib.IMAP4.error as e:
             logger.error(f"❌ IMAP login failed: {e}")
+            logger.error(f"   Server: {ZOHO_IMAP_HOST}")
+            logger.error(f"   Email used: {self.email_address}")
+            logger.error(f"   Password length: {len(self.email_password)} chars")
             logger.info("   💡 Try using an App-specific password from Zoho settings")
+            logger.info("   💡 Make sure IMAP is enabled in Zoho Mail settings")
             return False
         except Exception as e:
             logger.error(f"❌ Connection failed: {e}")
