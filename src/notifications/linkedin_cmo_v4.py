@@ -45,18 +45,21 @@ except ImportError:
 # Deployment verification (logged, not printed)
 logger.info("✨ LinkedIn CMO v5.0 loaded - AI Marketing Co-Founder")
 
-# 🔥 VERSION MARKER - DIGNIFIED POSITIONING DEPLOYED! 🔥
-LINKEDIN_CMO_VERSION = "5.0_AI_MARKETING_COFOUNDER_DIGNIFIED"
-BUILD_TIMESTAMP = "2025-11-24_17:00_UTC"
-GIT_COMMIT_HASH = "08810b9"
-POSITIONING_UPGRADE = "EMOTIONALLY_INTELLIGENT_AI"
+# 🔥 VERSION MARKER - VIBE CODING PHILOSOPHY DEPLOYED! 🔥
+LINKEDIN_CMO_VERSION = "5.1_VIBE_CODING_PHILOSOPHY"
+BUILD_TIMESTAMP = "2025-12-21_18:30_UTC"
+GIT_COMMIT_HASH = "2eeaefe"
+POSITIONING_UPGRADE = "VIBE_CODING_LIFE_TRANSFORMATION"
+NEW_CONTENT_TYPES = ["vibe_coding_philosophy", "filosofia_vibe_coding"]
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🎯" * 40)
 logger.info(f"✨ AI MARKETING CO-FOUNDER v{LINKEDIN_CMO_VERSION} ✨")
 logger.info(f"📦 BUILD: {BUILD_TIMESTAMP} | COMMIT: {GIT_COMMIT_HASH}")
-logger.info(f"🎯 UPGRADE: {POSITIONING_UPGRADE} - Professional product descriptions!")
-logger.info(f"🔗 9 VERIFIED LINKS: EspaLuz (WhatsApp/Telegram/SMM), ALGOM, AIdeazz, ATUONA")
+logger.info(f"🔖 [FINGERPRINT: 2025-12-21_VIBE_CODING_PHILOSOPHY_DEPLOYED]")
+logger.info(f"🆕 NEW POST TYPES: {NEW_CONTENT_TYPES}")
+logger.info(f"🌍 LANGUAGE: True EN↔ES alternation (not random)")
+logger.info(f"🖼️ IMAGES: 14 images with anti-repeat rotation")
 logger.info(f"🧠 THIS IS TRUE AI MARKETING CO-FOUNDER!")
 logger.info("🎯" * 40)
 
@@ -812,6 +815,12 @@ Generate FRESH, creative content (not templates). Think strategically about what
         if post_type == "random":
             available_types = list(self.LINKEDIN_POSTS_EN.keys() if language == "en" else self.LINKEDIN_POSTS_ES.keys())
             post_type = random.choice(available_types)
+            logger.info(f"📝 Selected post type: {post_type} (from {len(available_types)} available)")
+            
+            # Log when new vibe coding content is selected
+            if post_type in ["vibe_coding_philosophy", "filosofia_vibe_coding"]:
+                logger.info(f"🔖 [FINGERPRINT: VIBE_CODING_PHILOSOPHY_SELECTED] → {post_type}")
+                logger.info(f"🧠 Generating life transformation story content...")
         
         # Try AI Co-Founder generation first (if enabled)
         ai_content = None
