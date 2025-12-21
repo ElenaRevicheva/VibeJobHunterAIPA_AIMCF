@@ -414,6 +414,12 @@ class ATSSubmitter:
                 'check your email',
                 'sent a code',
                 'verify your email',
+                'code has been sent',
+                'email verification',
+                'confirm your email',
+                'enter code',
+                'paste this code',
+                'copy and paste',
             ])
             
             if verification_required:
@@ -514,27 +520,88 @@ class ATSSubmitter:
                 logger.info("   Generate app password at: Zoho Mail → Settings → Security → App Passwords")
                 return False
             
-            # Find the verification code input field
+            # Wait a moment for the verification page to fully load
+            await asyncio.sleep(2)
+            
+            # Find the verification code input field - expanded selectors for xAI/Greenhouse
             code_input_selectors = [
+                # Direct security/verification selectors
                 'input[name*="security"]',
                 'input[name*="verification"]',
                 'input[name*="code"]',
+                'input[name*="token"]',
+                'input[name*="otp"]',
+                # Placeholder-based
                 'input[placeholder*="code"]',
                 'input[placeholder*="Code"]',
+                'input[placeholder*="security"]',
+                'input[placeholder*="Security"]',
+                'input[placeholder*="Enter"]',
+                # Aria-label based
                 'input[aria-label*="code"]',
+                'input[aria-label*="Code"]',
+                'input[aria-label*="security"]',
+                'input[aria-label*="Security"]',
                 'input[aria-label*="verification"]',
+                # Length-based (verification codes are typically 6-10 chars)
+                'input[type="text"][maxlength="6"]',
                 'input[type="text"][maxlength="8"]',
                 'input[type="text"][maxlength="10"]',
+                # Greenhouse-specific patterns
+                'input[id*="security"]',
+                'input[id*="code"]',
+                'input[id*="verification"]',
+                'input[id*="token"]',
+                # Generic visible text input that might be the code field
+                'input[type="text"]:not([name*="name"]):not([name*="email"]):not([name*="phone"])',
             ]
             
             code_input = None
             for selector in code_input_selectors:
-                code_input = await page.query_selector(selector)
-                if code_input:
-                    break
+                try:
+                    code_input = await page.query_selector(selector)
+                    if code_input:
+                        # Verify it's visible and not already filled
+                        is_visible = await code_input.is_visible()
+                        current_value = await code_input.input_value()
+                        if is_visible and not current_value:
+                            logger.info(f"✅ Found verification input: {selector}")
+                            break
+                        code_input = None
+                except Exception:
+                    continue
+            
+            if not code_input:
+                # Try to find any empty text input on the page
+                logger.info("🔍 Searching for any empty text input for verification code...")
+                all_inputs = await page.query_selector_all('input[type="text"]')
+                for inp in all_inputs:
+                    try:
+                        is_visible = await inp.is_visible()
+                        current_value = await inp.input_value()
+                        inp_name = await inp.get_attribute('name') or ''
+                        inp_placeholder = await inp.get_attribute('placeholder') or ''
+                        
+                        # Skip name/email/phone fields
+                        if any(skip in inp_name.lower() for skip in ['name', 'email', 'phone', 'linkedin', 'github']):
+                            continue
+                        
+                        if is_visible and not current_value:
+                            logger.info(f"✅ Found empty input: name={inp_name}, placeholder={inp_placeholder}")
+                            code_input = inp
+                            break
+                    except Exception:
+                        continue
             
             if not code_input:
                 logger.warning("⚠️ Could not find verification code input field")
+                # Log page content for debugging
+                try:
+                    page_text = await page.content()
+                    if 'security' in page_text.lower() or 'code' in page_text.lower():
+                        logger.info("📄 Page contains 'security' or 'code' text - verification likely needed")
+                except Exception:
+                    pass
                 return False
             
             # Wait for verification email and get code
