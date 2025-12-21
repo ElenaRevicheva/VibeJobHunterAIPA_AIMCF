@@ -35,8 +35,21 @@ logger = logging.getLogger(__name__)
 # Zoho IMAP settings
 # Note: For Zoho Mail Pro/Business accounts, use imappro.zoho.com
 # For free Zoho Mail accounts, use imap.zoho.com
-ZOHO_IMAP_HOST = os.getenv("ZOHO_IMAP_HOST", "imappro.zoho.com")
+# Different regions: .com (US), .eu (EU), .in (India), .com.au (Australia)
 ZOHO_IMAP_PORT = 993
+
+# All possible Zoho IMAP servers to try (in order of likelihood)
+ZOHO_IMAP_SERVERS = [
+    os.getenv("ZOHO_IMAP_HOST", "imappro.zoho.com"),  # User-specified or default
+    "imappro.zoho.com",   # Pro/Business - US
+    "imap.zoho.com",      # Free - US
+    "imappro.zoho.eu",    # Pro/Business - EU
+    "imap.zoho.eu",       # Free - EU
+    "imappro.zoho.in",    # Pro/Business - India
+    "imap.zoho.in",       # Free - India
+    "imappro.zoho.com.au", # Pro/Business - Australia
+    "imap.zoho.com.au",   # Free - Australia
+]
 
 # Greenhouse email patterns
 GREENHOUSE_SENDER = "no-reply@us.greenhouse-mail.io"
@@ -66,16 +79,28 @@ class GreenhouseEmailVerifier:
         
         self.imap_connection = None
         self._auth_failed = False  # Track if authentication has failed
+        self._working_server = None  # Remember which server worked
         
         if not self.email_password:
             logger.warning("⚠️ Zoho email credentials not configured")
             logger.info("   Set ZOHO_APP_PASSWORD or ZOHO_PASSWORD in environment")
         else:
             logger.info("✅ Greenhouse Email Verifier initialized")
+            # Zoho app-specific passwords are typically 16 chars
+            # Warn if password looks wrong
+            pwd_len = len(self.email_password)
+            if pwd_len < 12:
+                logger.warning(f"⚠️ Password seems short ({pwd_len} chars)")
+                logger.warning("   Zoho app-specific passwords are usually 16 characters")
+            elif pwd_len != 16:
+                logger.info(f"   Password: {pwd_len} chars (Zoho app passwords are typically 16)")
     
     def connect(self) -> bool:
         """
         Connect to Zoho Mail via IMAP
+        
+        Tries multiple Zoho servers (different regions and account types)
+        until one works.
         
         Returns:
             bool: True if connection successful
@@ -86,34 +111,53 @@ class GreenhouseEmailVerifier:
             logger.error(f"   ZOHO_APP_PASSWORD set: {bool(os.getenv('ZOHO_APP_PASSWORD'))}")
             return False
         
-        try:
-            # Log connection attempt (without password)
-            logger.info(f"🔌 Connecting to {ZOHO_IMAP_HOST}:{ZOHO_IMAP_PORT}")
-            logger.info(f"   Email: {self.email_address}")
-            logger.info(f"   Password length: {len(self.email_password)} chars")
-            
-            self.imap_connection = imaplib.IMAP4_SSL(ZOHO_IMAP_HOST, ZOHO_IMAP_PORT)
-            self.imap_connection.login(self.email_address, self.email_password)
-            self._auth_failed = False  # Reset auth failure flag on success
-            logger.info(f"✅ Connected to Zoho Mail: {self.email_address}")
-            return True
-        except imaplib.IMAP4.error as e:
-            logger.error(f"❌ IMAP login failed: {e}")
-            logger.error(f"   Server: {ZOHO_IMAP_HOST}")
-            logger.error(f"   Email used: {self.email_address}")
-            logger.error(f"   Password length: {len(self.email_password)} chars")
-            logger.info("   💡 Try using an App-specific password from Zoho settings")
-            logger.info("   💡 Make sure IMAP is enabled in Zoho Mail settings")
-            # Mark as auth failure - don't retry with same credentials
-            self._auth_failed = True
-            # Clean up the connection that's in NONAUTH state
-            self.imap_connection = None
-            return False
-        except Exception as e:
-            logger.error(f"❌ Connection failed: {e}")
-            # Clean up connection on any failure
-            self.imap_connection = None
-            return False
+        logger.info(f"📧 Attempting Zoho Mail connection for: {self.email_address}")
+        logger.info(f"🔑 Password length: {len(self.email_password)} chars")
+        
+        # Try each server until one works
+        # Remove duplicates while preserving order
+        servers_to_try = list(dict.fromkeys(ZOHO_IMAP_SERVERS))
+        
+        last_error = None
+        for server in servers_to_try:
+            try:
+                logger.info(f"🔌 Trying {server}:{ZOHO_IMAP_PORT}...")
+                
+                self.imap_connection = imaplib.IMAP4_SSL(server, ZOHO_IMAP_PORT)
+                self.imap_connection.login(self.email_address, self.email_password)
+                self._auth_failed = False  # Reset auth failure flag on success
+                self._working_server = server  # Remember working server
+                logger.info(f"✅ Connected to Zoho Mail via {server}")
+                return True
+                
+            except imaplib.IMAP4.error as e:
+                last_error = str(e)
+                logger.debug(f"   ❌ {server}: Auth failed")
+                # Clean up the connection that's in NONAUTH state
+                self.imap_connection = None
+                continue
+                
+            except Exception as e:
+                last_error = str(e)
+                logger.debug(f"   ❌ {server}: Connection error - {e}")
+                self.imap_connection = None
+                continue
+        
+        # All servers failed
+        logger.error(f"❌ IMAP login failed on all {len(servers_to_try)} servers")
+        logger.error(f"   Last error: {last_error}")
+        logger.error(f"   Email used: {self.email_address}")
+        logger.error(f"   Password length: {len(self.email_password)} chars")
+        logger.info("")
+        logger.info("   💡 TROUBLESHOOTING:")
+        logger.info("   1. Regenerate App-specific password in Zoho Mail → Settings → Security")
+        logger.info("   2. Make sure IMAP is ENABLED in Zoho Mail → Settings → Mail Accounts → IMAP Access")
+        logger.info("   3. Copy the FULL password (16 chars, no spaces)")
+        logger.info("   4. Update ZOHO_APP_PASSWORD in Railway environment variables")
+        
+        # Mark as auth failure - don't retry with same credentials
+        self._auth_failed = True
+        return False
     
     def disconnect(self):
         """Close IMAP connection"""
