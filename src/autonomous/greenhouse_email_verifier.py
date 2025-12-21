@@ -65,6 +65,7 @@ class GreenhouseEmailVerifier:
             self.email_password = os.getenv("ZOHO_PASSWORD")
         
         self.imap_connection = None
+        self._auth_failed = False  # Track if authentication has failed
         
         if not self.email_password:
             logger.warning("⚠️ Zoho email credentials not configured")
@@ -93,6 +94,7 @@ class GreenhouseEmailVerifier:
             
             self.imap_connection = imaplib.IMAP4_SSL(ZOHO_IMAP_HOST, ZOHO_IMAP_PORT)
             self.imap_connection.login(self.email_address, self.email_password)
+            self._auth_failed = False  # Reset auth failure flag on success
             logger.info(f"✅ Connected to Zoho Mail: {self.email_address}")
             return True
         except imaplib.IMAP4.error as e:
@@ -102,9 +104,15 @@ class GreenhouseEmailVerifier:
             logger.error(f"   Password length: {len(self.email_password)} chars")
             logger.info("   💡 Try using an App-specific password from Zoho settings")
             logger.info("   💡 Make sure IMAP is enabled in Zoho Mail settings")
+            # Mark as auth failure - don't retry with same credentials
+            self._auth_failed = True
+            # Clean up the connection that's in NONAUTH state
+            self.imap_connection = None
             return False
         except Exception as e:
             logger.error(f"❌ Connection failed: {e}")
+            # Clean up connection on any failure
+            self.imap_connection = None
             return False
     
     def disconnect(self):
@@ -183,6 +191,11 @@ class GreenhouseEmailVerifier:
         Returns:
             str: Verification code or None
         """
+        # Don't retry if authentication already failed (wrong credentials)
+        if self._auth_failed:
+            logger.debug("⏭️ Skipping email check - authentication previously failed")
+            return None
+            
         if not self.imap_connection:
             if not self.connect():
                 return None
@@ -269,6 +282,19 @@ class GreenhouseEmailVerifier:
         """
         logger.info(f"⏳ Waiting for Greenhouse verification email (max {timeout_seconds}s)...")
         
+        # First attempt to connect - fail early if credentials are wrong
+        if not self.imap_connection and not self._auth_failed:
+            if not self.connect():
+                if self._auth_failed:
+                    logger.error("❌ Cannot check for verification code - email authentication failed")
+                    logger.error("   Please configure ZOHO_APP_PASSWORD with a valid App-specific password")
+                    return None
+        
+        # If auth already failed, don't keep trying
+        if self._auth_failed:
+            logger.error("❌ Cannot check for verification code - email credentials are invalid")
+            return None
+        
         start_time = datetime.now()
         
         while (datetime.now() - start_time).seconds < timeout_seconds:
@@ -276,6 +302,11 @@ class GreenhouseEmailVerifier:
             
             if code:
                 return code
+            
+            # Check if authentication failed during the code check
+            if self._auth_failed:
+                logger.error("❌ Email authentication failed - stopping wait")
+                return None
             
             logger.debug(f"   📭 No code yet, checking again in {CHECK_INTERVAL_SECONDS}s...")
             await asyncio.sleep(CHECK_INTERVAL_SECONDS)
