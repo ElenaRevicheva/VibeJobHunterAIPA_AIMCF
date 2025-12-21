@@ -51,8 +51,14 @@ ZOHO_IMAP_SERVERS = [
     "imap.zoho.com.au",   # Free - Australia
 ]
 
-# Greenhouse email patterns
-GREENHOUSE_SENDER = "no-reply@us.greenhouse-mail.io"
+# Greenhouse email patterns - multiple possible senders
+GREENHOUSE_SENDERS = [
+    "no-reply@us.greenhouse-mail.io",
+    "no-reply@greenhouse-mail.io",
+    "noreply@greenhouse.io",
+    "no-reply@greenhouse.io",
+    "greenhouse",  # Catch-all for any greenhouse sender
+]
 GREENHOUSE_SUBJECT_PATTERN = r"Security code for your application"
 GREENHOUSE_CODE_PATTERN = r"Copy and paste this code[^\n]*\n\s*([A-Za-z0-9]{8})"
 
@@ -264,62 +270,94 @@ class GreenhouseEmailVerifier:
                 return None
         
         try:
-            # Select inbox
-            self.imap_connection.select("INBOX")
+            # Check multiple folders (inbox and spam)
+            folders_to_check = ["INBOX", "Spam", "Junk", "[Gmail]/Spam"]
+            all_email_ids = []
             
-            # Search for Greenhouse emails
-            # Search criteria: FROM greenhouse AND recent
-            search_criteria = f'(FROM "{GREENHOUSE_SENDER}")'
+            for folder in folders_to_check:
+                try:
+                    status, _ = self.imap_connection.select(folder)
+                    if status != "OK":
+                        continue
+                    
+                    # Search for Greenhouse emails using multiple sender patterns
+                    for sender in GREENHOUSE_SENDERS:
+                        search_criteria = f'(FROM "{sender}")'
+                        status, message_ids = self.imap_connection.search(None, search_criteria)
+                        if status == "OK" and message_ids[0]:
+                            folder_ids = [(folder, eid) for eid in message_ids[0].split()]
+                            all_email_ids.extend(folder_ids)
+                    
+                    # Also search by subject containing "security code"
+                    search_criteria = '(SUBJECT "security code")'
+                    status, message_ids = self.imap_connection.search(None, search_criteria)
+                    if status == "OK" and message_ids[0]:
+                        folder_ids = [(folder, eid) for eid in message_ids[0].split()]
+                        all_email_ids.extend(folder_ids)
+                        
+                except Exception as e:
+                    logger.debug(f"Could not check folder {folder}: {e}")
+                    continue
             
-            status, message_ids = self.imap_connection.search(None, search_criteria)
-            
-            if status != "OK" or not message_ids[0]:
+            if not all_email_ids:
                 logger.info("📭 No Greenhouse verification emails found")
                 return None
             
-            # Get list of email IDs
-            email_ids = message_ids[0].split()
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_emails = []
+            for item in all_email_ids:
+                if item not in seen:
+                    seen.add(item)
+                    unique_emails.append(item)
+            
+            logger.info(f"📧 Found {len(unique_emails)} potential verification emails")
             
             # Check emails from newest to oldest
-            for email_id in reversed(email_ids[-10:]):  # Check last 10 emails
-                status, msg_data = self.imap_connection.fetch(email_id, "(RFC822)")
-                
-                if status != "OK":
-                    continue
-                
-                msg = email.message_from_bytes(msg_data[0][1])
-                
-                # Check subject
-                subject = decode_header(msg["Subject"])[0][0]
-                if isinstance(subject, bytes):
-                    subject = subject.decode('utf-8', errors='ignore')
-                
-                if "security code" not in subject.lower():
-                    continue
-                
-                # Check if company matches (if specified)
-                if company and company.lower() not in subject.lower():
-                    continue
-                
-                # Check email date
-                date_str = msg.get("Date", "")
+            for folder, email_id in reversed(unique_emails[-10:]):
                 try:
-                    # Parse email date (simplified - just check if recent)
-                    email_date = email.utils.parsedate_to_datetime(date_str)
-                    age = datetime.now(email_date.tzinfo) - email_date
+                    self.imap_connection.select(folder)
+                    status, msg_data = self.imap_connection.fetch(email_id, "(RFC822)")
                     
-                    if age > timedelta(minutes=max_age_minutes):
-                        logger.debug(f"📧 Email too old: {age}")
+                    if status != "OK":
                         continue
-                except Exception:
-                    # If date parsing fails, try anyway
-                    pass
-                
-                # Extract code
-                code = self._extract_code_from_email(msg)
-                if code:
-                    logger.info(f"🔐 Got verification code for {company or 'Greenhouse'}: {code}")
-                    return code
+                    
+                    msg = email.message_from_bytes(msg_data[0][1])
+                    
+                    # Check subject
+                    subject = decode_header(msg["Subject"])[0][0]
+                    if isinstance(subject, bytes):
+                        subject = subject.decode('utf-8', errors='ignore')
+                    
+                    # Must contain security code or verification
+                    if "security code" not in subject.lower() and "verification" not in subject.lower():
+                        continue
+                    
+                    # Check if company matches (if specified)
+                    if company and company.lower() not in subject.lower():
+                        continue
+                    
+                    # Check email date
+                    date_str = msg.get("Date", "")
+                    try:
+                        email_date = email.utils.parsedate_to_datetime(date_str)
+                        age = datetime.now(email_date.tzinfo) - email_date
+                        
+                        if age > timedelta(minutes=max_age_minutes):
+                            logger.debug(f"📧 Email too old: {age}")
+                            continue
+                    except Exception:
+                        pass
+                    
+                    # Extract code
+                    code = self._extract_code_from_email(msg)
+                    if code:
+                        logger.info(f"🔐 Got verification code for {company or 'Greenhouse'}: {code}")
+                        return code
+                        
+                except Exception as e:
+                    logger.debug(f"Error checking email: {e}")
+                    continue
             
             logger.info(f"📭 No recent verification code found for {company or 'any company'}")
             return None
