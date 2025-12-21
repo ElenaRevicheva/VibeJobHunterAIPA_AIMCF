@@ -33,7 +33,9 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Zoho IMAP settings
-ZOHO_IMAP_HOST = "imap.zoho.com"
+# Note: For Zoho Mail Pro/Business accounts, use imappro.zoho.com
+# For free Zoho Mail accounts, use imap.zoho.com
+ZOHO_IMAP_HOST = os.getenv("ZOHO_IMAP_HOST", "imappro.zoho.com")
 ZOHO_IMAP_PORT = 993
 
 # Greenhouse email patterns
