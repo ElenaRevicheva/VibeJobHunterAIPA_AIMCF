@@ -181,6 +181,7 @@ class ATSSubmitter:
         self._load_submission_log()
         
         logger.info("🚀 ATS Submitter initialized")
+        logger.info("🔖 [FINGERPRINT: 2025-12-21_SUBMIT_BUTTON_FIX_v2]")
     
     async def __aenter__(self):
         """Initialize Playwright browser"""
@@ -430,6 +431,7 @@ class ATSSubmitter:
                 
                 if verification_success:
                     # Wait for form to validate the code and enable submit button
+                    logger.info("🔧 [BUILD: 2025-12-21_v2_SUBMIT_FIX] Processing verification submit...")
                     logger.info("⏳ Waiting for form to validate verification code...")
                     await asyncio.sleep(3)  # Give form time to validate
                     
