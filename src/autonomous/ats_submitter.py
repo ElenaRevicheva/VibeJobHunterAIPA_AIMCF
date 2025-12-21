@@ -429,12 +429,78 @@ class ATSSubmitter:
                 verification_success = await self._handle_greenhouse_email_verification(page, company)
                 
                 if verification_success:
-                    # Resubmit after entering code
-                    submit_button = await page.query_selector('button[type="submit"], input[type="submit"]')
-                    if submit_button:
-                        await submit_button.click()
+                    # Wait for form to validate the code and enable submit button
+                    logger.info("⏳ Waiting for form to validate verification code...")
+                    await asyncio.sleep(3)  # Give form time to validate
+                    
+                    # Try multiple submit approaches
+                    submit_success = False
+                    
+                    # Approach 1: Wait for button to be enabled, then click
+                    submit_selectors = [
+                        'button[type="submit"]:not([disabled])',
+                        'input[type="submit"]:not([disabled])',
+                        'button:has-text("Submit"):not([disabled])',
+                        'button:has-text("Apply"):not([disabled])',
+                    ]
+                    
+                    for selector in submit_selectors:
+                        try:
+                            submit_button = await page.query_selector(selector)
+                            if submit_button:
+                                is_enabled = await submit_button.is_enabled()
+                                if is_enabled:
+                                    logger.info(f"✅ Found enabled submit button: {selector}")
+                                    await submit_button.click()
+                                    submit_success = True
+                                    break
+                        except Exception:
+                            continue
+                    
+                    # Approach 2: If no enabled button found, wait and retry
+                    if not submit_success:
+                        logger.info("⏳ Submit button not ready, waiting longer...")
+                        for wait_time in [2, 3, 5]:
+                            await asyncio.sleep(wait_time)
+                            submit_button = await page.query_selector('button[type="submit"], input[type="submit"]')
+                            if submit_button:
+                                try:
+                                    is_enabled = await submit_button.is_enabled()
+                                    if is_enabled:
+                                        logger.info(f"✅ Button enabled after {wait_time}s wait")
+                                        await submit_button.click()
+                                        submit_success = True
+                                        break
+                                except Exception:
+                                    continue
+                    
+                    # Approach 3: Try pressing Enter key on the form
+                    if not submit_success:
+                        logger.info("🔄 Trying Enter key to submit...")
+                        try:
+                            await page.keyboard.press('Enter')
+                            submit_success = True
+                        except Exception:
+                            pass
+                    
+                    # Approach 4: Force click with JavaScript
+                    if not submit_success:
+                        logger.info("🔄 Trying JavaScript submit...")
+                        try:
+                            await page.evaluate('''() => {
+                                const btn = document.querySelector('button[type="submit"], input[type="submit"]');
+                                if (btn) { btn.disabled = false; btn.click(); }
+                            }''')
+                            submit_success = True
+                        except Exception:
+                            pass
+                    
+                    if submit_success:
                         await page.wait_for_load_state('networkidle')
                         await asyncio.sleep(2)
+                        logger.info("✅ Form submitted after verification")
+                    else:
+                        logger.warning("⚠️ Could not click submit button after verification")
                     
                     # Update page text after resubmit
                     page_text = (await page.content()).lower()
