@@ -37,6 +37,14 @@ except ImportError as e:
     import logging
     logging.warning(f"Rate limiter/verifier import failed: {e}")
 
+# NEW: Greenhouse email verification (December 2025)
+# Handles security codes sent to applicant email (e.g., xAI)
+try:
+    from .greenhouse_email_verifier import GreenhouseEmailVerifier, handle_greenhouse_verification
+except ImportError as e:
+    import logging
+    logging.debug(f"Greenhouse email verifier import failed: {e}")
+
 __all__ = [
     "AutonomousOrchestrator",
     "JobMonitor",
@@ -47,10 +55,13 @@ __all__ = [
     "DemoTracker",
     "ResponseHandler",
     "get_ats_jobs_safely",
-    # New modules
+    # Rate limiting & email verification
     "ResendRateLimiter",
     "get_rate_limiter",
     "EmailVerifier", 
     "get_email_verifier",
     "verify_before_send",
+    # Greenhouse email verification (December 2025)
+    "GreenhouseEmailVerifier",
+    "handle_greenhouse_verification",
 ]

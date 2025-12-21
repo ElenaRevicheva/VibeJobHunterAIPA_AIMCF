@@ -399,6 +399,43 @@ class ATSSubmitter:
                 await page.wait_for_load_state('networkidle')
                 await asyncio.sleep(2)  # Wait for confirmation
             
+            # ═══════════════════════════════════════════════════════════
+            # CHECK FOR EMAIL VERIFICATION REQUIREMENT
+            # Some companies (like xAI) require email verification codes
+            # ═══════════════════════════════════════════════════════════
+            page_content = await page.content()
+            page_text = page_content.lower()
+            
+            # Check if verification code is required
+            verification_required = any(phrase in page_text for phrase in [
+                'security code',
+                'verification code',
+                'enter the code',
+                'check your email',
+                'sent a code',
+                'verify your email',
+            ])
+            
+            if verification_required:
+                logger.info(f"🔐 Email verification required for {company}")
+                
+                # Try to handle email verification
+                verification_success = await self._handle_greenhouse_email_verification(page, company)
+                
+                if verification_success:
+                    # Resubmit after entering code
+                    submit_button = await page.query_selector('button[type="submit"], input[type="submit"]')
+                    if submit_button:
+                        await submit_button.click()
+                        await page.wait_for_load_state('networkidle')
+                        await asyncio.sleep(2)
+                    
+                    # Update page text after resubmit
+                    page_text = (await page.content()).lower()
+                else:
+                    logger.warning(f"⚠️ Could not complete email verification for {company}")
+                    # Continue to check for success anyway
+            
             # Check for success
             success_indicators = [
                 'thank you',
@@ -407,7 +444,6 @@ class ATSSubmitter:
                 'we received your application',
             ]
             
-            page_text = (await page.content()).lower()
             success = any(indicator in page_text for indicator in success_indicators)
             
             if success:
@@ -448,6 +484,84 @@ class ATSSubmitter:
         
         finally:
             await page.close()
+    
+    async def _handle_greenhouse_email_verification(self, page, company: str) -> bool:
+        """
+        Handle Greenhouse email verification flow.
+        
+        When Greenhouse requires email verification:
+        1. A security code is sent to the applicant's email
+        2. The applicant must enter this code in the form
+        3. Then resubmit the application
+        
+        This method:
+        - Reads verification code from Zoho Mail (via IMAP)
+        - Enters the code into the form
+        - Returns True if successful
+        
+        Requirements:
+        - ZOHO_APP_PASSWORD environment variable must be set
+        - Email must be aipa@aideazz.xyz (or configured in ZOHO_EMAIL)
+        """
+        try:
+            from .greenhouse_email_verifier import GreenhouseEmailVerifier
+            
+            verifier = GreenhouseEmailVerifier()
+            
+            if not verifier.email_password:
+                logger.warning("⚠️ Email verification not configured")
+                logger.info("   Set ZOHO_APP_PASSWORD in Railway environment variables")
+                logger.info("   Generate app password at: Zoho Mail → Settings → Security → App Passwords")
+                return False
+            
+            # Find the verification code input field
+            code_input_selectors = [
+                'input[name*="security"]',
+                'input[name*="verification"]',
+                'input[name*="code"]',
+                'input[placeholder*="code"]',
+                'input[placeholder*="Code"]',
+                'input[aria-label*="code"]',
+                'input[aria-label*="verification"]',
+                'input[type="text"][maxlength="8"]',
+                'input[type="text"][maxlength="10"]',
+            ]
+            
+            code_input = None
+            for selector in code_input_selectors:
+                code_input = await page.query_selector(selector)
+                if code_input:
+                    break
+            
+            if not code_input:
+                logger.warning("⚠️ Could not find verification code input field")
+                return False
+            
+            # Wait for verification email and get code
+            logger.info("⏳ Waiting for Greenhouse verification email...")
+            code = await verifier.wait_for_verification_code(company, timeout_seconds=90)
+            
+            if not code:
+                logger.error("❌ Did not receive verification code in time")
+                return False
+            
+            # Enter the code
+            await code_input.click()
+            await code_input.fill("")
+            await code_input.fill(code)
+            logger.info(f"✅ Entered verification code: {code}")
+            
+            # Small delay before resubmit
+            await asyncio.sleep(1)
+            
+            return True
+            
+        except ImportError:
+            logger.error("❌ greenhouse_email_verifier module not found")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Email verification failed: {e}")
+            return False
     
     async def _fill_greenhouse_form(self, page, cover_letter: str, resume_path: Optional[str]):
         """
