@@ -346,82 +346,45 @@ One “yes” is enough.
 
 ---
 
-## 8️⃣ 📊 IMPLEMENTATION STATUS (Live as of 2025-12-17)
+## 8️⃣ 📊 IMPLEMENTATION STATUS (Updated: December 21, 2025)
 
 ### ✅ FULLY OPERATIONAL
 
-| Component | Status | Evidence |
-|-----------|--------|----------|
-| **ATS Scraping** | ✅ Live | Greenhouse (48), Lever (11), Ashby (28) companies scraped |
+| Component | Status | Details |
+|-----------|--------|---------|
+| **ATS Scraping** | ✅ Live | Greenhouse (73), Lever (19), Ashby (37) → 3000+ jobs/cycle |
 | **Career Gate** | ✅ Live | Keywords + salary floors + role exclusions enforced |
-| **Company Blocklist** | ✅ Live | Databricks (694 jobs) → 0 scored. Large corps filtered |
-| **AI Scoring** | ✅ Calibrated | Floor at 35, adaptive weights (60/40 for strong matches) |
-| **Apply Threshold** | ✅ Working | MIN_SCORE = 65 (was 75, recalibrated) |
-| **Resume Selection** | ✅ Working | 3 variants, auto-selects based on role (founding/senior/architect) |
+| **Company Blocklist** | ✅ Live | Large companies filtered out |
+| **AI Scoring** | ✅ Calibrated | Claude-powered scoring with keyword bonuses |
+| **Apply Threshold** | ✅ Working | AUTO_APPLY ≥ 60, OUTREACH ≥ 58 |
+| **Resume Selection** | ✅ Working | 3 PDF variants auto-selected |
 | **Company Research** | ✅ Working | Claude-powered company analysis |
-| **Founder Finder** | ✅ Working | Found 12 emails for Webflow in first run |
-| **Email Service** | ✅ Working | Resend API, verified domain aipa@aideazz.xyz |
-| **Application Pipeline** | ✅ WORKING | First real application sent to Webflow! |
-| **Daily/Total Caps** | ✅ Enforced | 5/day, 30 total visible in logs |
+| **Founder Finder** | ✅ Working | Finds emails, generates personalized messages |
+| **Email Service** | ✅ Working | Resend API via aipa@aideazz.xyz |
+| **ATS Form Submission** | ✅ WORKING | Playwright + Greenhouse email verification |
+| **Email Verification** | ✅ WORKING | Zoho IMAP reads verification codes |
+| **Daily Caps** | ✅ Enforced | 5/day to maintain quality |
 | **LinkedIn CMO** | ✅ Live | Daily posts at 21:30 UTC via Make.com |
 | **Telegram Bot** | ✅ Live | Real-time notifications + commands |
-| **GA4 Analytics** | ✅ Live | UTM tracking, dashboard at /analytics/dashboard |
 
-### ⚠️ PARTIAL / NEEDS ATTENTION
+### ⚠️ KNOWN LIMITATIONS
 
-| Component | Status | Issue | Fix Needed |
-|-----------|--------|-------|------------|
-| **Blocklist Coverage** | ⚠️ 80% | Stripe (8000 emp) still passing | Add to LARGE_COMPANY_BLOCKLIST |
-| **ATS Form Submission** | ⚠️ Fallback | Playwright browsers not installed | Add `playwright install` to Dockerfile |
-| **Source Logging** | ⚠️ Silent | HN/YC/Wellfound/RemoteOK results not visible | Check if sources timing out |
-| **Workable API** | ⚠️ 0 jobs | All 5 Workable companies returning 0 | API may have changed |
-
-### ❌ NOT YET IMPLEMENTED
-
-| Component | Roadmap Section | Priority |
-|-----------|-----------------|----------|
-| **Wellfound GraphQL** | §4 Tier 1 | HIGH - GraphQL may need auth |
-| **YC Work At Startup** | §4 Tier 1 | HIGH - Algolia API key needed |
-| **Direct Career Pages** | §4 Tier 1 | MEDIUM - Scraper exists but not active |
-| **Hunter.io Integration** | §5 Phase 4 | LOW - Founder Finder works without it |
-| **Clearbit Enrichment** | §5 Phase 4 | LOW - Optional enhancement |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Workable API** | ⚠️ Broken | API may have changed, returning 0 jobs |
+| **YC Work At Startup** | ⚠️ Not active | Would need Algolia API key |
+| **Wellfound** | ⚠️ Not active | GraphQL may need auth |
 
 ---
 
-### 📈 FIRST PRODUCTION RUN RESULTS (2025-12-17 21:34 UTC)
+### 📈 SYSTEM PERFORMANCE
 
 ```
-Jobs scraped:     2000+ (across all ATS)
-Jobs after gate:  50 (career gate working!)
-Jobs scored 65+:  1
-Applications:     1 ✅
-
-Target: Webflow - Staff Software Engineer, AI Developer Productivity
-Score:  71/100 (AI: 75, Keyword: 67)
-Resume: founding
-Email:  ✅ Sent to careers@webflow.com
+TYPICAL HOURLY CYCLE:
+Jobs scraped:     ~3000 (Greenhouse + Lever + Ashby)
+Jobs after gate:  ~700 (22% pass rate)
+Jobs scored 60+:  ~5-10 (qualified for auto-apply)
+Applications:     3-5/day (capped for quality)
 ```
 
-**This is the system working as designed.** 
-
-From 2000+ raw jobs → 1 precision application to a Staff AI role at a modern tech company.
-
----
-
-### 🔧 NEXT CALIBRATION PRIORITIES
-
-1. **Expand blocklist** — Add Stripe, Square, Plaid to catch remaining large fintechs
-2. **Fix Playwright** — Add browser install to Docker for ATS form submission
-3. **Debug secondary sources** — Why are HN/YC/Wellfound silent?
-4. **Monitor scoring** — After 10 applications, review score distribution
-5. **Track responses** — First application sent, await response to calibrate
-
----
-
-### 📝 VERSION HISTORY
-
-| Date | Change | Commit |
-|------|--------|--------|
-| 2025-12-17 | AI scoring calibration, company blocklist, threshold 65 | `6309183` |
-| 2025-12-16 | Phase 5 complete: ATS integration, founder finder v2 | `f4bdbdf` |
-| 2025-12-15 | Resend email service with verified domain | `102f744` |
+**Full system flow documented in:** `SYSTEM_DOCUMENTATION.md`
