@@ -293,6 +293,15 @@ class AutonomousOrchestrator:
             logger.info(f"   Review queued: {cycle_stats.review_queued}")
             logger.info("=" * 60)
             
+            # ═════════════════════════════════════════════════════
+            # STEP 5: Check for responses (GENIUS FEATURE)
+            # This is OPTIONAL and wrapped in try/except - won't break cycle
+            # ═════════════════════════════════════════════════════
+            try:
+                await self._check_for_responses()
+            except Exception as resp_err:
+                logger.warning(f"⚠️ Response detection skipped: {resp_err}")
+            
         except Exception as e:
             logger.error(f"❌ Autonomous cycle failed: {e}", exc_info=True)
             
@@ -617,3 +626,77 @@ class AutonomousOrchestrator:
             
         except Exception as e:
             logger.error(f"Failed to send cycle summary: {e}")
+    
+    async def _check_for_responses(self):
+        """
+        🧠 GENIUS FEATURE: AI-Powered Response Detection
+        
+        Scans inbox for responses to job applications and alerts on hot leads.
+        This runs AFTER each cycle completes (safe, won't break main flow).
+        """
+        try:
+            from .response_detector import ResponseDetector, ResponseType, save_response_to_db
+            
+            logger.info("🧠 Step 5: Checking for responses (AI-powered)...")
+            
+            detector = ResponseDetector()
+            responses = await detector.scan_for_responses(hours_back=24)
+            
+            # Process hot leads (positive responses and questions)
+            hot_leads = [r for r in responses if r.response_type in [ResponseType.POSITIVE, ResponseType.QUESTION]]
+            
+            if hot_leads:
+                logger.info(f"🔥 Found {len(hot_leads)} hot leads!")
+                
+                for lead in hot_leads:
+                    # Save to database for success prediction model
+                    save_response_to_db(lead)
+                    
+                    # Send Telegram alert for interview requests
+                    if self.telegram and lead.response_type == ResponseType.POSITIVE:
+                        alert = f"""🔥🔥🔥 <b>INTERVIEW REQUEST DETECTED!</b>
+
+<b>From:</b> {lead.from_name}
+<b>Company:</b> {lead.company_name or 'Unknown'}
+<b>Subject:</b> {lead.subject}
+
+<b>AI Analysis:</b> {lead.ai_analysis}
+
+<b>Action:</b> {lead.suggested_action}
+
+⚡ <b>RESPOND WITHIN 24 HOURS!</b>"""
+                        await self.telegram.send_message(alert)
+                    
+                    elif self.telegram and lead.response_type == ResponseType.QUESTION:
+                        alert = f"""❓ <b>Question from Recruiter</b>
+
+<b>From:</b> {lead.from_name}
+<b>Company:</b> {lead.company_name or 'Unknown'}
+<b>Subject:</b> {lead.subject}
+
+<b>AI Analysis:</b> {lead.ai_analysis}
+
+<b>Action:</b> {lead.suggested_action}"""
+                        await self.telegram.send_message(alert)
+            
+            # Also save rejections for learning
+            rejections = [r for r in responses if r.response_type == ResponseType.REJECTION]
+            for rejection in rejections:
+                save_response_to_db(rejection)
+            
+            # Log summary
+            positive_count = sum(1 for r in responses if r.response_type == ResponseType.POSITIVE)
+            question_count = sum(1 for r in responses if r.response_type == ResponseType.QUESTION)
+            rejection_count = len(rejections)
+            
+            if positive_count or question_count:
+                logger.info(f"📊 Response summary: {positive_count} interviews, {question_count} questions, {rejection_count} rejections")
+            else:
+                logger.info(f"📊 Response check complete: No hot leads (found {rejection_count} rejections)")
+            
+            detector.disconnect()
+            
+        except ImportError:
+            logger.debug("Response detector not available - skipping")
+        except Exception as e:
+            logger.warning(f"⚠️ Response detection error (non-fatal): {e}")
