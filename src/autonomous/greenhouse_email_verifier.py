@@ -63,8 +63,11 @@ GREENHOUSE_SUBJECT_PATTERN = r"Security code for your application"
 GREENHOUSE_CODE_PATTERN = r"Copy and paste this code[^\n]*\n\s*([A-Za-z0-9]{8})"
 
 # How long to wait for verification email
-MAX_WAIT_SECONDS = 120  # 2 minutes
+MAX_WAIT_SECONDS = 180  # 3 minutes (increased from 2)
 CHECK_INTERVAL_SECONDS = 5  # Check every 5 seconds
+
+# Version fingerprint for deployment tracking
+EMAIL_VERIFIER_VERSION = "2.0_FOLDER_DISCOVERY"
 
 
 class GreenhouseEmailVerifier:
@@ -102,7 +105,8 @@ class GreenhouseEmailVerifier:
             logger.warning("⚠️ Zoho email credentials not configured")
             logger.info("   Set ZOHO_APP_PASSWORD or ZOHO_PASSWORD in environment")
         else:
-            logger.info("✅ Greenhouse Email Verifier initialized")
+            logger.info(f"✅ Greenhouse Email Verifier initialized (v{EMAIL_VERIFIER_VERSION})")
+            logger.info(f"🔖 [FINGERPRINT: 2025-12-21_EMAIL_VERIFIER_V2_FOLDER_DISCOVERY]")
             # Zoho app-specific passwords are 12 chars
             pwd_len = len(self.email_password)
             if pwd_len != 12:
@@ -270,8 +274,34 @@ class GreenhouseEmailVerifier:
                 return None
         
         try:
-            # Check multiple folders (inbox, spam, and notification folders)
-            folders_to_check = ["INBOX", "Notification", "Notifications", "Spam", "Junk", "[Gmail]/Spam"]
+            # First, list ALL available folders to find the right one
+            # Zoho may use different folder names like "Notifications" or smart folder names
+            status, folder_list = self.imap_connection.list()
+            available_folders = []
+            if status == "OK":
+                for folder_data in folder_list:
+                    if isinstance(folder_data, bytes):
+                        # Parse folder name from IMAP response
+                        try:
+                            folder_name = folder_data.decode().split('"')[-2]
+                            available_folders.append(folder_name)
+                        except:
+                            pass
+                logger.info(f"📂 Available Zoho folders: {available_folders[:10]}...")  # Log first 10
+            
+            # Check multiple folders - prioritize INBOX and notification-related folders
+            folders_to_check = ["INBOX", "Notification", "Notifications", "notification", "notifications"]
+            
+            # Add any folder containing "notif" from the actual folder list
+            for folder in available_folders:
+                if "notif" in folder.lower() or "alert" in folder.lower():
+                    if folder not in folders_to_check:
+                        folders_to_check.insert(1, folder)  # Add after INBOX
+                        logger.info(f"📂 Found notification folder: {folder}")
+            
+            # Also check spam folders
+            folders_to_check.extend(["Spam", "Junk", "[Gmail]/Spam"])
+            
             all_email_ids = []
             
             for folder in folders_to_check:
@@ -296,11 +326,13 @@ class GreenhouseEmailVerifier:
                         all_email_ids.extend(folder_ids)
                         
                 except Exception as e:
-                    logger.debug(f"Could not check folder {folder}: {e}")
+                    logger.info(f"   📂 Could not access folder '{folder}': {e}")
                     continue
             
             if not all_email_ids:
-                logger.info("📭 No Greenhouse verification emails found")
+                logger.warning("📭 No Greenhouse verification emails found in any folder!")
+                logger.info(f"   Checked folders: {folders_to_check[:5]}...")
+                logger.info("   💡 Check if ZOHO_APP_PASSWORD is correct in Railway")
                 return None
             
             # Remove duplicates while preserving order

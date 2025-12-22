@@ -673,11 +673,15 @@ class ATSSubmitter:
                 return False
             
             # Wait for verification email and get code
-            logger.info("⏳ Waiting for Greenhouse verification email...")
-            code = await verifier.wait_for_verification_code(company, timeout_seconds=90)
+            # Increased timeout to 180s to allow email delivery
+            logger.info("⏳ Waiting for Greenhouse verification email (up to 3 minutes)...")
+            logger.info(f"🔖 [FINGERPRINT: 2025-12-21_VERIFICATION_V2] Checking for {company}...")
+            code = await verifier.wait_for_verification_code(company, timeout_seconds=180)
             
             if not code:
                 logger.error("❌ Did not receive verification code in time")
+                logger.error(f"   Application to {company} needs manual verification!")
+                logger.error("   💡 Check Zoho Mail Notification folder for the code")
                 return False
             
             # Enter the code
