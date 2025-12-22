@@ -36,6 +36,7 @@ VibeJobHunter is a **fully autonomous job hunting engine** that:
 | **Telegram Bot** | ✅ LIVE | Real-time notifications + interactive commands |
 | **Email Service** | ✅ LIVE | Sends applications via Resend API |
 | **Database Tracking** | ✅ LIVE | SQLite tracks all applications |
+| **Response Detection** | ✅ LIVE | AI-powered inbox scanning for interview requests |
 
 ---
 
@@ -462,6 +463,8 @@ Edit `src/autonomous/auto_applicator.py`:
 
 | Date | Change |
 |------|--------|
+| 2025-12-22 | ✨ Added GENIUS Response Detection (AI-powered inbox scanning) |
+| 2025-12-22 | Fixed email verification folder discovery |
 | 2025-12-21 | Fixed email verification (Notification folder + submit button) |
 | 2025-12-20 | Added Ashby API scraping |
 | 2025-12-18 | Calibrated scoring thresholds (60/58/55) |
@@ -545,9 +548,9 @@ look solid. I've built similar retrieval systems at scale..."
 ---
 
 #### 1.3 📧 Response Detection & Auto-Triage
-**Status:** NOT IMPLEMENTED  
-**Priority:** MEDIUM  
-**Effort:** 2-3 days
+**Status:** ✅ IMPLEMENTED (December 22, 2025)  
+**Priority:** COMPLETED  
+**Effort:** Done!
 
 ```python
 # Monitor inbox for responses
@@ -672,10 +675,10 @@ Post-Interview Follow-up → Offer Negotiation Support
 
 | Feature | Impact | Effort | Priority |
 |---------|--------|--------|----------|
-| Success Prediction Model | HIGH | 2-3 days | ⭐⭐⭐ DO FIRST |
-| Company Intelligence (RSS/GitHub) | HIGH | 1-2 days | ⭐⭐⭐ DO FIRST |
-| Response Detection | HIGH | 2-3 days | ⭐⭐ DO SECOND |
-| Multi-Touch Sequencing | MEDIUM | 3-4 days | ⭐⭐ DO SECOND |
+| ~~Response Detection~~ | ~~HIGH~~ | ~~2-3 days~~ | ✅ DONE |
+| Success Prediction Model | HIGH | 2-3 days | ⭐⭐⭐ DO NEXT |
+| Company Intelligence (RSS/GitHub) | HIGH | 1-2 days | ⭐⭐⭐ DO NEXT |
+| Multi-Touch Sequencing | MEDIUM | 3-4 days | ⭐⭐ AFTER THAT |
 | Network Mapping | HIGH | 1-2 weeks | ⭐ LONG-TERM |
 | More ATS Platforms | LOW | varies | ❌ SKIP FOR NOW |
 
