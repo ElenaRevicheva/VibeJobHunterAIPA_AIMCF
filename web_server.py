@@ -32,7 +32,7 @@ from contextlib import asynccontextmanager
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_TIMESTAMP = "20251216_210000"  # ⬅️ UPDATE EACH DEPLOY
+DEPLOY_TIMESTAMP = "20251223_143000"  # ⬅️ UPDATE EACH DEPLOY
 DEPLOY_FINGERPRINT = "phase5_full_roadmap_COMPLETE"
 GIT_COMMIT_SHORT = "resend_verified_domain"
 
@@ -215,6 +215,71 @@ def main():
     
     # ATS background runner is now started via lifespan handler
     # (see lifespan() function above)
+    
+    # ─────────────────────────────
+    # CTO AIPA INTEGRATION
+    # ─────────────────────────────
+    @app.post("/api/tech-update")
+    async def receive_tech_update(request_data: dict):
+        """Receive tech updates from CTO AIPA for LinkedIn posts"""
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        logger.info(f"📥 [CTO Integration] Received tech update from CTO AIPA")
+        
+        try:
+            storage_dir = Path("cto_aipa_updates")
+            storage_dir.mkdir(exist_ok=True)
+            storage_file = storage_dir / "pending_tech_updates.json"
+            
+            existing = []
+            if storage_file.exists():
+                try:
+                    with open(storage_file, 'r') as f:
+                        existing = json.load(f)
+                except:
+                    existing = []
+            
+            new_update = {
+                **request_data,
+                "received_at": datetime.now().isoformat(),
+                "posted": False
+            }
+            existing.insert(0, new_update)
+            existing = existing[:20]
+            
+            with open(storage_file, 'w') as f:
+                json.dump(existing, f, indent=2)
+            
+            logger.info(f"✅ [CTO Integration] Tech update stored. Pending: {len([u for u in existing if not u.get('posted')])}")
+            
+            return {
+                "status": "success",
+                "message": "Tech update received. CMO will feature it in next daily post (3 PM Panama).",
+                "update": new_update
+            }
+        except Exception as e:
+            logger.error(f"❌ [CTO Integration] Error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    @app.get("/api/tech-updates/pending")
+    async def get_pending_updates():
+        """Get pending tech updates"""
+        import json
+        from pathlib import Path
+        
+        storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        if not storage_file.exists():
+            return {"status": "success", "count": 0, "updates": []}
+        
+        try:
+            with open(storage_file, 'r') as f:
+                updates = json.load(f)
+            pending = [u for u in updates if not u.get('posted', False)]
+            return {"status": "success", "count": len(pending), "updates": pending}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
     
     # ─────────────────────────────
     # SERVER CONFIG
