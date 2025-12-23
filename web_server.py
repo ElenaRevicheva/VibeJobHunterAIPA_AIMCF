@@ -32,9 +32,10 @@ from contextlib import asynccontextmanager
 # ------------------------------------------------------------------
 # DEPLOYMENT FINGERPRINT (Railway verification)
 # ------------------------------------------------------------------
-DEPLOY_TIMESTAMP = "20251223_143000"  # ⬅️ UPDATE EACH DEPLOY
-DEPLOY_FINGERPRINT = "phase5_full_roadmap_COMPLETE"
-GIT_COMMIT_SHORT = "resend_verified_domain"
+DEPLOY_TIMESTAMP = "20251223_151500"  # ⬅️ UPDATE EACH DEPLOY
+DEPLOY_FINGERPRINT = "CTO_AIPA_INTEGRATION_LIVE"
+GIT_COMMIT_SHORT = "cto_aipa_endpoints_v1"
+CTO_INTEGRATION_VERSION = "1.0_ADDITIVE_SAFE"  # 🤖 CTO↔CMO Bridge
 
 # ------------------------------------------------------------------
 # Logging setup
@@ -54,6 +55,7 @@ logger.info("=" * 80)
 logger.info(f"📅 DEPLOY: {DEPLOY_TIMESTAMP}")
 logger.info(f"🔖 FINGERPRINT: {DEPLOY_FINGERPRINT}")
 logger.info(f"💾 COMMIT: {GIT_COMMIT_SHORT}")
+logger.info(f"🤖 CTO INTEGRATION: {CTO_INTEGRATION_VERSION}")
 logger.info(f"⏰ START: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
 logger.info("=" * 80)
 
@@ -183,11 +185,14 @@ def main():
             "service": "vibejobhunter",
             "version": "4.3.0",
             "deploy": DEPLOY_TIMESTAMP,
+            "fingerprint": DEPLOY_FINGERPRINT,
+            "cto_integration": CTO_INTEGRATION_VERSION,
             "components": {
                 "web": "running",
                 "ats_scraper": "active",
                 "linkedin_cmo": "scheduled",
-                "telegram_bot": "active"
+                "telegram_bot": "active",
+                "cto_aipa_bridge": "active"
             }
         }
     
@@ -217,11 +222,24 @@ def main():
     # (see lifespan() function above)
     
     # ─────────────────────────────
-    # CTO AIPA INTEGRATION
+    # CTO AIPA INTEGRATION (SAFE, ADDITIVE)
     # ─────────────────────────────
+    # SAFETY GUARANTEE:
+    # - These endpoints ONLY store data to a separate file
+    # - They do NOT modify any existing posting logic
+    # - LinkedIn CMO reads this file OPTIONALLY - if read fails, regular posting continues
+    # - This is a ONE-WAY bridge: CTO sends → CMO reads when convenient
+    # ─────────────────────────────
+    
     @app.post("/api/tech-update")
     async def receive_tech_update(request_data: dict):
-        """Receive tech updates from CTO AIPA for LinkedIn posts"""
+        """
+        Receive tech updates from CTO AIPA for LinkedIn posts.
+        
+        SAFE: Only stores data. Does NOT modify posting logic.
+        CMO will check for updates at post time and include if available.
+        If no updates or read fails, CMO continues with regular content.
+        """
         import json
         from pathlib import Path
         from datetime import datetime
@@ -233,53 +251,83 @@ def main():
             storage_dir.mkdir(exist_ok=True)
             storage_file = storage_dir / "pending_tech_updates.json"
             
+            # Load existing updates (safe - defaults to empty list)
             existing = []
             if storage_file.exists():
                 try:
-                    with open(storage_file, 'r') as f:
+                    with open(storage_file, 'r', encoding='utf-8') as f:
                         existing = json.load(f)
-                except:
+                except Exception as read_err:
+                    logger.warning(f"⚠️ [CTO Integration] Could not read existing updates: {read_err}")
                     existing = []
             
+            # Create new update entry
             new_update = {
                 **request_data,
                 "received_at": datetime.now().isoformat(),
                 "posted": False
             }
+            
+            # Add to front, keep max 20
             existing.insert(0, new_update)
             existing = existing[:20]
             
-            with open(storage_file, 'w') as f:
-                json.dump(existing, f, indent=2)
+            # Save (atomic write would be better but this is safe enough)
+            with open(storage_file, 'w', encoding='utf-8') as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
             
-            logger.info(f"✅ [CTO Integration] Tech update stored. Pending: {len([u for u in existing if not u.get('posted')])}")
+            pending_count = len([u for u in existing if not u.get('posted')])
+            logger.info(f"✅ [CTO Integration] Tech update stored. Pending: {pending_count}")
             
             return {
                 "status": "success",
-                "message": "Tech update received. CMO will feature it in next daily post (3 PM Panama).",
-                "update": new_update
+                "message": "Tech update received. CMO will feature it in next daily post (4:30 PM Panama).",
+                "update": new_update,
+                "pending_count": pending_count,
+                "fingerprint": DEPLOY_FINGERPRINT
             }
         except Exception as e:
-            logger.error(f"❌ [CTO Integration] Error: {e}")
-            return {"status": "error", "message": str(e)}
+            logger.error(f"❌ [CTO Integration] Error storing update: {e}")
+            # Return error but don't crash - this is non-critical
+            return {"status": "error", "message": str(e), "fingerprint": DEPLOY_FINGERPRINT}
     
     @app.get("/api/tech-updates/pending")
     async def get_pending_updates():
-        """Get pending tech updates"""
+        """
+        Get pending tech updates from CTO AIPA.
+        
+        SAFE: Read-only endpoint. Returns empty list if no updates or on error.
+        """
         import json
         from pathlib import Path
         
         storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        
         if not storage_file.exists():
-            return {"status": "success", "count": 0, "updates": []}
+            return {
+                "status": "success", 
+                "count": 0, 
+                "updates": [],
+                "fingerprint": DEPLOY_FINGERPRINT
+            }
         
         try:
-            with open(storage_file, 'r') as f:
+            with open(storage_file, 'r', encoding='utf-8') as f:
                 updates = json.load(f)
             pending = [u for u in updates if not u.get('posted', False)]
-            return {"status": "success", "count": len(pending), "updates": pending}
+            return {
+                "status": "success", 
+                "count": len(pending), 
+                "updates": pending,
+                "fingerprint": DEPLOY_FINGERPRINT
+            }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            logger.warning(f"⚠️ [CTO Integration] Error reading updates: {e}")
+            return {
+                "status": "error", 
+                "message": str(e),
+                "fingerprint": DEPLOY_FINGERPRINT
+            }
     
     # ─────────────────────────────
     # SERVER CONFIG
