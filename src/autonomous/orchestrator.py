@@ -85,7 +85,7 @@ class AutonomousOrchestrator:
             if self.linkedin_cmo.enabled:
                 logger.info("=" * 50)
                 logger.info("✅ LinkedIn CMO INITIALIZED & ENABLED")
-                logger.info("   📅 Daily posts: 21:XX UTC (4:30 PM Panama)")
+                logger.info("   📅 Daily posts: 00:XX UTC (7:00 PM Panama)")
                 logger.info("   🔗 Webhook: configured ✓")
                 logger.info("=" * 50)
             else:
@@ -171,7 +171,7 @@ class AutonomousOrchestrator:
     # ─────────────────────────────
     async def check_linkedin_schedule(self):
         """
-        Check if it's time for daily LinkedIn post (21:30 UTC / 4:30 PM Panama)
+        Check if it's time for daily LinkedIn post (00:XX UTC / 7:00 PM Panama)
         
         IMPORTANT: Uses datetime.utcnow() for consistent UTC time on Railway servers
         """
@@ -195,8 +195,8 @@ class AutonomousOrchestrator:
         if self.last_linkedin_post_date == today:
             return
 
-        # Post at 21:XX UTC (4:30 PM Panama time zone)
-        if now_utc.hour == 21:
+        # Post at 00:XX UTC (7:00 PM Panama time zone, UTC-5)
+        if now_utc.hour == 0:
             # True language alternation: EN on even weekdays, ES on odd
             language = "en" if now_utc.weekday() % 2 == 0 else "es"
 

@@ -4,10 +4,10 @@
 set -e
 
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║  🧠✨ AI MARKETING CO-FOUNDER v5.1 - UTC TIME FIX! ✨🧠           ║"
+echo "║  🧠✨ AI MARKETING CO-FOUNDER v5.2 - 7PM PANAMA TIME! ✨🧠        ║"
 echo "║                                                                   ║"
-echo "║  📅 BUILD: January 4, 2026 - UTC Time Fix                        ║"
-echo "║  🕒 Daily Posts: 21:XX UTC (4:30 PM PANAMA) ⏰                    ║"
+echo "║  📅 BUILD: January 4, 2026 - Time Update                         ║"
+echo "║  🕒 Daily Posts: 00:XX UTC (7:00 PM PANAMA) ⏰                    ║"
 echo "║  🔧 FIX: datetime.utcnow() for consistent scheduling             ║"
 echo "║                                                                   ║"
 echo "║  🎯 EMOTIONALLY INTELLIGENT AI - 11 Products                     ║"
@@ -15,7 +15,7 @@ echo "║  🔗 ALL VERIFIED LINKS | 🌍 Bilingual EN/ES                      �
 echo "║  🚀 POSTS DAILY VIA ORCHESTRATOR (no duplicate scheduler)        ║"
 echo "║  🎯 AUTO-APPLICATIONS ENABLED! 3 jobs/hour                       ║"
 echo "║                                                                   ║"
-echo "║  CHANGES: UTC time fix + removed duplicate CMO scheduler ✅      ║"
+echo "║  CHANGES: Posting time changed to 7PM Panama (00:XX UTC) ✅      ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "🤖 VibeJobHunter Autonomous Engine"
@@ -61,10 +61,10 @@ elif [ "$RUN_MODE" = "both" ]; then
     echo ""
     
     # 1. Start Autonomous Job Hunting Orchestrator in background
-    # NOTE: The orchestrator INCLUDES LinkedIn CMO scheduling (21:XX UTC daily)
+    # NOTE: The orchestrator INCLUDES LinkedIn CMO scheduling (00:XX UTC daily)
     # No separate LinkedIn CMO process needed - this prevents double-posting!
     echo "🎯 [1/2] Starting Autonomous Job Hunting with Auto-Applications..."
-    echo "   📱 LinkedIn CMO: Built-in, posts daily at 21:XX UTC (4:30 PM Panama)"
+    echo "   📱 LinkedIn CMO: Built-in, posts daily at 00:XX UTC (7:00 PM Panama)"
     python -m src.main autonomous --interval "${AUTONOMOUS_INTERVAL:-1}" &
     ORCHESTRATOR_PID=$!
     echo "   ✅ Orchestrator PID: $ORCHESTRATOR_PID (includes LinkedIn CMO scheduler)"
@@ -80,17 +80,17 @@ elif [ "$RUN_MODE" = "both" ]; then
     echo "║  🎉 ALL SYSTEMS OPERATIONAL! 🎉                                   ║"
     echo "║                                                                   ║"
     echo "║  1. 🤖 Job Hunter:    Finding & applying to jobs hourly          ║"
-    echo "║     📱 LinkedIn CMO:  Built-in, posts daily at 4:30 PM Panama    ║"
+    echo "║     📱 LinkedIn CMO:  Built-in, posts daily at 7:00 PM Panama    ║"
     echo "║  2. 🌐 Web Server:    GA4 Dashboard on port 8080                 ║"
     echo "║                                                                   ║"
-    echo "║  NOTE: LinkedIn CMO now uses UTC time (datetime.utcnow)          ║"
+    echo "║  NOTE: LinkedIn CMO posts at 00:XX UTC (7PM Panama)              ║"
     echo "╚═══════════════════════════════════════════════════════════════════╝"
     echo ""
     
     exec python web_server.py
 else
     echo "🤖 Starting Autonomous Job Hunting mode..."
-    echo "   📱 LinkedIn CMO: Built-in, posts daily at 21:XX UTC"
+    echo "   📱 LinkedIn CMO: Built-in, posts daily at 00:XX UTC (7PM Panama)"
     # Run autonomous mode with interval from env var (default 1 hour)
     exec python -m src.main autonomous --interval "${AUTONOMOUS_INTERVAL:-1}"
 fi
