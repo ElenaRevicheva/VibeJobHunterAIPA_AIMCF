@@ -323,6 +323,53 @@ ASHBY_COMPANIES = [
     "deno",           # JS runtime
 ]
 
+# =====================================
+# RECRUITEE COMPANIES (EU startups favorite)
+# =====================================
+RECRUITEE_COMPANIES = [
+    # AI/ML Companies
+    "deepl",          # AI translation - great match!
+    "photoroom",      # AI photo editing
+    "dataiku",        # Data science platform
+    "algolia",        # AI search
+    "contentful",     # Headless CMS
+    "miro",           # Collaboration
+    "personio",       # HR platform
+    "n8n",            # Workflow automation
+    "strapi",         # Headless CMS
+    "snyk",           # Security
+]
+
+# =====================================
+# BREEZY HR COMPANIES
+# =====================================
+BREEZYHR_COMPANIES = [
+    # Startups using Breezy
+    "buffer",         # Social media
+    "doordash",       # Delivery
+    "chili-piper",    # Sales automation
+    "gorgias",        # Customer support AI
+    "front",          # Team inbox
+    "lattice",        # HR platform
+    "apollo",         # Sales intelligence
+    "lemlist",        # Email outreach
+]
+
+# =====================================
+# SMARTRECRUITERS COMPANIES (Enterprise)
+# =====================================
+SMARTRECRUITERS_COMPANIES = [
+    # AI/Tech companies
+    "visa",           # Fintech
+    "bosch",          # IoT/AI
+    "sap",            # Enterprise
+    "siemens",        # Industrial AI
+    "linkedin",       # Social/AI
+    "spotify",        # Music AI
+    "booking",        # Travel AI
+    "zalando",        # E-commerce AI
+]
+
 
 class JobPosting:
     """Simple JobPosting class for compatibility"""
@@ -405,12 +452,18 @@ class ATSScraper:
             "greenhouse_jobs": 0,
             "lever_jobs": 0,
             "workable_jobs": 0,
-            "ashby_jobs": 0,  # NEW!
+            "ashby_jobs": 0,
+            "recruitee_jobs": 0,
+            "breezyhr_jobs": 0,
+            "smartrecruiters_jobs": 0,
             "total_companies_checked": 0,
             "greenhouse_companies_with_jobs": 0,
             "lever_companies_with_jobs": 0,
             "workable_companies_with_jobs": 0,
-            "ashby_companies_with_jobs": 0,  # NEW!
+            "ashby_companies_with_jobs": 0,
+            "recruitee_companies_with_jobs": 0,
+            "breezyhr_companies_with_jobs": 0,
+            "smartrecruiters_companies_with_jobs": 0,
             "errors": []
         }
         
@@ -784,6 +837,169 @@ class ATSScraper:
         )
     
     # =====================================
+    # RECRUITEE API (Popular with EU startups)
+    # =====================================
+    
+    async def fetch_recruitee_jobs(self, company_slug: str) -> List[Dict[str, Any]]:
+        """
+        Fetch jobs from Recruitee API.
+        API: https://{company}.recruitee.com/api/offers
+        """
+        api_url = f"https://{company_slug}.recruitee.com/api/offers"
+        
+        try:
+            if not self.session:
+                return []
+            
+            async with self.session.get(
+                api_url,
+                headers={"Accept": "application/json", "User-Agent": "VibeJobHunter/1.0"}
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    jobs = data.get("offers", [])
+                    if jobs:
+                        for job in jobs:
+                            job["company_slug"] = company_slug
+                        logger.info(f"[RUN {RUN_ID}][RECRUITEE][{company_slug}] Found {len(jobs)} jobs")
+                    return jobs
+                return []
+        except Exception as e:
+            logger.debug(f"[RUN {RUN_ID}][RECRUITEE][{company_slug}] Error: {e}")
+            return []
+    
+    def _parse_recruitee_job(self, job_data: Dict, company_slug: str) -> JobPosting:
+        """Convert Recruitee response to JobPosting"""
+        job_id = str(job_data.get('id', ''))
+        location = job_data.get('location', '') or job_data.get('city', '') or 'Remote'
+        
+        return JobPosting(
+            id=f"recruitee_{company_slug}_{job_id}",
+            title=job_data.get("title", ""),
+            company=company_slug.replace("-", " ").title(),
+            location=location,
+            description=job_data.get("description", "")[:1500],
+            requirements=[],
+            responsibilities=[],
+            source="recruitee",
+            url=job_data.get("careers_url") or f"https://{company_slug}.recruitee.com/o/{job_id}",
+            posted_date=datetime.now(),
+            remote_allowed="remote" in str(location).lower(),
+            job_type=job_data.get("employment_type_code", "Full-time"),
+            match_score=0.0,
+            trace_id=f"{company_slug}:{job_id}"
+        )
+    
+    # =====================================
+    # BREEZY HR API
+    # =====================================
+    
+    async def fetch_breezyhr_jobs(self, company_slug: str) -> List[Dict[str, Any]]:
+        """
+        Fetch jobs from Breezy HR API.
+        API: https://{company}.breezy.hr/json
+        """
+        api_url = f"https://{company_slug}.breezy.hr/json"
+        
+        try:
+            if not self.session:
+                return []
+            
+            async with self.session.get(
+                api_url,
+                headers={"Accept": "application/json", "User-Agent": "VibeJobHunter/1.0"}
+            ) as response:
+                if response.status == 200:
+                    jobs = await response.json()
+                    if isinstance(jobs, list) and jobs:
+                        for job in jobs:
+                            job["company_slug"] = company_slug
+                        logger.info(f"[RUN {RUN_ID}][BREEZYHR][{company_slug}] Found {len(jobs)} jobs")
+                    return jobs if isinstance(jobs, list) else []
+                return []
+        except Exception as e:
+            logger.debug(f"[RUN {RUN_ID}][BREEZYHR][{company_slug}] Error: {e}")
+            return []
+    
+    def _parse_breezyhr_job(self, job_data: Dict, company_slug: str) -> JobPosting:
+        """Convert Breezy HR response to JobPosting"""
+        job_id = str(job_data.get('id', ''))
+        location = job_data.get('location', {})
+        location_str = location.get('name', '') if isinstance(location, dict) else str(location) or 'Remote'
+        
+        return JobPosting(
+            id=f"breezyhr_{company_slug}_{job_id}",
+            title=job_data.get("name", "") or job_data.get("title", ""),
+            company=company_slug.replace("-", " ").title(),
+            location=location_str,
+            description=job_data.get("description", "")[:1500],
+            requirements=[],
+            responsibilities=[],
+            source="breezyhr",
+            url=job_data.get("url") or f"https://{company_slug}.breezy.hr/p/{job_id}",
+            posted_date=datetime.now(),
+            remote_allowed="remote" in location_str.lower(),
+            job_type=job_data.get("type", {}).get("name", "Full-time") if isinstance(job_data.get("type"), dict) else "Full-time",
+            match_score=0.0,
+            trace_id=f"{company_slug}:{job_id}"
+        )
+    
+    # =====================================
+    # SMARTRECRUITERS API
+    # =====================================
+    
+    async def fetch_smartrecruiters_jobs(self, company_slug: str) -> List[Dict[str, Any]]:
+        """
+        Fetch jobs from SmartRecruiters API.
+        API: https://api.smartrecruiters.com/v1/companies/{company}/postings
+        """
+        api_url = f"https://api.smartrecruiters.com/v1/companies/{company_slug}/postings"
+        
+        try:
+            if not self.session:
+                return []
+            
+            async with self.session.get(
+                api_url,
+                headers={"Accept": "application/json", "User-Agent": "VibeJobHunter/1.0"}
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    jobs = data.get("content", [])
+                    if jobs:
+                        for job in jobs:
+                            job["company_slug"] = company_slug
+                        logger.info(f"[RUN {RUN_ID}][SMARTRECRUITERS][{company_slug}] Found {len(jobs)} jobs")
+                    return jobs
+                return []
+        except Exception as e:
+            logger.debug(f"[RUN {RUN_ID}][SMARTRECRUITERS][{company_slug}] Error: {e}")
+            return []
+    
+    def _parse_smartrecruiters_job(self, job_data: Dict, company_slug: str) -> JobPosting:
+        """Convert SmartRecruiters response to JobPosting"""
+        job_id = str(job_data.get('id', ''))
+        location = job_data.get('location', {})
+        location_str = f"{location.get('city', '')}, {location.get('country', '')}".strip(', ') or 'Remote'
+        
+        return JobPosting(
+            id=f"smartrecruiters_{company_slug}_{job_id}",
+            title=job_data.get("name", ""),
+            company=job_data.get("company", {}).get("name", company_slug.replace("-", " ").title()),
+            location=location_str,
+            description=job_data.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text", "")[:1500],
+            requirements=[],
+            responsibilities=[],
+            source="smartrecruiters",
+            url=f"https://jobs.smartrecruiters.com/{company_slug}/{job_id}",
+            posted_date=datetime.now(),
+            remote_allowed=job_data.get("location", {}).get("remote", False),
+            job_type=job_data.get("typeOfEmployment", {}).get("label", "Full-time"),
+            match_score=0.0,
+            trace_id=f"{company_slug}:{job_id}"
+        )
+    
+    # =====================================
     # MAIN FETCH ALL METHOD
     # =====================================
     
@@ -896,7 +1112,7 @@ class ATSScraper:
             except Exception as e:
                 logger.error(f"[RUN {RUN_ID}][WORKABLE][{company}] Error: {e}")
         
-        # Ashby companies (NEW! YC favorites)
+        # Ashby companies (YC favorites)
         ashby_companies = ASHBY_COMPANIES[:max_companies] if max_companies else ASHBY_COMPANIES
         logger.info(f"[RUN {RUN_ID}][ATS][ASHBY] Checking {len(ashby_companies)} companies")
         
@@ -918,6 +1134,72 @@ class ATSScraper:
             except Exception as e:
                 logger.error(f"[RUN {RUN_ID}][ASHBY][{company}] Error: {e}")
         
+        # Recruitee companies (EU startups)
+        recruitee_companies = RECRUITEE_COMPANIES[:max_companies] if max_companies else RECRUITEE_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][RECRUITEE] Checking {len(recruitee_companies)} companies")
+        
+        for company in recruitee_companies:
+            try:
+                jobs_data = await self.fetch_recruitee_jobs(company)
+                
+                if jobs_data:
+                    self.stats["recruitee_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_recruitee_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["recruitee_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.debug(f"[RUN {RUN_ID}][RECRUITEE][{company}] Error: {e}")
+        
+        # Breezy HR companies
+        breezyhr_companies = BREEZYHR_COMPANIES[:max_companies] if max_companies else BREEZYHR_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][BREEZYHR] Checking {len(breezyhr_companies)} companies")
+        
+        for company in breezyhr_companies:
+            try:
+                jobs_data = await self.fetch_breezyhr_jobs(company)
+                
+                if jobs_data:
+                    self.stats["breezyhr_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_breezyhr_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["breezyhr_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.debug(f"[RUN {RUN_ID}][BREEZYHR][{company}] Error: {e}")
+        
+        # SmartRecruiters companies (Enterprise)
+        sr_companies = SMARTRECRUITERS_COMPANIES[:max_companies] if max_companies else SMARTRECRUITERS_COMPANIES
+        logger.info(f"[RUN {RUN_ID}][ATS][SMARTRECRUITERS] Checking {len(sr_companies)} companies")
+        
+        for company in sr_companies:
+            try:
+                jobs_data = await self.fetch_smartrecruiters_jobs(company)
+                
+                if jobs_data:
+                    self.stats["smartrecruiters_companies_with_jobs"] += 1
+                
+                for job in jobs_data:
+                    parsed = self._parse_smartrecruiters_job(job, company)
+                    if self._matches_keywords(parsed, keywords):
+                        all_jobs.append(parsed)
+                        self.stats["smartrecruiters_jobs"] += 1
+                
+                self.stats["total_companies_checked"] += 1
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.debug(f"[RUN {RUN_ID}][SMARTRECRUITERS][{company}] Error: {e}")
+        
         # 🔧 UPGRADE 2: Fail loudly if zero jobs
         if len(all_jobs) == 0:
             logger.error(f"[RUN {RUN_ID}][ATS][CRITICAL] ZERO JOBS FOUND — PIPELINE FAILURE")
@@ -925,13 +1207,16 @@ class ATSScraper:
             logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Companies with jobs: GH={self.stats['greenhouse_companies_with_jobs']}, Lever={self.stats['lever_companies_with_jobs']}, Workable={self.stats['workable_companies_with_jobs']}, Ashby={self.stats['ashby_companies_with_jobs']}")
             logger.error(f"[RUN {RUN_ID}][ATS][DEBUG] Keywords: {keywords}")
         
-        # Summary - 🔧 UPGRADE 1: Machine-auditable logs
+        # Summary - Machine-auditable logs for 7 ATS platforms
         logger.info("=" * 60)
-        logger.info(f"[RUN {RUN_ID}][ATS][COMPLETE] Scraping finished")
+        logger.info(f"[RUN {RUN_ID}][ATS][COMPLETE] Scraping finished - 7 PLATFORMS!")
         logger.info(f"[RUN {RUN_ID}][ATS][GREENHOUSE] jobs={self.stats['greenhouse_jobs']} companies_with_jobs={self.stats['greenhouse_companies_with_jobs']}/{len(gh_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][LEVER] jobs={self.stats['lever_jobs']} companies_with_jobs={self.stats['lever_companies_with_jobs']}/{len(lever_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][WORKABLE] jobs={self.stats['workable_jobs']} companies_with_jobs={self.stats['workable_companies_with_jobs']}/{len(workable_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][ASHBY] jobs={self.stats['ashby_jobs']} companies_with_jobs={self.stats['ashby_companies_with_jobs']}/{len(ashby_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][RECRUITEE] jobs={self.stats['recruitee_jobs']} companies_with_jobs={self.stats['recruitee_companies_with_jobs']}/{len(recruitee_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][BREEZYHR] jobs={self.stats['breezyhr_jobs']} companies_with_jobs={self.stats['breezyhr_companies_with_jobs']}/{len(breezyhr_companies)}")
+        logger.info(f"[RUN {RUN_ID}][ATS][SMARTRECRUITERS] jobs={self.stats['smartrecruiters_jobs']} companies_with_jobs={self.stats['smartrecruiters_companies_with_jobs']}/{len(sr_companies)}")
         logger.info(f"[RUN {RUN_ID}][ATS][TOTAL] jobs={len(all_jobs)} companies_checked={self.stats['total_companies_checked']}")
         logger.info(f"[RUN {RUN_ID}][ATS][ERRORS] count={len(self.stats['errors'])}")
         logger.info("=" * 60)
