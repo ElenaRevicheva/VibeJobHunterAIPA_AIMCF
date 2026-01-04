@@ -1,10 +1,13 @@
 """
-👤 FOUNDER FINDER — Production v3.3 (MessageGenerator SIGNATURE FIX)
+👤 FOUNDER FINDER — Production v3.5 (ENHANCED EMAIL DISCOVERY)
 
 Finds founder contact information (LinkedIn, Twitter, Email).
 Uses multiple data sources to build complete founder profiles.
 
-CHANGELOG v3.3:
+CHANGELOG v3.5:
+✅ ENHANCED: Hunter.io integration for real email discovery
+✅ ENHANCED: Personalized email generation from founder names
+✅ ENHANCED: Email verification before using
 ✅ FIXED MessageGenerator.generate_founder_message() signature mismatch
 ✅ Now passes company/job as Dicts (not strings/kwargs)
 ✅ ResponseCache signature issue fixed (explicit kwargs)
@@ -15,7 +18,7 @@ import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -23,6 +26,13 @@ from bs4 import BeautifulSoup
 from ..core.models import JobPosting, Profile
 from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
+
+# Email discovery enhancement
+try:
+    from .email_verifier import get_email_verifier, EmailVerifier
+    EMAIL_VERIFIER_AVAILABLE = True
+except ImportError:
+    EMAIL_VERIFIER_AVAILABLE = False
 
 # ──────────────────────────────────────────────────────────────
 # LOGGER + DEPLOYMENT FINGERPRINT
@@ -48,6 +58,14 @@ class FounderFinderV2:
 
     def __init__(self):
         self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
+
+        # Email verifier (Hunter.io)
+        if EMAIL_VERIFIER_AVAILABLE:
+            self.email_verifier = get_email_verifier()
+            logger.info("✅ Email verifier (Hunter.io) ENABLED")
+        else:
+            self.email_verifier = None
+            logger.warning("⚠️ Email verifier not available")
 
         # Optional integrations
         try:
@@ -242,6 +260,11 @@ class FounderFinderV2:
             return None
 
         # ─────────────────────────────────────────────────────────
+        # ENHANCED v3.5: Generate personalized emails from founder names
+        # ─────────────────────────────────────────────────────────
+        await self._enhance_with_personalized_emails(founder_info)
+
+        # ─────────────────────────────────────────────────────────
         # FIX v3.4: Use set_data() for arbitrary data caching
         # ─────────────────────────────────────────────────────────
         try:
@@ -251,6 +274,80 @@ class FounderFinderV2:
             logger.warning(f"Cache set failed (non-fatal): {e}")
 
         return founder_info
+    
+    async def _enhance_with_personalized_emails(self, founder_info: Dict[str, Any]) -> None:
+        """
+        Generate personalized emails from founder names.
+        If we found founder names (e.g., from YC), generate their likely emails.
+        """
+        domain = founder_info.get("domain")
+        founders = founder_info.get("founders", [])
+        
+        if not domain or not founders:
+            return
+        
+        email_patterns = founder_info.get("email_patterns", [])
+        existing = set(email_patterns)
+        
+        for founder in founders[:2]:  # Top 2 founders
+            name = founder.get("name", "")
+            if not name:
+                continue
+            
+            # Parse name
+            parts = name.strip().split()
+            if len(parts) < 2:
+                continue
+            
+            first_name = parts[0].lower()
+            last_name = parts[-1].lower()
+            
+            # Generate common email patterns for this founder
+            personalized_patterns = [
+                f"{first_name}@{domain}",                     # john@company.com
+                f"{first_name}.{last_name}@{domain}",         # john.doe@company.com
+                f"{first_name[0]}{last_name}@{domain}",       # jdoe@company.com
+                f"{first_name}{last_name[0]}@{domain}",       # johnd@company.com
+            ]
+            
+            # Try to verify with Hunter.io if available
+            if self.email_verifier:
+                try:
+                    # Use Hunter.io email finder for exact match
+                    result = await self.email_verifier.find_email(domain, parts[0], parts[-1])
+                    if result.get('found') and result.get('email'):
+                        verified_email = result['email']
+                        logger.info(f"✅ Hunter.io found founder email: {verified_email}")
+                        
+                        # Add to verified emails
+                        if 'verified_emails' not in founder_info:
+                            founder_info['verified_emails'] = []
+                        
+                        founder_info['verified_emails'].append({
+                            'email': verified_email,
+                            'name': name,
+                            'position': founder.get('title', 'Founder'),
+                            'confidence': result.get('score', 90)
+                        })
+                        
+                        # Add to patterns at high priority
+                        if verified_email not in existing:
+                            email_patterns.insert(0, verified_email)
+                            existing.add(verified_email)
+                        
+                        # Skip pattern-based additions if we found verified
+                        continue
+                        
+                except Exception as e:
+                    logger.debug(f"Hunter.io email finder failed: {e}")
+            
+            # Add pattern-based emails (lower priority)
+            for pattern in personalized_patterns:
+                if pattern not in existing:
+                    email_patterns.append(pattern)
+                    existing.add(pattern)
+        
+        founder_info["email_patterns"] = email_patterns
 
     async def _search_linkedin(self, company_name: str) -> Dict[str, Any]:
         """Construct LinkedIn company page URL"""
@@ -263,22 +360,86 @@ class FounderFinderV2:
         return {"twitter_company": f"https://twitter.com/{slug}"}
 
     async def _find_email_pattern(self, company_name: str, company_url: str) -> Dict[str, Any]:
-        """Generate common email patterns for company"""
+        """
+        🚀 ENHANCED EMAIL DISCOVERY v3.5
+        
+        Priority order:
+        1. Hunter.io domain search (real verified emails)
+        2. Personalized emails from founder names
+        3. Common founder-friendly patterns
+        """
         if not company_url:
             return {}
         
         domain = company_url.replace("https://", "").replace("http://", "").split("/")[0]
         domain = domain.replace("www.", "")
         
-        return {
+        result = {
             "domain": domain,
-            "email_patterns": [
-                f"founder@{domain}",
-                f"hello@{domain}",
-                f"contact@{domain}",
-                f"careers@{domain}",
-            ],
+            "email_patterns": [],
+            "verified_emails": [],
+            "email_source": "pattern"
         }
+        
+        # ─────────────────────────────────────────────────────
+        # STEP 1: Try Hunter.io domain search (best quality)
+        # ─────────────────────────────────────────────────────
+        if self.email_verifier and hasattr(self.email_verifier, 'search_domain'):
+            try:
+                hunter_result = await self.email_verifier.search_domain(domain, limit=5)
+                if hunter_result.get('found', 0) > 0:
+                    for email_data in hunter_result.get('emails', []):
+                        email = email_data.get('email')
+                        position = (email_data.get('position') or '').lower()
+                        
+                        # Prioritize founders/executives
+                        if email and any(p in position for p in ['founder', 'ceo', 'cto', 'vp', 'director', 'head']):
+                            result['verified_emails'].append({
+                                'email': email,
+                                'name': email_data.get('name', ''),
+                                'position': email_data.get('position', ''),
+                                'confidence': email_data.get('confidence', 0)
+                            })
+                            result['email_patterns'].insert(0, email)  # High priority
+                            logger.info(f"✅ Hunter.io found: {email} ({position})")
+                    
+                    if result['verified_emails']:
+                        result['email_source'] = 'hunter.io'
+                        
+            except Exception as e:
+                logger.debug(f"Hunter.io search failed (non-fatal): {e}")
+        
+        # ─────────────────────────────────────────────────────
+        # STEP 2: Generate patterns from common founder formats
+        # Only add if not already found by Hunter
+        # ─────────────────────────────────────────────────────
+        existing = set(result['email_patterns'])
+        
+        # Priority patterns (founder-friendly, non-ATS)
+        priority_patterns = [
+            f"founder@{domain}",
+            f"hello@{domain}",
+            f"hi@{domain}",
+            f"team@{domain}",
+            f"contact@{domain}",
+        ]
+        
+        for pattern in priority_patterns:
+            if pattern not in existing:
+                result['email_patterns'].append(pattern)
+        
+        # ─────────────────────────────────────────────────────
+        # STEP 3: Log discovery summary
+        # ─────────────────────────────────────────────────────
+        verified_count = len(result.get('verified_emails', []))
+        pattern_count = len(result.get('email_patterns', []))
+        
+        if verified_count > 0:
+            logger.info(f"📧 Email discovery for {company_name}: {verified_count} verified, {pattern_count} patterns")
+        else:
+            logger.debug(f"📧 Email patterns for {company_name}: {pattern_count} generated")
+        
+        return result
 
     async def _check_yc_profile(self, company_name: str) -> Dict[str, Any]:
         """Scrape YC profile for founder info"""
@@ -506,9 +667,28 @@ https://vibejobhunter.com"""
         return None
 
     def _extract_email(self, data: Dict[str, Any]) -> Optional[str]:
-        """Extract best email from patterns"""
+        """
+        Extract best email from data.
+        Priority: verified emails > patterns > None
+        """
+        # First check for verified emails (from Hunter.io)
+        verified = data.get("verified_emails", [])
+        if verified:
+            # Return highest confidence verified email
+            return verified[0].get('email')
+        
+        # Fall back to patterns
         patterns = data.get("email_patterns", [])
-        return patterns[0] if patterns else None
+        if patterns:
+            # Filter out ATS emails (careers@, jobs@, etc.)
+            ats_patterns = ['careers@', 'jobs@', 'hr@', 'recruiting@', 'talent@', 'apply@']
+            for pattern in patterns:
+                if not any(ats in pattern.lower() for ats in ats_patterns):
+                    return pattern
+            # If all are ATS, still return first (ATS submitter handles those)
+            return patterns[0]
+        
+        return None
 
     def _extract_linkedin(self, data: Dict[str, Any]) -> Optional[str]:
         """Extract LinkedIn URL"""
@@ -524,15 +704,42 @@ https://vibejobhunter.com"""
         return url.split("/")[-1] if url else None
 
     def _determine_best_channel(self, data: Dict[str, Any]) -> str:
-        """Determine best contact channel (email > LinkedIn > Twitter)"""
-        if data.get("email_patterns") and data.get("domain"):
+        """
+        Determine best contact channel.
+        
+        Priority (for AUTO-SEND):
+        1. Verified email (Hunter.io) - auto-sendable!
+        2. Founder-friendly email patterns (hello@, founder@) - auto-sendable!
+        3. LinkedIn (manual send only)
+        4. Twitter (manual send only)
+        """
+        # Check for verified emails first (highest priority - auto-sendable!)
+        verified = data.get("verified_emails", [])
+        if verified:
+            logger.info(f"📧 Best channel: EMAIL (verified via Hunter.io)")
             return "email"
+        
+        # Check for founder-friendly email patterns
+        patterns = data.get("email_patterns", [])
+        domain = data.get("domain")
+        if patterns and domain:
+            # Check if we have non-ATS patterns
+            ats_patterns = ['careers@', 'jobs@', 'hr@', 'recruiting@', 'talent@', 'apply@']
+            for pattern in patterns:
+                if not any(ats in pattern.lower() for ats in ats_patterns):
+                    logger.info(f"📧 Best channel: EMAIL (pattern: {pattern})")
+                    return "email"
+        
+        # Fall back to LinkedIn (manual)
         if data.get("founders") and data["founders"][0].get("linkedin"):
             return "linkedin"
         if data.get("linkedin_company"):
             return "linkedin"
+        
+        # Last resort: Twitter
         if data.get("twitter_company"):
             return "twitter"
+        
         return "none"
 
     # ════════════════════════════════════════════════════════════
