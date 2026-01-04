@@ -54,34 +54,63 @@ The AI is the vehicle. **I am the architect.**
 **Two autonomous systems running 24/7 on Railway:**
 
 ### 1. 🔍 Autonomous Job Hunting Engine
-- **Scrapes 3000+ jobs/hour** from ATS APIs (Greenhouse, Lever, Ashby)
+- **Scrapes 4000+ jobs/hour** from ATS APIs (Greenhouse, Lever, Ashby, Workable)
+- **🏆 YC Advantage** - Jobs from YC Work at a Startup get +15 score boost
+- **⭐ Remote-First Radar** - DynamiteJobs integration with +5 boost for quality remote roles
 - **AI-powered scoring** via Claude (matches to your profile)
+- **Smart 3-way resume selection** - NEW default / OLD founding / Spanish LATAM
 - **Auto-applies to Greenhouse** with Playwright browser automation
 - **Handles email verification** (reads codes from Zoho Mail IMAP)
-- **Founder outreach** - finds contacts, generates personalized messages
+- **YC-aware founder outreach** - "I saw your role on YC's board..."
 - **Telegram notifications** - real-time updates on applications
 
-### 2. 🧠 AI Marketing Co-Founder (LinkedIn CMO)
+### 2. 🧠 AI Marketing Co-Founder (LinkedIn CMO v5.2)
 - **TRUE AI Co-Founder** with strategic thinking & learning
 - **Daily LinkedIn posts** via Claude API → Make.com
 - **Bilingual content** (English/Spanish) with **true alternation** (EN→ES→EN→ES)
 - **14 images rotating** (fresh image every day, no repeats)
-- **6 content types** including NEW: Vibe Coding Philosophy
-- **Zero manual work** - posts at 21:30 UTC daily
+- **8 content types** including Vibe Coding Philosophy
+- **Zero manual work** - posts at **00:XX UTC (7:00 PM Panama)** daily
 
 ---
 
-## ✅ What's Actually Working (December 2025)
+## 🆕 January 2026 Updates
+
+### 🏆 YC Advantage + Remote-First Radar
+| Source | Score Boost | Features |
+|--------|-------------|----------|
+| **YC Work at a Startup** | **+15 points** | YC badge, warm outreach, premium treatment |
+| **DynamiteJobs** | **+5 points** | Remote-first AI/ML roles |
+
+### 📄 Smart 3-Way Resume Strategy
+| Resume | When Used | Purpose |
+|--------|-----------|---------|
+| **NEW English** | Default | ATS-optimized, professional format |
+| **OLD English** | Founding keywords detected | Founder energy, emotional branding |
+| **Spanish** | LATAM/Spanish companies | For Spanish-speaking markets |
+
+### 🔧 LinkedIn CMO Fixes
+- ✅ Posting time: **7:00 PM Panama (00:XX UTC)**
+- ✅ UTC time fix for consistent Railway scheduling
+- ✅ Single scheduler (no duplicates)
+- ✅ Better startup logging
+
+---
+
+## ✅ What's Actually Working (January 2026)
 
 | Feature | Status | Details |
 |---------|--------|---------|
-| **ATS Job Scraping** | ✅ LIVE | 130+ companies (Greenhouse, Lever, Ashby) |
-| **AI Job Scoring** | ✅ LIVE | Claude-powered with keyword bonuses |
+| **ATS Job Scraping** | ✅ LIVE | **218 companies** (Greenhouse, Lever, Ashby, Workable) |
+| **YC Advantage** | ✅ LIVE | +15 score boost for YC companies |
+| **Premium Source Detection** | ✅ LIVE | DynamiteJobs +5 boost |
+| **AI Job Scoring** | ✅ LIVE | Claude-powered with premium bonuses |
 | **Greenhouse Auto-Apply** | ✅ LIVE | Form filling + email verification |
-| **Resume Selection** | ✅ LIVE | 3 PDF variants auto-selected by role |
-| **Founder Outreach** | ✅ LIVE | Email finding + personalized messages |
+| **Smart Resume Selection** | ✅ LIVE | 3 variants (NEW default, OLD founding, Spanish) |
+| **YC-Aware Outreach** | ✅ LIVE | "I saw your role on YC's board..." messaging |
+| **Founder Outreach** | ✅ LIVE | Hunter.io email discovery + personalized messages |
 | **Email Service** | ✅ LIVE | Resend API from verified domain |
-| **LinkedIn CMO** | ✅ LIVE | Daily posts via Make.com |
+| **LinkedIn CMO v5.2** | ✅ LIVE | Daily posts at 7 PM Panama via Make.com |
 | **Telegram Bot** | ✅ LIVE | Real-time notifications + commands |
 | **Database Tracking** | ✅ LIVE | SQLite for all applications |
 
@@ -91,8 +120,9 @@ The AI is the vehicle. **I am the architect.**
 
 ```
 HOURLY AUTONOMOUS CYCLE:
-├─ Jobs scraped:      ~3000 (from 130+ company APIs)
-├─ After career gate: ~700 (22% pass rate)
+├─ Jobs scraped:      ~4000 (from 218 company APIs)
+├─ Premium sources:   YC (+15) + DynamiteJobs (+5)
+├─ After career gate: ~800 (20% pass rate)
 ├─ Scored 60+:        ~5-10 (qualified for auto-apply)
 └─ Applications/day:  3-5 (quality-capped)
 
@@ -102,20 +132,27 @@ TARGET ROLES:
 ├─ AI Solutions Architect
 └─ Principal Engineer
 
-ATS PLATFORMS:
-├─ Greenhouse: 73 companies (~2000 jobs)
-├─ Ashby: 37 companies (~900 jobs)
-├─ Lever: 19 companies (~150 jobs)
-└─ HN Who's Hiring, RemoteOK
+ATS PLATFORMS (218 companies):
+├─ Greenhouse: 106 companies (~2500 jobs)
+├─ Ashby: 59 companies (~1200 jobs)
+├─ Lever: 36 companies (~400 jobs)
+├─ Workable: 17 companies (~200 jobs)
+└─ Premium: YC WAAS, DynamiteJobs, HN Who's Hiring, RemoteOK
+
+NEW AI COMPANIES ADDED (79+):
+├─ Frontier AI: Cognition (Devin), Magic AI, Poolside, Factory AI
+├─ AI Applications: Harvey AI, Glean, Sierra AI, Writer
+├─ AI Infrastructure: Groq, Contextual AI, Imbue, Together AI
+└─ Robotics: Figure AI, Physical Intelligence, 1X Technologies
 ```
 
 ---
 
-## 🧠 AI Marketing Co-Founder (LinkedIn CMO v5.1)
+## 🧠 AI Marketing Co-Founder (LinkedIn CMO v5.2)
 
 The LinkedIn CMO is a **TRUE AI Co-Founder** (not just automation):
 
-### Content Types (6 Total):
+### Content Types (8 Total):
 
 | Type | Language | Purpose |
 |------|----------|---------|
@@ -123,15 +160,15 @@ The LinkedIn CMO is a **TRUE AI Co-Founder** (not just automation):
 | `technical_showcase` | EN | Technical depth - 5 AIPAs |
 | `transformation_story` | EN | CEO → Founder journey |
 | `seeking_funding` | EN | Pre-seed pitch |
-| **`vibe_coding_philosophy`** | **EN** | **NEW: Life transformation through AI** |
+| **`vibe_coding_philosophy`** | **EN** | Life transformation through AI |
 | `busco_trabajo` | ES | Spanish job seeking |
 | `historia_transformacion` | ES | Spanish journey |
-| **`filosofia_vibe_coding`** | **ES** | **NEW: Filosofía del vibe coding** |
+| **`filosofia_vibe_coding`** | **ES** | Filosofía del vibe coding |
 
 ### Daily Posting Cycle:
 
 ```
-📅 DAILY AT 21:30 UTC (4:30 PM Panama):
+📅 DAILY AT 00:XX UTC (7:00 PM Panama):
 
 Day 1: EN 🇬🇧 → Random from 5 EN types → Fresh image from 14
 Day 2: ES 🇪🇸 → Random from 3 ES types → Different image
@@ -142,9 +179,10 @@ Day 4: ES 🇪🇸 → Random from 3 ES types → Different image
 ✅ TRUE alternation (not random 50/50)
 ✅ 14 images rotating (no same image 2 days in a row)
 ✅ Claude generates FRESH content each time
+✅ UTC time for consistent Railway scheduling
 ```
 
-### The NEW Vibe Coding Philosophy Content:
+### The Vibe Coding Philosophy Content:
 
 When this post type is selected, it tells the REAL story:
 - 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments
@@ -222,21 +260,23 @@ ATS_SUBMISSION_ENABLED=true
 Railway (24/7 Autonomous)
     │
     ├─── Job Hunting Engine (Hourly)
-    │    ├─ Scrape ATS APIs (Greenhouse/Lever/Ashby)
+    │    ├─ Scrape ATS APIs (Greenhouse/Lever/Ashby/Workable)
+    │    ├─ Scrape Premium Sources (YC WAAS, DynamiteJobs)
+    │    ├─ Apply premium boosts (+15 YC, +5 DynamiteJobs)
     │    ├─ Filter through career gate
     │    ├─ Score with Claude AI
     │    ├─ Auto-apply (score ≥ 60)
     │    │   ├─ Research company (Claude)
-    │    │   ├─ Select resume variant
+    │    │   ├─ Smart resume selection (3 variants)
     │    │   ├─ Fill Greenhouse form (Playwright)
     │    │   ├─ Handle email verification (IMAP)
     │    │   └─ Submit application
-    │    ├─ Founder outreach (score ≥ 58)
+    │    ├─ YC-aware founder outreach (score ≥ 58)
     │    └─ Notify via Telegram
     │
-    └─── LinkedIn CMO v5.1 (Daily 21:30 UTC)
+    └─── LinkedIn CMO v5.2 (Daily 00:XX UTC / 7 PM Panama)
          ├─ Alternate language (EN↔ES)
-         ├─ Select post type (6 EN / 3 ES options)
+         ├─ Select post type (5 EN / 3 ES options)
          ├─ Generate content (Claude)
          ├─ Select fresh image (14 rotating)
          ├─ Post via Make.com webhook
@@ -250,31 +290,32 @@ Railway (24/7 Autonomous)
 ```
 src/
 ├── autonomous/
-│   ├── orchestrator.py          # 🧠 Main brain - hourly cycles
-│   ├── job_monitor.py           # 🔍 Fetches from all sources
+│   ├── orchestrator.py          # 🧠 Main brain - hourly cycles + LinkedIn CMO
+│   ├── job_monitor.py           # 🔍 Fetches from all sources (including YC)
 │   ├── ats_submitter.py         # 🚀 Greenhouse form submission
 │   ├── greenhouse_email_verifier.py  # 📧 IMAP verification
 │   ├── company_researcher.py    # 🔬 Claude company research
-│   └── founder_finder_v2.py     # 👤 Founder contact finding
+│   └── founder_finder_v2.py     # 👤 YC-aware founder outreach
 │
 ├── scrapers/
-│   └── ats_scraper.py           # 🕷️ Greenhouse/Lever/Ashby APIs
+│   ├── ats_scraper.py           # 🕷️ Greenhouse/Lever/Ashby/Workable (218 companies)
+│   └── premium_board_scraper.py # 🏆 YC WAAS + DynamiteJobs
 │
 ├── agents/
-│   └── job_matcher.py           # 🎯 AI-powered scoring
+│   └── job_matcher.py           # 🎯 AI scoring with premium boosts
 │
 ├── templates/
-│   └── resume_selector.py       # 📄 3 resume variants
+│   └── resume_selector.py       # 📄 Smart 3-way resume selection
 │
 └── notifications/
-    ├── linkedin_cmo_v4.py       # 📣 LinkedIn CMO v5.1 with vibe coding philosophy
+    ├── linkedin_cmo_v4.py       # 📣 LinkedIn CMO v5.2 (7 PM Panama)
     └── telegram_notifier.py     # 📱 Telegram notifications
 
 autonomous_data/
 ├── resumes/                     # PDF resume variants
-│   ├── founding_engineer.pdf
-│   ├── senior_ai_engineer.pdf
-│   └── ai_solutions_architect.pdf
+│   ├── elena_resume_new.pdf     # NEW English (ATS-optimized)
+│   ├── elena_resume_founding.pdf # OLD English (founder energy)
+│   └── elena_resume_spanish.pdf  # Spanish (LATAM)
 └── vibejobhunter.db            # SQLite database
 ```
 
@@ -289,6 +330,10 @@ AUTO_APPLY_THRESHOLD = 60    # Score ≥ 60 → auto-submit application
 OUTREACH_THRESHOLD = 58      # Score ≥ 58 → founder outreach
 REVIEW_THRESHOLD = 55        # Score ≥ 55 → save for review
 MAX_DAILY_APPLICATIONS = 5   # Quality over quantity
+
+# Premium Source Boosts
+YC_SCORE_BOOST = 15          # +15 for YC companies
+DYNAMITE_SCORE_BOOST = 5     # +5 for DynamiteJobs
 ```
 
 ---
@@ -300,7 +345,7 @@ MAX_DAILY_APPLICATIONS = 5   # Quality over quantity
 | **AI/LLM** | Claude Sonnet 4 (Anthropic) |
 | **Backend** | Python 3.11, FastAPI, asyncio |
 | **Browser Automation** | Playwright (Greenhouse forms) |
-| **Email** | IMAP (Zoho), Resend API |
+| **Email** | IMAP (Zoho), Resend API, Hunter.io |
 | **Database** | SQLite |
 | **Hosting** | Railway (24/7) |
 | **Social Posting** | Make.com webhooks |
@@ -311,12 +356,14 @@ MAX_DAILY_APPLICATIONS = 5   # Quality over quantity
 ## 📈 Expected Results
 
 **Job Hunting (Autonomous):**
-- 3000+ jobs scraped per cycle
+- 4000+ jobs scraped per cycle
+- Premium sources prioritized (YC +15, DynamiteJobs +5)
+- Smart resume matching (3 variants)
 - 3-5 quality applications per day
 - Focus on AI/ML founding/senior roles
 
 **LinkedIn CMO:**
-- 7 posts/week (daily)
+- 7 posts/week (daily at 7 PM Panama)
 - Bilingual reach (EN/ES) with true alternation
 - 14 rotating images
 - Zero manual work
@@ -394,4 +441,4 @@ MIT License - Use freely for your job hunt!
 
 **Status:** ✅ LIVE - Autonomous applications running since December 2025
 
-*Last updated: December 21, 2025 - Added Vibe Coding Philosophy content*
+*Last updated: January 4, 2026 - YC Advantage, Smart Resume, LinkedIn CMO 7PM Panama*
