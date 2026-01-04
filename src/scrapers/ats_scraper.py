@@ -32,7 +32,7 @@ RUN_ID = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 
 GREENHOUSE_COMPANIES = [
     # ═══════════════════════════════════════════════════════════════
-    # 🎯 TOP AI COMPANIES - December 2025 (PRIORITY 1)
+    # 🎯 TOP AI COMPANIES - January 2026 (PRIORITY 1)
     # ═══════════════════════════════════════════════════════════════
     
     # Frontier AI Labs (HIGHEST PRIORITY)
@@ -41,6 +41,24 @@ GREENHOUSE_COMPANIES = [
     "deepmind",       # Google DeepMind
     "meta",           # Meta AI (LLaMA)
     "xai",            # Elon Musk's AI company
+    "google",         # Google AI (Gemini)
+    "microsoft",      # Microsoft AI (Copilot)
+    
+    # 🆕 HOT AI STARTUPS - Recently Funded (2024-2025)
+    "cognition-labs", # Devin AI - autonomous coding
+    "magic-ai",       # AI coding - $320M raised
+    "poolside",       # AI coding assistant
+    "factory-ai",     # AI coding (Dragonfly)
+    "augment",        # AI coding (ex-Google)
+    "harvey-ai",      # AI for lawyers - $80M
+    "glean",          # AI enterprise search - $200M
+    "sierra-ai",      # AI customer service (Bret Taylor)
+    "writer",         # Enterprise AI writing
+    "groq",           # AI inference chips - FAST!
+    "contextual-ai",  # RAG company (Douwe Kiela)
+    "imbue",          # AI reasoning (formerly Generally Intelligent)
+    "langchain",      # AI dev framework - LangSmith
+    "poe",            # AI chat (Quora)
     
     # AI Infrastructure & MLOps
     "databricks",     # Data + AI platform ~700 jobs
@@ -55,6 +73,11 @@ GREENHOUSE_COMPANIES = [
     "together-ai",    # Open source AI
     "fireworks-ai",   # AI inference
     "baseten",        # ML deployment
+    "pinecone",       # Vector database
+    "weaviate",       # Vector database
+    "qdrant",         # Vector database
+    "chroma",         # Vector database
+    "marqo",          # Vector search
     
     # AI Products & Applications
     "perplexity",     # AI search
@@ -69,6 +92,12 @@ GREENHOUSE_COMPANIES = [
     "adept",          # AI agents
     "cohere",         # Enterprise LLMs
     "ai21labs",       # Jurassic models
+    "eleven-labs",    # AI voice generation
+    "synthesia",      # AI video avatars
+    "descript",       # AI audio/video editing
+    "otter-ai",       # AI meeting notes
+    "gong",           # AI for sales
+    "chorus-ai",      # Conversation intelligence
     
     # AI in Robotics & Autonomous Systems  
     "figure",         # Figure AI - humanoid robots
@@ -76,6 +105,10 @@ GREENHOUSE_COMPANIES = [
     "waymo",          # Self-driving
     "cruise",         # Self-driving
     "covariant",      # AI for robotics
+    "physical-intelligence", # Robotics AI
+    "1x-technologies", # Humanoid robots
+    "sanctuary-ai",   # Humanoid robots
+    "boston-dynamics", # Robot maker
     
     # AI Developer Tools (PRIORITY 2)
     "cursor",         # AI code editor - RELEVANT!
@@ -83,6 +116,8 @@ GREENHOUSE_COMPANIES = [
     "sourcegraph",    # Code intelligence
     "codeium",        # AI code completion
     "tabnine",        # AI code assistant
+    "github",         # GitHub Copilot team
+    "gitlab",         # GitLab Duo AI
     
     # ═══════════════════════════════════════════════════════════════
     # Dev Tools / Infrastructure
@@ -137,7 +172,7 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # ═══════════════════════════════════════════════════════════════
-    # AI/ML Companies on Lever
+    # AI/ML Companies on Lever (January 2026)
     # ═══════════════════════════════════════════════════════════════
     "huggingface",    # ML model hub - PRIORITY!
     "cohere",         # Enterprise LLMs
@@ -146,6 +181,10 @@ LEVER_COMPANIES = [
     "together",       # Together AI
     "lightning-ai",   # PyTorch Lightning
     "weights-and-biases",
+    "nomic-ai",       # Open source embeddings
+    "llamaindex",     # RAG framework
+    "voyageai",       # Embeddings
+    "unstructured",   # Document processing for AI
     
     # Data/Infrastructure
     "databricks",
@@ -156,17 +195,32 @@ LEVER_COMPANIES = [
     "clickhouse",
     "timescale",
     "cockroachlabs",
+    "singlestore",    # Real-time database
+    "motherduck",     # DuckDB cloud
+    "tinybird",       # Real-time analytics
     
     # Developer Tools
     "postman",
     "hashicorp",
     "pulumi",
     "gitpod",
+    "codespaces",     # Cloud dev environments
+    "buildkite",      # CI/CD
+    "circleci",       # CI/CD
+    "launchdarkly",   # Feature flags
+    "split",          # Feature flags
+    
+    # 🆕 AI-Forward Tech Companies
+    "plaid",          # Financial data + AI
+    "twilio",         # Communications + AI
+    "segment",        # Customer data + AI
+    "amplitude",      # Analytics + AI
+    "mixpanel",       # Analytics + AI
 ]
 
 WORKABLE_COMPANIES = [
     # ═══════════════════════════════════════════════════════════════
-    # AI Startups on Workable
+    # AI Startups on Workable (January 2026)
     # ═══════════════════════════════════════════════════════════════
     "stability-ai",
     "relevance-ai",
@@ -177,10 +231,18 @@ WORKABLE_COMPANIES = [
     "descript",
     "assembly-ai",
     "deepgram",
+    "rev-ai",         # Speech-to-text
+    "speechmatics",   # Speech AI
+    "lilt",           # AI translation
+    "unbabel",        # AI translation
+    "krisp",          # AI noise cancellation
+    "sanas",          # AI accent translation
+    "moveworks",      # IT support AI
+    "forethought",    # AI customer service
 ]
 
 # =====================================
-# ASHBY COMPANIES - YC FAVORITES (NEW!)
+# ASHBY COMPANIES - YC FAVORITES (EXPANDED!)
 # =====================================
 # Ashby is used by many YC companies for modern hiring
 # API: https://jobs.ashbyhq.com/{company}/api/jobs
@@ -199,6 +261,12 @@ ASHBY_COMPANIES = [
     "perplexity",     # AI search
     "character-ai",   # Character AI
     "notion-ai",      # Notion AI features
+    "dust",           # AI assistants
+    "mem-ai",         # AI notes
+    "clay",           # AI data enrichment
+    "bardeen",        # AI automation
+    "browse-ai",      # AI web scraping
+    "spell",          # AI writing
     
     # ═══════════════════════════════════════════════════════════════
     # YC-backed Startups (Good AI roles)
@@ -213,6 +281,9 @@ ASHBY_COMPANIES = [
     "lattice",        # HR platform
     "gem",            # Recruiting
     "rippling",       # HR platform
+    "tines",          # Security automation
+    "snyk",           # Developer security
+    "contrast",       # App security
     
     # ═══════════════════════════════════════════════════════════════
     # Dev Tools (Good engineering roles)
@@ -224,6 +295,14 @@ ASHBY_COMPANIES = [
     "dagster",        # Data orchestration
     "dbt-labs",       # Data transformation
     "hex",            # Data notebooks
+    "deepnote",       # Data notebooks
+    "prefect",        # Data orchestration
+    "temporal",       # Workflow orchestration
+    "inngest",        # Event-driven functions
+    "trigger-dev",    # Background jobs
+    "knock",          # Notifications API
+    "courier",        # Notifications
+    "resend",         # Email API (YOUR EMAIL PROVIDER!)
     
     # ═══════════════════════════════════════════════════════════════
     # Infrastructure
@@ -236,7 +315,12 @@ ASHBY_COMPANIES = [
     "supabase",       # Backend as a service
     "convex",         # Backend platform
     "planetscale",    # MySQL platform
-    "railway",        # Cloud deployment
+    "railway",        # Cloud deployment (YOUR DEPLOYMENT!)
+    "render",         # Cloud platform
+    "fly",            # Edge compute
+    "upstash",        # Serverless Redis/Kafka
+    "val-town",       # Cloud functions
+    "deno",           # JS runtime
 ]
 
 
