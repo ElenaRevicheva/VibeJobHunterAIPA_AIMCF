@@ -449,7 +449,7 @@ https://vibejobhunter.com"""
                 "created_at": datetime.utcnow().isoformat(),
             })
             
-            # Send Telegram notification
+            # Send Telegram notification with FULL message (no truncation!)
             if self.telegram_notifier:
                 telegram_text = f"""🤝 <b>LinkedIn Outreach Ready</b>
 
@@ -457,10 +457,10 @@ https://vibejobhunter.com"""
 🏢 Company: {company}
 🔗 LinkedIn: {linkedin_url}
 
-📝 <b>Message:</b>
-{message[:300]}{"..." if len(message) > 300 else ""}
+📝 <b>Message (copy this):</b>
+<code>{message}</code>
 
-<i>Visit LinkedIn and send this message!</i>"""
+<i>👆 Tap message above to copy, then paste on LinkedIn!</i>"""
                 
                 await self.telegram_notifier.send_notification(telegram_text)
             

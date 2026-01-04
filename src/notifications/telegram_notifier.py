@@ -11,6 +11,7 @@ Get instant alerts for:
 """
 
 import asyncio
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, time as dt_time
@@ -354,6 +355,53 @@ Something went wrong with the autonomous engine:
             return "• Use your live demo: wa.me/50766623757"
         return "\n".join([f"• {point}" for point in points])
     
+    async def _show_pending_outreach(self):
+        """Show pending outreach messages from the manual queue"""
+        try:
+            queue_file = Path("autonomous_data/manual_outreach_queue.json")
+            
+            if not queue_file.exists():
+                await self.send_message("📭 <b>No pending outreach messages</b>\n\nOutreach messages will appear here when generated.")
+                return
+            
+            with open(queue_file, 'r') as f:
+                queue = json.load(f)
+            
+            # Filter only pending messages
+            pending = [m for m in queue if m.get('status') == 'pending_manual_send']
+            
+            if not pending:
+                await self.send_message("✅ <b>All outreach messages sent!</b>\n\nNo pending messages in queue.")
+                return
+            
+            # Show the most recent pending messages (max 3)
+            for msg in pending[-3:]:
+                channel = msg.get('channel', 'unknown').upper()
+                company = msg.get('company', 'Unknown')
+                contact = msg.get('contact', 'Contact')
+                url = msg.get('url') or msg.get('handle', '')
+                message_text = msg.get('message', '')
+                
+                outreach_msg = f"""📨 <b>Pending {channel} Outreach</b>
+
+🏢 Company: {company}
+👤 Contact: {contact}
+🔗 Link: {url}
+
+📝 <b>Full Message:</b>
+<code>{message_text}</code>
+
+<i>👆 Tap to copy, then send manually!</i>"""
+                
+                await self.send_message(outreach_msg)
+            
+            if len(pending) > 3:
+                await self.send_message(f"📊 <i>Showing 3 of {len(pending)} pending messages</i>")
+                
+        except Exception as e:
+            logger.error(f"❌ Error showing outreach: {e}")
+            await self.send_message(f"❌ Error loading outreach queue: {e}")
+    
     async def start_polling(self):
         """
         Start polling for incoming messages (for Railway log visibility)
@@ -394,6 +442,7 @@ Something went wrong with the autonomous engine:
 
 /start - Start the bot
 /status - Check bot status
+/outreach - View pending outreach messages
 /help - Show this help
 
 The bot will automatically send you:
@@ -402,6 +451,9 @@ The bot will automatically send you:
 📧 Responses
 📅 Interviews
 📊 Daily summaries (8pm)""")
+                        
+                        elif text == '/outreach':
+                            await self._show_pending_outreach()
                 
                 # Small delay between polls (Railway-friendly)
                 await asyncio.sleep(2)
