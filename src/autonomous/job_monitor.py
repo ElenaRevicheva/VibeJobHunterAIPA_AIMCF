@@ -494,7 +494,7 @@ class JobMonitor:
         return jobs
     
     def _parse_yc_job(self, job_data: Dict) -> Dict:
-        """Parse a YC job from their API"""
+        """Parse a YC job from their API - WITH PREMIUM FLAGS"""
         return {
             "id": f"yc_{job_data.get('id', '')}",
             "title": job_data.get("title", "") or job_data.get("job_title", ""),
@@ -507,6 +507,10 @@ class JobMonitor:
             "salary_max": job_data.get("salary_max"),
             "remote": job_data.get("remote", True),
             "yc_batch": job_data.get("batch"),
+            # 🏆 PREMIUM FLAGS - YC Advantage
+            "is_yc_company": True,
+            "is_premium_source": True,
+            "score_boost": 15,  # +15 points for YC companies!
         }
     
     def _parse_yc_algolia_hit(self, hit: Dict, job_id: str) -> Dict:
@@ -534,6 +538,10 @@ class JobMonitor:
             "salary_max": hit.get("salary_max"),
             "remote": hit.get("remote", True),
             "yc_batch": hit.get("batch") or (hit.get("company", {}) if isinstance(hit.get("company"), dict) else {}).get("batch"),
+            # 🏆 PREMIUM FLAGS - YC Advantage
+            "is_yc_company": True,
+            "is_premium_source": True,
+            "score_boost": 15,  # +15 points for YC companies!
         }
     
     async def _search_wellfound(self) -> List[Dict]:

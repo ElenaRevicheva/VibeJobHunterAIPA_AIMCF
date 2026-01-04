@@ -533,17 +533,37 @@ class FounderFinderV2:
             
             # Fallback template if MessageGenerator not available
             salutation = f"Hi {founder_name}" if founder_name else "Hi there"
-            message = f"""{salutation},
+            
+            # 🏆 YC ADVANTAGE: Special warm intro for YC companies
+            is_yc = getattr(job, 'is_yc_company', False) or (
+                hasattr(job, 'source') and 'yc' in str(job.source).lower()
+            )
+            
+            if is_yc:
+                # YC-specific warm intro - they love builders!
+                message = f"""{salutation},
+
+I saw your {job.title} role on YC's Work at a Startup board. As a solo founder who shipped 11 AI products in 10 months (including AI Co-Founders running 24/7), I'm particularly drawn to YC companies building with urgency.
+
+My EspaLuz tutor serves users in 19 countries, and my CTO AIPA reviews code across 8 repos autonomously. I'd love to bring this same builder energy to {job.company}.
+
+Try my AI: wa.me/50766623757
+
+Best,
+Elena"""
+            else:
+                # Standard warm intro
+                message = f"""{salutation},
 
 I came across {job.company}'s {job.title} role and was immediately drawn to it.
 
-I've built 11 AI products in 10 months (5 running 24/7 as AIPAs), specializing in AI developer productivity and platform engineering. My background includes 7 years of strategic leadership as CEO/CLO.
+I've built 11 AI products in 10 months (7 live agents running 24/7), specializing in AI developer productivity and platform engineering. My background includes 7 years of strategic leadership as CEO/CLO.
 
 I'd love to discuss how I can contribute to {job.company}'s mission. Would you be open to a quick chat?
 
 Best regards,
 Elena Revicheva
-https://vibejobhunter.com"""
+wa.me/50766623757"""
 
             return {
                 "message": message,

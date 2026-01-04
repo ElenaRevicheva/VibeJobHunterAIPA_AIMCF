@@ -312,12 +312,18 @@ class AutonomousOrchestrator:
         """
         Score all jobs using JobMatcher v3.0 (with bias compensation)
         Returns scored jobs with match_score and match_reasons
+        
+        🏆 PREMIUM SOURCE BOOST:
+        - YC companies get +15 score boost
+        - Other premium sources get +5
         """
         from ..agents.job_matcher import JobMatcher
         matcher = JobMatcher()
         
         scored_jobs = []
         score_distribution = {"0-30": 0, "30-50": 0, "50-60": 0, "60-70": 0, "70+": 0}
+        yc_jobs_found = 0
+        premium_jobs_found = 0
         
         sample_logged = 0
         
@@ -325,8 +331,34 @@ class AutonomousOrchestrator:
             try:
                 # JobMatcher.calculate_match_score now includes bias compensation!
                 score, reasons = matcher.calculate_match_score(self.profile, job)
+                
+                # 🏆 PREMIUM SOURCE BOOST - YC Advantage & Remote-First Radar
+                # Check for score_boost in job dict (from YC/DynamiteJobs)
+                job_dict = job.to_dict() if hasattr(job, 'to_dict') else (job.model_dump() if hasattr(job, 'model_dump') else {})
+                score_boost = job_dict.get('score_boost', 0) or getattr(job, 'score_boost', 0)
+                is_yc = job_dict.get('is_yc_company', False) or getattr(job, 'is_yc_company', False)
+                is_premium = job_dict.get('is_premium_source', False) or getattr(job, 'is_premium_source', False)
+                
+                if score_boost > 0:
+                    original_score = score
+                    score += score_boost
+                    score = min(score, 100)  # Cap at 100
+                    
+                    if is_yc:
+                        yc_jobs_found += 1
+                        reasons.append(f"🏆 YC Company (+{score_boost})")
+                        logger.info(f"🏆 YC BOOST: {job.company} {original_score:.0f} → {score:.0f}")
+                    elif is_premium:
+                        premium_jobs_found += 1
+                        reasons.append(f"⭐ Premium Source (+{score_boost})")
+                
                 job.match_score = score
                 job.match_reasons = reasons
+                
+                # Store YC flag for outreach messaging
+                if is_yc:
+                    job.is_yc_company = True
+                
                 scored_jobs.append(job)
                 stats.jobs_scored += 1
                 
@@ -344,15 +376,20 @@ class AutonomousOrchestrator:
                 
                 # Log first few samples for visibility
                 if sample_logged < 3:
-                    logger.info(f"📋 Sample score: {job.company} - {job.title[:40]}... = {score:.0f}")
+                    yc_badge = " 🏆YC" if is_yc else ""
+                    logger.info(f"📋 Sample score: {job.company}{yc_badge} - {job.title[:40]}... = {score:.0f}")
                     sample_logged += 1
                     
             except Exception as e:
                 logger.warning(f"⚠️ Scoring failed for {getattr(job, 'company', 'unknown')}: {e}")
                 stats.errors += 1
         
-        # Log score distribution
+        # Log score distribution + premium sources
         logger.info(f"📊 Score distribution: {score_distribution}")
+        if yc_jobs_found > 0:
+            logger.info(f"🏆 YC companies found: {yc_jobs_found} (+15 boost applied)")
+        if premium_jobs_found > 0:
+            logger.info(f"⭐ Premium source jobs: {premium_jobs_found}")
         
         return scored_jobs
 
