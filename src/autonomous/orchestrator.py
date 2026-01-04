@@ -82,7 +82,18 @@ class AutonomousOrchestrator:
 
         try:
             self.linkedin_cmo = LinkedInCMO(profile=self.profile)
-            logger.info("✅ LinkedIn CMO initialized")
+            if self.linkedin_cmo.enabled:
+                logger.info("=" * 50)
+                logger.info("✅ LinkedIn CMO INITIALIZED & ENABLED")
+                logger.info("   📅 Daily posts: 21:XX UTC (4:30 PM Panama)")
+                logger.info("   🔗 Webhook: configured ✓")
+                logger.info("=" * 50)
+            else:
+                logger.warning("=" * 50)
+                logger.warning("⚠️ LinkedIn CMO INITIALIZED but DISABLED!")
+                logger.warning("   Missing: MAKE_WEBHOOK_URL_LINKEDIN env var")
+                logger.warning("   Daily LinkedIn posts will NOT be sent")
+                logger.warning("=" * 50)
         except Exception as e:
             logger.error(f"❌ LinkedIn CMO failed to initialize: {e}")
             self.linkedin_cmo = None
@@ -156,28 +167,55 @@ class AutonomousOrchestrator:
         logger.info("🚀 Autonomous Orchestrator READY")
 
     # ─────────────────────────────
-    # LINKEDIN CMO SCHEDULER (FIXED)
+    # LINKEDIN CMO SCHEDULER (FIXED - UTC TIME)
     # ─────────────────────────────
     async def check_linkedin_schedule(self):
-        if not self.linkedin_cmo or not self.linkedin_cmo.enabled:
+        """
+        Check if it's time for daily LinkedIn post (21:30 UTC / 4:30 PM Panama)
+        
+        IMPORTANT: Uses datetime.utcnow() for consistent UTC time on Railway servers
+        """
+        # Check if LinkedIn CMO is available and enabled
+        if not self.linkedin_cmo:
+            logger.debug("📣 LinkedIn CMO: Not initialized (skipping)")
+            return
+        
+        if not self.linkedin_cmo.enabled:
+            # Log this once per hour to help diagnose missing posts
+            now_utc = datetime.utcnow()
+            if now_utc.minute == 0:  # Only log at top of each hour
+                logger.warning("📣 LinkedIn CMO: DISABLED - check MAKE_WEBHOOK_URL_LINKEDIN env var")
             return
 
-        now = datetime.now()
-        today = now.date()
+        # Use UTC time explicitly for Railway/cloud servers
+        now_utc = datetime.utcnow()
+        today = now_utc.date()
 
+        # Already posted today?
         if self.last_linkedin_post_date == today:
             return
 
-        if now.hour == 21:
-            language = "en" if now.weekday() % 2 == 0 else "es"
+        # Post at 21:XX UTC (4:30 PM Panama time zone)
+        if now_utc.hour == 21:
+            # True language alternation: EN on even weekdays, ES on odd
+            language = "en" if now_utc.weekday() % 2 == 0 else "es"
 
-            logger.info("📣 Triggering LinkedIn CMO post")
-            await self.linkedin_cmo.post_to_linkedin(
-                post_type="random",
-                language=language
-            )
-
-            self.last_linkedin_post_date = today
+            logger.info("=" * 50)
+            logger.info("📣 LINKEDIN CMO: TRIGGERING DAILY POST")
+            logger.info(f"   🕐 Time (UTC): {now_utc.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"   🌍 Language: {language.upper()}")
+            logger.info("=" * 50)
+            
+            try:
+                await self.linkedin_cmo.post_to_linkedin(
+                    post_type="random",
+                    language=language
+                )
+                self.last_linkedin_post_date = today
+                logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
+            except Exception as e:
+                logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}")
+                # Don't set last_linkedin_post_date so we retry next check
 
     # ─────────────────────────────
     # AUTONOMOUS MODE
