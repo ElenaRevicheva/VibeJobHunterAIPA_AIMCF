@@ -658,55 +658,270 @@ You have *{len(outreach)}* message(s) to send:
         query = update.callback_query
         await query.answer()
         
-        # Create a fake message object for command handlers
-        update.message = query.message
+        chat_id = query.message.chat_id
         
         # ═══════════════════════════════════════════════════════════════
         # 🆕 NEW MENU CALLBACKS (January 2026)
+        # Send new messages instead of editing (cleaner UX)
         # ═══════════════════════════════════════════════════════════════
         if query.data == "menu":
-            await self.cmd_menu(update, context)
+            await self._send_menu(context, chat_id)
         
         elif query.data == "workflow":
-            await self.cmd_workflow(update, context)
+            await self._send_workflow(context, chat_id)
         
         elif query.data == "manual":
-            await self.cmd_manual(update, context)
+            await self._send_manual(context, chat_id)
         
         elif query.data == "today":
-            await self.cmd_today(update, context)
+            await self._send_today(context, chat_id)
         
         elif query.data == "outreach":
-            await self.cmd_outreach(update, context)
+            await self._send_outreach(context, chat_id)
         
         elif query.data == "jobs":
-            await self.cmd_jobs(update, context)
+            await self._send_jobs(context, chat_id)
         
         elif query.data == "pause":
-            await self.cmd_pause(update, context)
+            self.is_paused = True
+            await context.bot.send_message(chat_id, "⏸️ Job hunting PAUSED. Use /resume to restart.")
         
         elif query.data == "resume_hunting":
-            await self.cmd_resume(update, context)
+            self.is_paused = False
+            await context.bot.send_message(chat_id, "▶️ Job hunting RESUMED!")
         
         elif query.data == "status":
-            await self.cmd_status(update, context)
+            await self._send_status(context, chat_id)
         
-        # ═══════════════════════════════════════════════════════════════
-        # ORIGINAL CALLBACKS (unchanged)
-        # ═══════════════════════════════════════════════════════════════
         elif query.data == "stats":
-            await self.cmd_stats(update, context)
+            await self._send_stats(context, chat_id)
         
+        # ═══════════════════════════════════════════════════════════════
+        # ORIGINAL CALLBACKS
+        # ═══════════════════════════════════════════════════════════════
         elif query.data == "refresh_jobs":
-            await query.edit_message_text("🔄 Refreshing jobs...")
-            await self.cmd_jobs(update, context)
+            await query.edit_message_text("🔄 Refreshing...")
+            await self._send_jobs(context, chat_id)
         
         elif query.data.startswith("send_email_"):
             company = query.data.replace("send_email_", "")
             await query.edit_message_text(f"📧 Sending email to {company}...")
         
         elif query.data == "save_materials":
-            await query.edit_message_text("💾 Materials saved to your profile!")
+            await query.edit_message_text("💾 Materials saved!")
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CALLBACK HELPER METHODS - Send messages directly via bot
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    async def _send_menu(self, context, chat_id):
+        """Send menu via callback"""
+        message = """📋 *VIBEJOBHUNTER MENU*
+
+Choose an option below:"""
+        
+        keyboard = [
+            [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
+            [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
+            [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
+            [
+                InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
+                InlineKeyboardButton("📈 Stats", callback_data="stats")
+            ],
+            [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+            [
+                InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
+                InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
+            ],
+            [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_workflow(self, context, chat_id):
+        """Send workflow explanation via callback"""
+        message = """🔄 *HOW VIBEJOBHUNTER WORKS*
+
+*Every Hour, The Engine:*
+
+1️⃣ *DISCOVERS JOBS*
+   └─ Scans 7 sources (ATS, YC, RemoteOK, etc.)
+   └─ Checks 200+ AI companies
+   └─ Finds ~30-50 new jobs
+
+2️⃣ *SCORES EACH JOB* (100 points)
+   ├─ AI Product: 25 pts
+   ├─ 0→1 Autonomy: 25 pts
+   ├─ Full-Stack: 20 pts
+   ├─ Business: 15 pts
+   ├─ Bilingual: 5 pts
+   └─ Web3: 10 pts
+   ⭐ YC companies: +15 bonus!
+
+3️⃣ *ROUTES BY SCORE*
+   ├─ ≥60 → 🚀 AUTO-APPLY
+   ├─ 58-59 → 🤝 FOUNDER OUTREACH
+   ├─ 55-57 → 📋 REVIEW QUEUE
+   └─ <55 → ❌ DISCARDED
+
+4️⃣ *FOR AUTO-APPLY:*
+   ├─ Selects best resume
+   ├─ Generates AI cover letter
+   ├─ Fills ATS form
+   └─ Uploads resume PDF
+
+5️⃣ *DAILY LIMITS:*
+   Max 5 apps/day, 10 emails/day
+"""
+        keyboard = [[InlineKeyboardButton("👤 What I Do Manually", callback_data="manual")],
+                    [InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_manual(self, context, chat_id):
+        """Send manual tasks via callback"""
+        message = """👤 *WHAT YOU NEED TO DO*
+
+*📨 DAILY (5-10 min):*
+
+1️⃣ *Send LinkedIn Messages*
+   When you see "🤝 Outreach Ready":
+   └─ Copy the message
+   └─ Go to LinkedIn URL
+   └─ Send as connection note
+
+2️⃣ *Check Your Email*
+   └─ Reply to recruiters
+   └─ Schedule interviews
+
+*📅 WEEKLY (30 min):*
+
+3️⃣ *Check Make.com*
+   └─ Is LinkedIn posting OK?
+
+4️⃣ *Review /stats*
+   └─ Any issues?
+
+*❌ I CAN'T DO:*
+├─ Send LinkedIn messages
+├─ Do your interviews
+├─ Negotiate salary
+└─ Accept offers
+"""
+        keyboard = [[InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+                    [InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_today(self, context, chat_id):
+        """Send today's summary via callback"""
+        jobs_count = self._count_todays_jobs()
+        outreach = self._load_pending_outreach()
+        now = datetime.utcnow()
+        panama_hour = (now.hour - 5) % 24
+        
+        message = f"""📊 *TODAY'S SUMMARY*
+📅 {now.strftime('%B %d, %Y')} | {panama_hour}:{now.strftime('%M')} Panama
+
+*🔍 DISCOVERY*
+• Jobs Found: {jobs_count}
+• Companies: 200+
+
+*📨 YOUR ACTION*
+• LinkedIn Messages: {len(outreach)} pending
+
+*⏰ NEXT CYCLE*
+• In ~{60 - now.minute} minutes
+"""
+        keyboard = [
+            [InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
+             InlineKeyboardButton("📨 Outreach", callback_data="outreach")],
+            [InlineKeyboardButton("📋 Menu", callback_data="menu")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_outreach(self, context, chat_id):
+        """Send pending outreach via callback"""
+        outreach = self._load_pending_outreach()
+        
+        if not outreach:
+            message = """📨 *PENDING OUTREACH*
+
+✅ No pending messages!
+
+Check back after the next job cycle.
+"""
+        else:
+            message = f"""📨 *PENDING OUTREACH*
+
+You have *{len(outreach)}* message(s) to send.
+
+Use /outreach command to see full details with URLs and messages to copy.
+"""
+        
+        keyboard = [[InlineKeyboardButton("📋 Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_jobs(self, context, chat_id):
+        """Send jobs list via callback"""
+        jobs = self._load_recent_jobs()
+        
+        if not jobs:
+            message = "💼 No jobs found today yet. Check back in an hour!"
+        else:
+            top_jobs = sorted(jobs, key=lambda x: x.get('match_score', 0), reverse=True)[:5]
+            message = f"💼 *Top {len(top_jobs)} Jobs Today*\n\n"
+            
+            for i, job in enumerate(top_jobs, 1):
+                company = job.get('company', 'Unknown')
+                title = job.get('title', 'Unknown')[:30]
+                score = job.get('match_score', 0)
+                if isinstance(score, float) and score < 1:
+                    score = score * 100
+                message += f"{i}. *{company}*\n   {title} ({score:.0f}%)\n\n"
+        
+        keyboard = [[InlineKeyboardButton("📋 Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_status(self, context, chat_id):
+        """Send status via callback"""
+        status = "RUNNING ✅" if not self.is_paused else "PAUSED ⏸️"
+        now = datetime.utcnow()
+        
+        message = f"""⚙️ *SYSTEM STATUS*
+
+• Mode: *{status}*
+• Time: {now.strftime('%H:%M')} UTC
+• Jobs Today: {self._count_todays_jobs()}
+• Next Cycle: ~{60 - now.minute} min
+"""
+        keyboard = [[InlineKeyboardButton("📋 Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_stats(self, context, chat_id):
+        """Send stats via callback"""
+        message = """📈 *STATS*
+
+Use /stats command for full statistics with database data.
+
+Quick summary available via /today command.
+"""
+        keyboard = [[InlineKeyboardButton("📊 Today", callback_data="today")],
+                    [InlineKeyboardButton("📋 Menu", callback_data="menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
     
     # Helper methods
     
