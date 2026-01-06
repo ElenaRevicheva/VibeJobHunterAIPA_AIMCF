@@ -658,6 +658,9 @@ You have *{len(outreach)}* message(s) to send:
         import logging
         logger = logging.getLogger(__name__)
         
+        # Debug: Print to stdout AND log
+        print(f"=== CALLBACK RECEIVED: {update.callback_query.data if update.callback_query else 'None'} ===")
+        
         query = update.callback_query
         logger.info(f"🔘 Callback received: {query.data}")
         
@@ -1001,7 +1004,11 @@ Quick summary available via /today command.
         print("🤖 Starting Enhanced Telegram Bot (async mode)...")
         await self.app.initialize()
         await self.app.start()
-        await self.app.updater.start_polling()
+        # Explicitly include callback_query to ensure button clicks work
+        await self.app.updater.start_polling(
+            allowed_updates=["message", "callback_query"]
+        )
+        print("✅ Enhanced Bot polling started (messages + callbacks)")
 
 
 def create_enhanced_bot(token: str = None, chat_id: str = None, db_helper=None):
