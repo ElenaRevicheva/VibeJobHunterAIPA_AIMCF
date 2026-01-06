@@ -126,28 +126,36 @@ I'm automatically applying to jobs and finding founders for you!
     
     async def cmd_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Interactive main menu with all options"""
-        message = """📋 *VIBEJOBHUNTER MENU*
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("📋 /menu command received!")
+        
+        try:
+            message = """📋 *VIBEJOBHUNTER MENU*
 
 Choose an option below:"""
-        
-        keyboard = [
-            [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
-            [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
-            [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
-            [
-                InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
-                InlineKeyboardButton("📈 Stats", callback_data="stats")
-            ],
-            [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
-            [
-                InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
-                InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
-            ],
-            [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+            
+            keyboard = [
+                [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
+                [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
+                [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
+                [
+                    InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
+                    InlineKeyboardButton("📈 Stats", callback_data="stats")
+                ],
+                [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+                [
+                    InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
+                    InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
+                ],
+                [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+            logger.info("📋 /menu response sent successfully!")
+        except Exception as e:
+            logger.error(f"❌ /menu command error: {e}", exc_info=True)
     
     async def cmd_workflow(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Visual explanation of how the engine works"""
