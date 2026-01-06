@@ -655,60 +655,75 @@ You have *{len(outreach)}* message(s) to send:
     
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button clicks"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         query = update.callback_query
-        await query.answer()
+        logger.info(f"🔘 Callback received: {query.data}")
         
-        chat_id = query.message.chat_id
-        
-        # ═══════════════════════════════════════════════════════════════
-        # 🆕 NEW MENU CALLBACKS (January 2026)
-        # Send new messages instead of editing (cleaner UX)
-        # ═══════════════════════════════════════════════════════════════
-        if query.data == "menu":
-            await self._send_menu(context, chat_id)
-        
-        elif query.data == "workflow":
-            await self._send_workflow(context, chat_id)
-        
-        elif query.data == "manual":
-            await self._send_manual(context, chat_id)
-        
-        elif query.data == "today":
-            await self._send_today(context, chat_id)
-        
-        elif query.data == "outreach":
-            await self._send_outreach(context, chat_id)
-        
-        elif query.data == "jobs":
-            await self._send_jobs(context, chat_id)
-        
-        elif query.data == "pause":
-            self.is_paused = True
-            await context.bot.send_message(chat_id, "⏸️ Job hunting PAUSED. Use /resume to restart.")
-        
-        elif query.data == "resume_hunting":
-            self.is_paused = False
-            await context.bot.send_message(chat_id, "▶️ Job hunting RESUMED!")
-        
-        elif query.data == "status":
-            await self._send_status(context, chat_id)
-        
-        elif query.data == "stats":
-            await self._send_stats(context, chat_id)
-        
-        # ═══════════════════════════════════════════════════════════════
-        # ORIGINAL CALLBACKS
-        # ═══════════════════════════════════════════════════════════════
-        elif query.data == "refresh_jobs":
-            await query.edit_message_text("🔄 Refreshing...")
-            await self._send_jobs(context, chat_id)
-        
-        elif query.data.startswith("send_email_"):
-            company = query.data.replace("send_email_", "")
-            await query.edit_message_text(f"📧 Sending email to {company}...")
-        
-        elif query.data == "save_materials":
-            await query.edit_message_text("💾 Materials saved!")
+        try:
+            await query.answer()
+            chat_id = query.message.chat_id
+            logger.info(f"🔘 Processing callback '{query.data}' for chat {chat_id}")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 🆕 NEW MENU CALLBACKS (January 2026)
+            # ═══════════════════════════════════════════════════════════════
+            if query.data == "menu":
+                await self._send_menu(context, chat_id)
+            
+            elif query.data == "workflow":
+                await self._send_workflow(context, chat_id)
+            
+            elif query.data == "manual":
+                await self._send_manual(context, chat_id)
+            
+            elif query.data == "today":
+                await self._send_today(context, chat_id)
+            
+            elif query.data == "outreach":
+                await self._send_outreach(context, chat_id)
+            
+            elif query.data == "jobs":
+                await self._send_jobs(context, chat_id)
+            
+            elif query.data == "pause":
+                self.is_paused = True
+                await context.bot.send_message(chat_id, "⏸️ Job hunting PAUSED. Use /resume to restart.")
+            
+            elif query.data == "resume_hunting":
+                self.is_paused = False
+                await context.bot.send_message(chat_id, "▶️ Job hunting RESUMED!")
+            
+            elif query.data == "status":
+                await self._send_status(context, chat_id)
+            
+            elif query.data == "stats":
+                await self._send_stats(context, chat_id)
+            
+            # ═══════════════════════════════════════════════════════════════
+            # ORIGINAL CALLBACKS
+            # ═══════════════════════════════════════════════════════════════
+            elif query.data == "refresh_jobs":
+                await query.edit_message_text("🔄 Refreshing...")
+                await self._send_jobs(context, chat_id)
+            
+            elif query.data.startswith("send_email_"):
+                company = query.data.replace("send_email_", "")
+                await query.edit_message_text(f"📧 Sending email to {company}...")
+            
+            elif query.data == "save_materials":
+                await query.edit_message_text("💾 Materials saved!")
+            
+            else:
+                logger.warning(f"⚠️ Unknown callback: {query.data}")
+                
+        except Exception as e:
+            logger.error(f"❌ Callback error: {e}", exc_info=True)
+            try:
+                await context.bot.send_message(query.message.chat_id, f"❌ Error: {str(e)[:100]}")
+            except:
+                pass
     
     # ═══════════════════════════════════════════════════════════════════════════
     # CALLBACK HELPER METHODS - Send messages directly via bot
