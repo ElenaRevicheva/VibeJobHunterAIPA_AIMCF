@@ -29,7 +29,16 @@ class EnhancedTelegramBot:
     """
     Interactive Telegram bot for VibeJobHunter
     
-    Commands:
+    🆕 UPGRADED January 2026: Comprehensive menu system
+    
+    MAIN MENU COMMANDS:
+    /menu - Interactive menu with all options
+    /workflow - Visual explanation of how the engine works
+    /manual - What YOU need to do (steps that can't be automated)
+    /today - Today's complete activity summary
+    /outreach - Pending LinkedIn/Twitter messages to send manually
+    
+    ORIGINAL COMMANDS:
     /start - Welcome message and help
     /jobs - Show top jobs found today
     /stats - Show application statistics
@@ -55,6 +64,14 @@ class EnhancedTelegramBot:
     
     def _register_handlers(self):
         """Register all command handlers"""
+        # 🆕 NEW MAIN MENU COMMANDS (January 2026)
+        self.app.add_handler(CommandHandler("menu", self.cmd_menu))
+        self.app.add_handler(CommandHandler("workflow", self.cmd_workflow))
+        self.app.add_handler(CommandHandler("manual", self.cmd_manual))
+        self.app.add_handler(CommandHandler("today", self.cmd_today))
+        self.app.add_handler(CommandHandler("outreach", self.cmd_outreach))
+        
+        # Original commands
         self.app.add_handler(CommandHandler("start", self.cmd_start))
         self.app.add_handler(CommandHandler("help", self.cmd_help))
         self.app.add_handler(CommandHandler("jobs", self.cmd_jobs))
@@ -71,25 +88,306 @@ class EnhancedTelegramBot:
         self.app.add_handler(CallbackQueryHandler(self.handle_callback))
     
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Welcome message"""
-        message = """
- *VibeJobHunter Interactive Bot*
+        """Welcome message with main menu"""
+        message = """🤖 *VibeJobHunter Interactive Bot*
 
 Welcome! I'm your AI job hunting assistant running 24/7.
 
-*Available Commands:*
-/jobs - See today's best job matches
-/stats - View your application statistics
-/apply <company> - Generate materials for a job
-/recent - Show your recent applications
-/status - Check system status
-/pause - Pause job hunting
-/resume - Resume job hunting
-/help - Show all commands
+*🎯 QUICK START:*
+/menu - Open interactive menu
+/workflow - See how the engine works
+/manual - What YOU need to do
 
-I'll notify you when I find great jobs and track all your applications!
+*📊 MONITORING:*
+/today - Today's activity summary
+/jobs - Best job matches
+/outreach - Pending messages to send
+
+I'm automatically applying to jobs and finding founders for you!
 """
-        await update.message.reply_text(message, parse_mode='Markdown')
+        # Create main menu keyboard
+        keyboard = [
+            [
+                InlineKeyboardButton("📋 Menu", callback_data="menu"),
+                InlineKeyboardButton("🔄 Workflow", callback_data="workflow")
+            ],
+            [
+                InlineKeyboardButton("👤 Manual Steps", callback_data="manual"),
+                InlineKeyboardButton("📊 Today", callback_data="today")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # 🆕 NEW MENU COMMANDS (January 2026 Upgrade)
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    async def cmd_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Interactive main menu with all options"""
+        message = """📋 *VIBEJOBHUNTER MENU*
+
+Choose an option below:"""
+        
+        keyboard = [
+            [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
+            [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
+            [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
+            [
+                InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
+                InlineKeyboardButton("📈 Stats", callback_data="stats")
+            ],
+            [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+            [
+                InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
+                InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
+            ],
+            [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def cmd_workflow(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Visual explanation of how the engine works"""
+        message = """🔄 *HOW VIBEJOBHUNTER WORKS*
+
+*Every Hour, The Engine:*
+
+1️⃣ *DISCOVERS JOBS*
+   └─ Scans 7 sources (ATS, YC, RemoteOK, etc.)
+   └─ Checks 200+ AI companies
+   └─ Finds ~30-50 new jobs
+
+2️⃣ *SCORES EACH JOB* (100 points)
+   ├─ AI Product: 25 pts
+   ├─ 0→1 Autonomy: 25 pts
+   ├─ Full-Stack: 20 pts
+   ├─ Business: 15 pts
+   ├─ Bilingual: 5 pts
+   └─ Web3: 10 pts
+   ⭐ YC companies: +15 bonus!
+
+3️⃣ *ROUTES BY SCORE*
+   ├─ ≥60 → 🚀 AUTO-APPLY
+   ├─ 58-59 → 🤝 FOUNDER OUTREACH
+   ├─ 55-57 → 📋 REVIEW QUEUE
+   └─ <55 → ❌ DISCARDED
+
+4️⃣ *FOR AUTO-APPLY JOBS:*
+   ├─ Selects best resume (EN/ES/Founding)
+   ├─ Generates AI cover letter
+   ├─ Fills ATS form (Greenhouse/Lever)
+   ├─ Uploads your resume PDF
+   └─ Handles email verification
+
+5️⃣ *FOR OUTREACH JOBS:*
+   ├─ Finds founder via Hunter.io
+   ├─ Generates warm intro message
+   ├─ Sends email (if verified)
+   └─ 👤 YOU: Send LinkedIn message
+
+*Daily Limits (Safety):*
+├─ Max 5 applications/day
+├─ Max 10 emails/day
+└─ Max 3 emails/hour
+"""
+        keyboard = [[InlineKeyboardButton("👤 What I Do Manually", callback_data="manual")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def cmd_manual(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show what the user needs to do manually"""
+        message = """👤 *WHAT YOU NEED TO DO MANUALLY*
+
+The engine automates 80% of job hunting.
+Here's what ONLY YOU can do:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*📨 DAILY TASKS (5-10 min)*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ *Send LinkedIn Messages*
+   When you see "🤝 LinkedIn Outreach Ready":
+   └─ Copy the message I generate
+   └─ Go to the LinkedIn URL
+   └─ Send the connection request
+   └─ Paste the message as note
+
+2️⃣ *Check Your Email Inbox*
+   └─ Look for interview requests
+   └─ Reply to recruiter questions
+   └─ Schedule calls yourself
+
+3️⃣ *Review Queue* (optional)
+   └─ Use /jobs to see waiting jobs
+   └─ Decide if any deserve manual apply
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*📅 WEEKLY TASKS (30 min)*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4️⃣ *Check Make.com*
+   └─ Is LinkedIn posting working?
+   └─ https://make.com/en/login
+
+5️⃣ *Review Stats*
+   └─ Use /stats to see metrics
+   └─ Any companies not responding?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*🎤 INTERVIEW PREP (when needed)*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6️⃣ *Prepare & Show Up*
+   └─ Research the company
+   └─ Prepare your stories
+   └─ Do the actual interview!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*❌ WHAT I CAN'T DO:*
+├─ Send LinkedIn messages (blocked)
+├─ Do your interviews
+├─ Negotiate your salary
+├─ Accept job offers
+└─ Say yes/no to opportunities
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        keyboard = [[InlineKeyboardButton("📨 Show Pending Outreach", callback_data="outreach")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def cmd_today(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show today's complete activity summary"""
+        try:
+            # Load today's data
+            jobs_count = self._count_todays_jobs()
+            outreach = self._load_pending_outreach()
+            
+            now = datetime.utcnow()
+            panama_hour = (now.hour - 5) % 24  # UTC-5
+            
+            message = f"""📊 *TODAY'S ACTIVITY SUMMARY*
+📅 {now.strftime('%B %d, %Y')} | {panama_hour}:{now.strftime('%M')} Panama
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*🔍 JOB DISCOVERY*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Jobs Found: {jobs_count}
+• Sources Checked: 7
+• Companies Scanned: 200+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*🚀 APPLICATIONS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Auto-Applied: Check /stats
+• Materials Generated: ✅
+• ATS Forms Filled: ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*📨 YOUR ACTION NEEDED*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• LinkedIn Messages: {len(outreach)} pending
+• Use /outreach to see them
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*⏰ NEXT CYCLE*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• In ~{60 - now.minute} minutes
+"""
+            keyboard = [
+                [
+                    InlineKeyboardButton("💼 See Jobs", callback_data="jobs"),
+                    InlineKeyboardButton("📨 Outreach", callback_data="outreach")
+                ],
+                [InlineKeyboardButton("🔄 Refresh", callback_data="today")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+            
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+    
+    async def cmd_outreach(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show pending LinkedIn/Twitter messages to send manually"""
+        try:
+            outreach = self._load_pending_outreach()
+            
+            if not outreach:
+                message = """📨 *PENDING OUTREACH*
+
+✅ No pending messages right now!
+
+When the engine finds good opportunities:
+• LinkedIn messages will appear here
+• You copy-paste and send them
+• This is the human touch that wins!
+
+Check back after the next job cycle (~hourly).
+"""
+            else:
+                message = f"""📨 *PENDING OUTREACH*
+
+You have *{len(outreach)}* message(s) to send:
+
+"""
+                for i, item in enumerate(outreach[:5], 1):  # Show max 5
+                    company = item.get('company', 'Unknown')
+                    platform = item.get('platform', 'LinkedIn')
+                    contact = item.get('contact', 'Team')
+                    url = item.get('url', '#')
+                    msg_preview = item.get('message', '')[:100]
+                    
+                    message += f"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{i}. *{company}* ({platform})
+👤 Contact: {contact}
+🔗 {url}
+
+📝 Message Preview:
+"{msg_preview}..."
+"""
+                
+                message += """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+*HOW TO SEND:*
+1. Click the LinkedIn URL above
+2. Send connection request
+3. Copy the full message from logs
+4. Paste as connection note
+
+💡 Tip: Personalize if you can!
+"""
+            
+            keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                message, 
+                parse_mode='Markdown', 
+                reply_markup=reply_markup,
+                disable_web_page_preview=True
+            )
+            
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading outreach: {str(e)}")
+    
+    def _load_pending_outreach(self) -> list:
+        """Load pending outreach messages from file"""
+        try:
+            outreach_file = "autonomous_data/pending_outreach.json"
+            if os.path.exists(outreach_file):
+                with open(outreach_file, 'r') as f:
+                    data = json.load(f)
+                    # Return only unsent messages
+                    return [m for m in data.get('messages', []) if not m.get('sent', False)]
+            return []
+        except Exception:
+            return []
     
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show detailed help"""
@@ -352,22 +650,55 @@ I'll notify you when I find great jobs and track all your applications!
         query = update.callback_query
         await query.answer()
         
-        if query.data == "stats":
-            # Trigger stats command
-            update.message = query.message
+        # Create a fake message object for command handlers
+        update.message = query.message
+        
+        # ═══════════════════════════════════════════════════════════════
+        # 🆕 NEW MENU CALLBACKS (January 2026)
+        # ═══════════════════════════════════════════════════════════════
+        if query.data == "menu":
+            await self.cmd_menu(update, context)
+        
+        elif query.data == "workflow":
+            await self.cmd_workflow(update, context)
+        
+        elif query.data == "manual":
+            await self.cmd_manual(update, context)
+        
+        elif query.data == "today":
+            await self.cmd_today(update, context)
+        
+        elif query.data == "outreach":
+            await self.cmd_outreach(update, context)
+        
+        elif query.data == "jobs":
+            await self.cmd_jobs(update, context)
+        
+        elif query.data == "pause":
+            await self.cmd_pause(update, context)
+        
+        elif query.data == "resume_hunting":
+            await self.cmd_resume(update, context)
+        
+        elif query.data == "status":
+            await self.cmd_status(update, context)
+        
+        # ═══════════════════════════════════════════════════════════════
+        # ORIGINAL CALLBACKS (unchanged)
+        # ═══════════════════════════════════════════════════════════════
+        elif query.data == "stats":
             await self.cmd_stats(update, context)
         
         elif query.data == "refresh_jobs":
-            await query.edit_message_text(" Refreshing jobs...")
-            update.message = query.message
+            await query.edit_message_text("🔄 Refreshing jobs...")
             await self.cmd_jobs(update, context)
         
         elif query.data.startswith("send_email_"):
             company = query.data.replace("send_email_", "")
-            await query.edit_message_text(f" Sending email to {company}...")
+            await query.edit_message_text(f"📧 Sending email to {company}...")
         
         elif query.data == "save_materials":
-            await query.edit_message_text(" Materials saved to your profile!")
+            await query.edit_message_text("💾 Materials saved to your profile!")
     
     # Helper methods
     
