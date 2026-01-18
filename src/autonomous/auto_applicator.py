@@ -15,8 +15,16 @@ from datetime import datetime
 from pathlib import Path
 import os
 import json
+import uuid
 
 from anthropic import AsyncAnthropic
+
+# Database tracking
+try:
+    from ..database.database_models import DatabaseHelper, get_session
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +263,7 @@ Write the cover letter now:"""
                     from .ats_submitter import ATSSubmitter
                     
                     async with ATSSubmitter() as submitter:
-                        ats_type = submitter._detect_ats_type(job.get('url', ''), job.get('source', ''))
+                        ats_type = submitter._detect_ats_type(job.get('url', ''), job.get('source', ''), job.get('company', ''))
                         
                         if ats_type != 'unknown':
                             logger.info(f"    🚀 Submitting to {ats_type}...")
@@ -279,6 +287,29 @@ Write the cover letter now:"""
                                     logger.info(f"    🔒 DRY RUN: Would submit to {ats_type}")
                                 else:
                                     logger.info(f"    ✅ ATS submitted: {submission_result.confirmation_id}")
+                                    
+                                    # 📊 TRACK APPLICATION IN DATABASE
+                                    if DB_AVAILABLE:
+                                        try:
+                                            db = DatabaseHelper()
+                                            app_id = f"app_{uuid.uuid4().hex[:12]}"
+                                            job_id = job.get('id', f"{job.get('company', 'unknown')}_{job.get('title', 'unknown')}")
+                                            
+                                            db.record_application(
+                                                job_id=job_id,
+                                                application_data={
+                                                    'id': app_id,
+                                                    'source': ats_type,
+                                                    'application_method': 'ats_form',
+                                                    'resume_version': resume_type,
+                                                    'cover_letter_hash': str(hash(cover_letter))[:16],
+                                                }
+                                            )
+                                            logger.info(f"    💾 Application tracked in database: {app_id}")
+                                            result['db_tracked'] = True
+                                            result['application_id'] = app_id
+                                        except Exception as db_err:
+                                            logger.warning(f"    ⚠️ Failed to track in database: {db_err}")
                             else:
                                 logger.warning(f"    ⚠️ ATS submission failed: {submission_result.error}")
                         else:

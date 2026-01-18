@@ -258,8 +258,8 @@ class ATSSubmitter:
                 dry_run=DRY_RUN,
             )
         
-        # Detect ATS type
-        ats_type = self._detect_ats_type(job_url, job.get('source', ''))
+        # Detect ATS type (now with company lookup!)
+        ats_type = self._detect_ats_type(job_url, job.get('source', ''), company)
         
         if ats_type == "unknown":
             logger.warning(f"⚠️ Unknown ATS type for {job_url}")
@@ -332,20 +332,85 @@ class ATSSubmitter:
     # ATS TYPE DETECTION
     # =========================================================================
     
-    def _detect_ats_type(self, url: str, source: str = "") -> str:
-        """Detect which ATS the job is from"""
+    # Company to ATS mapping for known companies
+    COMPANY_ATS_MAP = {
+        # AI Companies
+        'anthropic': 'greenhouse', 'openai': 'greenhouse', 'cursor': 'greenhouse',
+        'vercel': 'greenhouse', 'linear': 'greenhouse', 'replicate': 'greenhouse',
+        'anyscale': 'greenhouse', 'perplexity': 'greenhouse', 'midjourney': 'greenhouse',
+        'cohere': 'lever', 'huggingface': 'lever', 'stability': 'lever', 'mistral': 'lever',
+        
+        # Tech Companies (Greenhouse)
+        'ada': 'greenhouse', 'alpaca': 'greenhouse', 'temporal': 'greenhouse',
+        'temporal technologies': 'greenhouse', 'stripe': 'greenhouse', 'figma': 'greenhouse',
+        'notion': 'greenhouse', 'airtable': 'greenhouse', 'webflow': 'greenhouse',
+        'retool': 'greenhouse', 'khan academy': 'greenhouse', 'datadog': 'greenhouse',
+        'snowflake': 'greenhouse', 'twilio': 'greenhouse', 'cloudflare': 'greenhouse',
+        'github': 'greenhouse', 'gitlab': 'greenhouse', 'sourcegraph': 'greenhouse',
+        'sentry': 'greenhouse', 'postman': 'greenhouse', 'hashicorp': 'greenhouse',
+        
+        # Tech Companies (Lever)
+        'mongodb': 'lever', 'redis': 'lever', 'elastic': 'lever',
+        'confluent': 'lever', 'databricks': 'lever', 'clickhouse': 'lever',
+        
+        # Tech Companies (Ashby)
+        'supabase': 'ashby', 'neon': 'ashby', 'railway': 'ashby', 'render': 'ashby',
+        'resend': 'ashby', 'posthog': 'ashby', 'raycast': 'ashby', 'inngest': 'ashby',
+        'prefect': 'ashby', 'deepnote': 'ashby', 'knock': 'ashby', 'zip': 'ashby',
+        
+        # Fintech
+        'mercury': 'greenhouse', 'brex': 'greenhouse', 'ramp': 'greenhouse', 'plaid': 'greenhouse',
+        
+        # Remote-first
+        'zapier': 'greenhouse', 'calendly': 'greenhouse', 'loom': 'greenhouse',
+        'miro': 'greenhouse', 'asana': 'greenhouse', 'deel': 'greenhouse', 'remote': 'greenhouse',
+        'gusto': 'greenhouse', 'rippling': 'greenhouse', 'lattice': 'greenhouse',
+        
+        # Robotics/Hardware
+        'figure': 'greenhouse', 'waymo': 'greenhouse', 'cruise': 'greenhouse',
+        'nuro': 'greenhouse', 'covariant': 'greenhouse', 'boston dynamics': 'greenhouse',
+    }
+
+    def _detect_ats_type(self, url: str, source: str = "", company: str = "") -> str:
+        """
+        Detect which ATS the job is from.
+        
+        Priority:
+        1. URL contains known ATS domain (most reliable)
+        2. Source explicitly set to ATS type
+        3. Company name in our known mapping (NEW!)
+        """
         url_lower = url.lower()
         
-        if 'greenhouse.io' in url_lower or source == 'greenhouse':
+        # 1. Direct URL detection (most reliable)
+        if 'greenhouse.io' in url_lower:
             return 'greenhouse'
-        elif 'lever.co' in url_lower or source == 'lever':
+        elif 'lever.co' in url_lower:
             return 'lever'
-        elif 'ashbyhq.com' in url_lower or source == 'ashby':
+        elif 'ashbyhq.com' in url_lower:
             return 'ashby'
-        elif 'workable.com' in url_lower or source == 'workable':
+        elif 'workable.com' in url_lower:
             return 'workable'
-        else:
-            return 'unknown'
+        
+        # 2. Source detection
+        source_lower = source.lower() if source else ''
+        if source_lower in ['greenhouse', 'lever', 'ashby', 'workable']:
+            return source_lower
+        
+        # 3. Company name lookup (NEW! - handles aggregator URLs)
+        if company:
+            company_lower = company.lower().strip()
+            if company_lower in self.COMPANY_ATS_MAP:
+                logger.info(f"🔍 ATS detected from company mapping: {company} → {self.COMPANY_ATS_MAP[company_lower]}")
+                return self.COMPANY_ATS_MAP[company_lower]
+            
+            # Partial match for company names
+            for known_company, ats_type in self.COMPANY_ATS_MAP.items():
+                if known_company in company_lower or company_lower in known_company:
+                    logger.info(f"🔍 ATS detected from partial company match: {company} → {ats_type}")
+                    return ats_type
+        
+        return 'unknown'
     
     # =========================================================================
     # GREENHOUSE SUBMISSION
