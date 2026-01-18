@@ -195,8 +195,8 @@ class AutonomousOrchestrator:
         if self.last_linkedin_post_date == today:
             return
 
-        # Post at 00:XX UTC (7:00 PM Panama time zone, UTC-5)
-        if now_utc.hour == 0:
+        # Post at 15:10 UTC (10:10 AM Panama time zone, UTC-5)
+        if now_utc.hour == 15 and now_utc.minute >= 10:
             # True language alternation: EN on even weekdays, ES on odd
             language = "en" if now_utc.weekday() % 2 == 0 else "es"
 
