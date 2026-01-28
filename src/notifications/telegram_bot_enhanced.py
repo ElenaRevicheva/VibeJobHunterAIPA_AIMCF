@@ -5,6 +5,8 @@ Interactive commands for job hunting control and status
 
 import os
 import asyncio
+from dotenv import load_dotenv
+load_dotenv()
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 import json
@@ -136,19 +138,38 @@ I'm automatically applying to jobs and finding founders for you!
 Choose an option below:"""
             
             keyboard = [
+                # 🎯 JOB HUNTING Section
+                [InlineKeyboardButton("🎯 JOB HUNTING", callback_data="header_job")],
                 [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
-                [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
-                [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
                 [
                     InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
                     InlineKeyboardButton("📈 Stats", callback_data="stats")
                 ],
                 [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+                
+                # 🚀 AI MARKETING CMO Section
+                [InlineKeyboardButton("🚀 AI MARKETING CMO", callback_data="header_cmo")],
+                [
+                    InlineKeyboardButton("📘 LinkedIn", callback_data="post_linkedin"),
+                    InlineKeyboardButton("📸 Instagram", callback_data="post_instagram")
+                ],
+                [
+                    InlineKeyboardButton("📊 Analytics", callback_data="analytics"),
+                    InlineKeyboardButton("🎯 Campaign", callback_data="campaign")
+                ],
+                [InlineKeyboardButton("🎨 Generate Image", callback_data="generate_image")],
+                
+                # ⚡ SYSTEM Section
+                [InlineKeyboardButton("⚡ SYSTEM", callback_data="header_system")],
+                [
+                    InlineKeyboardButton("🔄 Workflow", callback_data="workflow"),
+                    InlineKeyboardButton("📖 Manual", callback_data="manual")
+                ],
                 [
                     InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
                     InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
                 ],
-                [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
+                [InlineKeyboardButton("⚙️ Status", callback_data="status")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -703,6 +724,39 @@ You have *{len(outreach)}* message(s) to send:
             
             elif query.data == "stats":
                 await self._send_stats(context, chat_id)
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 🚀 CMO AIPA CALLBACKS (LinkedIn + Instagram via Make.com)
+            # ═══════════════════════════════════════════════════════════════
+            elif query.data == "post_linkedin":
+                # Use the actual CMO code instead of direct webhook
+                try:
+                    from src.notifications.linkedin_cmo_v4 import LinkedInCMO
+                    cmo = LinkedInCMO()
+                    success = await cmo.post_to_linkedin(post_type="random", language="random")
+                    if success:
+                        await context.bot.send_message(chat_id, "✅ LinkedIn + Instagram posting triggered via CMO!")
+                    else:
+                        await context.bot.send_message(chat_id, "❌ CMO posting failed")
+                except Exception as e:
+                    await context.bot.send_message(chat_id, f"❌ Error: {str(e)}")
+            
+            elif query.data == "post_instagram":
+                import requests
+                webhook_url = os.getenv('MAKE_WEBHOOK_URL_LINKEDIN', 'https://hook.us2.make.com/n771e2agfz6g1y13zhv29hkts24u2u5z')
+                try:
+                    response = requests.post(webhook_url, json={
+                        "platform": "instagram",
+                        "action": "trigger_posting",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    await context.bot.send_message(chat_id, "✅ Instagram posting triggered! Check Make.com scenario.")
+                except Exception as e:
+                    await context.bot.send_message(chat_id, f"❌ Error: {str(e)}")
+            
+            elif query.data in ["analytics", "campaign", "generate_image", "header_job", "header_cmo", "header_system"]:
+                # Placeholder handlers for CMO features
+                await context.bot.send_message(chat_id, f"🚧 Feature '{query.data}' coming soon!")
             
             # ═══════════════════════════════════════════════════════════════
             # ORIGINAL CALLBACKS
