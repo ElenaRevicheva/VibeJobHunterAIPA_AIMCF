@@ -173,16 +173,64 @@ class JobMatcher:
         "medical records", "patient care", "hipaa compliance",
     }
 
+    # ─────────────────────────────────────────────────────────
+    # ELENA'S ACTUAL DOMAIN (added 2026-02-08)
+    # If the job title doesn't match ANY of these, it's "not my
+    # lane" — still software, but not what Elena does (AI-assisted
+    # product builder / applied LLM engineer / vibe coder).
+    # ─────────────────────────────────────────────────────────
+    MY_DOMAIN_TITLE_KEYWORDS = {
+        # AI / ML / LLM — core identity
+        "ai ", " ai", "artificial intelligence", "machine learning",
+        "ml ", " ml", "llm", "nlp", "natural language",
+        "deep learning", "neural", "generative",
+        # Product / Fullstack / Founding — how she builds
+        "product engineer", "fullstack", "full-stack", "full stack",
+        "founding engineer", "founding", "staff engineer",
+        "principal engineer", "solutions architect",
+        # Applied / Platform roles she'd fit
+        "applied", "platform engineer", "software engineer",
+        "backend engineer", "frontend engineer",
+        "technical lead", "tech lead", "engineering lead",
+        "head of engineering", "cto",
+        # Growth / Product roles with tech overlap
+        "product manager", "growth engineer",
+        "developer experience", "developer tools",
+    }
+
+    # Roles that ARE software but NOT Elena's domain
+    # These get a lighter penalty (-20) — valid roles, just not her fit
+    NOT_MY_LANE_TITLE_KEYWORDS = {
+        "devops", "sre ", "site reliability",
+        "devsecops", "secops", "security engineer",
+        "network engineer", "systems administrator", "sysadmin",
+        "database administrator", "dba",
+        "qa engineer", "test engineer", "sdet", "quality assurance",
+        "release engineer", "build engineer",
+        "embedded engineer", "embedded software",
+        "data analyst", "business analyst", "bi developer",
+        "data warehouse", "etl developer",
+        "salesforce developer", "sap ", "oracle developer",
+        "erp ", "crm developer",
+        "game developer", "game engineer", "unity ",
+        "ios developer", "android developer", "mobile engineer",
+    }
+
     def _wrong_role_penalty(self, job: JobPosting) -> Tuple[float, Optional[str]]:
         """
-        Check if job is clearly wrong for Elena (AI/software engineer).
-        Returns (penalty, reason) where penalty is a NEGATIVE number (e.g. -40).
-        Returns (0, None) if job seems fine.
+        Check if job is wrong for Elena (AI product builder / applied LLM engineer).
+
+        Three levels:
+        1. Obviously wrong (payroll, CAD, etc.) → -40
+        2. Software but not her lane (DevOps, QA, DBA, etc.) → -20
+        3. Software but no AI/product signal in title → -15
+
+        Returns (penalty, reason). Returns (0, None) if job seems fine.
         """
         title = (getattr(job, 'title', '') or '').lower()
         description = (getattr(job, 'description', '') or '').lower()
 
-        # Check title for obviously wrong roles
+        # ── Level 1: Obviously wrong (non-tech roles) ──
         for kw in self.WRONG_ROLE_TITLE_KEYWORDS:
             if kw in title:
                 return -40, f"-40_wrong_role_title({kw.strip()})"
@@ -191,6 +239,34 @@ class JobMatcher:
         desc_matches = [kw for kw in self.WRONG_ROLE_DESCRIPTION_KEYWORDS if kw in description]
         if len(desc_matches) >= 2:
             return -30, f"-30_wrong_role_desc({','.join(desc_matches[:2])})"
+
+        # ── Level 2: Software but not Elena's lane ──
+        for kw in self.NOT_MY_LANE_TITLE_KEYWORDS:
+            if kw in title:
+                # Exception: if description mentions AI/LLM heavily, it might
+                # still be relevant (e.g. "DevOps for our AI platform")
+                ai_in_desc = sum(1 for w in ["ai ", " ai", "llm", "machine learning",
+                                              "ml ", "generative", "language model"]
+                                 if w in description)
+                if ai_in_desc >= 2:
+                    return 0, None  # AI-heavy DevOps/SRE — could be relevant
+                return -20, f"-20_not_my_lane({kw.strip()})"
+
+        # ── Level 3: Title has no signal of Elena's domain at all ──
+        # e.g. "Senior Engineer" with no AI/product/fullstack qualifier
+        has_domain_signal = any(kw in title for kw in self.MY_DOMAIN_TITLE_KEYWORDS)
+        if not has_domain_signal:
+            # Check if description saves it (mentions AI/LLM heavily)
+            ai_in_desc = sum(1 for w in ["ai ", " ai", "llm", "machine learning",
+                                          "ml ", "generative", "language model",
+                                          "claude", "gpt", "openai", "anthropic",
+                                          "langchain", "prompt engineering"]
+                             if w in description)
+            if ai_in_desc >= 2:
+                return 0, None  # Title is generic but job is clearly AI
+            if ai_in_desc == 1:
+                return -10, f"-10_weak_domain_signal"
+            return -15, f"-15_no_domain_match_in_title"
 
         return 0, None
 
