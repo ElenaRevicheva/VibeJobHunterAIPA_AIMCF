@@ -20,7 +20,7 @@ from pathlib import Path
 from ..core.models import Profile, JobPosting
 from ..utils.logger import setup_logger
 
-from .job_monitor import JobMonitor
+from .job_monitor import JobMonitor, SEEN_TTL_DAYS
 from .company_researcher import CompanyResearcher
 from .founder_finder_v2 import FounderFinderV2  # UPGRADED: Real email discovery
 from .message_generator import MessageGenerator
@@ -164,6 +164,9 @@ class AutonomousOrchestrator:
         self.data_dir = Path("autonomous_data")
         self.data_dir.mkdir(exist_ok=True)
 
+        # Track consecutive zero-result cycles for alerting (added 2026-02-08)
+        self._consecutive_zero_cycles = 0
+
         logger.info("🚀 Autonomous Orchestrator READY")
 
     # ─────────────────────────────
@@ -294,9 +297,32 @@ class AutonomousOrchestrator:
             cycle_stats.jobs_found = len(new_jobs)
             self.stats["jobs_found"] += len(new_jobs)
             logger.info(f"✅ Found {len(new_jobs)} new jobs")
+
+            # Reset zero-cycle counter when we find jobs
+            if new_jobs:
+                self._consecutive_zero_cycles = 0
             
             if not new_jobs:
-                logger.info("📭 No new jobs this cycle - waiting for next run")
+                self._consecutive_zero_cycles += 1
+                logger.info(f"📭 No new jobs this cycle ({self._consecutive_zero_cycles} consecutive) - waiting for next run")
+
+                # Alert via Telegram every 12 cycles (12h) of zero new jobs
+                if self._consecutive_zero_cycles > 0 and self._consecutive_zero_cycles % 12 == 0:
+                    days = self._consecutive_zero_cycles // 24
+                    hours = (self._consecutive_zero_cycles % 24)
+                    alert = (
+                        f"🚨 <b>ALERT: 0 new jobs for {days}d {hours}h</b>\n"
+                        f"({self._consecutive_zero_cycles} consecutive cycles)\n\n"
+                        f"Seen jobs in DB: {len(self.job_monitor.seen_jobs_db)}\n"
+                        f"Skipped (not expired): {len(self.job_monitor.seen_jobs)}\n"
+                        f"TTL: {SEEN_TTL_DAYS}d\n\n"
+                        f"Engine is running but not sending any applications."
+                    )
+                    try:
+                        if self.telegram:
+                            await self.telegram.send_message(alert)
+                    except Exception:
+                        pass
                 return
             
             # ═════════════════════════════════════════════════════
@@ -636,7 +662,14 @@ class AutonomousOrchestrator:
                 self.stats["applications_generated"] += 1
                 logger.info(f"✅ Application materials ready for {job.company}")
             
-            return result.get('email_sent', False) or result.get('materials_generated', False)
+            applied = result.get('email_sent', False) or result.get('materials_generated', False)
+            
+            # Mark as applied in seen_jobs so it's never retried (TTL-proof)
+            if applied and hasattr(self, 'job_monitor') and self.job_monitor:
+                job_id = f"{job.company}::{job.title}".lower()
+                self.job_monitor.mark_applied(job_id, company=job.company, title=job.title)
+            
+            return applied
             
         except Exception as e:
             logger.error(f"❌ Auto-applicator error for {job.company}: {e}")

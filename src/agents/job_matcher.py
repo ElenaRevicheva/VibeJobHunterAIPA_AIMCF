@@ -122,6 +122,78 @@ class JobMatcher:
             self.ai = None
         self.founding_scorer = FoundingEngineerScorer()
     
+    # ─────────────────────────────────────────────────────────
+    # WRONG-ROLE PENALTY (added 2026-02-08)
+    # Prevents applying to payroll, CAD, finance, logistics, etc.
+    # This is the #1 reason the engine was sending garbage applications
+    # ─────────────────────────────────────────────────────────
+    WRONG_ROLE_TITLE_KEYWORDS = {
+        # Finance / Accounting
+        "payroll", "accountant", "accounting", "bookkeeper", "tax ",
+        "financial analyst", "finance manager", "controller", "auditor",
+        "accounts payable", "accounts receivable", "treasury",
+        # HR / People
+        "recruiter", "recruiting", "talent acquisition", "people ops",
+        "human resources", "hr manager", "hr business partner",
+        "compensation", "benefits", "people & talent",
+        # Sales / Marketing (non-AI)
+        "sales representative", "account executive", "sales engineer",
+        "sales manager", "business development representative", "bdr",
+        "sdr", "sales director", "enablement manager",
+        # Legal
+        "legal counsel", "paralegal", "compliance officer", "attorney",
+        "corporate counsel", "regulatory",
+        # Design (non-AI)
+        "graphic designer", "visual designer", "cad engineer", "cad ",
+        "interior designer", "ux writer",
+        # Physical / Trades / Non-tech
+        "logistics", "warehouse", "supply chain", "procurement",
+        "facility", "maintenance", "electrician", "mechanic",
+        "construction", "hvac", "plumber", "security officer",
+        "physical security", "nurse", "doctor", "pharmacist",
+        # Operations (non-tech)
+        "operations manager", "operations coordinator",
+        "office manager", "project coordinator",
+        "customer support", "customer service",
+        # Completely unrelated engineering
+        "mechanical engineer", "civil engineer", "chemical engineer",
+        "electrical engineer", "structural engineer",
+        "hardware engineer", "pcb", "firmware",
+        "solution cad", "physical design",
+    }
+
+    WRONG_ROLE_DESCRIPTION_KEYWORDS = {
+        # Strong signals of non-AI/non-software roles
+        "payroll processing", "general ledger", "journal entries",
+        "tax compliance", "gaap", "ifrs", "audit procedures",
+        "cad drawings", "autocad", "revit", "solidworks",
+        "physical security", "access control systems", "cctv",
+        "warehouse management", "forklift", "shipping",
+        "cold calling", "quota", "pipeline management",
+        "medical records", "patient care", "hipaa compliance",
+    }
+
+    def _wrong_role_penalty(self, job: JobPosting) -> Tuple[float, Optional[str]]:
+        """
+        Check if job is clearly wrong for Elena (AI/software engineer).
+        Returns (penalty, reason) where penalty is a NEGATIVE number (e.g. -40).
+        Returns (0, None) if job seems fine.
+        """
+        title = (getattr(job, 'title', '') or '').lower()
+        description = (getattr(job, 'description', '') or '').lower()
+
+        # Check title for obviously wrong roles
+        for kw in self.WRONG_ROLE_TITLE_KEYWORDS:
+            if kw in title:
+                return -40, f"-40_wrong_role_title({kw.strip()})"
+
+        # Check description for strong non-tech signals (require 2+ matches)
+        desc_matches = [kw for kw in self.WRONG_ROLE_DESCRIPTION_KEYWORDS if kw in description]
+        if len(desc_matches) >= 2:
+            return -30, f"-30_wrong_role_desc({','.join(desc_matches[:2])})"
+
+        return 0, None
+
     def apply_bias_compensation(self, base_score: float, job: JobPosting) -> Tuple[float, List[str]]:
         """
         Post-process score with evidence-based adjustments
@@ -137,6 +209,16 @@ class JobMatcher:
         # Extract job data safely
         title = (getattr(job, 'title', '') or '').lower()
         description = (getattr(job, 'description', '') or '').lower()
+        
+        # ──────────────────────────────────────────────────────
+        # 0. WRONG ROLE PENALTY (added 2026-02-08)
+        # Must run FIRST - prevents payroll/CAD/logistics applications
+        # ──────────────────────────────────────────────────────
+        penalty, penalty_reason = self._wrong_role_penalty(job)
+        if penalty < 0:
+            score += penalty  # penalty is negative
+            adjustments.append(penalty_reason)
+            logger.info(f"🚫 [{getattr(job, 'company', '?')}] WRONG ROLE penalty: {penalty_reason} | {title[:50]}")
         company_size = getattr(job, 'company_size', '')
         source = getattr(job, 'source', '')
         company = getattr(job, 'company', '')
@@ -217,8 +299,49 @@ class JobMatcher:
             score += 2
             adjustments.append("+2_yc_company")
         
+        # ──────────────────────────────────────────────────────
+        # 7. PERSONAL AI BOOST (+5 to +15) (added 2026-02-08)
+        # Elena's actual expertise: companion AI, voice, memory, tutor
+        # ──────────────────────────────────────────────────────
+        personal_ai_high = [
+            "companion", "coach", "tutor", "emotional ai", "empathy",
+            "memory system", "persistent memory", "voice agent",
+            "conversational ai", "personal ai", "personal assistant ai",
+            "language learning", "mental health", "wellness",
+        ]
+        personal_ai_medium = [
+            "langchain", "prompt engineering", "evals", "safety",
+            "alignment", "guardrails", "whatsapp", "telegram",
+            "tts", "text-to-speech", "speech", "multimodal",
+            "chatbot", "dialogue", "mcp",
+        ]
+        personal_ai_companies = [
+            "character.ai", "replika", "inflection", "hume",
+            "duolingo", "quizlet", "khan academy", "woebot",
+            "personal.ai", "pi.ai",
+        ]
+        combined_text = f"{title} {description}"
+        high_hits = sum(1 for kw in personal_ai_high if kw in combined_text)
+        med_hits = sum(1 for kw in personal_ai_medium if kw in combined_text)
+        company_name = (getattr(job, 'company', '') or '').lower()
+        is_personal_ai_co = any(c in company_name for c in personal_ai_companies)
+
+        personal_boost = 0
+        if high_hits >= 3 or (high_hits >= 1 and is_personal_ai_co):
+            personal_boost = 15
+        elif high_hits >= 1 or med_hits >= 3:
+            personal_boost = 10
+        elif med_hits >= 1 or is_personal_ai_co:
+            personal_boost = 5
+
+        if personal_boost > 0:
+            score += personal_boost
+            adjustments.append(f"+{personal_boost}_personal_ai_fit")
+
         # Cap at 100
         score = min(score, 100)
+        # Floor at 0
+        score = max(score, 0)
         
         # ──────────────────────────────────────────────────────
         # TRANSPARENT LOGGING

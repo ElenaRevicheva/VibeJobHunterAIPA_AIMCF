@@ -11,9 +11,9 @@ This is a PRECISION CAREER WEAPON, not a volume play.
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Dict, Set, Any
+from typing import List, Dict, Set, Any, Optional
 
 import aiohttp
 
@@ -24,6 +24,14 @@ from src.autonomous.job_gate import JobGate
 
 logger = setup_logger(__name__)
 
+# ─────────────────────────────────────────────────────────
+# SEEN JOBS TTL (added 2026-02-08)
+# Jobs re-enter the pipeline after this many days so reposted
+# or refreshed listings get re-evaluated. Jobs that were
+# already APPLIED to are never re-applied.
+# ─────────────────────────────────────────────────────────
+SEEN_TTL_DAYS = int(__import__('os').getenv("SEEN_TTL_DAYS", "21"))
+
 
 class JobMonitor:
     """
@@ -32,27 +40,109 @@ class JobMonitor:
 
     def __init__(self):
         self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
+        # New: rich seen_jobs dict  {job_id: {first_seen, last_seen, status, ...}}
+        self.seen_jobs_db: Dict[str, Dict] = {}
+        # Legacy compat: also keep fast lookup set for current cycle
         self.seen_jobs: Set[str] = set()
         self._load_seen_jobs()
         logger.info("🛡️ JobMonitor initialized (career gate ACTIVE)")
 
     # ------------------------------------------------------------------
-    # Seen jobs persistence
+    # Seen jobs persistence  (v2: TTL-aware, seen vs applied)
     # ------------------------------------------------------------------
 
     def _load_seen_jobs(self):
+        """Load seen jobs. Handles both legacy (list) and new (dict) formats."""
         path = Path("autonomous_data/seen_jobs.json")
-        if path.exists():
+        if not path.exists():
+            return
+
+        try:
+            raw = json.loads(path.read_text())
+        except Exception as e:
+            logger.warning(f"Failed loading seen jobs: {e}")
+            return
+
+        # ── Legacy format: {"seen_jobs": ["id1", "id2", ...]} ──
+        if isinstance(raw.get("seen_jobs"), list):
+            now = datetime.now(timezone.utc).isoformat()
+            for job_id in raw["seen_jobs"]:
+                self.seen_jobs_db[job_id] = {
+                    "first_seen": now,
+                    "last_seen": now,
+                    "status": "seen",  # unknown if we applied — legacy data
+                }
+            logger.info(f"📂 Migrated {len(self.seen_jobs_db)} legacy seen jobs to TTL format")
+            # Save in new format immediately
+            self._save_seen_jobs()
+        # ── New format: {"seen_jobs_v2": {id: {...}, ...}} ──
+        elif isinstance(raw.get("seen_jobs_v2"), dict):
+            self.seen_jobs_db = raw["seen_jobs_v2"]
+            logger.info(f"📂 Loaded {len(self.seen_jobs_db)} seen jobs (TTL-aware)")
+        else:
+            logger.warning("Unknown seen_jobs format — starting fresh")
+
+        # Build fast lookup set (only IDs that should be skipped right now)
+        self._rebuild_skip_set()
+
+    def _rebuild_skip_set(self):
+        """Rebuild the fast-lookup set from the rich DB, applying TTL logic."""
+        now = datetime.now(timezone.utc)
+        self.seen_jobs = set()
+        expired = 0
+
+        for job_id, rec in self.seen_jobs_db.items():
+            status = rec.get("status", "seen")
+
+            # Jobs we already APPLIED to → never retry
+            if status == "applied":
+                self.seen_jobs.add(job_id)
+                continue
+
+            # For merely "seen" (or "skipped") jobs → apply TTL
+            last_seen_str = rec.get("last_seen") or rec.get("first_seen", "")
             try:
-                self.seen_jobs = set(json.loads(path.read_text()).get("seen_jobs", []))
-                logger.info(f"📂 Loaded {len(self.seen_jobs)} previously seen jobs")
-            except Exception as e:
-                logger.warning(f"Failed loading seen jobs: {e}")
+                last_seen = datetime.fromisoformat(last_seen_str.replace("Z", "+00:00"))
+            except Exception:
+                last_seen = now  # safety fallback — treat as fresh
+
+            age = now - last_seen
+            if age < timedelta(days=SEEN_TTL_DAYS):
+                self.seen_jobs.add(job_id)  # still fresh → skip
+            else:
+                expired += 1  # TTL expired → treat as new again
+
+        if expired:
+            logger.info(f"♻️  {expired} seen jobs expired (>{SEEN_TTL_DAYS}d) — eligible for re-evaluation")
 
     def _save_seen_jobs(self):
+        """Persist seen jobs in v2 format (TTL-aware)."""
         path = Path("autonomous_data/seen_jobs.json")
         path.parent.mkdir(exist_ok=True)
-        path.write_text(json.dumps({"seen_jobs": list(self.seen_jobs)[-1000:]}))  # Keep last 1000
+
+        # Prune: keep max 3000 entries, drop oldest by last_seen
+        db = self.seen_jobs_db
+        if len(db) > 3000:
+            sorted_ids = sorted(db, key=lambda k: db[k].get("last_seen", ""), reverse=True)
+            db = {k: db[k] for k in sorted_ids[:3000]}
+            self.seen_jobs_db = db
+
+        path.write_text(json.dumps({"seen_jobs_v2": db}, indent=None))
+
+    def mark_applied(self, job_id: str, company: str = "", title: str = ""):
+        """Mark a job as APPLIED so it's never retried."""
+        now = datetime.now(timezone.utc).isoformat()
+        rec = self.seen_jobs_db.get(job_id, {})
+        rec["status"] = "applied"
+        rec["applied_at"] = now
+        rec["last_seen"] = now
+        if company:
+            rec["company"] = company
+        if title:
+            rec["title"] = title
+        self.seen_jobs_db[job_id] = rec
+        self.seen_jobs.add(job_id)  # always skip applied jobs
+        self._save_seen_jobs()
 
     # ------------------------------------------------------------------
     # Public entrypoint
@@ -180,21 +270,30 @@ class JobMonitor:
         logger.info(f"🛡️ Career gate: {len(gated_jobs)}/{before_gate} jobs passed ({pass_rate:.1f}%)")
 
         # ==============================================================
-        # 5️⃣ Deduplicate + Convert to JobPosting
+        # 5️⃣ Deduplicate + Convert to JobPosting  (v2: TTL-aware)
         # ==============================================================
         new_jobs: List[JobPosting] = []
+        now_iso = datetime.now(timezone.utc).isoformat()
 
         for job in gated_jobs:
             job_id = self._job_id(job)
-            
+
             if job_id not in self.seen_jobs:
+                # Record in rich DB
+                job_dict = job if isinstance(job, dict) else (job.to_dict() if hasattr(job, 'to_dict') else {})
+                self.seen_jobs_db[job_id] = {
+                    "first_seen": self.seen_jobs_db.get(job_id, {}).get("first_seen", now_iso),
+                    "last_seen": now_iso,
+                    "status": "seen",
+                    "company": job_dict.get("company", "") if isinstance(job_dict, dict) else getattr(job, 'company', ''),
+                    "title": job_dict.get("title", "") if isinstance(job_dict, dict) else getattr(job, 'title', ''),
+                }
                 self.seen_jobs.add(job_id)
-                
+
                 # Convert to JobPosting if needed
                 if isinstance(job, JobPosting):
                     new_jobs.append(job)
                 elif hasattr(job, 'to_dict') or hasattr(job, 'model_dump'):
-                    # It's already a JobPosting-like object from ATS scraper
                     new_jobs.append(self._ats_job_to_posting(job))
                 else:
                     new_jobs.append(self._dict_to_job_posting(job))
