@@ -27,6 +27,7 @@ from .message_generator import MessageGenerator
 from .multi_channel_sender import MultiChannelSender
 from .demo_tracker import DemoTracker
 from .response_handler import ResponseHandler
+from .follow_up_engine import FollowUpEngine
 
 logger = setup_logger(__name__)
 
@@ -167,6 +168,29 @@ class AutonomousOrchestrator:
         # Track consecutive zero-result cycles for alerting (added 2026-02-08)
         self._consecutive_zero_cycles = 0
 
+        # ─────────────────────────────
+        # Follow-Up Engine (added 2026-02-08)
+        # ─────────────────────────────
+        self.follow_up_engine = FollowUpEngine()
+
+        # ─────────────────────────────
+        # Daily Summary tracking (added 2026-02-08)
+        # ─────────────────────────────
+        self._daily_stats = {
+            "date": datetime.utcnow().date().isoformat(),
+            "cycles_run": 0,
+            "total_jobs_found": 0,
+            "total_jobs_scored": 0,
+            "total_auto_applied": 0,
+            "total_outreach_sent": 0,
+            "total_review_queued": 0,
+            "total_discarded": 0,
+            "total_errors": 0,
+            "follow_ups_sent": 0,
+            "top_companies": [],
+        }
+        self._last_daily_summary_date = None
+
         logger.info("🚀 Autonomous Orchestrator READY")
 
     # ─────────────────────────────
@@ -246,6 +270,14 @@ class AutonomousOrchestrator:
                 await asyncio.sleep(600)
 
         asyncio.create_task(linkedin_loop())
+
+        # Daily summary at 20:00 UTC (3pm Panama)
+        async def daily_summary_loop():
+            while self.is_running:
+                await self._check_daily_summary_schedule()
+                await asyncio.sleep(600)  # Check every 10 minutes
+
+        asyncio.create_task(daily_summary_loop())
 
         while self.is_running:
             try:
@@ -358,13 +390,26 @@ class AutonomousOrchestrator:
             logger.info("=" * 60)
             
             # ═════════════════════════════════════════════════════
-            # STEP 5: Check for responses (GENIUS FEATURE)
+            # STEP 5: Send pending follow-ups (added 2026-02-08)
+            # ═════════════════════════════════════════════════════
+            try:
+                await self._send_pending_follow_ups()
+            except Exception as fu_err:
+                logger.warning(f"⚠️ Follow-up check failed: {fu_err}")
+
+            # ═════════════════════════════════════════════════════
+            # STEP 6: Check for responses (GENIUS FEATURE)
             # This is OPTIONAL and wrapped in try/except - won't break cycle
             # ═════════════════════════════════════════════════════
             try:
                 await self._check_for_responses()
             except Exception as resp_err:
                 logger.warning(f"⚠️ Response detection skipped: {resp_err}")
+
+            # ═════════════════════════════════════════════════════
+            # STEP 7: Accumulate daily stats (for daily summary)
+            # ═════════════════════════════════════════════════════
+            self._accumulate_daily_stats(cycle_stats)
             
         except Exception as e:
             logger.error(f"❌ Autonomous cycle failed: {e}", exc_info=True)
@@ -580,6 +625,15 @@ class AutonomousOrchestrator:
                                 stats.outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
                                 logger.info(f"🤝 Outreach sent for {job.company} (score: {final_score:.0f})")
+                                # Record for follow-up
+                                outreach_email = result.get('email', '')
+                                if outreach_email and hasattr(self, 'follow_up_engine'):
+                                    self.follow_up_engine.record_sent(
+                                        company=job.company,
+                                        title=job.title,
+                                        email=outreach_email,
+                                        channel="outreach",
+                                    )
                         except Exception as e:
                             logger.warning(f"⚠️ Outreach failed for {job.company}: {e}")
                 
@@ -597,6 +651,15 @@ class AutonomousOrchestrator:
                                 stats.outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
                                 logger.info(f"✅ Outreach sent to {job.company}")
+                                # Record for follow-up
+                                outreach_email = result.get('email', '')
+                                if outreach_email and hasattr(self, 'follow_up_engine'):
+                                    self.follow_up_engine.record_sent(
+                                        company=job.company,
+                                        title=job.title,
+                                        email=outreach_email,
+                                        channel="outreach",
+                                    )
                         except Exception as e:
                             logger.warning(f"⚠️ Outreach failed for {job.company}: {e}")
                 
@@ -668,6 +731,17 @@ class AutonomousOrchestrator:
             if applied and hasattr(self, 'job_monitor') and self.job_monitor:
                 job_id = f"{job.company}::{job.title}".lower()
                 self.job_monitor.mark_applied(job_id, company=job.company, title=job.title)
+            
+            # Record for follow-up if we have an email
+            if applied and hasattr(self, 'follow_up_engine'):
+                email_used = result.get('email_sent_to', '') or result.get('recipient_email', '')
+                if email_used:
+                    self.follow_up_engine.record_sent(
+                        company=job.company,
+                        title=job.title,
+                        email=email_used,
+                        channel="application",
+                    )
             
             return applied
             
@@ -808,3 +882,167 @@ class AutonomousOrchestrator:
             logger.debug("Response detector not available - skipping")
         except Exception as e:
             logger.warning(f"⚠️ Response detection error (non-fatal): {e}")
+
+    # ─────────────────────────────────────────────────────
+    # FOLLOW-UP ENGINE (added 2026-02-08)
+    # ─────────────────────────────────────────────────────
+    async def _send_pending_follow_ups(self):
+        """Check and send any due follow-ups."""
+        if not hasattr(self, 'follow_up_engine'):
+            return
+
+        logger.info("📬 Step 5: Checking for pending follow-ups...")
+
+        # We need the email service
+        email_service = None
+        if self.auto_applicator and hasattr(self.auto_applicator, 'email_service'):
+            email_service = self.auto_applicator.email_service
+        else:
+            try:
+                from .email_service import create_email_service
+                email_service = create_email_service()
+            except Exception:
+                pass
+
+        if not email_service:
+            logger.warning("⚠️ No email service available for follow-ups")
+            return
+
+        fu_stats = await self.follow_up_engine.check_and_send_follow_ups(email_service)
+
+        if fu_stats["sent"] > 0:
+            self._daily_stats["follow_ups_sent"] += fu_stats["sent"]
+            logger.info(
+                f"📬 Follow-ups: {fu_stats['sent']} sent, "
+                f"{fu_stats['skipped']} skipped, {fu_stats['errors']} errors"
+            )
+            # Notify via Telegram
+            if self.telegram:
+                await self.telegram.send_message(
+                    f"📬 <b>Follow-ups sent: {fu_stats['sent']}</b>\n"
+                    f"Checked {fu_stats['checked']} tracked applications"
+                )
+        else:
+            logger.info(f"📬 No follow-ups due (checked {fu_stats['checked']})")
+
+    # ─────────────────────────────────────────────────────
+    # DAILY STATS ACCUMULATION (added 2026-02-08)
+    # ─────────────────────────────────────────────────────
+    def _accumulate_daily_stats(self, cycle_stats: CycleStats):
+        """Accumulate cycle stats into daily totals."""
+        today = datetime.utcnow().date().isoformat()
+
+        # Reset if new day
+        if self._daily_stats.get("date") != today:
+            self._daily_stats = {
+                "date": today,
+                "cycles_run": 0,
+                "total_jobs_found": 0,
+                "total_jobs_scored": 0,
+                "total_auto_applied": 0,
+                "total_outreach_sent": 0,
+                "total_review_queued": 0,
+                "total_discarded": 0,
+                "total_errors": 0,
+                "follow_ups_sent": 0,
+                "top_companies": [],
+            }
+            # Also reset daily application counter
+            self.stats["applications_today"] = 0
+
+        self._daily_stats["cycles_run"] += 1
+        self._daily_stats["total_jobs_found"] += cycle_stats.jobs_found
+        self._daily_stats["total_jobs_scored"] += cycle_stats.jobs_scored
+        self._daily_stats["total_auto_applied"] += cycle_stats.auto_applied
+        self._daily_stats["total_outreach_sent"] += cycle_stats.outreach_sent
+        self._daily_stats["total_review_queued"] += cycle_stats.review_queued
+        self._daily_stats["total_discarded"] += cycle_stats.discarded
+        self._daily_stats["total_errors"] += cycle_stats.errors
+
+        # Track top companies applied to
+        for job in cycle_stats.top_matches[:3]:
+            self._daily_stats["top_companies"].append(
+                f"{job.company} ({job.match_score:.0f})"
+            )
+
+    # ─────────────────────────────────────────────────────
+    # DAILY SUMMARY SCHEDULER (added 2026-02-08)
+    # Sends once per day at 20:00 UTC (3:00 PM Panama)
+    # ─────────────────────────────────────────────────────
+    async def _check_daily_summary_schedule(self):
+        """Check if it's time to send the daily summary."""
+        now_utc = datetime.utcnow()
+        today = now_utc.date()
+
+        # Already sent today?
+        if self._last_daily_summary_date == today:
+            return
+
+        # Send at 20:00 UTC (3pm Panama)
+        if now_utc.hour == 20 and now_utc.minute >= 0:
+            await self._send_daily_digest()
+            self._last_daily_summary_date = today
+
+    async def _send_daily_digest(self):
+        """Send comprehensive daily digest to Telegram."""
+        if not self.telegram:
+            return
+
+        try:
+            ds = self._daily_stats
+            today_str = datetime.utcnow().strftime("%B %d, %Y")
+
+            # Follow-up engine summary
+            fu_summary = ""
+            if hasattr(self, 'follow_up_engine'):
+                fu = self.follow_up_engine.get_summary()
+                fu_summary = (
+                    f"\n\n📬 <b>Follow-Up Pipeline:</b>\n"
+                    f"• {fu['total_tracked']} applications tracked\n"
+                    f"• {fu['awaiting_first_followup']} awaiting first follow-up\n"
+                    f"• {fu['followed_up_once']} followed up once\n"
+                    f"• {fu['followed_up_twice']} completed (2 follow-ups)\n"
+                    f"• {fu['got_response']} got responses"
+                )
+
+            # Seen jobs summary
+            seen_info = ""
+            if hasattr(self, 'job_monitor'):
+                seen_info = (
+                    f"\n\n🗄️ <b>Job Database:</b>\n"
+                    f"• {len(self.job_monitor.seen_jobs_db)} total jobs tracked\n"
+                    f"• {len(self.job_monitor.seen_jobs)} in skip set\n"
+                    f"• TTL: {SEEN_TTL_DAYS} days"
+                )
+
+            # Top companies
+            top_companies_str = ""
+            if ds.get("top_companies"):
+                top_companies_str = "\n\n🏆 <b>Applied Today:</b>\n"
+                for c in ds["top_companies"][:5]:
+                    top_companies_str += f"• {c}\n"
+
+            message = (
+                f"📊 <b>DAILY DIGEST — {today_str}</b>\n\n"
+                f"<b>Today's Activity ({ds['cycles_run']} cycles):</b>\n"
+                f"🔍 Jobs found: {ds['total_jobs_found']}\n"
+                f"📊 Jobs scored: {ds['total_jobs_scored']}\n"
+                f"🎯 Auto-applied: {ds['total_auto_applied']}\n"
+                f"🤝 Outreach sent: {ds['total_outreach_sent']}\n"
+                f"📋 Review queued: {ds['total_review_queued']}\n"
+                f"📬 Follow-ups sent: {ds['follow_ups_sent']}\n"
+                f"❌ Discarded: {ds['total_discarded']}"
+                f"{top_companies_str}"
+                f"{fu_summary}"
+                f"{seen_info}"
+                f"\n\n🤖 <i>VibeJobHunter running 24/7 on Oracle</i>"
+            )
+
+            if ds["total_errors"] > 0:
+                message += f"\n\n⚠️ {ds['total_errors']} errors today"
+
+            await self.telegram.send_message(message)
+            logger.info("📊 Daily digest sent to Telegram")
+
+        except Exception as e:
+            logger.error(f"Failed to send daily digest: {e}")
