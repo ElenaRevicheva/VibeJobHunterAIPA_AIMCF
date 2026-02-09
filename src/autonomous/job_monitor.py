@@ -164,7 +164,7 @@ class JobMonitor:
         
         # Track jobs per source for summary
         source_counts = {
-            "ats": 0, "hn": 0, "remoteok": 0, "yc": 0, 
+            "ats": 0, "dice_mcp": 0, "hn": 0, "remoteok": 0, "yc": 0, 
             "wellfound": 0, "wwr": 0, "aijobs": 0
         }
 
@@ -186,6 +186,22 @@ class JobMonitor:
 
         except Exception as e:
             logger.error(f"❌ ATS integration failed: {e}")
+
+        # ==============================================================
+        # 1.5️⃣ DICE MCP — Tech-only job database (NEW SOURCE)
+        # Additive: does NOT replace anything above
+        # ==============================================================
+        try:
+            from src.scrapers.dice_mcp_client import get_dice_jobs_safely
+
+            dice_jobs = await get_dice_jobs_safely(timeout_seconds=120)
+
+            logger.info(f"✅ Dice MCP returned {len(dice_jobs)} jobs")
+            all_jobs.extend(dice_jobs)
+            source_counts["dice_mcp"] = len(dice_jobs)
+
+        except Exception as e:
+            logger.warning(f"⚠️ Dice MCP integration failed: {e}")
 
         # ==============================================================
         # 2️⃣-7️⃣ SECONDARY SOURCES (run in parallel with timeout)
@@ -237,6 +253,7 @@ class JobMonitor:
         logger.info("=" * 60)
         logger.info("📊 SOURCE SUMMARY:")
         logger.info(f"   ATS APIs:        {source_counts['ats']} jobs")
+        logger.info(f"   Dice MCP:        {source_counts['dice_mcp']} jobs")
         logger.info(f"   Hacker News:     {source_counts['hn']} jobs")
         logger.info(f"   RemoteOK:        {source_counts['remoteok']} jobs")
         logger.info(f"   YC WAAS:         {source_counts['yc']} jobs")

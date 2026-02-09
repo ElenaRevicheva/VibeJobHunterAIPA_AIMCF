@@ -28,6 +28,7 @@ class JobSource(str, Enum):
     TWITTER = "twitter"
     COMPANY_WEBSITE = "company_website"
     REFERRAL = "referral"
+    DICE = "dice"
     OTHER = "other"
 
 
