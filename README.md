@@ -1,444 +1,220 @@
-# 🤖 VibeJobHunter + AI Marketing Co-Founder
+# VibeJobHunter — Autonomous AI Job Hunting Engine
 
-**Autonomous Job Hunting Engine + AI Co-Founder for Personal Branding**
+**An AI system that discovers, scores, and applies to jobs autonomously — while an AI Marketing Co-Founder builds your personal brand on LinkedIn.**
 
-> Built by Elena Revicheva with AI Co-Founders (not just AI tools!)
-> 
-> **Transparency First:** I use AI to apply for jobs. I built the AI. This README explains why.
+Built solo by [Elena Revicheva](https://linkedin.com/in/elenarevicheva) using human-AI collaborative development.
 
-[![Deployed on Railway](https://img.shields.io/badge/Deployed-Railway-blueviolet)](https://railway.app/)
+[![Live on Oracle Cloud](https://img.shields.io/badge/Deployed-Oracle%20Cloud-red)](https://cloud.oracle.com)
 [![AI Powered](https://img.shields.io/badge/AI-Claude%20Sonnet-blue)](https://anthropic.com)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-green)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🎯 Why I Built This (Transparency Statement)
+## The Problem
 
-**I apply for jobs using my own AI agent. Let me tell you why.**
+Applying to AI/engineering roles manually means 100+ hours of repetitive work: searching job boards, reading descriptions, tailoring resumes, filling ATS forms, writing outreach messages — while also building a personal brand. For a solo founder relocating internationally, this is unsustainable.
 
-In 2022, I relocated to Panama. Zero Spanish. Zero team. Zero investments. Ex-CEO who had never written a line of code.
+## The Solution
 
-I had to rebuild my entire life from scratch.
+VibeJobHunter runs autonomously 24/7 on Oracle Cloud:
 
-So I started building AI products—not to scam anyone, not to fake skills, but to **SURVIVE and TRANSFORM**:
-
-| Product | Why I Built It |
-|---------|----------------|
-| 🇪🇸 **EspaLuz** | Needed to learn Spanish to integrate into my new country |
-| 🔍 **VibeJobHunter** | Needed a serious role, not 100 copy-paste applications |
-| 🤖 **CTO AIPA** | Had no technical co-founder to review my code |
-| 📣 **CMO AIPA** | Had no marketing team but needed to build in public |
-| 📚 **ALGOM Alpha** | Wanted to teach crypto safely after the scam era |
-| 🎨 **Atuona** | Poetry was my therapy during transformation |
-
-**This is what vibe coding means to me:**
-
-- 💡 It's not a shortcut—it's a **SURVIVAL STRATEGY**
-- 💡 It's not replacing skills—it's **BUILDING NEW ONES** under pressure
-- 💡 It's not hiding behind AI—it's **PARTNERING with AI** to do what one person couldn't
-
-**11 products. 10 months. Solo. <$15K.**
-
-When my VibeJobHunter sends an application, it's:
-- **MY code** (I built the entire system)
-- **MY strategy** (I designed the scoring algorithms)
-- **MY judgment** (I calibrated what "good fit" means)
-- **MY resume variants** (I wrote all 3)
-
-The AI is the vehicle. **I am the architect.**
+- **Discovers** jobs from 8 sources every hour (218+ company APIs + Dice MCP + YC + RemoteOK + more)
+- **Scores** each job against your profile using Claude AI (100-point system with domain-match filtering)
+- **Auto-applies** to high-scoring roles via ATS form submission (Greenhouse, Lever, Ashby, Workable)
+- **Generates personalized outreach** to founders at borderline companies
+- **Follows up** automatically after 5 days of no response
+- **Posts daily LinkedIn content** via an AI Marketing Co-Founder (bilingual EN/ES)
+- **Reports everything** to you via Telegram bot with full interactive controls
 
 ---
 
-## 🎯 What This Does
+## Architecture
 
-**Two autonomous systems running 24/7 on Railway:**
-
-### 1. 🔍 Autonomous Job Hunting Engine
-- **Scrapes 4000+ jobs/hour** from ATS APIs (Greenhouse, Lever, Ashby, Workable)
-- **🏆 YC Advantage** - Jobs from YC Work at a Startup get +15 score boost
-- **⭐ Remote-First Radar** - DynamiteJobs integration with +5 boost for quality remote roles
-- **AI-powered scoring** via Claude (matches to your profile)
-- **Smart 3-way resume selection** - NEW default / OLD founding / Spanish LATAM
-- **Auto-applies to Greenhouse** with Playwright browser automation
-- **Handles email verification** (reads codes from Zoho Mail IMAP)
-- **YC-aware founder outreach** - "I saw your role on YC's board..."
-- **Telegram notifications** - real-time updates on applications
-
-### 2. 🧠 AI Marketing Co-Founder (LinkedIn CMO v5.2)
-- **TRUE AI Co-Founder** with strategic thinking & learning
-- **Daily LinkedIn posts** via Claude API → Make.com
-- **Bilingual content** (English/Spanish) with **true alternation** (EN→ES→EN→ES)
-- **14 images rotating** (fresh image every day, no repeats)
-- **8 content types** including Vibe Coding Philosophy
-- **Zero manual work** - posts at **00:XX UTC (7:00 PM Panama)** daily
+```
+Oracle Cloud (24/7 systemd service)
+│
+├── Job Hunting Engine (runs every hour)
+│   │
+│   ├── 1. DISCOVER ──────────────────────────────────
+│   │   ├── ATS APIs: 218 companies (Greenhouse, Lever, Ashby, Workable)
+│   │   ├── Dice MCP: 8 keyword queries via Model Context Protocol
+│   │   ├── YC Work at a Startup (Algolia search)
+│   │   ├── RemoteOK, Wellfound, WWR, AI Jobs, HN
+│   │   └── ~50-80 new jobs per cycle
+│   │
+│   ├── 2. FILTER & SCORE ────────────────────────────
+│   │   ├── Domain-match filter (drops DevOps, QA, DBA, etc.)
+│   │   ├── Claude AI scoring (100 pts: AI Product 25, Autonomy 25,
+│   │   │   Full-Stack 20, Business 15, Bilingual 5, Web3 10)
+│   │   ├── YC company bonus: +15 pts
+│   │   └── Deduplication via seen-jobs cache
+│   │
+│   ├── 3. ROUTE ─────────────────────────────────────
+│   │   ├── Score ≥ 60 → AUTO-APPLY (ATS form submission)
+│   │   ├── Score 50-59 → FOUNDER OUTREACH (AI message generation)
+│   │   ├── Score 40-49 → REVIEW QUEUE
+│   │   └── Score < 40 → DISCARD
+│   │
+│   ├── 4. APPLY ─────────────────────────────────────
+│   │   ├── Smart resume selection (6 role-specific variants)
+│   │   ├── AI cover letter generation (Claude)
+│   │   ├── ATS form filling + PDF upload
+│   │   └── Email verification handling (Zoho IMAP)
+│   │
+│   └── 5. FOLLOW UP ─────────────────────────────────
+│       ├── Track all outreach in JSONL log
+│       ├── Auto-remind after 5 days, escalate at 8 days
+│       └── Daily outreach cap: 2 messages/day
+│
+├── LinkedIn CMO (AI Marketing Co-Founder)
+│   ├── Daily post at 10:10 AM Panama time
+│   ├── Claude generates fresh content each day
+│   ├── Bilingual alternation (EN ↔ ES)
+│   ├── 14 rotating images (no repeats)
+│   └── Posts via Make.com webhook
+│
+└── Telegram Bot (Real-time Control)
+    ├── Today's summary, job listings, stats
+    ├── Pending outreach with copy-paste messages
+    ├── Pause/resume hunting
+    ├── Trigger LinkedIn/Instagram posts on demand
+    └── Full workflow & manual task guides
+```
 
 ---
 
-## 🆕 January 2026 Updates
+## Tech Stack
 
-### 🏆 YC Advantage + Remote-First Radar
-| Source | Score Boost | Features |
-|--------|-------------|----------|
-| **YC Work at a Startup** | **+15 points** | YC badge, warm outreach, premium treatment |
-| **DynamiteJobs** | **+5 points** | Remote-first AI/ML roles |
-
-### 📄 Smart 3-Way Resume Strategy
-| Resume | When Used | Purpose |
-|--------|-----------|---------|
-| **NEW English** | Default | ATS-optimized, professional format |
-| **OLD English** | Founding keywords detected | Founder energy, emotional branding |
-| **Spanish** | LATAM/Spanish companies | For Spanish-speaking markets |
-
-### 🔧 LinkedIn CMO Fixes
-- ✅ Posting time: **7:00 PM Panama (00:XX UTC)**
-- ✅ UTC time fix for consistent Railway scheduling
-- ✅ Single scheduler (no duplicates)
-- ✅ Better startup logging
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **AI/LLM** | Claude Sonnet 4 (Anthropic) | Job scoring, cover letters, content generation, company research |
+| **Backend** | Python 3.11, FastAPI, asyncio | Async job fetching from 8+ sources in parallel |
+| **Job Sources** | Dice MCP, Greenhouse/Lever/Ashby/Workable APIs, YC Algolia | Structured API access, no scraping needed |
+| **Email** | Resend API, Zoho IMAP, Hunter.io | Sending, verification code reading, email discovery |
+| **Database** | SQLite | Application tracking, deduplication, scoring history |
+| **Infrastructure** | Oracle Cloud, systemd | Always-on, auto-restart, zero monthly cost |
+| **Marketing** | Make.com webhooks, Claude | Automated LinkedIn content pipeline |
+| **Notifications** | Telegram Bot API | Real-time interactive control panel |
 
 ---
 
-## ✅ What's Actually Working (January 2026)
+## What's Working (February 2026)
 
 | Feature | Status | Details |
 |---------|--------|---------|
-| **ATS Job Scraping** | ✅ LIVE | **218 companies** (Greenhouse, Lever, Ashby, Workable) |
-| **YC Advantage** | ✅ LIVE | +15 score boost for YC companies |
-| **Premium Source Detection** | ✅ LIVE | DynamiteJobs +5 boost |
-| **AI Job Scoring** | ✅ LIVE | Claude-powered with premium bonuses |
-| **Greenhouse Auto-Apply** | ✅ LIVE | Form filling + email verification |
-| **Smart Resume Selection** | ✅ LIVE | 3 variants (NEW default, OLD founding, Spanish) |
-| **YC-Aware Outreach** | ✅ LIVE | "I saw your role on YC's board..." messaging |
-| **Founder Outreach** | ✅ LIVE | Hunter.io email discovery + personalized messages |
-| **Email Service** | ✅ LIVE | Resend API from verified domain |
-| **LinkedIn CMO v5.2** | ✅ LIVE | Daily posts at 7 PM Panama via Make.com |
-| **Telegram Bot** | ✅ LIVE | Real-time notifications + commands |
-| **Database Tracking** | ✅ LIVE | SQLite for all applications |
+| ATS Job Discovery | **LIVE** | 218 companies across 4 ATS platforms |
+| Dice MCP Integration | **LIVE** | 8 targeted keyword queries, ~55 jobs/cycle |
+| AI Job Scoring | **LIVE** | Claude-powered 100-point scoring + domain filter |
+| Auto-Apply (Greenhouse) | **LIVE** | Form filling, resume upload, email verification |
+| Founder Outreach | **LIVE** | AI-generated personalized LinkedIn messages |
+| Follow-Up Engine | **LIVE** | Automatic reminders at day 5 and day 8 |
+| Smart Resume Selection | **LIVE** | 6 role-specific resume variants |
+| LinkedIn CMO | **LIVE** | Daily bilingual posts at 10:10 AM Panama |
+| Telegram Bot | **LIVE** | Interactive menu with real-time stats |
+| Outreach Daily Cap | **LIVE** | Max 2 outreach messages per day |
+| Seen Jobs Dedup | **LIVE** | 30-day TTL cache prevents re-processing |
 
 ---
 
-## 📊 Current Performance
-
-```
-HOURLY AUTONOMOUS CYCLE:
-├─ Jobs scraped:      ~4000 (from 218 company APIs)
-├─ Premium sources:   YC (+15) + DynamiteJobs (+5)
-├─ After career gate: ~800 (20% pass rate)
-├─ Scored 60+:        ~5-10 (qualified for auto-apply)
-└─ Applications/day:  3-5 (quality-capped)
-
-TARGET ROLES:
-├─ Founding Engineer
-├─ Senior/Staff AI Engineer
-├─ AI Solutions Architect
-└─ Principal Engineer
-
-ATS PLATFORMS (218 companies):
-├─ Greenhouse: 106 companies (~2500 jobs)
-├─ Ashby: 59 companies (~1200 jobs)
-├─ Lever: 36 companies (~400 jobs)
-├─ Workable: 17 companies (~200 jobs)
-└─ Premium: YC WAAS, DynamiteJobs, HN Who's Hiring, RemoteOK
-
-NEW AI COMPANIES ADDED (79+):
-├─ Frontier AI: Cognition (Devin), Magic AI, Poolside, Factory AI
-├─ AI Applications: Harvey AI, Glean, Sierra AI, Writer
-├─ AI Infrastructure: Groq, Contextual AI, Imbue, Together AI
-└─ Robotics: Figure AI, Physical Intelligence, 1X Technologies
-```
-
----
-
-## 🧠 AI Marketing Co-Founder (LinkedIn CMO v5.2)
-
-The LinkedIn CMO is a **TRUE AI Co-Founder** (not just automation):
-
-### Content Types (8 Total):
-
-| Type | Language | Purpose |
-|------|----------|---------|
-| `open_to_work` | EN | Founder-minded job seeking |
-| `technical_showcase` | EN | Technical depth - 5 AIPAs |
-| `transformation_story` | EN | CEO → Founder journey |
-| `seeking_funding` | EN | Pre-seed pitch |
-| **`vibe_coding_philosophy`** | **EN** | Life transformation through AI |
-| `busco_trabajo` | ES | Spanish job seeking |
-| `historia_transformacion` | ES | Spanish journey |
-| **`filosofia_vibe_coding`** | **ES** | Filosofía del vibe coding |
-
-### Daily Posting Cycle:
-
-```
-📅 DAILY AT 00:XX UTC (7:00 PM Panama):
-
-Day 1: EN 🇬🇧 → Random from 5 EN types → Fresh image from 14
-Day 2: ES 🇪🇸 → Random from 3 ES types → Different image
-Day 3: EN 🇬🇧 → Random from 5 EN types → Different image
-Day 4: ES 🇪🇸 → Random from 3 ES types → Different image
-...
-
-✅ TRUE alternation (not random 50/50)
-✅ 14 images rotating (no same image 2 days in a row)
-✅ Claude generates FRESH content each time
-✅ UTC time for consistent Railway scheduling
-```
-
-### The Vibe Coding Philosophy Content:
-
-When this post type is selected, it tells the REAL story:
-- 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments
-- Each product solves a REAL problem in the journey
-- Transparency about using AI for job applications
-- **"The AI is the vehicle. I am the architect."**
-
----
-
-## 🚀 Quick Start
-
-### Option A: Deploy on Railway (Recommended)
+## Quick Start
 
 ```bash
-# 1. Clone and setup
+# Clone
 git clone https://github.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF.git
 cd VibeJobHunterAIPA_AIMCF
-cp .env.example .env
 
-# 2. Configure environment variables (see below)
-
-# 3. Deploy
-railway up
-```
-
-### Option B: Run Locally
-
-```bash
+# Setup
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
-python -m src.main autonomous --interval 1
+
+# Configure
+cp .env.example .env
+# Edit .env with your API keys and profile
+
+# Run
+python web_server.py
+```
+
+See [`.env.example`](.env.example) for all configuration options.
+
+---
+
+## Project Structure
+
+```
+├── src/
+│   ├── autonomous/          # Core engine (orchestrator, job monitor, ATS submitter, follow-ups)
+│   ├── agents/              # AI scoring, content generation, job matching
+│   ├── scrapers/            # ATS scraper (218 cos), Dice MCP client, premium boards
+│   ├── notifications/       # Telegram bot, LinkedIn CMO, email service
+│   ├── templates/           # 6 resume variants + cover letter formatter
+│   ├── filters/             # Career gate, red flag detection
+│   ├── core/                # Config, models, candidate profile
+│   └── utils/               # Caching, rate limiting, Claude helper, retry logic
+├── docs/                    # System documentation, career strategy, integration guides
+├── autonomous_data/         # Runtime data (resumes, caches, logs) — gitignored
+├── web_server.py            # FastAPI entry point (systemd service)
+├── .env.example             # All configuration options with descriptions
+└── requirements.txt         # Python dependencies
 ```
 
 ---
 
-## ⚙️ Configuration
+## How I Built This
 
-### Required Environment Variables
+**Role:** Solo architect, engineer, and product designer.
 
-```bash
-# AI (Required)
-ANTHROPIC_API_KEY=sk-ant-...
+I built VibeJobHunter over 3 months as part of [AIdeazz](https://aideazz.xyz) — an ecosystem of 8 AI products I shipped solo in 10 months after relocating to Panama in 2022 with zero technical background.
 
-# Email Service (Required for applications)
-RESEND_API_KEY=re_...
-FROM_EMAIL=Your Name <you@yourdomain.com>
+**My approach:** Human-AI collaborative development using Cursor + Claude + GPT to design, generate, and iterate production code. I combine 7 years of executive product judgment (Deputy CEO, Chief Legal Officer) with hands-on engineering execution.
 
-# Applicant Info
-APPLICANT_FIRST_NAME=Your
-APPLICANT_LAST_NAME=Name
-APPLICANT_EMAIL=you@yourdomain.com
-APPLICANT_PHONE=+1-555-555-5555
-APPLICANT_LINKEDIN=https://linkedin.com/in/yourprofile
-
-# Zoho Mail (for reading verification codes)
-ZOHO_EMAIL=you@yourdomain.com
-ZOHO_APP_PASSWORD=xxxxxxxxxxxx  # 12-char app-specific password
-
-# Telegram (Optional but recommended)
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-
-# LinkedIn CMO (Optional)
-MAKE_WEBHOOK_URL_LINKEDIN=https://hook.us2.make.com/...
-
-# ATS Settings
-ATS_DRY_RUN=false
-ATS_SUBMISSION_ENABLED=true
-```
+**Key engineering decisions:**
+- **Async-first architecture** — all 8 job sources fetch in parallel using `asyncio`, keeping cycle time under 5 minutes
+- **Domain-match filtering** — pre-scoring filter that drops obviously wrong roles (DevOps, QA, DBA) before burning Claude API tokens
+- **Additive source integration** — each new job source (like Dice MCP) plugs in without touching existing scrapers
+- **Graceful degradation** — if any source fails, the engine continues with remaining sources
+- **File-based persistence** — JSONL logs + JSON caches survive service restarts without database migration complexity
 
 ---
 
-## 🏗️ Architecture
+## Other Products in the AIdeazz Ecosystem
 
-```
-Railway (24/7 Autonomous)
-    │
-    ├─── Job Hunting Engine (Hourly)
-    │    ├─ Scrape ATS APIs (Greenhouse/Lever/Ashby/Workable)
-    │    ├─ Scrape Premium Sources (YC WAAS, DynamiteJobs)
-    │    ├─ Apply premium boosts (+15 YC, +5 DynamiteJobs)
-    │    ├─ Filter through career gate
-    │    ├─ Score with Claude AI
-    │    ├─ Auto-apply (score ≥ 60)
-    │    │   ├─ Research company (Claude)
-    │    │   ├─ Smart resume selection (3 variants)
-    │    │   ├─ Fill Greenhouse form (Playwright)
-    │    │   ├─ Handle email verification (IMAP)
-    │    │   └─ Submit application
-    │    ├─ YC-aware founder outreach (score ≥ 58)
-    │    └─ Notify via Telegram
-    │
-    └─── LinkedIn CMO v5.2 (Daily 00:XX UTC / 7 PM Panama)
-         ├─ Alternate language (EN↔ES)
-         ├─ Select post type (5 EN / 3 ES options)
-         ├─ Generate content (Claude)
-         ├─ Select fresh image (14 rotating)
-         ├─ Post via Make.com webhook
-         └─ Track performance
-```
+| Product | What It Does | Users |
+|---------|-------------|-------|
+| [EspaLuz](https://espaluz-ai-language-tutor.lovable.app) | Bilingual AI tutor with emotional memory (WhatsApp/Telegram) | Live subscriptions, 19 countries |
+| CTO AIPA | Autonomous AI Co-Founder for technical decisions | Internal tool |
+| CMO AIPA | AI Marketing Co-Founder (LinkedIn + Instagram) | Runs daily in this repo |
+| [ATUONA](https://atuona.xyz) | NFT Poetry Gallery | Live |
+
+**Portfolio:** [aideazz.xyz](https://aideazz.xyz)
 
 ---
 
-## 📁 Key Files
+## Documentation
 
-```
-src/
-├── autonomous/
-│   ├── orchestrator.py          # 🧠 Main brain - hourly cycles + LinkedIn CMO
-│   ├── job_monitor.py           # 🔍 Fetches from all sources (including YC)
-│   ├── ats_submitter.py         # 🚀 Greenhouse form submission
-│   ├── greenhouse_email_verifier.py  # 📧 IMAP verification
-│   ├── company_researcher.py    # 🔬 Claude company research
-│   └── founder_finder_v2.py     # 👤 YC-aware founder outreach
-│
-├── scrapers/
-│   ├── ats_scraper.py           # 🕷️ Greenhouse/Lever/Ashby/Workable (218 companies)
-│   └── premium_board_scraper.py # 🏆 YC WAAS + DynamiteJobs
-│
-├── agents/
-│   └── job_matcher.py           # 🎯 AI scoring with premium boosts
-│
-├── templates/
-│   └── resume_selector.py       # 📄 Smart 3-way resume selection
-│
-└── notifications/
-    ├── linkedin_cmo_v4.py       # 📣 LinkedIn CMO v5.2 (7 PM Panama)
-    └── telegram_notifier.py     # 📱 Telegram notifications
-
-autonomous_data/
-├── resumes/                     # PDF resume variants
-│   ├── elena_resume_new.pdf     # NEW English (ATS-optimized)
-│   ├── elena_resume_founding.pdf # OLD English (founder energy)
-│   └── elena_resume_spanish.pdf  # Spanish (LATAM)
-└── vibejobhunter.db            # SQLite database
-```
-
-**Full documentation:** See `SYSTEM_DOCUMENTATION.md`
+- [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTEM_DOCUMENTATION.md) — Full technical documentation with workflow diagrams
+- [`docs/CAREER_FOCUS.md`](docs/CAREER_FOCUS.md) — Target roles, scoring criteria, company strategy
+- [`docs/CTO_CMO_INTEGRATION_SUMMARY.md`](docs/CTO_CMO_INTEGRATION_SUMMARY.md) — How the AI Co-Founders integrate
 
 ---
 
-## 🎯 Scoring Thresholds
+## Author
 
-```python
-AUTO_APPLY_THRESHOLD = 60    # Score ≥ 60 → auto-submit application
-OUTREACH_THRESHOLD = 58      # Score ≥ 58 → founder outreach
-REVIEW_THRESHOLD = 55        # Score ≥ 55 → save for review
-MAX_DAILY_APPLICATIONS = 5   # Quality over quantity
+**Elena Revicheva** — AI Product Engineer & Founder
 
-# Premium Source Boosts
-YC_SCORE_BOOST = 15          # +15 for YC companies
-DYNAMITE_SCORE_BOOST = 5     # +5 for DynamiteJobs
-```
+Building personal AI systems using human-AI collaborative development.
+
+- [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [AIdeazz](https://aideazz.xyz)
+- Based in Panama | Bilingual EN/ES | Remote worldwide
 
 ---
 
-## 🎓 Tech Stack
+## License
 
-| Layer | Technology |
-|-------|------------|
-| **AI/LLM** | Claude Sonnet 4 (Anthropic) |
-| **Backend** | Python 3.11, FastAPI, asyncio |
-| **Browser Automation** | Playwright (Greenhouse forms) |
-| **Email** | IMAP (Zoho), Resend API, Hunter.io |
-| **Database** | SQLite |
-| **Hosting** | Railway (24/7) |
-| **Social Posting** | Make.com webhooks |
-| **Notifications** | Telegram Bot API |
+MIT — Use freely. If you build your own job hunting engine, I'd love to hear about it.
 
 ---
 
-## 📈 Expected Results
-
-**Job Hunting (Autonomous):**
-- 4000+ jobs scraped per cycle
-- Premium sources prioritized (YC +15, DynamiteJobs +5)
-- Smart resume matching (3 variants)
-- 3-5 quality applications per day
-- Focus on AI/ML founding/senior roles
-
-**LinkedIn CMO:**
-- 7 posts/week (daily at 7 PM Panama)
-- Bilingual reach (EN/ES) with true alternation
-- 14 rotating images
-- Zero manual work
-
----
-
-## 🚀 Portfolio
-
-**Built by Elena Revicheva:**
-- 11 AI products in 10 months (solo)
-- 7 live AI agents with paying users
-- Ex-CEO/CLO turned AI founder
-
-**🤖 Live AIPAs:**
-1. **VibeJobHunter** (this repo) - Job automation + LinkedIn CMO
-2. **ALGOM Alpha** - Web3 Trading AI on [X](https://x.com/reviceva)
-3. **EspaLuz WhatsApp** - AI language tutor: [wa.me/50766623757](https://wa.me/50766623757)
-4. **EspaLuz Telegram** - AI tutor: [t.me/EspaLuzFamily_bot](https://t.me/EspaLuzFamily_bot)
-5. **EspaLuz Influencer** - Marketing bot: [t.me/Influencer_EspaLuz_bot](https://t.me/Influencer_EspaLuz_bot)
-
-**🌐 Live Products:**
-- [AIdeazz.xyz](https://aideazz.xyz) - AI Agents Portfolio
-- [EspaLuz Web](https://espaluz-ai-language-tutor.lovable.app) - SaaS Language Learning
-- [ATUONA](https://atuona.xyz) - NFT Poetry Gallery
-
----
-
-## 👤 Author
-
-**Elena Revicheva**  
-AI-First Engineer & Founder
-
-- 🌍 Panama City, Panama (Remote globally)
-- 💼 Open to: Founding Engineer roles
-- 📧 aipa@aideazz.xyz
-- 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [X](https://x.com/reviceva)
-
----
-
-## 🧠 The Vibe Coding Philosophy
-
-> **"I'm not here to grab money with AI hallucinations. I'm not here to ship foolish products that serve nobody. I'm here because I rebuilt my life with AI—and that IS the expertise."**
-
-**What I actually want:**
-- ✅ A serious role with real compensation
-- ✅ To be part of a real team building real products
-- ✅ To bring 0→1 speed to people who value builders
-- ✅ To continue my transformation—not fake one
-
-**Vibe coding is:**
-- Not a shortcut—it's a transformation
-- Not replacing skills—it's multiplying them
-- Not hiding behind AI—it's building AI Co-Founders
-
----
-
-## 📝 License
-
-MIT License - Use freely for your job hunt!
-
----
-
-## 🔗 Links
-
-- **Production:** https://vibejobhunter-production.up.railway.app
-- **API Docs:** https://vibejobhunter-production.up.railway.app/docs
-- **Full System Docs:** `SYSTEM_DOCUMENTATION.md`
-- **Strategy:** `CAREER_FOCUS.md`
-
----
-
-**Built with** ❤️ **by Elena + AI Co-Founders**
-
-**Transparency:** I use AI to apply for jobs. I built the AI. The AI is the vehicle—I am the architect.
-
-**Status:** ✅ LIVE - Autonomous applications running since December 2025
-
-*Last updated: January 4, 2026 - YC Advantage, Smart Resume, LinkedIn CMO 7PM Panama*
+*Last updated: February 9, 2026*

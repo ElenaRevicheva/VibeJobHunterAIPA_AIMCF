@@ -784,7 +784,10 @@ You have *{len(outreach)}* message(s) to send:
             
             elif query.data == "post_instagram":
                 import requests
-                webhook_url = os.getenv('MAKE_WEBHOOK_URL_LINKEDIN', 'https://hook.us2.make.com/n771e2agfz6g1y13zhv29hkts24u2u5z')
+                webhook_url = os.getenv('MAKE_WEBHOOK_URL_LINKEDIN', '')
+                if not webhook_url:
+                    await context.bot.send_message(chat_id, "❌ MAKE_WEBHOOK_URL_LINKEDIN not set in env")
+                    return
                 try:
                     response = requests.post(webhook_url, json={
                         "platform": "instagram",

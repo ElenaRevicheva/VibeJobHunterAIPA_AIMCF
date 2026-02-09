@@ -67,5 +67,24 @@ pytest.ini
 test_*.py
 scripts/test_*.py
 
-# ATS runtime cache
+# ATS runtime cache & runtime data
 autonomous_data/ats_cache/
+autonomous_data/manual_outreach_queue.json
+autonomous_data/outreach_log.jsonl
+autonomous_data/seen_jobs.json
+autonomous_data/seen_jobs.json.backup
+autonomous_data/submissions/
+autonomous_data/applications/
+autonomous_data/cache/
+
+# Backup & temp files
+*.backup
+*.bak
+*.phase2fix
+*_OLD.py
+
+# Runtime artifacts (not source code)
+logs_current.txt
+last_used_image.txt
+google_analytics_credentials.json
+deploy_fix.sh
