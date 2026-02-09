@@ -28,6 +28,7 @@ from .multi_channel_sender import MultiChannelSender
 from .demo_tracker import DemoTracker
 from .response_handler import ResponseHandler
 from .follow_up_engine import FollowUpEngine
+from .warm_intro_queue import WarmIntroQueue, seed_contacts_if_empty
 
 logger = setup_logger(__name__)
 
@@ -42,6 +43,7 @@ logger.info(f"📦 Orchestrator v{ORCHESTRATOR_VERSION} loaded")
 AUTO_APPLY_THRESHOLD = 60   # Unblocks Webflow (73), GitLab (67) after bias compensation
 OUTREACH_THRESHOLD = 58     # Founder finder for near-matches
 REVIEW_THRESHOLD = 55       # Human review queue for edge cases
+MAX_DAILY_OUTREACH = 2      # Cap founder/CEO outreach at 1-2 per day (quality over spam)
 
 
 class CycleStats:
@@ -68,7 +70,9 @@ class AutonomousOrchestrator:
 
         self.profile = profile
         self.is_running = False
-        self.last_linkedin_post_date = None
+        self.last_linkedin_post_date = self._load_last_linkedin_post_date()
+        self._outreach_today = 0
+        self._outreach_today_date = None
 
         logger.info("=" * 60)
         logger.info("🚀 VIBEJOBHUNTER ORCHESTRATOR INITIALIZING")
@@ -174,6 +178,17 @@ class AutonomousOrchestrator:
         self.follow_up_engine = FollowUpEngine()
 
         # ─────────────────────────────
+        # Warm Intro Queue (added 2026-02-09)
+        # ─────────────────────────────
+        try:
+            self.warm_intro_queue = WarmIntroQueue()
+            seed_contacts_if_empty(self.warm_intro_queue)
+            logger.info("✅ Warm Intro Queue ready")
+        except Exception as e:
+            logger.error(f"❌ Warm Intro Queue failed: {e}")
+            self.warm_intro_queue = None
+
+        # ─────────────────────────────
         # Daily Summary tracking (added 2026-02-08)
         # ─────────────────────────────
         self._daily_stats = {
@@ -239,6 +254,7 @@ class AutonomousOrchestrator:
                     language=language
                 )
                 self.last_linkedin_post_date = today
+                self._save_last_linkedin_post_date(today)
                 logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
             except Exception as e:
                 logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}")
@@ -293,6 +309,50 @@ class AutonomousOrchestrator:
 
     def get_stats(self) -> Dict[str, Any]:
         return self.stats.copy()
+
+    # ─────────────────────────────
+    # PERSIST LINKEDIN POST DATE (survives reboot)
+    # ─────────────────────────────
+    def _load_last_linkedin_post_date(self):
+        """Load last LinkedIn post date from disk so we don't double-post after reboot."""
+        marker = Path("linkedin_cmo_data/last_post_date.txt")
+        try:
+            if marker.exists():
+                text = marker.read_text().strip()
+                if text:
+                    from datetime import date
+                    return date.fromisoformat(text)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not load last LinkedIn post date: {e}")
+        return None
+
+    def _save_last_linkedin_post_date(self, post_date):
+        """Persist last LinkedIn post date to disk."""
+        marker = Path("linkedin_cmo_data/last_post_date.txt")
+        try:
+            marker.parent.mkdir(exist_ok=True)
+            marker.write_text(post_date.isoformat())
+        except Exception as e:
+            logger.warning(f"⚠️ Could not save last LinkedIn post date: {e}")
+
+    # ─────────────────────────────
+    # OUTREACH DAILY CAP (1-2/day)
+    # ─────────────────────────────
+    def _check_outreach_cap(self) -> bool:
+        """Return True if we can still send outreach today."""
+        today = datetime.utcnow().date()
+        if self._outreach_today_date != today:
+            self._outreach_today = 0
+            self._outreach_today_date = today
+        return self._outreach_today < MAX_DAILY_OUTREACH
+
+    def _record_outreach_sent(self):
+        """Increment daily outreach counter."""
+        today = datetime.utcnow().date()
+        if self._outreach_today_date != today:
+            self._outreach_today = 0
+            self._outreach_today_date = today
+        self._outreach_today += 1
 
     # ─────────────────────────────
     # CORE AUTONOMOUS CYCLE - PRODUCTION v3.0
@@ -396,6 +456,14 @@ class AutonomousOrchestrator:
                 await self._send_pending_follow_ups()
             except Exception as fu_err:
                 logger.warning(f"⚠️ Follow-up check failed: {fu_err}")
+
+            # ═════════════════════════════════════════════════════
+            # STEP 5b: Process warm intro queue (added 2026-02-09)
+            # ═════════════════════════════════════════════════════
+            try:
+                await self._process_warm_intros()
+            except Exception as wi_err:
+                logger.warning(f"⚠️ Warm intro check failed: {wi_err}")
 
             # ═════════════════════════════════════════════════════
             # STEP 6: Check for responses (GENIUS FEATURE)
@@ -617,14 +685,16 @@ class AutonomousOrchestrator:
                     # ─────────────────────────────────────────────
                     # PARALLEL: Also send founder outreach if strong
                     # This is the 1-2 punch: ATS + warm intro
+                    # Capped at MAX_DAILY_OUTREACH (1-2/day)
                     # ─────────────────────────────────────────────
-                    if final_score >= OUTREACH_THRESHOLD and self.founder_finder:
+                    if final_score >= OUTREACH_THRESHOLD and self.founder_finder and self._check_outreach_cap():
                         try:
                             result = await self.founder_finder.find_and_message(job, self.profile)
                             if result.get('success'):
                                 stats.outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
-                                logger.info(f"🤝 Outreach sent for {job.company} (score: {final_score:.0f})")
+                                self._record_outreach_sent()
+                                logger.info(f"🤝 Outreach sent for {job.company} (score: {final_score:.0f}) [{self._outreach_today}/{MAX_DAILY_OUTREACH} today]")
                                 # Record for follow-up
                                 outreach_email = result.get('email', '')
                                 if outreach_email and hasattr(self, 'follow_up_engine'):
@@ -636,12 +706,20 @@ class AutonomousOrchestrator:
                                     )
                         except Exception as e:
                             logger.warning(f"⚠️ Outreach failed for {job.company}: {e}")
+                    elif final_score >= OUTREACH_THRESHOLD and not self._check_outreach_cap():
+                        logger.info(f"⏸️ Outreach cap reached ({MAX_DAILY_OUTREACH}/day) - skipping outreach for {job.company}")
                 
                 # ─────────────────────────────────────────────────
                 # ROUTE 2: OUTREACH ONLY (58-59)
                 # For jobs that don't quite make auto-apply but worth warm intro
                 # ─────────────────────────────────────────────────
                 elif final_score >= OUTREACH_THRESHOLD:
+                    if not self._check_outreach_cap():
+                        logger.info(f"⏸️ Outreach cap reached ({MAX_DAILY_OUTREACH}/day) - saving {job.company} for review instead")
+                        await self._save_for_review(job)
+                        stats.review_queued += 1
+                        continue
+
                     logger.info(f"🤝 OUTREACH ({final_score:.0f}): {job.company} - {job.title[:50]}")
                     
                     if self.founder_finder:
@@ -650,7 +728,8 @@ class AutonomousOrchestrator:
                             if result.get('success'):
                                 stats.outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
-                                logger.info(f"✅ Outreach sent to {job.company}")
+                                self._record_outreach_sent()
+                                logger.info(f"✅ Outreach sent to {job.company} [{self._outreach_today}/{MAX_DAILY_OUTREACH} today]")
                                 # Record for follow-up
                                 outreach_email = result.get('email', '')
                                 if outreach_email and hasattr(self, 'follow_up_engine'):
@@ -926,6 +1005,71 @@ class AutonomousOrchestrator:
             logger.info(f"📬 No follow-ups due (checked {fu_stats['checked']})")
 
     # ─────────────────────────────────────────────────────
+    # WARM INTRO PROCESSING (added 2026-02-09)
+    # ─────────────────────────────────────────────────────
+    async def _process_warm_intros(self):
+        """Check warm intro queue and send messages to available contacts."""
+        if not self.warm_intro_queue:
+            return
+
+        # Only process once per day (at first cycle)
+        today = datetime.utcnow().date()
+        if getattr(self, '_warm_intro_date', None) == today:
+            return
+        
+        # Check outreach cap (warm intros share the daily outreach budget)
+        if not self._check_outreach_cap():
+            logger.info(f"⏸️ Outreach cap reached - skipping warm intros today")
+            return
+
+        available = self.warm_intro_queue.get_available_contacts(limit=1)
+        if not available:
+            logger.info("🤝 Warm intros: No contacts available (all on cooldown or none active)")
+            self._warm_intro_date = today
+            return
+
+        contact = available[0]
+        logger.info(f"🤝 Processing warm intro for: {contact['name']} ({contact['network']})")
+
+        # Generate message
+        message = self.warm_intro_queue.generate_warm_message(contact)
+
+        # Record the outreach
+        self.warm_intro_queue.record_outreach(
+            contact_id=contact["id"],
+            channel="linkedin",
+            message_preview=message[:200],
+            message_type="warm_intro",
+        )
+        self._record_outreach_sent()
+        self._warm_intro_date = today
+
+        # Notify via Telegram so Elena can copy/send the message
+        if self.telegram:
+            network_label = {
+                "cursor_meetup": "Cursor Meetup",
+                "panama_ecosystem": "Panama/ISD",
+                "online_community": "Online Community",
+                "linkedin_connection": "LinkedIn",
+                "conference": "Conference",
+                "referral": "Referral",
+                "other": "Network",
+            }.get(contact["network"], contact["network"])
+
+            alert = (
+                f"🤝 <b>Warm Intro Ready</b> [{network_label}]\n\n"
+                f"<b>Contact:</b> {contact['name']}\n"
+                f"<b>Company:</b> {contact.get('company', 'N/A')}\n"
+                f"<b>LinkedIn:</b> {contact.get('linkedin_url', 'N/A')}\n\n"
+                f"<b>Message:</b>\n<pre>{message[:500]}</pre>\n\n"
+                f"📋 Copy and send via LinkedIn/email.\n"
+                f"Outreach today: {self._outreach_today}/{MAX_DAILY_OUTREACH}"
+            )
+            await self.telegram.send_message(alert)
+
+        logger.info(f"✅ Warm intro queued for {contact['name']} [{self._outreach_today}/{MAX_DAILY_OUTREACH} today]")
+
+    # ─────────────────────────────────────────────────────
     # DAILY STATS ACCUMULATION (added 2026-02-08)
     # ─────────────────────────────────────────────────────
     def _accumulate_daily_stats(self, cycle_stats: CycleStats):
@@ -992,6 +1136,18 @@ class AutonomousOrchestrator:
             ds = self._daily_stats
             today_str = datetime.utcnow().strftime("%B %d, %Y")
 
+            # Warm intro summary
+            wi_summary = ""
+            if self.warm_intro_queue:
+                wi = self.warm_intro_queue.get_stats()
+                wi_summary = (
+                    f"\n\n🤝 <b>Warm Intro Network:</b>\n"
+                    f"• {wi['total_contacts']} contacts in database\n"
+                    f"• {wi['available_today']} available for outreach\n"
+                    f"• {wi['total_outreach_sent']} total warm intros sent\n"
+                    f"• {wi['responses_received']} responses ({wi['response_rate']})"
+                )
+
             # Follow-up engine summary
             fu_summary = ""
             if hasattr(self, 'follow_up_engine'):
@@ -1033,6 +1189,7 @@ class AutonomousOrchestrator:
                 f"📬 Follow-ups sent: {ds['follow_ups_sent']}\n"
                 f"❌ Discarded: {ds['total_discarded']}"
                 f"{top_companies_str}"
+                f"{wi_summary}"
                 f"{fu_summary}"
                 f"{seen_info}"
                 f"\n\n🤖 <i>VibeJobHunter running 24/7 on Oracle</i>"
