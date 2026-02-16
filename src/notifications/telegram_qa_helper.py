@@ -195,7 +195,66 @@ def answer_job_question(text: str) -> str:
             f"\nUse /stats for full metrics, /today for details."
         )
 
-    # Default
+    # Default: use Claude for open-ended professional questions
+    return _answer_with_claude(text)
+
+
+def _build_job_context() -> str:
+    """Build context string for Claude from real data."""
+    companies = get_applied_today()
+    count = get_applied_count_today()
+    pending = get_pending_outreach_count()
+    lines = [
+        f"Applications today: {count}",
+        f"Companies applied to today: {', '.join(companies) if companies else 'none'}",
+        f"Pending outreach (LinkedIn messages to send): {pending}",
+    ]
+    return "\n".join(lines)
+
+
+def _answer_with_claude(question: str) -> str:
+    """
+    Use Claude to answer open-ended professional questions.
+    Passes real job data as context for honest answers.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        from anthropic import Anthropic
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            return _fallback_suggestions()
+    except ImportError:
+        return _fallback_suggestions()
+
+    context = _build_job_context()
+    prompt = f"""You are VibeJobHunter's assistant. Elena asks you questions about her job search. Answer briefly (2-4 sentences max, Telegram-friendly). Use ONLY the data below. Be honest—if data is missing, say so.
+
+REAL DATA (today):
+{context}
+
+Question: {question}
+
+Answer:"""
+
+    try:
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.content[0].text.strip() if response.content else ""
+        if text:
+            return text
+    except Exception as e:
+        logger.warning(f"Claude QA fallback: {e}")
+
+    return _fallback_suggestions()
+
+
+def _fallback_suggestions() -> str:
     return (
         "I answer questions about your job hunt using real data. Try:\n\n"
         "• _What companies did I apply to today?_\n"

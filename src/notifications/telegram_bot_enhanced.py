@@ -770,6 +770,7 @@ You have *{len(outreach)}* message(s) to send:
             if not text:
                 await update.message.reply_text("Couldn't transcribe the voice message. Try typing your question!")
                 return
+            logger.info(f"🎤 Voice transcribed: {text[:100]}{'...' if len(text) > 100 else ''}")
             await self._reply_job_question(update, context, text)
         except Exception as e:
             logger.warning(f"Voice transcription error: {e}")
@@ -790,6 +791,7 @@ You have *{len(outreach)}* message(s) to send:
         """Shared: answer job question and reply."""
         try:
             from src.notifications.telegram_qa_helper import answer_job_question
+            logger.info(f"📝 QA question: {text[:80]}{'...' if len(text) > 80 else ''}")
             reply = answer_job_question(text)
             await update.message.reply_text(reply, parse_mode='Markdown')
         except Exception as e:
