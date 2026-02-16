@@ -1,20 +1,22 @@
 """
-📱 TELEGRAM QA HELPER — Voice & free-form question answering
+📱 TELEGRAM QA HELPER — Professional AI Engineering Job Search Assistant
 
-Additive module: answers job-focused questions from REAL data.
-Used by telegram_bot_enhanced for voice + text handlers.
+Answers ANY question (voice or text) with deep, honest, actionable responses.
+Uses real data + Claude for a true personal assistant experience.
 
 Data sources (read-only):
 - autonomous_data/seen_jobs.json (status=applied)
 - autonomous_data/submissions/submission_log.json
 - autonomous_data/outreach_log.jsonl
+- autonomous_data/manual_outreach_queue.json
+- autonomous_data/ats_cache/ (recent jobs)
 """
 
 import json
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 
 def _today_utc() -> datetime:
@@ -115,6 +117,109 @@ def get_applied_count_today() -> int:
     return len(keys)
 
 
+def _is_within_days(iso_str: str, days: int) -> bool:
+    """Check if ISO timestamp is within last N days (UTC)."""
+    if not iso_str:
+        return False
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return (_today_utc() - dt).days <= days
+    except Exception:
+        return False
+
+
+def _load_applied_last_7d() -> List[Dict]:
+    """Load applications from last 7 days (seen_jobs + submission_log)."""
+    result = []
+    path = Path("autonomous_data/seen_jobs.json")
+    if path.exists():
+        try:
+            data = json.loads(path.read_text())
+            db = data.get("seen_jobs_v2", {})
+            if isinstance(db, dict):
+                for job_id, rec in db.items():
+                    if rec.get("status") != "applied":
+                        continue
+                    applied_at = rec.get("applied_at") or rec.get("last_seen", "")
+                    if _is_within_days(applied_at, 7):
+                        result.append({
+                            "company": rec.get("company", "Unknown"),
+                            "title": rec.get("title", ""),
+                        })
+        except Exception:
+            pass
+    sub_path = Path("autonomous_data/submissions/submission_log.json")
+    if sub_path.exists():
+        try:
+            for e in json.load(sub_path):
+                if e.get("status") not in ("submitted", "dry_run"):
+                    continue
+                if _is_within_days(e.get("timestamp", ""), 7):
+                    result.append({
+                        "company": e.get("company", "Unknown"),
+                        "title": e.get("title", ""),
+                    })
+        except Exception:
+            pass
+    return result
+
+
+def _load_recent_top_jobs(limit: int = 10) -> List[Dict]:
+    """Load top jobs from latest ATS cache (by score if available)."""
+    cache_dir = Path("autonomous_data/ats_cache")
+    if not cache_dir.exists():
+        return []
+    files = sorted([f for f in cache_dir.glob("jobs_*.json")], key=lambda p: p.stat().st_mtime, reverse=True)
+    if not files:
+        return []
+    try:
+        data = json.loads(files[0].read_text())
+        jobs = data.get("jobs", [])
+        if not jobs:
+            return []
+        scored = [j for j in jobs if isinstance(j.get("match_score"), (int, float))]
+        scored.sort(key=lambda j: j.get("match_score", 0), reverse=True)
+        return scored[:limit] if scored else jobs[:limit]
+    except Exception:
+        return []
+
+
+def _load_pending_outreach_details() -> List[Dict]:
+    """Load pending outreach with company/contact info."""
+    result = []
+    for p in [Path("autonomous_data/manual_outreach_queue.json"), Path("autonomous_data/outreach_log.jsonl")]:
+        if not p.exists():
+            continue
+        try:
+            if p.suffix == ".jsonl":
+                with open(p) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            e = json.loads(line)
+                            if e.get("status") in ("pending_manual_send", "pending"):
+                                result.append({
+                                    "company": e.get("company", "Unknown"),
+                                    "contact": e.get("contact_name", "Founder"),
+                                })
+                        except json.JSONDecodeError:
+                            continue
+            else:
+                raw = json.load(p)
+                items = raw if isinstance(raw, list) else raw.get("messages", [])
+                for m in items:
+                    if m.get("status") in ("pending_manual_send", "pending", ""):
+                        result.append({
+                            "company": m.get("company", "Unknown"),
+                            "contact": m.get("contact_name", m.get("contact", "Founder")),
+                        })
+        except Exception:
+            pass
+    return result
+
+
 def get_pending_outreach_count() -> int:
     """Count pending outreach messages."""
     count = 0
@@ -184,38 +289,54 @@ def answer_job_question(text: str) -> str:
             return "✅ No pending outreach messages. Use /outreach to see when new ones appear."
         return f"📨 You have *{n}* pending outreach message(s). Use /outreach to see them."
 
-    # "stats" / "summary"
-    if any(k in t for k in ["stats", "summary", "overview", "how am i doing"]):
-        count = get_applied_count_today()
-        pending = get_pending_outreach_count()
-        return (
-            f"📊 *Quick stats today:*\n"
-            f"• Applications: {count}\n"
-            f"• Pending outreach: {pending}\n"
-            f"\nUse /stats for full metrics, /today for details."
-        )
+    # "stats" / "summary" / "how am i doing" → Claude for deep response
+    # (keyword path skipped — Claude gives richer, professional answer)
 
-    # Default: use Claude for open-ended professional questions
+    # Everything else: Claude for deep, honest, professional answers
     return _answer_with_claude(text)
 
 
-def _build_job_context() -> str:
-    """Build context string for Claude from real data."""
-    companies = get_applied_today()
-    count = get_applied_count_today()
-    pending = get_pending_outreach_count()
+def _build_rich_context() -> str:
+    """Build full context for Claude — real data + career profile."""
+    companies_today = get_applied_today()
+    count_today = get_applied_count_today()
+    pending_count = get_pending_outreach_count()
+    applied_7d = _load_applied_last_7d()
+    top_jobs = _load_recent_top_jobs(8)
+    pending_details = _load_pending_outreach_details()
+
+    # Dedupe applied last 7d by company
+    applied_7d_companies = list(dict.fromkeys([r["company"] for r in applied_7d if r.get("company") and r["company"] != "Unknown"]))
+
     lines = [
-        f"Applications today: {count}",
-        f"Companies applied to today: {', '.join(companies) if companies else 'none'}",
-        f"Pending outreach (LinkedIn messages to send): {pending}",
+        "=== ELENA'S PROFILE (AI Products & Personal Assistants) ===",
+        "Focus: AI product building — creating AI products and AI Personal Assistants (e.g. OpenClaw by Peter Steinberger). One of several target areas.",
+        "Target roles: Founding Engineer, Senior AI Engineer, AI Product Engineer, Staff Engineer, Principal Engineer, AI Solutions Architect, AI Product Manager",
+        "Positioning: Founder-level AI product builder, 0→1, autonomous systems, AI assistants. 10 yrs exp, Panama, remote. Skills: Python, TypeScript, Claude, LLMs, FastAPI, PostgreSQL, Docker, Oracle Cloud.",
+        "Platforms: Greenhouse, Lever, Ashby, Workable, Dice MCP, YC, RemoteOK, HN Who's Hiring. Auto-apply threshold: 60. Outreach threshold: 58.",
+        "",
+        "=== REAL DATA (from VibeJobHunter logs) ===",
+        f"Applications TODAY: {count_today}",
+        f"Companies applied to TODAY: {', '.join(companies_today) if companies_today else 'none'}",
+        f"Applications in LAST 7 DAYS: {len(applied_7d)} ({', '.join(applied_7d_companies[:12])}{'...' if len(applied_7d_companies) > 12 else ''})",
+        f"Pending outreach (LinkedIn to send): {pending_count}",
     ]
+    if pending_details:
+        lines.append("Pending outreach companies: " + ", ".join([f"{r['company']} ({r['contact']})" for r in pending_details[:8]]))
+    if top_jobs:
+        lines.append("Recent top-scoring jobs in pipeline:")
+        for j in top_jobs[:5]:
+            co = j.get("company", "?")
+            ti = (j.get("title") or "?")[:40]
+            sc = j.get("match_score", 0)
+            lines.append(f"  - {co}: {ti} (score {sc})")
     return "\n".join(lines)
 
 
 def _answer_with_claude(question: str) -> str:
     """
-    Use Claude to answer open-ended professional questions.
-    Passes real job data as context for honest answers.
+    Claude as professional AI engineering job search assistant.
+    Deep, honest, actionable answers — not generic chatbot replies.
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -228,21 +349,29 @@ def _answer_with_claude(question: str) -> str:
     except ImportError:
         return _fallback_suggestions()
 
-    context = _build_job_context()
-    prompt = f"""You are VibeJobHunter's assistant. Elena asks you questions about her job search. Answer briefly (2-4 sentences max, Telegram-friendly). Use ONLY the data below. Be honest—if data is missing, say so.
+    context = _build_rich_context()
+    prompt = f"""You are Elena's professional job hunting personal assistant. Her focus: AI product building — including AI Personal Assistants (e.g. OpenClaw-style), AI products, founding/staff-level roles. You have access to her REAL data below. Your job is to give DEEP, HONEST, ACTIONABLE responses — not generic chatbot replies.
 
-REAL DATA (today):
+RULES:
+1. Use ONLY the real data provided. Never invent numbers or companies.
+2. Be honest: if data is missing or thin, say so and suggest what would help.
+3. Give substance: 2–6 sentences with concrete facts, not fluff.
+4. For strategy/advice questions: use her profile + real data to give tailored advice.
+5. For "how am I doing" / status: summarize the data meaningfully.
+6. Format for Telegram: clear, scannable. Use bullet points if helpful.
+7. You are her assistant — professional but warm, outcome-focused.
+
 {context}
 
 Question: {question}
 
-Answer:"""
+Your answer:"""
 
     try:
         client = Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=300,
+            max_tokens=600,
             messages=[{"role": "user", "content": prompt}],
         )
         text = response.content[0].text.strip() if response.content else ""
