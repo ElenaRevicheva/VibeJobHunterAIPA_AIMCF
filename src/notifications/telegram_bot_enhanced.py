@@ -1,15 +1,21 @@
 """
 Enhanced Telegram Bot for VibeJobHunter
 Interactive commands for job hunting control and status
+
+ADDED: Voice + free-form questions (additive, non-overwriting)
+- Voice messages → transcribed with Whisper → answered from real job data
+- Text questions (e.g. "what companies did I apply to today?") → honest answers
 """
 
 import os
 import asyncio
+import tempfile
 from dotenv import load_dotenv
 load_dotenv()
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 import json
+import logging
 
 try:
     from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -25,6 +31,8 @@ try:
 except ImportError:
     TELEGRAM_AVAILABLE = False
     print(" python-telegram-bot not installed. Install with: pip install python-telegram-bot")
+
+logger = logging.getLogger(__name__)
 
 
 class EnhancedTelegramBot:
@@ -50,6 +58,11 @@ class EnhancedTelegramBot:
     /keywords <keywords> - Update job search keywords
     /companies - Show tracked companies
     /recent - Show recent applications
+    /status - Show system status
+
+    VOICE & QUESTIONS (added, additive):
+    - Send a voice message → transcribed with Whisper → answered from real data
+    - Type: "What companies did I apply to today?" → honest list from logs
     """
     
     def __init__(self, token: str, chat_id: str, db_helper=None):
@@ -88,6 +101,10 @@ class EnhancedTelegramBot:
         
         # Callback query handler for inline buttons
         self.app.add_handler(CallbackQueryHandler(self.handle_callback))
+
+        # ADDED: Voice + free-form text (additive — commands unchanged)
+        self.app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
+        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_freeform_text))
     
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Welcome message with main menu"""
@@ -487,6 +504,10 @@ You have *{len(outreach)}* message(s) to send:
 - High-match jobs (>80%) trigger instant alerts
 - You'll get weekly performance reports
 - All applications are tracked in the database
+
+*Voice & questions:*
+- Send a voice message (needs OPENAI_API_KEY) or type a question
+- Try: "What companies did I apply to today?" for honest answers
 """
         await update.message.reply_text(message, parse_mode='Markdown')
     
@@ -714,7 +735,69 @@ You have *{len(outreach)}* message(s) to send:
             message += "Use /pause to stop"
         
         await update.message.reply_text(message, parse_mode='Markdown')
-    
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # VOICE + FREE-FORM QUESTIONS (additive)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Transcribe voice message with Whisper, then answer from real job data."""
+        if not update.message or not update.message.voice:
+            return
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            await update.message.reply_text(
+                "🎤 Voice works! Add OPENAI_API_KEY to .env for transcription. "
+                "Or type your question — I answer job questions from real data."
+            )
+            return
+        try:
+            voice = update.message.voice
+            tg_file = await context.bot.get_file(voice.file_id)
+            tmp_path = None
+            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
+                tmp_path = tmp.name
+            await tg_file.download_to_drive(tmp_path)
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                with open(tmp_path, "rb") as f:
+                    transcript = client.audio.transcriptions.create(model="whisper-1", file=f)
+                text = transcript.text.strip() if hasattr(transcript, 'text') else str(transcript)
+            finally:
+                if tmp_path and os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            if not text:
+                await update.message.reply_text("Couldn't transcribe the voice message. Try typing your question!")
+                return
+            await self._reply_job_question(update, context, text)
+        except Exception as e:
+            logger.warning(f"Voice transcription error: {e}")
+            await update.message.reply_text(
+                f"Voice transcription failed. Try typing: \"What companies did I apply to today?\""
+            )
+
+    async def handle_freeform_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Answer free-form job questions from real data (honest answers)."""
+        if not update.message or not update.message.text:
+            return
+        text = (update.message.text or "").strip()
+        if not text:
+            return
+        await self._reply_job_question(update, context, text)
+
+    async def _reply_job_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
+        """Shared: answer job question and reply."""
+        try:
+            from src.notifications.telegram_qa_helper import answer_job_question
+            reply = answer_job_question(text)
+            await update.message.reply_text(reply, parse_mode='Markdown')
+        except Exception as e:
+            logger.warning(f"QA reply error: {e}")
+            await update.message.reply_text(
+                "Use /today or /stats for summaries. Or ask: \"What companies did I apply to today?\""
+            )
+
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button clicks"""
         import logging
