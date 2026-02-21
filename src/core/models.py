@@ -90,6 +90,8 @@ class JobPosting(BaseModel):
     # Match score
     match_score: float = 0.0
     match_reasons: List[str] = []
+    priority_flag: bool = False  # Additive — company in priority list (Feb 2026)
+    is_yc_company: bool = False  # For outreach messaging
     red_flags: List[str] = []
     criteria_match: Optional[Dict[str, Any]] = None
     talking_points: List[str] = []  # Specific talking points for this job

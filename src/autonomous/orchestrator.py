@@ -57,6 +57,10 @@ class CycleStats:
         self.discarded = 0
         self.errors = 0
         self.top_matches = []
+        # Priority companies visibility (additive — Feb 2026)
+        self.priority_matches_found = 0
+        self.priority_outreach_sent = 0
+        self.priority_applied = 0
 
 
 class AutonomousOrchestrator:
@@ -493,10 +497,24 @@ class AutonomousOrchestrator:
         🏆 PREMIUM SOURCE BOOST:
         - YC companies get +15 score boost
         - Other premium sources get +5
+        
+        🎯 PRIORITY COMPANIES (additive — Feb 2026):
+        - Companies in priority list get +15 boost and priority_flag=True
         """
         from ..agents.job_matcher import JobMatcher
+        from ..database.database_models import is_priority_company
         matcher = JobMatcher()
-        
+
+        # Load priority company slugs (empty set if no DB — backward compatible)
+        priority_slugs = set()
+        if self.db_helper:
+            try:
+                priority_slugs = self.db_helper.get_priority_company_slugs()
+                if priority_slugs:
+                    logger.info(f"🎯 Priority companies loaded: {len(priority_slugs)}")
+            except Exception as e:
+                logger.debug(f"Priority list not available: {e}")
+
         scored_jobs = []
         score_distribution = {"0-30": 0, "30-50": 0, "50-60": 0, "60-70": 0, "70+": 0}
         yc_jobs_found = 0
@@ -528,6 +546,17 @@ class AutonomousOrchestrator:
                     elif is_premium:
                         premium_jobs_found += 1
                         reasons.append(f"⭐ Premium Source (+{score_boost})")
+
+                # 🎯 PRIORITY COMPANIES: additive +15 boost (do not modify base logic)
+                job.priority_flag = False
+                if priority_slugs and is_priority_company(getattr(job, 'company', '') or '', priority_slugs):
+                    job.priority_flag = True
+                    stats.priority_matches_found += 1
+                    original_score = score
+                    score += 15
+                    score = min(score, 100)
+                    reasons.append("🎯 Priority Company (+15)")
+                    logger.info(f"🎯 PRIORITY BOOST: {job.company} {original_score:.0f} → {score:.0f}")
                 
                 job.match_score = score
                 job.match_reasons = reasons
@@ -646,9 +675,16 @@ class AutonomousOrchestrator:
         
         logger.info("🔀 Starting multi-channel routing...")
         
+        PRIORITY_OUTREACH_THRESHOLD = 50  # Safe override: priority companies eligible at 50+
+
         for job in diverse_jobs:
             final_score = job.match_score
-            
+            priority_flag = getattr(job, 'priority_flag', False)
+            outreach_eligible = (
+                final_score >= OUTREACH_THRESHOLD or
+                (priority_flag and final_score >= PRIORITY_OUTREACH_THRESHOLD)
+            )
+
             try:
                 # ─────────────────────────────────────────────────
                 # ROUTE 1: AUTO-APPLY (≥60)
@@ -671,6 +707,8 @@ class AutonomousOrchestrator:
                     
                     if success:
                         stats.auto_applied += 1
+                        if priority_flag:
+                            stats.priority_applied += 1
                         self.stats["applications_today"] += 1
                         self.stats["applications_sent"] += 1
                         logger.info(f"✅ Applied to {job.company} via ATS")
@@ -684,14 +722,16 @@ class AutonomousOrchestrator:
                     
                     # ─────────────────────────────────────────────
                     # PARALLEL: Also send founder outreach if strong
-                    # This is the 1-2 punch: ATS + warm intro
+                    # (or priority company with score ≥50)
                     # Capped at MAX_DAILY_OUTREACH (1-2/day)
                     # ─────────────────────────────────────────────
-                    if final_score >= OUTREACH_THRESHOLD and self.founder_finder and self._check_outreach_cap():
+                    if outreach_eligible and self.founder_finder and self._check_outreach_cap():
                         try:
                             result = await self.founder_finder.find_and_message(job, self.profile)
                             if result.get('success'):
                                 stats.outreach_sent += 1
+                                if priority_flag:
+                                    stats.priority_outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
                                 self._record_outreach_sent()
                                 logger.info(f"🤝 Outreach sent for {job.company} (score: {final_score:.0f}) [{self._outreach_today}/{MAX_DAILY_OUTREACH} today]")
@@ -706,14 +746,14 @@ class AutonomousOrchestrator:
                                     )
                         except Exception as e:
                             logger.warning(f"⚠️ Outreach failed for {job.company}: {e}")
-                    elif final_score >= OUTREACH_THRESHOLD and not self._check_outreach_cap():
+                    elif outreach_eligible and not self._check_outreach_cap():
                         logger.info(f"⏸️ Outreach cap reached ({MAX_DAILY_OUTREACH}/day) - skipping outreach for {job.company}")
                 
                 # ─────────────────────────────────────────────────
-                # ROUTE 2: OUTREACH ONLY (58-59)
+                # ROUTE 2: OUTREACH ONLY (≥58 or priority ≥50)
                 # For jobs that don't quite make auto-apply but worth warm intro
                 # ─────────────────────────────────────────────────
-                elif final_score >= OUTREACH_THRESHOLD:
+                elif outreach_eligible:
                     if not self._check_outreach_cap():
                         logger.info(f"⏸️ Outreach cap reached ({MAX_DAILY_OUTREACH}/day) - saving {job.company} for review instead")
                         await self._save_for_review(job)
@@ -727,6 +767,8 @@ class AutonomousOrchestrator:
                             result = await self.founder_finder.find_and_message(job, self.profile)
                             if result.get('success'):
                                 stats.outreach_sent += 1
+                                if priority_flag:
+                                    stats.priority_outreach_sent += 1
                                 self.stats["founder_outreach"] += 1
                                 self._record_outreach_sent()
                                 logger.info(f"✅ Outreach sent to {job.company} [{self._outreach_today}/{MAX_DAILY_OUTREACH} today]")
@@ -872,6 +914,10 @@ class AutonomousOrchestrator:
 
             if stats.errors > 0:
                 summary += f"\n⚠️ {stats.errors} errors occurred"
+            
+            # Priority companies visibility (additive — Feb 2026)
+            if stats.priority_matches_found or stats.priority_outreach_sent or stats.priority_applied:
+                summary += f"\n\n🎯 <b>Priority:</b> {stats.priority_matches_found} found, {stats.priority_outreach_sent} outreach, {stats.priority_applied} applied"
             
             if stats.top_matches:
                 summary += f"\n\n🏆 <b>Top Matches:</b>"

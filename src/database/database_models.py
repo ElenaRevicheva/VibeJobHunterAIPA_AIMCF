@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
+from pathlib import Path
 
 Base = declarative_base()
 
@@ -182,6 +183,20 @@ class Interview(Base):
     
     # Relationships
     application = relationship("Application", back_populates="interviews")
+
+
+class PriorityCompany(Base):
+    """
+    Priority target companies (additive layer — does not replace discovery).
+    Used for: +15 score boost, outreach at score ≥50.
+    Source: yc (OpenClaw sync), manual, import.
+    """
+    __tablename__ = 'priority_companies'
+
+    id = Column(String, primary_key=True)
+    company_name = Column(String, nullable=False, index=True)  # normalized slug for matching
+    source = Column(String, default='manual')  # yc, manual, import
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class LearningMetric(Base):
@@ -624,10 +639,106 @@ class DatabaseHelper:
         timeline.sort(key=lambda x: x['date'] if x['date'] else datetime.min)
         
         return timeline
-    
+
+    # =========================================================================
+    # PRIORITY COMPANIES (additive layer — Feb 2026)
+    # =========================================================================
+
+    def get_priority_company_slugs(self) -> set:
+        """Get set of normalized company names for fast matching."""
+        rows = self.session.query(PriorityCompany.company_name).all()
+        return {r[0].lower().strip() for r in rows if r[0]}
+
+    def add_priority_company(self, company_name: str, source: str = 'manual') -> bool:
+        """Add company to priority list. Returns True if added."""
+        import uuid
+        slug = _normalize_company_slug(company_name)
+        if not slug:
+            return False
+        existing = self.session.query(PriorityCompany).filter_by(company_name=slug).first()
+        if existing:
+            return False
+        self.session.add(PriorityCompany(
+            id=f"pc_{uuid.uuid4().hex[:12]}",
+            company_name=slug,
+            source=source
+        ))
+        self.session.commit()
+        return True
+
+    def remove_priority_company(self, company_name: str) -> bool:
+        """Remove company from priority list."""
+        slug = _normalize_company_slug(company_name)
+        if not slug:
+            return False
+        deleted = self.session.query(PriorityCompany).filter_by(company_name=slug).delete()
+        self.session.commit()
+        return deleted > 0
+
+    def list_priority_companies(self) -> list:
+        """Return list of (company_name, source, created_at)."""
+        rows = self.session.query(
+            PriorityCompany.company_name,
+            PriorityCompany.source,
+            PriorityCompany.created_at
+        ).order_by(PriorityCompany.created_at.desc()).all()
+        return [{"company_name": r[0], "source": r[1], "created_at": r[2]} for r in rows]
+
+    def sync_priority_from_yc_file(self, filepath: str) -> tuple:
+        """
+        Sync priority list from OpenClaw YC export file.
+        Returns (added_count, skipped_count).
+        """
+        import json
+        path = Path(filepath) if isinstance(filepath, str) else filepath
+        if not path.exists():
+            return 0, 0
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return 0, 0
+        if not isinstance(data, list):
+            return 0, 0
+        added, skipped = 0, 0
+        for item in data:
+            name = item.get("company_name") or item.get("name") or item.get("slug")
+            if not name:
+                skipped += 1
+                continue
+            slug = _normalize_company_slug(str(name))
+            if self.add_priority_company(slug, source='yc'):
+                added += 1
+            else:
+                skipped += 1
+        return added, skipped
+
     def close(self):
         """Close database session"""
         self.session.close()
+
+
+def _normalize_company_slug(name: str) -> str:
+    """Normalize company name for matching (lowercase, strip, collapse to slug form)."""
+    if not name or not isinstance(name, str):
+        return ""
+    import re
+    s = name.lower().strip()
+    s = re.sub(r'[^a-z0-9\-]', ' ', s)
+    s = re.sub(r'\s+', '-', s).strip('-')
+    return s if s else name.lower().strip()
+
+
+def is_priority_company(job_company: str, priority_slugs: set) -> bool:
+    """Check if job's company matches any priority company (normalized, flexible match)."""
+    if not job_company or not priority_slugs:
+        return False
+    j = _normalize_company_slug(str(job_company))
+    if not j:
+        return False
+    for p in priority_slugs:
+        if j == p or j in p or p in j:
+            return True
+    return False
 
 
 if __name__ == '__main__':
