@@ -381,6 +381,28 @@ class AutonomousOrchestrator:
         
         try:
             # ═════════════════════════════════════════════════════
+            # STEP 0: Sync priority companies from YC export (additive, non-blocking)
+            # Cron on Oracle runs job-list pipeline every 6h; we sync from the file each cycle.
+            # ═════════════════════════════════════════════════════
+            if self.db_helper:
+                import os
+                path = os.getenv("PRIORITY_YC_EXPORT_PATH")
+                if not path:
+                    base = os.getenv("OPENCLAW_JOB_LIST_PATH", ".")
+                    path = os.path.join(base, "priority_companies_for_vibejob.json")
+                if not os.path.isabs(path):
+                    path = os.path.join(os.getcwd(), path)
+                if not os.path.exists(path) and os.path.exists("/home/ubuntu/job-list-filter"):
+                    path = "/home/ubuntu/job-list-filter/priority_companies_for_vibejob.json"
+                if os.path.exists(path):
+                    try:
+                        added, skipped = self.db_helper.sync_priority_from_yc_file(path)
+                        if added > 0 or skipped > 0:
+                            logger.info(f"🎯 Priority sync: {added} added, {skipped} skipped (from YC export)")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Priority sync skipped: {e}")
+            
+            # ═════════════════════════════════════════════════════
             # STEP 1: Find new jobs
             # ═════════════════════════════════════════════════════
             logger.info("🔍 Step 1: Finding new jobs...")
