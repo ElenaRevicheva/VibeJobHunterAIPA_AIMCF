@@ -786,6 +786,15 @@ You have *{len(outreach)}* message(s) to send:
                         path = os.path.join(base, "priority_companies_for_vibejob.json")
                     if not os.path.isabs(path):
                         path = os.path.join(os.getcwd(), path)
+                    # Fallback: Oracle default (job-list-filter alongside VibeJobHunter)
+                    if not os.path.exists(path) and os.path.exists("/home/ubuntu/job-list-filter"):
+                        path = "/home/ubuntu/job-list-filter/priority_companies_for_vibejob.json"
+                    if not os.path.exists(path):
+                        await update.message.reply_text(
+                            f"📂 Export file not found at {path}. "
+                            "Ask OpenClaw for your job shortlist first — it creates the file. Then run /priority sync yc again."
+                        )
+                        return
                     added, skipped = self.db_helper.sync_priority_from_yc_file(path)
                     await update.message.reply_text(f"✅ Sync YC: {added} added, {skipped} skipped (from {path})")
                 else:
