@@ -98,7 +98,9 @@ class EnhancedTelegramBot:
         self.app.add_handler(CommandHandler("companies", self.cmd_companies))
         self.app.add_handler(CommandHandler("recent", self.cmd_recent))
         self.app.add_handler(CommandHandler("status", self.cmd_status))
-        
+        # Priority companies (additive — Feb 2026)
+        self.app.add_handler(CommandHandler("priority", self.cmd_priority))
+
         # Callback query handler for inline buttons
         self.app.add_handler(CallbackQueryHandler(self.handle_callback))
 
@@ -163,6 +165,7 @@ Choose an option below:"""
                     InlineKeyboardButton("📈 Stats", callback_data="stats")
                 ],
                 [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+                [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
                 
                 # 🚀 AI MARKETING CMO Section
                 [InlineKeyboardButton("🚀 AI MARKETING CMO", callback_data="header_cmo")],
@@ -736,6 +739,65 @@ You have *{len(outreach)}* message(s) to send:
         
         await update.message.reply_text(message, parse_mode='Markdown')
 
+    async def cmd_priority(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Priority companies: list, add, remove, sync yc (additive — Feb 2026)"""
+        if not self.db_helper:
+            await update.message.reply_text("Priority list not available (no database).")
+            return
+        args = (context.args or []) if context.args else []
+        sub = (args[0] or "list").lower() if args else "list"
+
+        try:
+            if sub == "list":
+                rows = self.db_helper.list_priority_companies()
+                total = len(rows)
+                ts = rows[0]["created_at"].strftime("%Y-%m-%d %H:%M") if rows else "—"
+                msg = f"🎯 *Priority Companies* ({total})\n\n"
+                for r in rows[:30]:
+                    msg += f"• {r['company_name']} ({r['source']})\n"
+                if total > 30:
+                    msg += f"\n... and {total - 30} more"
+                msg += f"\n\n_Last updated: {ts}_"
+                await update.message.reply_text(msg, parse_mode='Markdown')
+            elif sub == "add":
+                name = " ".join(args[1:]).strip() if len(args) > 1 else ""
+                if not name:
+                    await update.message.reply_text("Usage: /priority add <company>")
+                    return
+                if self.db_helper.add_priority_company(name, "manual"):
+                    await update.message.reply_text(f"✅ Added: {name}")
+                else:
+                    await update.message.reply_text(f"Already in list or invalid: {name}")
+            elif sub == "remove":
+                name = " ".join(args[1:]).strip() if len(args) > 1 else ""
+                if not name:
+                    await update.message.reply_text("Usage: /priority remove <company>")
+                    return
+                if self.db_helper.remove_priority_company(name):
+                    await update.message.reply_text(f"✅ Removed: {name}")
+                else:
+                    await update.message.reply_text(f"Not found or invalid: {name}")
+            elif sub == "sync":
+                sync_source = (args[1] or "yc").lower() if len(args) > 1 else "yc"
+                if sync_source == "yc":
+                    path = os.getenv("PRIORITY_YC_EXPORT_PATH")
+                    if not path:
+                        base = os.getenv("OPENCLAW_JOB_LIST_PATH", ".")
+                        path = os.path.join(base, "priority_companies_for_vibejob.json")
+                    if not os.path.isabs(path):
+                        path = os.path.join(os.getcwd(), path)
+                    added, skipped = self.db_helper.sync_priority_from_yc_file(path)
+                    await update.message.reply_text(f"✅ Sync YC: {added} added, {skipped} skipped (from {path})")
+                else:
+                    await update.message.reply_text("Usage: /priority sync yc")
+            else:
+                await update.message.reply_text(
+                    "Usage:\n/priority list\n/priority add <company>\n/priority remove <company>\n/priority sync yc"
+                )
+        except Exception as e:
+            logger.exception("cmd_priority error")
+            await update.message.reply_text(f"Error: {str(e)[:200]}")
+
     # ─────────────────────────────────────────────────────────────────────────
     # VOICE + FREE-FORM QUESTIONS (additive)
     # ─────────────────────────────────────────────────────────────────────────
@@ -851,6 +913,9 @@ You have *{len(outreach)}* message(s) to send:
             elif query.data == "stats":
                 await self._send_stats(context, chat_id)
             
+            elif query.data == "priority":
+                await self._send_priority_list(context, chat_id)
+            
             # ═══════════════════════════════════════════════════════════════
             # 🚀 CMO AIPA CALLBACKS (LinkedIn + Instagram via Make.com)
             # ═══════════════════════════════════════════════════════════════
@@ -930,6 +995,7 @@ Choose an option below:"""
                 InlineKeyboardButton("📈 Stats", callback_data="stats")
             ],
             [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
+            [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
             [
                 InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
                 InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
@@ -1188,6 +1254,29 @@ _Use /stats for full DB stats (if connected)_
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
+    
+    async def _send_priority_list(self, context, chat_id):
+        """Send priority companies list via menu callback (additive — Feb 2026)"""
+        if not self.db_helper:
+            await context.bot.send_message(chat_id, "Priority list not available (no database).")
+            return
+        try:
+            rows = self.db_helper.list_priority_companies()
+            total = len(rows)
+            ts = rows[0]["created_at"].strftime("%Y-%m-%d %H:%M") if rows else "—"
+            msg = f"🎯 *Priority Companies* ({total})\n\n"
+            for r in rows[:30]:
+                msg += f"• {r['company_name']} ({r['source']})\n"
+            if total > 30:
+                msg += f"\n... and {total - 30} more"
+            msg += f"\n\n_Last updated: {ts}_"
+            msg += "\n\n_Commands:_ /priority add, remove, sync yc"
+            keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await context.bot.send_message(chat_id, msg, parse_mode='Markdown', reply_markup=reply_markup)
+        except Exception as e:
+            logger.exception("_send_priority_list error")
+            await context.bot.send_message(chat_id, f"Error: {str(e)[:200]}")
     
     # Helper methods
     
