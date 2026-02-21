@@ -960,6 +960,12 @@ You have *{len(outreach)}* message(s) to send:
             elif query.data == "priority":
                 await self._send_priority_list(context, chat_id)
             
+            elif query.data == "priority_sync":
+                await self._do_priority_sync(context, chat_id)
+            
+            elif query.data == "priority_refresh":
+                await self._do_priority_refresh(context, chat_id)
+            
             # ═══════════════════════════════════════════════════════════════
             # 🚀 CMO AIPA CALLBACKS (LinkedIn + Instagram via Make.com)
             # ═══════════════════════════════════════════════════════════════
@@ -1333,13 +1339,64 @@ _Use /stats for full DB stats (if connected)_
             if total > 30:
                 msg += f"\n... and {total - 30} more"
             msg += f"\n\n_Last updated: {ts}_"
-            msg += "\n\n_Commands:_ /priority add, remove, sync yc, refresh"
-            keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+            msg += "\n\n_Add/remove:_ /priority add or remove <name>"
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔄 Sync YC", callback_data="priority_sync"),
+                    InlineKeyboardButton("🔄 Refresh", callback_data="priority_refresh"),
+                ],
+                [InlineKeyboardButton("📋 Back to Menu", callback_data="menu")],
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(chat_id, msg, parse_mode='Markdown', reply_markup=reply_markup)
         except Exception as e:
             logger.exception("_send_priority_list error")
             await context.bot.send_message(chat_id, f"Error: {str(e)[:200]}")
+    
+    async def _do_priority_sync(self, context, chat_id):
+        """Sync from YC export file (callback from button)."""
+        if not self.db_helper:
+            await context.bot.send_message(chat_id, "Priority list not available (no database).")
+            return
+        path = self._get_priority_export_path()
+        if not os.path.exists(path):
+            await context.bot.send_message(chat_id, f"📂 Export file not found. Ask OpenClaw for job shortlist first, then tap Refresh.")
+            return
+        try:
+            added, skipped = self.db_helper.sync_priority_from_yc_file(path)
+            await context.bot.send_message(chat_id, f"✅ Sync YC: {added} added, {skipped} skipped.")
+            await self._send_priority_list(context, chat_id)
+        except Exception as e:
+            logger.exception("_do_priority_sync error")
+            await context.bot.send_message(chat_id, f"Error: {str(e)[:150]}")
+    
+    async def _do_priority_refresh(self, context, chat_id):
+        """Run pipeline + sync (callback from button)."""
+        if not self.db_helper:
+            await context.bot.send_message(chat_id, "Priority list not available (no database).")
+            return
+        await context.bot.send_message(chat_id, "🔄 Refreshing from YC (30–60 sec)...")
+        import subprocess
+        path = self._get_priority_export_path()
+        base = os.path.dirname(path)
+        script = os.path.join(base, "run_shortlist.sh")
+        if not os.path.exists(script):
+            await context.bot.send_message(chat_id, "❌ run_shortlist.sh not found.")
+            return
+        try:
+            subprocess.run(["bash", script], cwd=base, capture_output=True, timeout=120, env={**os.environ})
+        except subprocess.TimeoutExpired:
+            await context.bot.send_message(chat_id, "⏱️ Pipeline timed out. Try again.")
+            return
+        except Exception as e:
+            await context.bot.send_message(chat_id, f"❌ Pipeline error: {str(e)[:100]}")
+            return
+        if os.path.exists(path):
+            added, skipped = self.db_helper.sync_priority_from_yc_file(path)
+            await context.bot.send_message(chat_id, f"✅ Refreshed! {added} added, {skipped} skipped.")
+            await self._send_priority_list(context, chat_id)
+        else:
+            await context.bot.send_message(chat_id, "❌ Export file not created.")
     
     # Helper methods
     
