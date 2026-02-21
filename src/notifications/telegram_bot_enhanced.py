@@ -749,6 +749,13 @@ You have *{len(outreach)}* message(s) to send:
 
         try:
             if sub == "list":
+                # Sync from export file first (fresh data on manual request)
+                path = self._get_priority_export_path()
+                if os.path.exists(path):
+                    try:
+                        self.db_helper.sync_priority_from_yc_file(path)
+                    except Exception:
+                        pass
                 rows = self.db_helper.list_priority_companies()
                 total = len(rows)
                 ts = rows[0]["created_at"].strftime("%Y-%m-%d %H:%M") if rows else "—"
@@ -780,15 +787,7 @@ You have *{len(outreach)}* message(s) to send:
             elif sub == "sync":
                 sync_source = (args[1] or "yc").lower() if len(args) > 1 else "yc"
                 if sync_source == "yc":
-                    path = os.getenv("PRIORITY_YC_EXPORT_PATH")
-                    if not path:
-                        base = os.getenv("OPENCLAW_JOB_LIST_PATH", ".")
-                        path = os.path.join(base, "priority_companies_for_vibejob.json")
-                    if not os.path.isabs(path):
-                        path = os.path.join(os.getcwd(), path)
-                    # Fallback: Oracle default (job-list-filter alongside VibeJobHunter)
-                    if not os.path.exists(path) and os.path.exists("/home/ubuntu/job-list-filter"):
-                        path = "/home/ubuntu/job-list-filter/priority_companies_for_vibejob.json"
+                    path = self._get_priority_export_path()
                     if not os.path.exists(path):
                         await update.message.reply_text(
                             f"📂 Export file not found at {path}. "
@@ -799,9 +798,45 @@ You have *{len(outreach)}* message(s) to send:
                     await update.message.reply_text(f"✅ Sync YC: {added} added, {skipped} skipped (from {path})")
                 else:
                     await update.message.reply_text("Usage: /priority sync yc")
+            elif sub == "refresh":
+                # Run pipeline + sync for truly fresh data on demand
+                await update.message.reply_text("🔄 Refreshing from YC (30–60 sec)...")
+                import subprocess
+                path = self._get_priority_export_path()
+                base = os.path.dirname(path)
+                script = os.path.join(base, "run_shortlist.sh")
+                if os.path.exists(script):
+                    try:
+                        subprocess.run(
+                            ["bash", script],
+                            cwd=base,
+                            capture_output=True,
+                            timeout=120,
+                            env={**os.environ}
+                        )
+                    except subprocess.TimeoutExpired:
+                        await update.message.reply_text("⏱️ Pipeline timed out. Try again.")
+                        return
+                    except Exception as e:
+                        await update.message.reply_text(f"❌ Pipeline error: {str(e)[:100]}")
+                        return
+                if os.path.exists(path):
+                    added, skipped = self.db_helper.sync_priority_from_yc_file(path)
+                    rows = self.db_helper.list_priority_companies()
+                    total = len(rows)
+                    ts = rows[0]["created_at"].strftime("%Y-%m-%d %H:%M") if rows else "—"
+                    msg = f"✅ Refreshed! {added} added, {skipped} skipped.\n\n🎯 *Priority Companies* ({total})\n\n"
+                    for r in rows[:30]:
+                        msg += f"• {r['company_name']} ({r['source']})\n"
+                    if total > 30:
+                        msg += f"\n... and {total - 30} more"
+                    msg += f"\n\n_Last updated: {ts}_"
+                    await update.message.reply_text(msg, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("❌ Export file not created. Check job-list-filter path.")
             else:
                 await update.message.reply_text(
-                    "Usage:\n/priority list\n/priority add <company>\n/priority remove <company>\n/priority sync yc"
+                    "Usage:\n/priority list\n/priority add <company>\n/priority remove <company>\n/priority sync yc\n/priority refresh"
                 )
         except Exception as e:
             logger.exception("cmd_priority error")
@@ -1264,12 +1299,31 @@ _Use /stats for full DB stats (if connected)_
         
         await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
     
+    def _get_priority_export_path(self):
+        """Resolve path to priority_companies_for_vibejob.json (same logic as sync)."""
+        path = os.getenv("PRIORITY_YC_EXPORT_PATH")
+        if not path:
+            base = os.getenv("OPENCLAW_JOB_LIST_PATH", ".")
+            path = os.path.join(base, "priority_companies_for_vibejob.json")
+        if not os.path.isabs(path):
+            path = os.path.join(os.getcwd(), path)
+        if not os.path.exists(path) and os.path.exists("/home/ubuntu/job-list-filter"):
+            path = "/home/ubuntu/job-list-filter/priority_companies_for_vibejob.json"
+        return path
+
     async def _send_priority_list(self, context, chat_id):
-        """Send priority companies list via menu callback (additive — Feb 2026)"""
+        """Send priority companies list via menu callback. Syncs from JSON first for fresh data."""
         if not self.db_helper:
             await context.bot.send_message(chat_id, "Priority list not available (no database).")
             return
         try:
+            # Sync from export file first (fresh data on manual click)
+            path = self._get_priority_export_path()
+            if os.path.exists(path):
+                try:
+                    self.db_helper.sync_priority_from_yc_file(path)
+                except Exception:
+                    pass
             rows = self.db_helper.list_priority_companies()
             total = len(rows)
             ts = rows[0]["created_at"].strftime("%Y-%m-%d %H:%M") if rows else "—"
@@ -1279,7 +1333,7 @@ _Use /stats for full DB stats (if connected)_
             if total > 30:
                 msg += f"\n... and {total - 30} more"
             msg += f"\n\n_Last updated: {ts}_"
-            msg += "\n\n_Commands:_ /priority add, remove, sync yc"
+            msg += "\n\n_Commands:_ /priority add, remove, sync yc, refresh"
             keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(chat_id, msg, parse_mode='Markdown', reply_markup=reply_markup)
