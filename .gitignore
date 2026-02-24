@@ -88,3 +88,12 @@ logs_current.txt
 last_used_image.txt
 google_analytics_credentials.json
 deploy_fix.sh
+
+# Local/server env and exports (never commit)
+oracle-env-setup.sh
+oracle-env-setup.env
+*-env-setup.sh
+railway-db-export.json
+railway-db-export*.json
+*.env.local
+.env.*.local
