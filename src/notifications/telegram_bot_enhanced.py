@@ -846,6 +846,68 @@ You have *{len(outreach)}* message(s) to send:
     # VOICE + FREE-FORM QUESTIONS (additive)
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _detect_language(self, text: str) -> str:
+        """
+        Very lightweight language detector for voice questions.
+        Only distinguishes between EN / ES / RU using simple heuristics.
+        """
+        if not text:
+            return "en"
+        # Cyrillic characters → assume Russian
+        if any("\u0400" <= ch <= "\u04FF" for ch in text):
+            return "ru"
+        lower = text.lower()
+        # Basic Spanish markers
+        spanish_markers = [
+            " hola ",
+            " buenos dias",
+            " buenas tardes",
+            " buenas noches",
+            " gracias",
+            " por favor",
+            " que ",
+            " porque",
+            " para ",
+            " contigo",
+            " estoy",
+            " tengo",
+            " quiero",
+            " trabajo",
+        ]
+        if any(m in lower for m in spanish_markers) or any(c in lower for c in ["ñ", "á", "é", "í", "ó", "ú", "ü"]):
+            return "es"
+        return "en"
+
+    async def _translate_to_english(self, text: str, source_lang: str) -> str:
+        """
+        Translate ES/RU → EN using OpenAI if available.
+        Falls back to original text on any error.
+        """
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key or not text:
+            return text
+        # If already English, skip
+        if source_lang == "en":
+            return text
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            prompt = (
+                "Translate the following user question into natural English, keeping all job-search-specific details. "
+                "Return ONLY the translated English text, no explanations.\n\n"
+                f"Original ({source_lang}): {text}"
+            )
+            resp = client.chat.completions.create(
+                model=os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini"),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+            )
+            translated = resp.choices[0].message.content.strip()
+            return translated or text
+        except Exception as e:
+            logger.warning(f"Translation failed, using original text. Error: {e}")
+            return text
+
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Transcribe voice message with Whisper, then answer from real job data."""
         if not update.message or not update.message.voice:
@@ -876,8 +938,17 @@ You have *{len(outreach)}* message(s) to send:
             if not text:
                 await update.message.reply_text("Couldn't transcribe the voice message. Try typing your question!")
                 return
-            logger.info(f"🎤 Voice transcribed: {text[:100]}{'...' if len(text) > 100 else ''}")
-            await self._reply_job_question(update, context, text)
+            lang = self._detect_language(text)
+            logger.info(f"🎤 Voice transcribed ({lang}): {text[:100]}{'...' if len(text) > 100 else ''}")
+
+            # Normalize ES/RU questions into English, then use the same
+            # honest job-data QA path as text questions.
+            if lang in ("es", "ru"):
+                text_en = await self._translate_to_english(text, lang)
+            else:
+                text_en = text
+
+            await self._reply_job_question(update, context, text_en)
         except Exception as e:
             logger.warning(f"Voice transcription error: {e}")
             await update.message.reply_text(
