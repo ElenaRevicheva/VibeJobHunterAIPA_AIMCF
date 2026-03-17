@@ -945,9 +945,20 @@ You have *{len(outreach)}* message(s) to send:
             # honest job-data QA path as text questions.
             if lang in ("es", "ru"):
                 text_en = await self._translate_to_english(text, lang)
+                # Show both original language and English so you see what
+                # the bot understood and how it normalized it.
+                await update.message.reply_text(
+                    f"📝 I heard (translated from {lang.upper()}):\n{text_en}",
+                    parse_mode="Markdown",
+                )
             else:
                 text_en = text
+                await update.message.reply_text(
+                    f"📝 I heard:\n{text_en}",
+                    parse_mode="Markdown",
+                )
 
+            # Now answer using real job data, same as text questions
             await self._reply_job_question(update, context, text_en)
         except Exception as e:
             logger.warning(f"Voice transcription error: {e}")
