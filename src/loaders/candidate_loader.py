@@ -16,7 +16,8 @@ class CandidateDataLoader:
     
     def __init__(self):
         self.settings = get_settings()
-        self.data_file = self.settings.base_dir / "src" / "core" / "candidate_data.json"
+        # Use __file__ to resolve path — settings has no base_dir attribute
+        self.data_file = Path(__file__).resolve().parent.parent / "core" / "candidate_data.json"
     
     def load_profile(self) -> Optional[Profile]:
         """
