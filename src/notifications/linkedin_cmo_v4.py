@@ -878,7 +878,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
             logger.info("✅ UTM tracking applied")
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
-        github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main"
+        github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets"
         all_images = [
             f"{github_base}/image_1.png",
             f"{github_base}/image_1.1.jpeg",

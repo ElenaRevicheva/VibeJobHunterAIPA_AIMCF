@@ -21,12 +21,12 @@ if a == -1 or b == -1:
 
 new_block = """
             image_urls = {
-                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.png",
-                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg",
-                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/image_1.1.jpeg"
+                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
+                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
+                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
+                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
+                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.1.jpeg",
+                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.1.jpeg"
             }
 
             # Choose image based on post type (fallback to first available)
