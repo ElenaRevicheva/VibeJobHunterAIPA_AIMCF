@@ -1,0 +1,3 @@
+# Dev/test dependencies — not required in production
+pytest>=8.0.0
+pytest-mock>=3.12.0

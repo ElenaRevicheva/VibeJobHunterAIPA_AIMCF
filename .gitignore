@@ -63,8 +63,8 @@ node_modules/
 
 # ---- Local-only test & runtime artifacts ----
 linkedin_cmo_data/
-pytest.ini
-test_*.py
+# pytest.ini is intentionally tracked — it configures the eval test runner
+/test_*.py
 scripts/test_*.py
 
 # ATS runtime cache & runtime data

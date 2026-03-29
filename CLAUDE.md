@@ -205,7 +205,7 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| **No eval framework** | 🔴 HIGH | Scoring quality is untested; no regression tests for prompt changes. **Priority #1 build task.** |
+| **Eval framework — Layer 4 only** | 🟡 MED | Layers 1–3 built and green (73 tests, 0.41s). Layer 4 (LLM consistency, Claude-as-judge) not yet built. |
 | **LangChain imported but underused** | 🟡 MED | `langchain` is in requirements but most LLM calls go direct via `anthropic` SDK. Either commit or remove. |
 | **SQLite in production** | 🟡 MED | `autonomous_data/` SQLite works but isn't the Oracle ATP used by other agents. Inconsistency. |
 | **LinkedIn scraper fragile** | 🟡 MED | `linkedin-api` unofficial library — breaks on LinkedIn bot detection changes. |
@@ -230,7 +230,7 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 ## Build Priority (from SKILL.md)
 
-1. **Eval framework** — add `evals/` folder; Claude-as-judge tests for scoring quality; prompt regression baseline
+1. **Eval framework** — ✅ Layers 1–3 built (73 tests green). Layer 4 (LLM consistency) is next.
 2. **README: tool-use design section** — document which tools are called when and why
 3. **README: monitoring/eval section** — show production-level thinking
 4. **Remove Railway artefacts** — clean `railway.json`, `railway-entrypoint.sh`, `RAILWAY_ENVIRONMENT` env check
