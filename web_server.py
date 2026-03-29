@@ -132,15 +132,11 @@ async def lifespan(app):
         except Exception as e:
             logger.warning(f"⚠️ ATS runner skipped: {e}")
         
-        # Delayed start for autonomous mode
-        async def delayed_start():
-            logger.info("⏳ Waiting 10s for health check to pass...")
-            await asyncio.sleep(10)
-            logger.info("🚀 Starting autonomous mode...")
-            await orchestrator.start_autonomous_mode()
-        
-        asyncio.create_task(delayed_start())
-        logger.info("✅ Autonomous orchestrator scheduled")
+        # NOTE: Autonomous mode (job hunting + Telegram bot) is NOT started here.
+        # On Oracle, vibejobhunter.service runs `python -m src.main autonomous`
+        # which owns the full loop + Telegram bot polling.
+        # Starting it here too would create a second Telegram bot on the same token → Conflict.
+        logger.info("✅ Orchestrator ready (dashboard reads only — autonomous loop runs in vibejobhunter.service)")
         
     except Exception as e:
         logger.error(f"❌ Startup error: {e}")
