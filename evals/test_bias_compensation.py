@@ -303,3 +303,74 @@ class TestBonusStacking:
         )
         _, adjustments = matcher.apply_bias_compensation(60.0, job)
         assert adjustments == [], f"Expected empty adjustments, got: {adjustments}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LATAM-FRIENDLY BOOST
+# Elena is in Panama. Jobs explicitly welcoming global/LATAM candidates get
+# surfaced above US-only jobs of equivalent AI score.
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestLATAMFriendlyBoost:
+    def test_latam_explicit_keyword_gives_plus_8(self, matcher, make_job):
+        """Job mentioning 'LATAM' in description must get +8 boost."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "join our remote ai team. we actively hire across latam and europe. "
+                "build llm pipelines, python, typescript. no location restrictions."
+            ),
+        )
+        score, adjustments = matcher.apply_bias_compensation(60.0, job)
+        assert "+8_latam_friendly" in adjustments
+        assert score == 68.0
+
+    def test_anywhere_in_world_gives_plus_8(self, matcher, make_job):
+        """'Anywhere in the world' is a strong LATAM signal -> +8."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "fully distributed team. work from anywhere in the world. "
+                "build agent systems with python and llms."
+            ),
+        )
+        score, adjustments = matcher.apply_bias_compensation(60.0, job)
+        assert "+8_latam_friendly" in adjustments
+
+    def test_two_medium_signals_gives_plus_4(self, matcher, make_job):
+        """Two medium LATAM signals (async-first + fully remote) -> +4."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "we are an async-first fully remote company. "
+                "build llm products with our distributed team."
+            ),
+        )
+        score, adjustments = matcher.apply_bias_compensation(60.0, job)
+        assert "+4_latam_friendly" in adjustments
+        assert score == 64.0
+
+    def test_one_medium_signal_gives_no_boost(self, matcher, make_job):
+        """Single medium LATAM signal does not trigger boost (threshold is 2)."""
+        job = make_job(
+            title="Software Engineer",
+            description="fully remote team. build backend apis for our platform.",
+        )
+        _, adjustments = matcher.apply_bias_compensation(60.0, job)
+        assert "+8_latam_friendly" not in adjustments
+        assert "+4_latam_friendly" not in adjustments
+
+    def test_us_only_job_still_gets_penalty_not_boost(self, matcher, make_job):
+        """US-only job gets -60 penalty even if it says 'remote'. No LATAM boost."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "remote ai role. must be authorized to work in the united states. "
+                "fully remote within the us. python, llm, great team."
+            ),
+        )
+        score, adjustments = matcher.apply_bias_compensation(60.0, job)
+        assert any("us_only" in a for a in adjustments)
+        assert "+8_latam_friendly" not in adjustments
+        assert "+4_latam_friendly" not in adjustments
+        assert score < 60

@@ -327,3 +327,88 @@ class TestWrongRolePenaltyLevel3:
         penalty, reason = matcher._wrong_role_penalty(job)
         assert penalty == 0
         assert reason is None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# US ELIGIBILITY BLOCK
+# Elena is in Panama — not US work-authorized.
+# These tests guard the -60 hard block that prevents applying to US-only roles.
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestUSEligibilityBlock:
+    def test_us_work_authorization_required_returns_minus_60(self, matcher, make_job):
+        """Explicit US work authorization requirement must return -60 penalty."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "We are looking for an AI engineer to join our team. "
+                "Must be authorized to work in the United States. "
+                "Python, LLM experience required."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -60
+        assert "us_only_eligibility" in reason
+
+    def test_us_citizens_only_returns_minus_60(self, matcher, make_job):
+        """'US citizens only' in description must return -60 penalty."""
+        job = make_job(
+            title="Senior ML Engineer",
+            description=(
+                "Join our AI team. US citizens only. "
+                "Work on large language models and AI infrastructure. "
+                "Must be based in San Francisco or remote within the US."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -60
+
+    def test_no_visa_sponsorship_returns_minus_60(self, matcher, make_job):
+        """'We do not offer visa sponsorship' must block Elena (she needs work authorization)."""
+        job = make_job(
+            title="Staff AI Engineer",
+            description=(
+                "Build our core AI platform. Python, TypeScript, LLM experience. "
+                "We do not offer visa sponsorship for this role. "
+                "Candidates must be authorized to work in the US."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -60
+
+    def test_must_be_us_based_returns_minus_60(self, matcher, make_job):
+        """'Must be US-based candidates only' must return -60."""
+        job = make_job(
+            title="AI Product Engineer",
+            description=(
+                "Early-stage AI startup. US-based candidates only. "
+                "Build LLM-powered products from scratch. Remote within the US."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -60
+
+    def test_global_remote_ai_role_not_blocked(self, matcher, make_job):
+        """AI role with no US restriction must NOT get -60 penalty."""
+        job = make_job(
+            title="AI Engineer",
+            description=(
+                "Build LLM products for our globally distributed team. "
+                "Fully remote, open to candidates worldwide. "
+                "Python, TypeScript, Claude, GPT experience preferred."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == 0, f"Global remote role should not be blocked, got penalty={penalty}"
+
+    def test_us_only_overrides_good_role_title(self, matcher, make_job):
+        """Even a perfect AI role gets -60 if US-only. Title quality is irrelevant."""
+        job = make_job(
+            title="Founding AI Engineer",
+            description=(
+                "First AI hire at a YC-backed startup. Build LLM pipelines from scratch. "
+                "Must be authorized to work in the United States. Great comp + equity."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -60, "US-only block must fire even for founding AI engineer roles"

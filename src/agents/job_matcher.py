@@ -123,6 +123,84 @@ class JobMatcher:
         self.founding_scorer = FoundingEngineerScorer()
     
     # ─────────────────────────────────────────────────────────
+    # US ELIGIBILITY BLOCK (added 2026-03-29)
+    # Elena is in Panama — not US-authorized. Any job that requires
+    # US work authorization is a hard NO regardless of score.
+    # Penalty: -60 (kills score below any threshold).
+    # ─────────────────────────────────────────────────────────
+    US_ONLY_KEYWORDS = [
+        # Work authorization phrases
+        "authorized to work in the united states",
+        "authorized to work in the us",
+        "us work authorization",
+        "work authorization in the us",
+        "legally authorized to work in the united states",
+        "legally authorized to work in the us",
+        "employment eligibility in the united states",
+        "must have us work authorization",
+        # Citizenship / status phrases
+        "us citizens only",
+        "us citizen or permanent resident",
+        "us citizen or green card",
+        "us permanent resident",
+        "must be a us citizen",
+        # Location requirement phrases
+        "must be located in the us",
+        "must be based in the us",
+        "must reside in the us",
+        "must be us-based",
+        "us-based candidates only",
+        "candidates must be in the us",
+        "must be in the united states",
+        "must reside in the united states",
+        "located in the united states",
+        # Sponsorship exclusions (they won't sponsor = Elena can't work there)
+        "we do not offer visa sponsorship",
+        "we are unable to sponsor",
+        "cannot sponsor work visas",
+        "no visa sponsorship",
+        "visa sponsorship is not available",
+        "not able to provide visa sponsorship",
+    ]
+
+    # ─────────────────────────────────────────────────────────
+    # LATAM-FRIENDLY SIGNALS (added 2026-03-29)
+    # Jobs that explicitly welcome candidates outside the US.
+    # Strong signals (+8), medium signals (+4).
+    # ─────────────────────────────────────────────────────────
+    LATAM_FRIENDLY_STRONG = [
+        "anywhere in the world",
+        "open to candidates worldwide",
+        "hire internationally",
+        "global remote",
+        "globally distributed",
+        "no location requirements",
+        "work from anywhere in the world",
+        "fully distributed",
+        "latam",
+        "latin america",
+        "south america",
+        "central america",
+        "americas timezone",
+        "pan-american",
+    ]
+    LATAM_FRIENDLY_MEDIUM = [
+        "work from anywhere",
+        "worldwide",
+        "async-first",
+        "async first",
+        "remote-first",
+        "remote first",
+        "distributed team",
+        "fully remote",
+        "100% remote",
+        "international candidates",
+        "global team",
+        "open to all timezones",
+        "americas",
+    ]
+
+    # ─────────────────────────────────────────────────────────
     # WRONG-ROLE PENALTY (added 2026-02-08)
     # Prevents applying to payroll, CAD, finance, logistics, etc.
     # This is the #1 reason the engine was sending garbage applications
@@ -229,6 +307,13 @@ class JobMatcher:
         """
         title = (getattr(job, 'title', '') or '').lower()
         description = (getattr(job, 'description', '') or '').lower()
+
+        # ── Level 0: US-only eligibility block ──
+        # Elena is in Panama. US work authorization required = hard discard.
+        # Check description only — titles never contain this language.
+        for kw in self.US_ONLY_KEYWORDS:
+            if kw in description:
+                return -60, f"-60_us_only_eligibility({kw[:40]})"
 
         # ── Level 1: Obviously wrong (non-tech roles) ──
         for kw in self.WRONG_ROLE_TITLE_KEYWORDS:
@@ -413,6 +498,26 @@ class JobMatcher:
         if personal_boost > 0:
             score += personal_boost
             adjustments.append(f"+{personal_boost}_personal_ai_fit")
+
+        # ──────────────────────────────────────────────────────
+        # 8. LATAM-FRIENDLY BOOST (+4 / +8) (added 2026-03-29)
+        # Elena is in Panama. Jobs that explicitly welcome international
+        # / LATAM candidates get prioritised — they're the ones she
+        # can actually accept an offer from.
+        # ──────────────────────────────────────────────────────
+        combined = f"{title} {description}"
+        latam_strong_hits = sum(1 for kw in self.LATAM_FRIENDLY_STRONG if kw in combined)
+        latam_medium_hits = sum(1 for kw in self.LATAM_FRIENDLY_MEDIUM if kw in combined)
+
+        latam_boost = 0
+        if latam_strong_hits >= 1:
+            latam_boost = 8
+        elif latam_medium_hits >= 2:
+            latam_boost = 4
+
+        if latam_boost > 0:
+            score += latam_boost
+            adjustments.append(f"+{latam_boost}_latam_friendly")
 
         # Cap at 100
         score = min(score, 100)
