@@ -287,11 +287,51 @@ class JobMatcher:
         "release engineer", "build engineer",
         "embedded engineer", "embedded software",
         "data analyst", "business analyst", "bi developer",
+        "data scientist",  # Elena is an AI engineer/builder, not a data scientist
         "data warehouse", "etl developer",
         "salesforce developer", "sap ", "oracle developer",
         "erp ", "crm developer",
         "game developer", "game engineer", "unity ",
         "ios developer", "android developer", "mobile engineer",
+    }
+
+    # ─────────────────────────────────────────────────────────
+    # WRONG-STACK KEYWORDS (added 2026-03-29)
+    # Elena's stack: Python, TypeScript, Node.js, Claude, GPT.
+    # A title containing only a wrong-stack language (Java, C#, .NET,
+    # Go, Ruby, PHP, Rust) without any AI/LLM qualifier means the role
+    # is outside her technical lane → -15 penalty.
+    # Rescue: if "ai", "llm", "machine learning" appear in description,
+    # the penalty is waived (e.g. "Java AI Platform Engineer").
+    # ─────────────────────────────────────────────────────────
+    WRONG_STACK_TITLE_KEYWORDS = [
+        " java", "java ", ",java", "java,",   # "Java Developer", "Staff Engineer, Java"
+        ".net", "c# ", " c#", "dotnet",       # C# / .NET roles
+        "ruby on rails", "rails developer",
+        "php developer", "laravel",
+        "golang", " go developer", "go engineer",
+        "rust developer", "rust engineer",
+        "cobol", "mainframe",
+        "android developer", "kotlin developer",
+        "ios developer", "swift developer",
+    ]
+
+    # ─────────────────────────────────────────────────────────
+    # IT OUTSOURCER PENALTY (added 2026-03-29)
+    # Staff-augmentation / body-shop firms. They post hundreds of
+    # generic roles. Elena's founder pitch doesn't land here.
+    # Penalty: -10 applied in bias_compensation.
+    # ─────────────────────────────────────────────────────────
+    IT_OUTSOURCER_COMPANIES = {
+        "nagarro", "infosys", "wipro", "tcs", "cognizant",
+        "hcl", "hcl technologies", "accenture", "capgemini",
+        "tech mahindra", "mphasis", "hexaware", "niit",
+        "ltimindtree", "l&t infotech", "mindtree",
+        "epam", "luxoft", "globant", "softserve",
+        "endava", "ness technologies", "cgi group",
+        "dxc technology", "unisys", "atos",
+        "gainwell", "gainwell technologies",  # healthcare IT outsourcer
+        "conduent", "xerox", "convergys",
     }
 
     def _wrong_role_penalty(self, job: JobPosting) -> Tuple[float, Optional[str]]:
@@ -336,6 +376,20 @@ class JobMatcher:
                 if ai_in_desc >= 2:
                     return 0, None  # AI-heavy DevOps/SRE — could be relevant
                 return -20, f"-20_not_my_lane({kw.strip()})"
+
+        # ── Level 2b: Wrong stack (Java, C#, .NET, Go, PHP, Ruby, Rust) ──
+        # Elena's stack is Python / TypeScript / Node.js.
+        # A title that contains only a wrong-stack language keyword — with no
+        # AI/LLM rescue signal in the description — is outside her lane.
+        for kw in self.WRONG_STACK_TITLE_KEYWORDS:
+            if kw in title:
+                ai_rescue = sum(1 for w in ["ai", "llm", "machine learning",
+                                            "ml", "generative", "language model",
+                                            "nlp", "deep learning", "neural"]
+                                if w in description)
+                if ai_rescue >= 2:
+                    return 0, None  # e.g. "Java AI Platform Engineer" with heavy AI JD
+                return -15, f"-15_wrong_stack({kw.strip()})"
 
         # ── Level 3: Title has no signal of Elena's domain at all ──
         # e.g. "Senior Engineer" with no AI/product/fullstack qualifier
@@ -383,7 +437,20 @@ class JobMatcher:
         company_size = getattr(job, 'company_size', '')
         source = getattr(job, 'source', '')
         company = getattr(job, 'company', '')
-        
+
+        # ──────────────────────────────────────────────────────
+        # 0b. IT OUTSOURCER PENALTY (-10) (added 2026-03-29)
+        # Staff-augmentation / body-shop firms. They post hundreds of
+        # generic "Staff Engineer" or "Principal Java" roles. Elena's
+        # founder/AI-builder pitch doesn't land here; removing from
+        # consideration saves application budget.
+        # ──────────────────────────────────────────────────────
+        company_lower = company.lower()
+        if any(firm in company_lower for firm in self.IT_OUTSOURCER_COMPANIES):
+            score -= 10
+            adjustments.append("-10_it_outsourcer")
+            logger.info(f"🏭 [{company}] IT outsourcer penalty applied")
+
         # ──────────────────────────────────────────────────────
         # 1. SENIOR ROLE BONUS (+4)
         # Rationale: Elena has 10y experience, CEO background
@@ -578,17 +645,27 @@ class JobMatcher:
         ai_score = None
         ai_reasons = []
         
-        if USE_AI_DEEP_ANALYSIS and self.ai and preliminary_score >= 50:
+        # ── AI GATE: skip deep analysis if wrong-role penalty is strong ──
+        # A -20 or worse penalty means _wrong_role_penalty() already fired for
+        # wrong lane / wrong stack / US-only. Claude would just add 25-45 pts
+        # and push the job above AUTO_APPLY threshold — exactly the bug that
+        # caused Deel Payroll/Logistics/etc. applications in Jan-Mar 2026.
+        early_penalty, _ = self._wrong_role_penalty(job)
+        ai_gate_open = early_penalty > -20  # True only for clean or mild-penalty jobs
+
+        if USE_AI_DEEP_ANALYSIS and self.ai and preliminary_score >= 50 and ai_gate_open:
             try:
                 ai_result = self._ai_deep_analysis(profile, job)
                 if ai_result:
                     ai_score = ai_result.get('score', 0)
                     ai_reasons = ai_result.get('reasons', [])
-                    
+
                     # Log AI analysis
                     logger.info(f"🧠 AI Analysis for {company}: {ai_score}/100")
             except Exception as e:
                 logger.warning(f"AI analysis failed for {company}: {e}")
+        elif not ai_gate_open:
+            logger.info(f"🚧 [{company}] AI gate closed (wrong-role penalty {early_penalty}) — skipping Claude analysis")
         
         # ══════════════════════════════════════════════════════
         # PHASE 3: Combine scores - CALIBRATED FOR REAL RESULTS

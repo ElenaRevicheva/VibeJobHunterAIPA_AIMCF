@@ -412,3 +412,77 @@ class TestUSEligibilityBlock:
         )
         penalty, reason = matcher._wrong_role_penalty(job)
         assert penalty == -60, "US-only block must fire even for founding AI engineer roles"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Wrong-stack penalty (Level 2b) — added 2026-03-29
+# Elena's stack: Python / TypeScript / Node.js.
+# Java, C#, .NET, Go, PHP, Ruby, Rust titles without AI context → -15.
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestWrongStackPenalty:
+    def test_java_title_without_ai_returns_minus_15(self, matcher, make_job):
+        """'Staff Engineer, Java' with no AI context must return -15."""
+        job = make_job(
+            title="Staff Engineer, Java",
+            description=(
+                "Build scalable backend microservices in Java. Spring Boot, Kafka, "
+                "PostgreSQL. Experience with distributed systems required."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -15, f"Expected -15 for Java role, got {penalty}"
+        assert "wrong_stack" in reason
+
+    def test_dotnet_title_without_ai_returns_minus_15(self, matcher, make_job):
+        """.NET in title without AI description must return -15."""
+        job = make_job(
+            title="Senior .NET Developer",
+            description=(
+                "Develop enterprise applications using .NET 8, C#, SQL Server. "
+                "Work with Azure DevOps pipelines."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -15
+        assert "wrong_stack" in reason
+
+    def test_java_title_with_strong_ai_context_is_rescued(self, matcher, make_job):
+        """Java title with heavy AI/LLM JD must be rescued (penalty waived)."""
+        job = make_job(
+            title="Java AI Platform Engineer",
+            description=(
+                "Build our machine learning platform with Java and Python. "
+                "Work on LLM inference, AI model serving, and deep learning pipelines. "
+                "NLP experience a plus."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == 0, (
+            f"Java AI Platform role with heavy AI JD should not be penalised, got {penalty} ({reason})"
+        )
+
+    def test_golang_title_without_ai_returns_minus_15(self, matcher, make_job):
+        """'Go Engineer' in title with non-AI description must return -15."""
+        job = make_job(
+            title="Go Engineer",
+            description=(
+                "Build high-performance microservices in Golang. gRPC, Kubernetes, "
+                "distributed caching. 4+ years Go required."
+            ),
+        )
+        penalty, reason = matcher._wrong_role_penalty(job)
+        assert penalty == -15
+        assert "wrong_stack" in reason
+
+    def test_python_ai_engineer_not_penalised(self, matcher, make_job):
+        """Python AI Engineer — Elena's core stack — must not get wrong-stack penalty."""
+        job = make_job(
+            title="Senior AI Engineer",
+            description=(
+                "Build LLM pipelines in Python. FastAPI, TypeScript, LangChain, AWS. "
+                "Voice AI and memory systems experience valued."
+            ),
+        )
+        penalty, _ = matcher._wrong_role_penalty(job)
+        assert penalty == 0, f"Python AI engineer should have zero penalty, got {penalty}"

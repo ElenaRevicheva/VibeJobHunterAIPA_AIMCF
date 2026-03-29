@@ -374,3 +374,55 @@ class TestLATAMFriendlyBoost:
         assert "+8_latam_friendly" not in adjustments
         assert "+4_latam_friendly" not in adjustments
         assert score < 60
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IT OUTSOURCER PENALTY — added 2026-03-29
+# Staff-augmentation firms (Nagarro, Infosys, Gainwell, etc.) post hundreds of
+# generic titles. Elena's founder/AI-builder pitch doesn't land there.
+# Penalty: -10 in apply_bias_compensation().
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestITOutsourcerPenalty:
+    def test_nagarro_gets_minus_10(self, matcher, make_job):
+        """Nagarro (IT outsourcer) must add '-10_it_outsourcer' to adjustments."""
+        job = make_job(
+            title="Staff Engineer",
+            company="Nagarro",
+            description="build backend services for enterprise clients using java and spring boot",
+        )
+        score, adjustments = matcher.apply_bias_compensation(70.0, job)
+        assert "-10_it_outsourcer" in adjustments, f"Expected outsourcer penalty, got: {adjustments}"
+        assert score == pytest.approx(60.0, abs=5.0)
+
+    def test_gainwell_gets_minus_10(self, matcher, make_job):
+        """Gainwell Technologies (healthcare IT outsourcer) must trigger -10 penalty."""
+        job = make_job(
+            title="Principal Systems Engineer",
+            company="Gainwell Technologies",
+            description="maintain healthcare legacy systems for government clients",
+        )
+        score, adjustments = matcher.apply_bias_compensation(70.0, job)
+        assert "-10_it_outsourcer" in adjustments
+
+    def test_infosys_gets_minus_10(self, matcher, make_job):
+        """Infosys must trigger -10 penalty."""
+        job = make_job(
+            title="Senior AI Engineer",
+            company="Infosys",
+            description="build ai solutions using python and llm for enterprise clients",
+        )
+        _, adjustments = matcher.apply_bias_compensation(70.0, job)
+        assert "-10_it_outsourcer" in adjustments
+
+    def test_real_startup_not_penalised(self, matcher, make_job):
+        """A genuine AI startup must NOT get the IT outsourcer penalty."""
+        job = make_job(
+            title="Founding AI Engineer",
+            company="Hume",
+            description="build voice ai and emotional intelligence models for our platform",
+        )
+        _, adjustments = matcher.apply_bias_compensation(70.0, job)
+        assert "-10_it_outsourcer" not in adjustments, (
+            f"Hume is not an outsourcer, should not be penalised. Got: {adjustments}"
+        )
