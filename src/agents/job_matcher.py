@@ -210,6 +210,9 @@ class JobMatcher:
         "payroll", "accountant", "accounting", "bookkeeper", "tax ",
         "financial analyst", "finance manager", "controller", "auditor",
         "accounts payable", "accounts receivable", "treasury",
+        "equity management analyst", "management analyst", "equity analyst",
+        "finance analyst", "investment analyst", "portfolio analyst",
+        "compensation analyst", "billing analyst", "revenue analyst",
         # HR / People
         "recruiter", "recruiting", "talent acquisition", "people ops",
         "human resources", "hr manager", "hr business partner",
@@ -218,6 +221,8 @@ class JobMatcher:
         "sales representative", "account executive", "sales engineer",
         "sales manager", "business development representative", "bdr",
         "sdr", "sales director", "enablement manager",
+        "gtm systems engineer", "revenue operations", "revops",
+        "marketing operations", "salesforce developer", "crm administrator",
         # Legal
         "legal counsel", "paralegal", "compliance officer", "attorney",
         "corporate counsel", "regulatory",
