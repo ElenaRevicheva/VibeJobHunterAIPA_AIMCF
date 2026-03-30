@@ -9,7 +9,7 @@
 
 VibeJobHunter is an autonomous AI job-hunting engine built in Python. It runs 24/7 on Oracle Cloud and performs the full hiring pipeline without human input:
 
-1. **Discover** — scrapes 8+ sources (218 ATS company APIs, Dice MCP, YC, RemoteOK, Wellfound, WWR, HN, AI Jobs)
+1. **Discover** — scrapes 10 sources (218 ATS company APIs, Dice MCP, YC, RemoteOK, Wellfound, WWR, HN, AI Jobs, Torre.ai LATAM, Himalayas global remote)
 2. **Score** — Claude AI dimensional scoring (100 pts) + bias compensation + dedup cache
 3. **Route** — Score ≥ 60 → ATS auto-apply | 58–59 → founder outreach | 55–57 → review queue | < 55 → discard
 4. **Apply** — Playwright ATS form submission (Greenhouse, Lever, Ashby, Workable); selects 1 of 6 resume variants
@@ -100,7 +100,7 @@ src/
 
 ---
 
-## Scoring System (Job Matcher v3.0)
+## Scoring System (Job Matcher v3.0 — calibrated 2026-03-30)
 
 | Dimension | Points | What it measures |
 |-----------|--------|-----------------|
@@ -116,6 +116,19 @@ src/
 - 58–59 → founder outreach
 - 55–57 → review queue
 - < 55 → discard
+
+**Penalty layers (added 2026-03-29/30 — career analysis calibration):**
+- Level 0: US-only eligibility → -60 (Elena is in Panama, not US-authorized)
+- Level 1: Wrong role (payroll, CAD, finance, logistics) → -40
+- Level 1b: Wrong role in description (2+ matches) → -30
+- Level 2: Not her lane (DevOps, QA, DBA, data scientist) → -20
+- Level 2b: Wrong stack (Java, C#, .NET, Go, PHP, Ruby, Rust) → -15
+- Level 3: No domain signal in title → -15 / -10
+- IT outsourcer penalty (Nagarro, Infosys, Gainwell, etc.) → -10
+- LATAM-friendly boost (global remote, LATAM, anywhere in world) → +4 / +8
+- **AI gate**: if penalty ≤ -20, Claude deep analysis is skipped entirely (prevents AI from overriding wrong-role signals — root cause of Jan–Mar 2026 bad applications)
+
+**Career analysis note:** The scoring threshold (≥60 → auto-apply) is sound. The risk was never the threshold — it was the role categories passing Phase 0. A 75-point score on "Senior AI Engineer" at a 50-person company is still a rabbit hole for Elena's profile.
 
 YC company bonus: +15 pts applied before routing.
 
@@ -205,7 +218,8 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| **Eval framework — Layer 4 only** | 🟡 MED | Layers 1–3 built and green (73 tests, 0.41s). Layer 4 (LLM consistency, Claude-as-judge) not yet built. |
+| **Eval framework — Layer 4 only** | 🟡 MED | Layers 1–3 built and green (117 tests, 0.52s). Layer 4 (LLM consistency, Claude-as-judge) not yet built. |
+| **Scoring calibration — career analysis alignment** | 🟡 MED | Career analysis says "stop applying to Senior/Staff/Principal at 20+ companies." Current engine has penalty layers but no hard company-size gate. The penalty system (-40/-20/-15) catches most wrong roles but doesn't enforce the "5–100 employees" hard gate from CAREER_FOCUS.md. Surgical edit territory. |
 | **LangChain imported but underused** | 🟡 MED | `langchain` is in requirements but most LLM calls go direct via `anthropic` SDK. Either commit or remove. |
 | **SQLite in production** | 🟡 MED | `autonomous_data/` SQLite works but isn't the Oracle ATP used by other agents. Inconsistency. |
 | **LinkedIn scraper fragile** | 🟡 MED | `linkedin-api` unofficial library — breaks on LinkedIn bot detection changes. |
@@ -228,9 +242,10 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 ---
 
-## Build Priority (from SKILL.md)
+## Build Priority (aligned with career analysis v2 — 2026-03-30)
 
-1. **Eval framework** — ✅ Layers 1–3 built (73 tests green). Layer 4 (LLM consistency) is next.
+0. **Audit auto-apply targets** — ✅ Done. Wrong-stack, IT outsourcer, US-only, AI gate fixes deployed. 117 tests green.
+1. **Eval framework** — ✅ Layers 1–3 built (117 tests, 0.52s, $0). Layer 4 (LLM-as-judge consistency) is next.
 2. **README: tool-use design section** — document which tools are called when and why
 3. **README: monitoring/eval section** — show production-level thinking
 4. **Remove Railway artefacts** — clean `railway.json`, `railway-entrypoint.sh`, `RAILWAY_ENVIRONMENT` env check
@@ -238,10 +253,22 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 ---
 
-## Interview Talking Points (from this codebase)
+## Positioning Rule (from career analysis v2)
 
-- **"I built a dimensional scoring system"** — 6-dimension, 100-point job→profile match with bias compensation, evidence-tuned thresholds, not just keyword matching
-- **"Model routing by signal type"** — Claude for deep analysis; lightweight rules for domain filtering; cost-controlled by `USE_AI_JOB_ANALYSIS` flag
+When presenting Elena's background in any context:
+1. Lead with Phase 1 (executive, 7 years board-level) + Phase 2 (AI builder, 9 production systems) — the hybrid is the differentiator
+2. Never claim "Senior AI Engineer" for roles that filter on 5+ years conventional tenure
+3. For fractional pitches: "executive who ships AI systems" is the pitch
+4. EspaLuz: "early paid users" — not "revenue-generating product at scale"
+5. LangChain: "exposure" — not a core skill
+6. RAG: honest gap — do not claim partial without production evidence
+
+## Interview Talking Points (from this codebase + career analysis v2)
+
+- **Lead with the hybrid:** "I'm an executive-turned-AI-builder — 7 years running digital infrastructure at board level, past year shipping 9 production AI systems. I can talk to a CEO and a developer in the same conversation."
+- **"I built a dimensional scoring system"** — 6-dimension, 100-point job→profile match with bias compensation + 7-level penalty system, evidence-tuned thresholds, not just keyword matching
+- **"117-test eval harness"** — keyword, integration, golden-set layers. $0 API cost, 0.52s. Deterministic + AI-gated scoring. Production regressions caught before deploy.
+- **"Model routing by signal type"** — Claude for deep analysis; lightweight rules for domain filtering; cost-controlled by `USE_AI_JOB_ANALYSIS` flag. AI gate prevents expensive Claude calls on obviously-wrong jobs.
 - **"Production-grade autonomous loop"** — systemd managed, runs every hour, Telegram notifications, self-healing
 - **"ATS automation with Playwright"** — form submission across Greenhouse, Lever, Ashby, Workable (real applications, not just URL collection)
 - **"6 resume variants, auto-selected"** — role-specific resume selection based on job signal, not one-size-fits-all
@@ -250,4 +277,4 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 > This file was generated by CTO AIPA after a full codebase scan.
 > It replaces any stale documentation. Update it when architecture changes.
-> Last scan: 2026-03-27
+> Last scan: 2026-03-30 — aligned with elena_career_analysis_v2.html (Honest Edition)
