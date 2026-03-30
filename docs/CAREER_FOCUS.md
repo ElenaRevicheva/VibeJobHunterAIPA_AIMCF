@@ -1,390 +1,479 @@
-# 🎯 CAREER FOCUS — VibeJobHunter (Golden Roadmap v2)
+# 🎯 CAREER FOCUS — VibeJobHunter (Honest Roadmap v3)
 
-**Target Outcome:**  
-Secure a **serious senior AI role** (Founding / Staff / Principal level) at a **high-signal startup** within weeks — not months — using **precision automation**, not mass applying.
+> **Aligned with:** `elena_career_analysis_v2.html` — Honest Edition, March 2026  
+> **Previous version corrected:** salary floors, role targeting, and positioning were miscalibrated against the actual profile.  
+> **This document supersedes all prior CAREER_FOCUS versions.**
 
 This document is the **single source of truth** for:
-- Job filtering
-- Match scoring
+- Who Elena is (honest, not aspirational)
+- Job filtering and scoring calibration
 - Resume selection
 - Auto-apply decisions
 - Founder / recruiter outreach
+- Fractional engagement strategy
 - LinkedIn CMO narrative
 
 ---
 
-## 1️⃣ CANDIDATE POSITIONING (NON-NEGOTIABLE)
+## 0️⃣ HONEST VERDICT — READ THIS FIRST
 
-I am **not** a generic AI engineer.
+> *From career analysis v2, March 2026 — integrated directly into this system.*
 
-I am a:
-- **Founder-level AI Product Engineer**
-- **Autonomous Systems Architect**
-- **0→1 Builder** with production systems
-- **AI + Infra + Product + Go-To-Market hybrid**
+**Achievable. But only by targeting the right roles — not "Senior AI Engineer" titles.**
 
-### What this means in practice
-- I replace **3–5 hires**
-- I thrive in **small, high-autonomy teams**
-- I build **systems that ship, sell, and operate**
+Elena has ~1 year of AI engineering (since 2025), built with AI-assisted tools (Cursor, Claude Code). Her production systems are real. Her executive background is real. But the combination requires honest role targeting — not mass-applying to jobs that filter for credentials she doesn't have.
 
-➡️ Any role that does not value this is automatically rejected.
+**The path exists. It's narrower than previously described. It runs through founders, operators, and fractional engagements — not ATS pipelines at mid-sized companies.**
 
 ---
 
-## 2️⃣ ROLES TO TARGET (ONLY THESE)
+## 1️⃣ THE FULL PICTURE — TWO PHASES, BOTH REAL
 
-### 🟢 PRIMARY TARGET ROLES (HIGH PRIORITY)
-Apply **only if ≥75% fit**.
+The profile has two distinct phases. Both must be understood, neither hidden.
 
-- Founding Engineer (AI / Platform / Automation)
-- Senior / Staff AI Engineer (Product-oriented)
-- AI Product Engineer
-- Principal Engineer (AI / Platform)
-- AI Solutions Architect (hands-on)
-- Technical Lead (AI / Automation)
+### Phase 1: Senior Executive, 2011–2018
+Deputy CEO and Chief Legal Officer — Russian public digital infrastructure programs. Board-level governance, enterprise digital transformation, cross-functional technical programs in highly regulated environments. **7+ years at senior leadership layer.** This is real and rare — most AI engineers have never operated at this level.
 
-### 🟡 SECONDARY (CONDITIONAL)
-Apply only in **early-stage or technical orgs**.
+### Phase 2: Applied AI Builder, 2025–Present
+Designed and deployed 9 production AI systems on Oracle Cloud using AI-assisted development (Cursor, Claude Code). Real systems, real users, real uptime. ~1 year of hands-on AI engineering. EspaLuz has early paid users — traction is real but very early and very small.
 
-- AI Product Manager (technical)
-- AI Growth Engineer (hands-on, systems-heavy)
+### What must be acknowledged honestly
 
-### 🔴 NEVER APPLY TO
-- Junior / Mid roles
-- “Prompt Engineer”
-- Pure research / PhD-only
-- Generic “AI Engineer” at large companies
-- Companies with **20+ engineers** already
+| Fact | Why it matters for targeting |
+|------|------------------------------|
+| **~1 year AI engineering** (since 2025) | Not senior engineering tenure by conventional measure. Systems are real; timeline is short. |
+| **AI-assisted development** (Cursor, Claude Code) | Some employers won't care. Some will treat this as disqualifier for "senior" roles. Know which is which before applying. |
+| **7-year gap** in conventional tech roles (2018–2025) | ATS sees this before it sees the Oracle agents. Roles using ATS keyword filtering will silently reject here. |
+| **No CS degree or traditional pedigree** | Closes most mid-to-large company pipelines. Does NOT close founder-led, early-stage, or fractional pipelines. |
 
 ---
 
-## 3️⃣ COMPENSATION FLOORS (AUTO-REJECT BELOW)
+## 2️⃣ CANDIDATE POSITIONING — CORRECTED
 
-### 🌍 US / Global Remote
-- **$150K–$220K base**
-- Equity expected
+### ❌ Stop leading with this
+> "Founder-level AI Product Engineer / Autonomous Systems Architect"
 
-### 🇪🇺 Europe
-- **€90K–€140K**
-- Equity required
+This invites credential comparison that the timeline cannot win. It positions Elena for roles that ATS-filter on 5+ years and CS pedigree.
 
-### 🌎 LATAM / Global South Remote
-- **$100K+ minimum**
+### ✅ Lead with what's genuinely rare
 
-➡️ If salary is missing → infer → reject if below floor.
+> "I'm an **executive-turned-AI-builder.** I spent 7 years running large-scale digital infrastructure programs at the board level — which means I understand what AI systems need to do to actually change how an organization operates, not just technically. Since 2025 I've shipped 9 production AI systems using modern AI-assisted development workflows. I build fast, I deploy to production, and I can talk to a CEO and a developer in the same conversation."
 
----
+**This positioning is honest. It's also genuinely rare. Most AI engineers can't do the executive layer. Most executives can't ship production systems. The hybrid is the differentiator — own it explicitly.**
 
-## 4️⃣ 🧠 GOLDEN PLATFORM MAP (WHERE WE APPLY)
-
-### 🥇 TIER 1 — MUST-HAVE (Highest ROI)
-
-These platforms **directly produce interviews**.
-
-#### 1. **Ashby** 🔥
-- Used by modern AI & YC startups
-- Fast-moving, clean ATS
-- Often minimal HR friction
-
-**Automation:**  
-✅ Playwright form automation  
-✅ Resume + cover letter upload
+### What the profile actually is
+Not a junior. Not a FAANG senior. Not a generic freelancer. An **applied AI builder with executive operating experience** — best suited for founders and operators who need someone who can design, build, AND communicate AI systems to non-technical stakeholders. That person is rare and valuable. That's the job to find.
 
 ---
 
-#### 2. **Greenhouse**
-- Industry standard for startups
-- Many hidden senior roles
+## 3️⃣ ROLE MAP — HONEST TARGETING
 
-**Automation:**  
-✅ API / form automation  
-✅ Structured data capture
+### 🟢 APPLY TO THESE
 
----
+| Role | Why it fits | Realistic range |
+|------|-------------|-----------------|
+| AI Automation Specialist | Values shipped systems over credentials; VibeJobHunter is a direct portfolio piece | $2.5K–4K/mo |
+| Internal AI Tools Builder | Small team, outcome-focused; executive communication is a bonus not a liability | $3K–4.5K/mo |
+| AI Integration Engineer | Webhook/API/multi-platform work is direct evidence; OCI infra is a differentiator | $3K–4.5K/mo |
+| **Founding AI hire (pre-seed)** | Founders care about what ships and who can communicate it; pedigree filters don't apply | $3K–5K/mo + equity |
+| **Fractional AI consultant / builder** | Executive + builder hybrid is rare; high hourly rate, lower ATS friction, direct founder access | $40–70/hr |
+| AI Ops / AI Program Manager | Executive background fully valued; technical depth is a bonus here, not a requirement | $3.5K–5K/mo |
 
-#### 3. **Lever**
-- Common in product & infra startups
+**$4K+/month requires strong interview performance on the four questions (see Section 7).**
 
-**Automation:**  
-✅ API or form automation
+### 🔴 STOP APPLYING TO THESE — RABBIT HOLES
 
----
+| Role | Why it's a waste |
+|------|-----------------|
+| Senior / Staff / Principal AI Engineer | Implies 5+ years, CS background, traditional path. ATS filters you before a human sees your name. |
+| ML Engineer | Requires ML fundamentals (training, fine-tuning, evaluation) not yet built. |
+| Any company with 20+ engineers | Structured hiring processes with credential filters. Not founder-led decisions. |
+| "X years of Python/TypeScript" roles | Timeline doesn't support the years claim. Don't apply and risk wasting an interview slot. |
+| Microsoft 365 / Power Platform roles | Completely different ecosystem. Portfolio piece doesn't help. |
+| Generic "AI Engineer" at large companies | Same credential filter problem as Senior titles. |
 
-#### 4. **Wellfound (AngelList Talent)**
-- Founder-led hiring
-- Equity-forward
-- High signal-to-noise
+### 🟡 SECONDARY — CONDITIONAL
 
-**Automation:**  
-⚠ Semi-automated  
-✅ Profile optimization  
-✅ Personalized founder DMs
+Apply only in early-stage or highly technical orgs with founder-led hiring:
 
----
-
-#### 5. **YC Jobs**
-- Serious founders
-- Fast decisions
-- Many roles never hit LinkedIn
-
-**Automation:**  
-⚠ Manual / semi-auto  
-✅ Email-based outreach  
-✅ Custom pitch per role
+- AI Product Manager (technical) — if the founder is technical and values builders
+- AI Growth Engineer (hands-on, systems-heavy) — if scope is well-defined
 
 ---
 
-#### 6. **Direct Company Career Pages**
-- Hidden gold
-- Lower applicant volume
-- Often Ashby / Greenhouse underneath
+## 4️⃣ COMPENSATION — REALISTIC FLOORS
 
-**Automation:**  
-✅ Scraper + classifier  
-✅ ATS detection  
-✅ Apply via underlying ATS
+> **Previous version had wildly miscalibrated floors ($150K–$220K base). Those reflected aspirational positioning, not the actual profile. Corrected here.**
 
----
+| Channel | Realistic range |
+|---------|----------------|
+| Fractional / contractor | $40–70/hr (~$7K–12K/mo at 20–30hr/wk) |
+| Startup full-time (right-fit role) | $2.5K–4.5K/mo |
+| Founding AI hire + equity | $3K–5K/mo |
+| $4K+/month (full-time) | Achievable — requires strong interview performance |
 
-### 🥈 TIER 2 — STRATEGIC ADVANTAGE
+**Hard floor:** $3,500/month net (non-negotiable minimum for full-time).  
+**Note:** Fractional first is a legitimate strategy — one reference from a founder who hired you and saw you ship is worth more than any skill addition for the next full-time role.
 
-Used for **leverage**, not volume.
-
-#### 7. **LinkedIn (NOT job board spam)**
-Purpose:
-- Recruiter inbound
-- Founder visibility
-- Signal amplification
-
-**Rules:**  
-❌ No Easy Apply spam  
-✅ Strategic CMO posts  
-✅ Comment → DM → intro  
-✅ Manual high-fit applies only
+**Auto-reject if:** Below $3,500/month net for full-time, OR below $40/hr for fractional/contract.  
+**Do NOT auto-reject** roles without listed salary at YC/seed-stage companies — apply and qualify in the conversation.
 
 ---
 
-#### 8. **Remote-First Platforms (Selective)**
+## 5️⃣ SCORING CALIBRATION — CRITICAL FIX
+
+> **Career analysis identified this as an urgent problem: the auto-apply system may be sending applications into rabbit holes at scale.**
+
+### ⚠️ Known Calibration Issue
+
+If VibeJobHunter is scoring "Senior AI Engineer" roles at 60+ and auto-applying, it is:
+- Generating rejections that never get seen by a human
+- Burning first impressions on ATS pipelines that filter before review
+- Wasting the most valuable asset: the quality of the first contact
+
+**Immediate action: Audit the last 50 auto-applied roles. Check if Senior/Staff/Principal/ML Engineer at 20+ person companies are in there. If yes, scoring thresholds must be recalibrated now.**
+
+### Hard Gates (Phase 0) — MANDATORY before any scoring
+
+A job is discarded unless ALL are true:
+- Company size: **5–100 employees**
+- Stage: **Seed → Series B**
+- Role does NOT contain: `senior`, `staff`, `principal`, `ML engineer`, `machine learning engineer`
+- Role DOES contain ≥1 of: `founding`, `automation`, `internal tools`, `AI integration`, `AI ops`, `AI program`, `applied AI`, `AI builder`
+- Salary (if listed) ≥ regional floor
+- Remote or Panama-compatible (UTC-5)
+
+### AI Match Scoring (Phase 2) — Recalibrated
+
+| Dimension | Weight | Notes |
+|--------|------|-------|
+| AI product ownership (not research) | 25 | Does the role own a shipped AI product end-to-end? |
+| 0→1 autonomy / founding signal | 25 | Solo builder, founding engineer, small team signals |
+| Full-stack / infra | 20 | Python/TS + DB + deployment experience counts |
+| Business exposure / executive alignment | 15 | Revenue ownership, cross-functional, stakeholder comm |
+| Bilingual / global | 5 | EN/ES bonus |
+| Web3 (optional) | 10 | Polygon, IPFS, DAO signals |
+
+**Routing thresholds:**
+- **Score ≥ 60 → ATS auto-apply** (only after hard gate passes)
+- **Score 58–59 → Founder outreach** (personalized, not ATS)
+- **Score 55–57 → Review queue**
+- **Score < 55 → Discard**
+
+YC company bonus: +15 pts applied before routing.
+
+**Volume rule:** 3–5 applications/day maximum. Quality over quantity. If zero interviews after 30 applications → adjust scoring and narrative, do NOT increase volume.
+
+---
+
+## 6️⃣ WHAT THE PORTFOLIO ACTUALLY PROVES
+
+> *Confirmed by Claude Code codebase audit — used as the honest evidence base for interview prep.*
+
+### ✅ Confirmed in production
+
+| Skill | Evidence |
+|-------|---------|
+| Multi-agent orchestration | 9 live agents — CTO AIPA, CMO AIPA, EspaLuz stack, ALGOM, Atuona |
+| Tool calling / webhook chains | GitHub webhooks → analysis → LLM → comment + Oracle write |
+| Multi-model routing with cost logic | 76% Groq (speed/cost) / 24% Claude (critical reasoning) — deliberate split |
+| Voice pipeline (Whisper + NLP) | Whisper STT → Claude NLP → command handling. In production. |
+| Multi-modal pipeline | text → voice → image → video → NFT via Atuona. Genuinely rare in production. |
+| Oracle Cloud / OCI / systemd / PM2 | 9 agents, $0/month infra, 3-layer resilience (health cron + systemd + keepalive) |
+| API design (REST, webhooks) | Express, Grammy, Telegram, GitHub, Replicate, Luma, Runway |
+| Executive communication | 7 years board-level — can translate AI systems to non-technical decision-makers |
+
+### ⚠️ Partial / exposure only
+
+| Skill | Honest state |
+|-------|-------------|
+| LangChain / LangGraph | LangChain imported in EspaLuz; not used in primary agents. Call it "exposure." |
+| Docker / containerization | Familiar. Production runs bare on Ubuntu with systemd/PM2. |
+| AWS / GCP | One deploy. Enough for one honest line. Not a differentiator yet. |
+
+### ❌ Gaps — do not claim these on resume
+
+| Skill | Reality |
+|-------|---------|
+| RAG (production-grade) | Conversational memory ≠ production RAG. Employers test this specifically. Mark as gap. |
+| Evals / observability | Eval harness under construction (Layers 1–3 done). Not complete yet. |
+| LLM fine-tuning (LoRA, QLoRA) | Post-first-role territory. Don't mention unless asked. |
+
+---
+
+## 7️⃣ THE FOUR INTERVIEW QUESTIONS — ANSWER THESE IN 90 SECONDS EACH
+
+> *Career analysis identifies this as the biggest risk: not skills, but how convincingly Elena explains design decisions under pressure.*
+
+**If these answers are sharp and delivered in 90 seconds each: the title changes from "vibe coder" to "applied AI builder." And that builder gets hired.**
+
+| # | Question | What a sharp answer looks like |
+|---|----------|-------------------------------|
+| Q1 | Why this model routing strategy? | "76% Groq for speed and cost — standard review cycles need latency, not depth. 24% Claude for critical paths (security, payments) where reasoning quality matters more than cost. Deliberate tradeoff — not default." |
+| Q2 | How did you measure quality / regressions? | Currently weakest answer. The eval harness closes this. Answer in progress: "Layers 1–3 of an eval framework are built — unit tests for keyword detection, integration tests for the full pipeline. Layer 4 (LLM-as-judge for consistency) is the next build." |
+| Q3 | What failed in production and how did you recover? | PM2 stale env bug: token rotation silently failed because PM2 injects stale vars. Fixed with `dotenv.config({ override: true })` as first line in every module. Also: Telegram bot Conflict errors from two services polling the same token. Fixed by owning the polling in exactly one service. |
+| Q4 | Why this infra and cost profile? | Oracle 26ai Always Free: mTLS security, native vector search (no separate vector DB needed), $0/month. Deliberate choice — not a cost-cutting accident. Startup-grade infra discipline. |
+
+**Practice rule:** Write these out. Say them out loud. Time each one. 90 seconds.
+
+---
+
+## 8️⃣ APPLICATION CHANNELS — CORRECTED PRIORITY ORDER
+
+> **The key insight from career analysis: stop mass-applying through ATS pipelines. Start direct outreach to founders. One right conversation with the right founder is worth more than 50 auto-applied Greenhouse submissions.**
+
+### 🥇 Priority 1 — Direct Founder Outreach (Highest ROI)
+
+Not through ATS. Direct:
+- Email (founder / CTO / Head of AI)
+- LinkedIn DM (comment → connection → DM)
+- Twitter/X (engage → DM)
+- YC Founder network
+
+**Pitch:** "executive who ships AI systems." Clear, honest, rare.
+
+### 🥈 Priority 2 — Fractional Channels (Low ATS Friction)
 
 | Platform | Why |
-|-------|----|
-| RemoteOK | Founder-heavy |
-| WeWorkRemotely | Senior-friendly |
-| Himalayas | Clean, modern |
-| Otta | AI-based matching |
+|----------|-----|
+| **Toptal** | In progress — continue |
+| **Braintrust** | Senior-only, direct client access |
+| **A-Team** | Elite network, founder-facing |
+| LinkedIn direct | Pitch fractional directly to founders in DMs |
 
-**Automation:**  
-⚠ Filter aggressively  
-❌ No mass apply
+One fractional client reference closes more credibility gap than any skill addition.
 
----
+### 🥉 Priority 3 — ATS (Targeted Only, Not Mass Apply)
 
-#### 9. **AI-Specific Job Boards (High Fit)**
+Use only when: role passed all hard gates, company is 5–100, founder-led, applying to right role category.
 
-| Platform | Why |
-|-------|----|
-| ai-jobs.net | Pure AI |
-| MLjobs.ai | Research + applied |
-| HuggingFace Jobs | Elite signal |
-| Anthropic / OpenAI | Top-tier |
-| AI-focused startup sites | Direct access |
+| Platform | Usage |
+|----------|-------|
+| **Ashby** | Modern AI / YC startups. Playwright automation ✅ |
+| **Greenhouse** | Standard ATS. Automation ✅ |
+| **Lever** | Product / infra startups. Automation ✅ |
+| **Wellfound** | Founder-led hiring. Semi-auto ✅ |
+| **YC Jobs** | Serious founders. Email-based outreach preferred. |
+| Direct company career pages | Scraper + ATS detection ✅ |
 
----
+### ❌ Skip Entirely
 
-### 🥉 TIER 3 — NICHE BUT POWERFUL
-
-Relationship-driven. Outsized ROI when done right.
-
-#### 10. Founder & Operator Communities
-- Twitter / X (comment → DM)
-- Substack (thought leadership)
-- GitHub issues & discussions
-- AI Discords / Slacks
-
-➡️ Many hires are **never posted publicly**.
-
----
-
-#### 11. Recruiter Networks (Selective)
-
-| Platform | Use |
-|------|----|
-| TopTal | Contract → FT |
-| Braintrust | Senior-only |
-| A-Team | Elite network |
-
-➡️ Only with polished narrative.
-
----
-
-### 🚫 WHAT WE SKIP (ON PURPOSE)
-
-- Indeed
-- Monster
-- ZipRecruiter
+- Indeed, Monster, ZipRecruiter — low seniority, ATS hell
+- LinkedIn Easy Apply — spam signal, no human review
 - Fiverr-style platforms
 
-**Reason:**  
-Low seniority, high spam, ATS hell.
+---
+
+## 9️⃣ THE FRACTIONAL ANGLE — UNDEREXPLORED AND HIGH-FIT
+
+> *This was missing from all previous versions of this document.*
+
+Elena's executive + builder combination is particularly compelling for fractional engagements. A founder who needs someone to:
+1. Design their AI strategy
+2. Build the first production version  
+3. Communicate it to the board
+
+...that's a rare profile. ATS never sees it. Founders do.
+
+**Why fractional first makes strategic sense:**
+- No ATS — direct human decision
+- Executive positioning is a feature, not a gap
+- One reference from a founder who hired you and saw you ship is worth more to the next employer than a RAG implementation or an AWS deployment
+- Honest about timeline — you're not claiming "5 years of AI engineering," you're offering a specific engagement where the hybrid profile solves a defined problem
+- Rate range: $40–70/hr is achievable now with current portfolio
+
+**Fractional pitch (use this):**
+> "I've spent 7 years running digital infrastructure programs at the board level and the past year shipping 9 production AI systems. If you need someone who can design your AI architecture, build it, and explain it to your investors — I can do all three. Open to a defined fractional engagement to start."
 
 ---
 
-## 5️⃣ 🧠 AUTOMATION ARCHITECTURE (END-TO-END)
+## 🔟 RESUME VARIANTS — UPDATED
 
-### A. Unified Job Intake
-Sources:
-- Ashby
-- Greenhouse
-- Lever
-- Workday
-- Wellfound
-- YC Jobs
-- Career Pages
-- AI Boards
+Maintain **3 resume variants** aligned to honest targeting:
 
-⬇️
+1. **Executive-turned-AI-Builder** — leads with Phase 1 executive context + Phase 2 production systems. For fractional, founding AI hire, AI Program Manager roles.
+2. **Applied AI Systems Engineer** — leads with the 9 production agents, multi-model routing, Oracle infra. For AI Integration Engineer, Internal AI Tools Builder, AI Automation Specialist.
+3. **AI Ops / Solutions** — leads with executive communication + systems delivery. For AI Ops, AI Solutions Architect, Technical Generalist roles at AI startups.
 
-### B. Hard Gate (PHASE 0 — MANDATORY)
-A job is discarded unless ALL are true:
-- Company size: **5–100**
-- Stage: **Seed → Series B**
-- Role contains ≥1 keyword:
-  - founding
-  - platform
-  - product
-  - automation
-  - infra
-- Salary ≥ regional floor
-- Remote or Panama-compatible
-
-⬇️
-
-### C. AI Match Scoring (PHASE 2)
-
-| Dimension | Weight |
-|--------|------|
-| AI product ownership | 25 |
-| 0→1 autonomy | 25 |
-| Full-stack / infra | 20 |
-| Business exposure | 15 |
-| Bilingual / global | 5 |
-| Web3 (optional) | 10 |
-
-**Rule:**  
-- Score ≥ 75 → ACCEPT  
-- Score < 75 → AUTO-REJECT
-
-⬇️
-
-### D. Resume Variant Selection (PHASE 3)
-
-Maintain **3 resumes**:
-1. Founding Engineer
-2. Senior AI Product Engineer
-3. AI Solutions Architect
-
-Engine selects based on:
-- Company stage
-- Role language
-- Technical emphasis
-
-⬇️
-
-### E. Contextual Application (PHASE 4)
-
-**No generic cover letters. Ever.**
-
-Each application answers:
-> “Why should THIS company talk to ME?”
-
-Structure:
-1. Show understanding of their product
-2. Map one shipped system to their pain
-3. Explain fit for small, high-autonomy teams
-4. Calm, confident close
-
-3–4 paragraphs. Zero buzzwords.
-
-⬇️
-
-### F. Priority Order
-1. Direct email (Founder / CTO / Head of AI)
-2. Company careers page
-3. ATS (Greenhouse / Ashby / Lever)
-4. LinkedIn Easy Apply (last resort)
+**Resume selection logic:**
+- Founder-led / fractional / program-level → Variant 1
+- Technical role at AI startup → Variant 2
+- Solutions / ops / communication-heavy → Variant 3
 
 ---
 
-## 6️⃣ VOLUME RULES (ANTI-BURNOUT)
+## 1️⃣1️⃣ LINKEDIN CMO NARRATIVE — CORRECTED
 
-- **3–5 applications per day**
-- **20–30 total before reassessment**
+### ❌ Old narrative (stop)
+"Founding-level AI architect building autonomous systems"
 
-If zero interviews after 30:
-- Adjust scoring
-- Adjust narrative
-- ❌ Do NOT increase volume
+### ✅ New narrative (start)
+"Executive-turned-AI-builder. 7 years running digital infrastructure at the board level. Past year: shipped 9 production AI systems at $0/month infra cost. I build fast and I speak both languages — CEO and engineer."
 
----
-
-## 7️⃣ FINAL TRUTH
-
-I do not need more jobs.
-
-I need:
-- Fewer
-- Better
-- Human-targeted
-- Context-aware applications
-
-This system is not a job board.  
-It is a **precision career weapon**.
-
-One “yes” is enough.
-
+**Post content pillars (honest):**
+1. Production AI systems — what failed, what worked, why
+2. Executive → technical transition — honest, specific, no fluff
+3. AI tools for builders — Cursor, Claude Code, practical usage
+4. $0/month infra story — Oracle Always Free, what runs on it
 
 ---
 
-## 8️⃣ 📊 IMPLEMENTATION STATUS (Updated: December 21, 2025)
+## 1️⃣2️⃣ SYSTEM PERFORMANCE — CURRENT STATE
 
-### ✅ FULLY OPERATIONAL
+```
+TYPICAL HOURLY CYCLE (post-recalibration target):
+Jobs scraped:        ~3000 (Greenhouse + Lever + Ashby)
+Jobs after hard gate: ~50–100 (filter drops "Senior/Staff/Principal" + company size)
+Jobs scored 60+:     ~2–5 (tight category targeting)
+Applications:        3–5/day (capped for quality)
+```
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **ATS Scraping** | ✅ Live | Greenhouse (73), Lever (19), Ashby (37) → 3000+ jobs/cycle |
-| **Career Gate** | ✅ Live | Keywords + salary floors + role exclusions enforced |
-| **Company Blocklist** | ✅ Live | Large companies filtered out |
-| **AI Scoring** | ✅ Calibrated | Claude-powered scoring with keyword bonuses |
-| **Apply Threshold** | ✅ Working | AUTO_APPLY ≥ 60, OUTREACH ≥ 58 |
-| **Resume Selection** | ✅ Working | 3 PDF variants auto-selected |
-| **Company Research** | ✅ Working | Claude-powered company analysis |
-| **Founder Finder** | ✅ Working | Finds emails, generates personalized messages |
-| **Email Service** | ✅ Working | Resend API via aipa@aideazz.xyz |
-| **ATS Form Submission** | ✅ WORKING | Playwright + Greenhouse email verification |
-| **Email Verification** | ✅ WORKING | Zoho IMAP reads verification codes |
-| **Daily Caps** | ✅ Enforced | 5/day to maintain quality |
-| **LinkedIn CMO** | ✅ Live | Daily posts at 21:30 UTC via Make.com |
-| **Telegram Bot** | ✅ Live | Real-time notifications + commands |
-
-### ⚠️ KNOWN LIMITATIONS
-
+### ✅ Operational
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Workable API** | ⚠️ Broken | API may have changed, returning 0 jobs |
-| **YC Work At Startup** | ⚠️ Not active | Would need Algolia API key |
-| **Wellfound** | ⚠️ Not active | GraphQL may need auth |
+| ATS Scraping | ✅ Live | Greenhouse (73), Lever (19), Ashby (37) |
+| Hard Gate | ✅ Live — needs keyword update | Add "senior/staff/principal" to exclusion list |
+| AI Scoring | ✅ Calibrated — needs audit | Audit last 50 applied roles for rabbit-hole contamination |
+| Apply Threshold | ✅ Working | AUTO_APPLY ≥ 60, OUTREACH ≥ 58 |
+| Resume Selection | ✅ Working | 3 PDF variants — needs re-labeling per Section 10 |
+| Founder Finder | ✅ Working | Finds emails, generates personalized messages |
+| Email Service | ✅ Working | Resend API via aipa@aideazz.xyz |
+| ATS Form Submission | ✅ Working | Playwright + Greenhouse email verification |
+| Daily Caps | ✅ Enforced | 5/day quality cap |
+| LinkedIn CMO | ✅ Live | Daily posts at 21:30 UTC — narrative needs updating |
+| Telegram Bot | ✅ Live | Real-time notifications + commands |
+
+### ⚠️ Known Limitations
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Workable API | ⚠️ Broken | Returning 0 jobs |
+| YC Work At Startup | ⚠️ Not active | Needs Algolia API key |
+| Wellfound | ⚠️ Not active | GraphQL may need auth |
+| **Scoring calibration** | ⚠️ Needs audit | May be routing to "Senior AI Engineer" rabbit holes |
 
 ---
 
-### 📈 SYSTEM PERFORMANCE
+## 1️⃣3️⃣ PRIORITY ACTIONS — FROM CAREER ANALYSIS
+
+> These are sequenced by urgency. Do not reorder.
+
+| # | Action | When | Why |
+|---|--------|------|-----|
+| 1 | **Audit what's been auto-applied to** (last 50 roles) | Today | If Senior/Staff/Principal at 20+ companies are in there, scoring is broken |
+| 2 | **Add "senior/staff/principal/ML engineer" to hard gate exclusion** | Today | Stops rabbit holes at source |
+| 3 | **Rewrite positioning** — lead with executive + builder hybrid | This week | LinkedIn headline, resume headers, outreach templates |
+| 4 | **Activate fractional channels** (Toptal, Braintrust, A-Team, LinkedIn DMs) | This week | One reference > any skill addition |
+| 5 | **Build eval harness — Layers 1+3** (in progress) | Week 1–2 | Closes Q2 interview gap AND fixes scoring calibration |
+| 6 | **Tighten top 2 READMEs** (VibeJobHunter + CTO AIPA) | Week 1–2 | 30-second GitHub impression for founders |
+| 7 | **Rehearse the four interview answers** — 90 seconds each | Ongoing | Career analysis: biggest risk is answer sharpness, not skills |
+| 8 | **Add RAG to EspaLuz** using Oracle 26ai native vectors | Week 2–4 | Closes biggest technical gap with least new infra |
+| 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | Week 3–5 | One honest line on resume. Credible answer to "AWS experience?" |
+
+---
+
+## BOTTOM LINE
+
+You are not a Senior AI Engineer by conventional definition. You are something rarer and harder to categorize: an executive who learned to ship production AI systems in a year using AI-assisted tools, who runs 9 live agents at $0/month infra cost, and who can communicate at board level and code level in the same day.
+
+That profile doesn't fit a job title. It fits a **founder who needs their first serious AI hire** or a **fractional engagement where the brief is "make our AI actually work."**
+
+**Stop mass-applying through ATS pipelines. Start direct outreach to founders. One right conversation with the right founder is worth more than 50 auto-applied Greenhouse submissions.**
+
+**The target is achievable. The channel is the thing that needs to change.**
+
+---
+
+---
+
+## 📋 REQUIRED EDITS TO SKILL.MD AND CLAUDE.MD
+
+> *These edits must be made to keep all three documents consistent with the honest career analysis.*
+
+---
+
+### SKILL.MD (`.claude/SKILL.md` in AIPA_AITCF repo) — Required Changes
+
+**Section 2 — WHO ELENA IS:**
+
+1. Add the two-phase background explicitly:
+   - Phase 1 (2011–2018): Deputy CEO / CLO, digital infrastructure, board-level — 7 years
+   - Phase 2 (2025–present): Applied AI builder, AI-assisted development, ~1 year tenure
+2. Add: "Builds with AI-assisted tools (Cursor, Claude Code) — this is the actual workflow, not a gap to hide"
+3. Add fractional rate to compensation: `$40–70/hr` for fractional engagements
+4. Fix EspaLuz description: "very early traction, very small revenue" — not "revenue-generating product"
+5. Add to "Elena is strong at": executive communication — translating AI systems to non-technical stakeholders
+6. Fix skill gaps section:
+   - RAG: change from implied-partial to **explicit gap** — "conversational memory ≠ production RAG"
+   - LangChain: change to **exposure only** — "used in EspaLuz, not in primary agents"
+   - Docker: add **"familiar, not in production"** — production runs bare on Ubuntu
+
+**Section 9 — SKILL GAPS TO CLOSE:**
+
+- RAG priority: change from "Phase 4 roadmap" to "Priority gap — Oracle 26ai native vectors for EspaLuz is the right approach, closes gap with zero new infra"
+- LangChain note: clarify "used in EspaLuz (exposure), not yet used in primary agents — be honest on resume"
+
+**Section 11 — BUILD PRIORITY QUEUE:**
+
+- Add as Priority 0: "Audit what VibeJobHunter is actually auto-applying to (today)"
+- Add between Priority 1 and 2: "Activate fractional channels (Toptal, Braintrust, A-Team, LinkedIn DM to founders)"
+- Eval harness note: "Also fixes VibeJobHunter scoring calibration — two outcomes from one build"
+
+**Section 12 — JOB SEARCH MODE:**
+
+- Update positioning from "AI Systems Engineer (LLM Agents & Automation)" to **"executive-turned-AI-builder"** framing
+- Remove from target roles: "Senior AI Engineer at any company with 20+ engineers"
+- Add explicitly: "Fractional AI consultant / builder ($40–70/hr)" as a primary target
+- Update Manny Filter: add "Senior/Staff/Principal AI Engineer at 20+ person company" as a MISALIGNED signal
+- Add fractional channels explicitly: "Toptal (in progress), Braintrust, A-Team, direct LinkedIn founder outreach"
+
+**Section 13 — INTERVIEW PREP:**
+
+- Update key proof points to include Phase 1: "7 years board-level executive — can explain AI systems to non-technical stakeholders, a rare combination"
+- Update skill gap deflection: for RAG/LangGraph/AWS — add "I haven't used X in production yet, but my executive background means I've evaluated these decisions at a systems level and here's how I'd implement it given [related project]..."
+- Add: "The four interview questions must be rehearsed out loud, 90 seconds each — career analysis identifies this as the highest-leverage activity right now"
+
+---
+
+### CLAUDE.md (AIPA_AITCF repo, auto-generated) — Required Changes
+
+**Section: Known Issues & Tech Debt:**
+
+- Add: `**VibeJobHunter scoring calibration** | 🔴 HIGH | May be auto-applying to Senior/Staff/ML Engineer roles that hard-filter on CS credentials and tenure. Audit last 50 auto-applied roles immediately. Fix: add Senior/Staff/Principal/ML exclusion to hard gate in job_gate.py`
+
+**Section: Scoring System (Job Matcher v3.0):**
+
+- Add note: "The scoring threshold (≥60 → auto-apply) is sound. The risk is not the threshold — it's the role categories passing Phase 0. A 75-point score on a "Senior AI Engineer" role at a 50-person company is still a rabbit hole."
+
+**Section: Interview Talking Points:**
+
+- Replace current opening: "I built a dimensional scoring system" with the two-phase positioning:
+  > "I'm an executive-turned-AI-builder — 7 years running digital infrastructure at board level, past year shipping 9 production AI systems. I can talk to a CEO and a developer in the same conversation."
+- Keep all existing technical talking points — they are valid. Lead with the hybrid positioning first.
+
+**Section: Build Priority:**
+
+- Add above current Priority 1: "**0. Audit VibeJobHunter auto-apply targets** (today) — check role categories, not just score thresholds"
+- Note under Priority 1 (eval framework): "Also fixes scoring calibration as a secondary outcome"
+
+**Section: Environment Variables:**
+
+- No changes needed.
+
+**Positioning rule to add (new section or addition to existing):**
 
 ```
-TYPICAL HOURLY CYCLE:
-Jobs scraped:     ~3000 (Greenhouse + Lever + Ashby)
-Jobs after gate:  ~700 (22% pass rate)
-Jobs scored 60+:  ~5-10 (qualified for auto-apply)
-Applications:     3-5/day (capped for quality)
+## Positioning Rule (from career analysis v2)
+
+When presenting Elena's background in any context:
+1. Lead with Phase 1 (executive) + Phase 2 (AI builder) — the hybrid is the differentiator
+2. Never claim "senior AI engineer" for roles that filter on 5+ years conventional tenure
+3. For fractional pitches: "executive who ships AI systems" is the pitch
+4. EspaLuz: "early paid users" — not "revenue-generating product at scale"
+5. LangChain: "exposure" — not a core skill
+6. RAG: honest gap — do not claim partial without production evidence
 ```
 
-**Full system flow documented in:** `SYSTEM_DOCUMENTATION.md`
+---
+
+> Last updated: March 2026 | Aligned with `elena_career_analysis_v2.html` — Honest Edition v2  
+> This document is the single source of truth for VibeJobHunter targeting decisions.
