@@ -218,7 +218,7 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| **Eval framework — Layer 4 only** | 🟡 MED | Layers 1–3 built and green (117 tests, 0.52s). Layer 4 (LLM consistency, Claude-as-judge) not yet built. |
+| **Eval framework — complete** | ✅ DONE | All 4 layers built and green (131 tests, ~43s). Layer 4 = Claude-as-judge consistency (12 curated cases + 22 golden set, ≥75% agreement). Cost: ~$0.03/run. |
 | **Scoring calibration — career analysis alignment** | 🟡 MED | Career analysis says "stop applying to Senior/Staff/Principal at 20+ companies." Current engine has penalty layers but no hard company-size gate. The penalty system (-40/-20/-15) catches most wrong roles but doesn't enforce the "5–100 employees" hard gate from CAREER_FOCUS.md. Surgical edit territory. |
 | **LangChain imported but underused** | 🟡 MED | `langchain` is in requirements but most LLM calls go direct via `anthropic` SDK. Either commit or remove. |
 | **SQLite in production** | 🟡 MED | `autonomous_data/` SQLite works but isn't the Oracle ATP used by other agents. Inconsistency. |
@@ -244,8 +244,8 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 
 ## Build Priority (aligned with career analysis v2 — 2026-03-30)
 
-0. **Audit auto-apply targets** — ✅ Done. Wrong-stack, IT outsourcer, US-only, AI gate fixes deployed. 117 tests green.
-1. **Eval framework** — ✅ Layers 1–3 built (117 tests, 0.52s, $0). Layer 4 (LLM-as-judge consistency) is next.
+0. **Audit auto-apply targets** — ✅ Done. Wrong-stack, IT outsourcer, US-only, AI gate fixes deployed.
+1. **Eval framework** — ✅ Done. All 4 layers: keyword (L1), bias compensation (L2), golden set routing (L3), LLM-as-judge consistency (L4). 131 tests, ~43s, ~$0.03/run.
 2. **README: tool-use design section** — document which tools are called when and why
 3. **README: monitoring/eval section** — show production-level thinking
 4. **Remove Railway artefacts** — clean `railway.json`, `railway-entrypoint.sh`, `RAILWAY_ENVIRONMENT` env check
@@ -267,7 +267,7 @@ When presenting Elena's background in any context:
 
 - **Lead with the hybrid:** "I'm an executive-turned-AI-builder — 7 years running digital infrastructure at board level, past year shipping 9 production AI systems. I can talk to a CEO and a developer in the same conversation."
 - **"I built a dimensional scoring system"** — 6-dimension, 100-point job→profile match with bias compensation + 7-level penalty system, evidence-tuned thresholds, not just keyword matching
-- **"117-test eval harness"** — keyword, integration, golden-set layers. $0 API cost, 0.52s. Deterministic + AI-gated scoring. Production regressions caught before deploy.
+- **"131-test eval harness, 4 layers"** — keyword scoring, bias compensation, golden-set routing, LLM-as-judge consistency. Layers 1–3: deterministic, $0, <1s. Layer 4: Claude-as-judge validates engine agrees with informed LLM ≥75%. Production regressions caught before deploy.
 - **"Model routing by signal type"** — Claude for deep analysis; lightweight rules for domain filtering; cost-controlled by `USE_AI_JOB_ANALYSIS` flag. AI gate prevents expensive Claude calls on obviously-wrong jobs.
 - **"Production-grade autonomous loop"** — systemd managed, runs every hour, Telegram notifications, self-healing
 - **"ATS automation with Playwright"** — form submission across Greenhouse, Lever, Ashby, Workable (real applications, not just URL collection)
