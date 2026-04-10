@@ -1,6 +1,7 @@
-# 🎯 CAREER FOCUS — VibeJobHunter (Honest Roadmap v3)
+# 🎯 CAREER FOCUS — VibeJobHunter (Honest Roadmap v4)
 
 > **Aligned with:** `elena_career_analysis_v2.html` — Honest Edition, March 2026  
+> **Updated:** April 10, 2026 — Phase 4 outreach operational, hard gate recalibration complete, Claude retry resilience added.  
 > **Previous version corrected:** salary floors, role targeting, and positioning were miscalibrated against the actual profile.  
 > **This document supersedes all prior CAREER_FOCUS versions.**
 
@@ -124,23 +125,25 @@ Apply only in early-stage or highly technical orgs with founder-led hiring:
 
 > **Career analysis identified this as an urgent problem: the auto-apply system may be sending applications into rabbit holes at scale.**
 
-### ⚠️ Known Calibration Issue
+### ✅ Calibration — FIXED (April 10, 2026)
 
-If VibeJobHunter is scoring "Senior AI Engineer" roles at 60+ and auto-applying, it is:
-- Generating rejections that never get seen by a human
-- Burning first impressions on ATS pipelines that filter before review
-- Wasting the most valuable asset: the quality of the first contact
+> Previous versions flagged this as a critical issue. The hard gate recalibration is now deployed and running in production.
 
-**Immediate action: Audit the last 50 auto-applied roles. Check if Senior/Staff/Principal/ML Engineer at 20+ person companies are in there. If yes, scoring thresholds must be recalibrated now.**
+**What was done:**
+- `job_gate.py` `ROLE_EXCLUDE_KEYWORDS` expanded: `senior engineer`, `senior software`, `senior ai engineer`, `senior ml`, `senior machine learning`, `senior backend`, `senior developer`, `senior dev`, `sr. engineer`, `sr. software`, `sr. ai`, `sr. ml`, `sr. developer`, `sr. dev`, `sr. gen ai`, `sr engineer`, `sr software`, `sr ai`, `sr ml`, `sr developer`, `sr dev`, `sr gen ai`, `staff engineer`, `staff software`, `principal engineer`, `principal software`, `ml engineer`, `machine learning engineer`, `data scientist`
+- `ROLE_INCLUDE_KEYWORDS` recalibrated: removed `senior engineer`, `staff engineer`, `ml engineer`; added `ai automation`, `internal tools`, `ai integration`, `fractional`, `consultant`
+- `SALARY_FLOORS` corrected from $150K/$120K to $30K–$42K annual (aligned with $2.5K–5K/mo target)
+- Indian IT staffing firms retained in `LARGE_COMPANY_BLOCKLIST` (Siro Clinpharm, Nagarro, etc.); product companies (Deel, GitLab, etc.) removed — filter is role-based, not company-name-based
+- Career gate pass rate improved to ~20.7% (from ~24%), confirming tighter filtering
 
-### Hard Gates (Phase 0) — MANDATORY before any scoring
+### Hard Gates (Phase 0) — IMPLEMENTED in `job_gate.py`
 
 A job is discarded unless ALL are true:
 - Company size: **5–100 employees**
 - Stage: **Seed → Series B**
-- Role does NOT contain: `senior`, `staff`, `principal`, `ML engineer`, `machine learning engineer`
-- Role DOES contain ≥1 of: `founding`, `automation`, `internal tools`, `AI integration`, `AI ops`, `AI program`, `applied AI`, `AI builder`
-- Salary (if listed) ≥ regional floor
+- Role does NOT contain: `senior`, `staff`, `principal`, `sr.`, `sr `, `ML engineer`, `machine learning engineer`, `data scientist`
+- Role DOES contain ≥1 of: `founding`, `automation`, `internal tools`, `AI integration`, `AI ops`, `AI program`, `applied AI`, `AI builder`, `fractional`, `consultant`
+- Salary (if listed) ≥ regional floor ($30K annual / $2.5K monthly)
 - Remote or Panama-compatible (UTC-5)
 
 ### AI Match Scoring (Phase 2) — Recalibrated
@@ -332,16 +335,17 @@ Applications:        3–5/day (capped for quality)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | ATS Scraping | ✅ Live | Greenhouse (73), Lever (19), Ashby (37) |
-| Hard Gate | ✅ Live — needs keyword update | Add "senior/staff/principal" to exclusion list |
-| AI Scoring | ✅ Calibrated — needs audit | Audit last 50 applied roles for rabbit-hole contamination |
+| Hard Gate | ✅ **Recalibrated (Apr 10)** | `senior/staff/principal/sr./sr /ml engineer/data scientist` all excluded. `fractional/consultant` added to include. Career gate pass rate ~20.7%. |
+| AI Scoring | ✅ Calibrated | AI scoring with Claude retry (3x backoff on 529/503/429) |
 | Apply Threshold | ✅ Working | AUTO_APPLY ≥ 60, OUTREACH ≥ 58 |
 | Resume Selection | ✅ Working | 3 PDF variants — needs re-labeling per Section 10 |
-| Founder Finder | ✅ Working | Finds emails, generates personalized messages |
-| Email Service | ✅ Working | Resend API via aipa@aideazz.xyz |
+| Founder Finder | ✅ **Fixed (Apr 10)** | `_send_email_message` TypeError fixed, `FROM_EMAIL` corrected to `aipa@aideazz.xyz`, `_extract_email` no longer returns `careers@` ATS addresses |
+| Email Service | ✅ **Working + retry** | Resend API via `aipa@aideazz.xyz`. Claude calls have 3x retry with exponential backoff (shared `claude_helper.py`). |
 | ATS Form Submission | ✅ Working | Playwright + Greenhouse email verification |
-| Daily Caps | ✅ Enforced | 5/day quality cap |
+| Daily Caps | ✅ Enforced | 5/day applications, 2/day founder outreach |
 | LinkedIn CMO | ✅ Live | Daily posts at 21:30 UTC — narrative needs updating |
 | Telegram Bot | ✅ Live | Real-time notifications + commands |
+| **Claude Resilience** | ✅ **NEW (Apr 10)** | `claude_helper.py` — `call_claude_sync`, `call_claude_async`, `acall_claude` with retry on 529/503/429. Wired into `message_generator.py`, `auto_applicator.py`, `company_researcher.py`, `job_matcher.py`. |
 
 ### ⚠️ Known Limitations
 | Component | Status | Notes |
@@ -349,18 +353,20 @@ Applications:        3–5/day (capped for quality)
 | Workable API | ⚠️ Broken | Returning 0 jobs |
 | YC Work At Startup | ⚠️ Not active | Needs Algolia API key |
 | Wellfound | ⚠️ Not active | GraphQL may need auth |
-| **Scoring calibration** | ⚠️ Needs audit | May be routing to "Senior AI Engineer" rabbit holes |
+| Founder email discovery | ⚠️ Limited | Hunter.io finds some; many founders lack public emails. LinkedIn-only contacts go to manual queue. |
 
 ---
 
 ## 1️⃣3️⃣ PRIORITY ACTIONS — FROM CAREER ANALYSIS
 
-> These are sequenced by urgency. Do not reorder.
+> Updated: April 10, 2026. Completed items marked.
 
-| # | Action | When | Why |
-|---|--------|------|-----|
-| 1 | **Audit what's been auto-applied to** (last 50 roles) | Today | If Senior/Staff/Principal at 20+ companies are in there, scoring is broken |
-| 2 | **Add "senior/staff/principal/ML engineer" to hard gate exclusion** | Today | Stops rabbit holes at source |
+| # | Action | Status | Details |
+|---|--------|--------|---------|
+| 1 | **Audit what's been auto-applied to** | ✅ DONE (Apr 10) | Logs inspected. Found rabbit holes (Siro Clinpharm 62pts, Photon GEN AI). Hard gate recalibrated. |
+| 2 | **Add "senior/staff/principal/ML engineer" to hard gate exclusion** | ✅ DONE (Apr 10) | Full exclusion set deployed: `senior/staff/principal/sr./sr /ml/data scientist` + abbreviation variants. Career gate pass rate tightened to ~20.7%. |
+| 2b | **Fix founder outreach email bugs** | ✅ DONE (Apr 10) | `_send_email_message` TypeError, wrong `FROM_EMAIL`, `_extract_email` returning `careers@` — all fixed. |
+| 2c | **Add Claude 529/503/429 retry resilience** | ✅ DONE (Apr 10) | Shared `claude_helper.py` with 3x exponential backoff. Wired into all 5 Claude call sites in message_generator, plus auto_applicator, company_researcher, job_matcher. Pattern from EspaLuz WhatsApp. |
 | 3 | **Rewrite positioning** — lead with executive + builder hybrid | This week | LinkedIn headline, resume headers, outreach templates |
 | 4 | **Activate fractional channels** (Toptal, Braintrust, A-Team, LinkedIn DMs) | This week | One reference > any skill addition |
 | 5 | **Build eval harness — Layers 1+3** (in progress) | Week 1–2 | Closes Q2 interview gap AND fixes scoring calibration |
@@ -475,5 +481,6 @@ When presenting Elena's background in any context:
 
 ---
 
-> Last updated: March 2026 | Aligned with `elena_career_analysis_v2.html` — Honest Edition v2  
+> Last updated: April 10, 2026 | Aligned with `elena_career_analysis_v2.html` — Honest Edition v2  
+> v4 changes: hard gate recalibration deployed, founder outreach email fixes, Claude retry resilience, salary floor correction  
 > This document is the single source of truth for VibeJobHunter targeting decisions.
