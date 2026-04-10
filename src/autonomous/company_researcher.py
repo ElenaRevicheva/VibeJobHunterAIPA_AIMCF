@@ -15,6 +15,7 @@ from datetime import datetime
 from ..core.config import settings
 from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
+from ..utils.claude_helper import call_claude_async
 
 logger = setup_logger(__name__)
 
@@ -167,9 +168,9 @@ About: {intel.get('website_data', {}).get('about_text', '')}
 Keywords: {', '.join(intel.get('website_data', {}).get('keywords', []))}
 Tech Stack: {', '.join(intel.get('tech_stack', {}).get('detected_technologies', []))}
 """
-            message = await asyncio.to_thread(
-                self.client.messages.create,
-                model="claude-sonnet-4-20250514",  # Updated model
+            message = await call_claude_async(
+                self.client,
+                model="claude-sonnet-4-20250514",
                 max_tokens=1000,
                 messages=[{
                     "role": "user",

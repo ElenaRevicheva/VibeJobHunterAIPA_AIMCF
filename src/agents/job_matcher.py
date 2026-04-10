@@ -22,6 +22,7 @@ import json
 import os
 from typing import List, Tuple, Dict, Optional
 from anthropic import Anthropic
+from ..utils.claude_helper import call_claude_sync
 
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
@@ -796,11 +797,14 @@ She's overqualified for most roles, not underqualified.
 Return ONLY valid JSON (no markdown):
 {{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""
 
-            response = self.ai.messages.create(
+            response = call_claude_sync(
+                self.ai,
                 model="claude-sonnet-4-20250514",
                 max_tokens=500,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if response is None:
+                raise RuntimeError("Claude returned None after retries")
             
             result_text = response.content[0].text.strip()
             

@@ -18,6 +18,7 @@ import json
 import uuid
 
 from anthropic import AsyncAnthropic
+from ..utils.claude_helper import acall_claude
 
 # Database tracking
 try:
@@ -157,11 +158,14 @@ TONE: Confident, founder-minded, technical but accessible
 Write the cover letter now:"""
 
         try:
-            response = await self.claude.messages.create(
+            response = await acall_claude(
+                self.claude,
                 model="claude-sonnet-4-20250514",
                 max_tokens=2000,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if response is None:
+                return None
             
             cover_letter = response.content[0].text.strip()
             return cover_letter

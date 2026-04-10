@@ -1,12 +1,19 @@
 ﻿"""
 Claude API Helper
-Handles model selection and fallbacks gracefully
+Handles model selection, fallbacks, and retry with backoff for transient errors (529/503/429).
 """
 
+import asyncio
 import logging
-from typing import Optional
+import time
+from typing import Optional, Any, Set
+
+import anthropic
 
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_STATUS_CODES: Set[int] = {529, 503, 429}
 
 
 # Model selection priority (tries in order)
@@ -88,3 +95,63 @@ def get_cached_model(client) -> str:
         _cached_model = get_best_available_model(client)
     
     return _cached_model
+
+
+def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
+    """Synchronous Claude call with retry on 529/503/429."""
+    for attempt in range(retries):
+        try:
+            return client.messages.create(**kwargs)
+        except anthropic.APIStatusError as e:
+            if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
+                wait = 2 * (attempt + 1)
+                logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
+                time.sleep(wait)
+                continue
+            raise
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(2)
+                continue
+            raise
+    return None
+
+
+async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
+    """Async Claude call with retry on 529/503/429 (wraps sync client in thread)."""
+    for attempt in range(retries):
+        try:
+            return await asyncio.to_thread(client.messages.create, **kwargs)
+        except anthropic.APIStatusError as e:
+            if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
+                wait = 2 * (attempt + 1)
+                logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
+                await asyncio.sleep(wait)
+                continue
+            raise
+        except Exception:
+            if attempt < retries - 1:
+                await asyncio.sleep(2)
+                continue
+            raise
+    return None
+
+
+async def acall_claude(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
+    """Native async Claude call with retry on 529/503/429 (for AsyncAnthropic)."""
+    for attempt in range(retries):
+        try:
+            return await client.messages.create(**kwargs)
+        except anthropic.APIStatusError as e:
+            if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
+                wait = 2 * (attempt + 1)
+                logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
+                await asyncio.sleep(wait)
+                continue
+            raise
+        except Exception:
+            if attempt < retries - 1:
+                await asyncio.sleep(2)
+                continue
+            raise
+    return None

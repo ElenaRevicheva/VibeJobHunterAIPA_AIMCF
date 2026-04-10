@@ -9,6 +9,7 @@ Uses AI to create context-aware, compelling messages.
 
 import asyncio
 import logging
+import time as _time
 from typing import Dict, Any, List, Optional
 import anthropic
 from datetime import datetime
@@ -19,6 +20,9 @@ from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
 
 logger = setup_logger(__name__)
+
+MAX_RETRIES = 3
+RETRY_CODES = {529, 503, 429}
 
 
 class MessageGenerator:
@@ -36,6 +40,27 @@ class MessageGenerator:
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self.cache = ResponseCache(cache_dir=Path("autonomous_data/cache"))
         logger.info("✍️ Message Generator initialized")
+
+    async def _call_claude(self, **kwargs) -> Optional[Any]:
+        """Call Claude with retry on 529/503/429 (EspaLuz pattern)."""
+        for attempt in range(MAX_RETRIES):
+            try:
+                return await asyncio.to_thread(
+                    self.client.messages.create, **kwargs
+                )
+            except anthropic.APIStatusError as e:
+                if e.status_code in RETRY_CODES and attempt < MAX_RETRIES - 1:
+                    wait = 2 * (attempt + 1)
+                    logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{MAX_RETRIES}), retrying in {wait}s")
+                    await asyncio.sleep(wait)
+                    continue
+                raise
+            except Exception:
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(2)
+                    continue
+                raise
+        return None
     
     # =========================================================================
     # 🆕 PHASE 2: FOUNDER MESSAGE GENERATION (NEW METHOD)
@@ -148,17 +173,17 @@ Return JSON:
 CRITICAL: Make it feel personally researched and founder-to-founder, not applicant-to-employer!"""
 
         try:
-            message = await asyncio.to_thread(
-                self.client.messages.create,
+            message = await self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=800,
                 temperature=0.7,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if message is None:
+                raise RuntimeError("Claude returned None after retries")
             
             content = message.content[0].text.strip()
             
-            # Parse JSON response
             import json
             if '{' in content and '}' in content:
                 start = content.index('{')
@@ -373,12 +398,13 @@ CRITICAL: Make it feel like Elena personally researched them!
 Write ONLY the message, no subject line."""
 
         try:
-            message = await asyncio.to_thread(
-                self.client.messages.create,
+            message = await self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if message is None:
+                return self._get_fallback_message('linkedin', founder_name, company)
             
             return message.content[0].text.strip()
         
@@ -435,12 +461,13 @@ TONE: Confident but not arrogant, founder-to-founder
 Write the complete email (subject + body)."""
 
         try:
-            message = await asyncio.to_thread(
-                self.client.messages.create,
+            message = await self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=600,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if message is None:
+                return self._get_fallback_message('email', founder_name, company)
             
             return message.content[0].text.strip()
         
@@ -486,12 +513,13 @@ REQUIREMENTS:
 Write ONLY the DM text."""
 
         try:
-            message = await asyncio.to_thread(
-                self.client.messages.create,
+            message = await self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=200,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if message is None:
+                return self._get_fallback_message('twitter', founder_name, company)
             
             return message.content[0].text.strip()
         
@@ -591,12 +619,13 @@ REQUIREMENTS:
 Write ONLY the follow-up message."""
 
         try:
-            message = await asyncio.to_thread(
-                self.client.messages.create,
+            message = await self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if message is None:
+                return f"Hi again! Just wanted to follow up. Still would love to chat about {company}. Demo: wa.me/50766623757"
             
             return message.content[0].text.strip()
         
