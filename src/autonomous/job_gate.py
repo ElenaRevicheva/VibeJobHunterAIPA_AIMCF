@@ -22,30 +22,39 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────
 
 ROLE_INCLUDE_KEYWORDS = {
-    # Primary targets
+    # Primary targets (CAREER_FOCUS Section 3 — green roles)
     "founding", "founder", "co-founder",
-    "ai engineer", "ml engineer", "machine learning",
+    "ai automation", "automation specialist",
+    "internal tools", "ai tools",
+    "ai integration", "integration engineer",
+    "ai ops", "ai program", "applied ai", "ai builder",
     "product engineer", "platform engineer",
     "full stack", "fullstack", "full-stack",
-    "senior engineer", "staff engineer", "principal",
-    "technical lead", "tech lead", "engineering lead",
     "solutions architect", "ai architect",
-    # Secondary
+    # Secondary — only early-stage / founder-led
     "software engineer", "backend engineer",
     "automation", "infrastructure", "infra",
-    "llm", "nlp", "data engineer",
+    "llm", "nlp",
     "product manager", "growth engineer",
+    "fractional", "consultant",
 }
 
 ROLE_EXCLUDE_KEYWORDS = {
-    # Never apply to these
+    # Never apply (CAREER_FOCUS Section 3 — red roles + Section 5 hard gates)
     "junior", "intern", "internship", "entry level", "entry-level",
+    "senior engineer", "senior software", "senior ai engineer",
+    "senior ml", "senior machine learning", "senior backend",
+    "staff engineer", "staff software",
+    "principal engineer", "principal software",
+    "ml engineer", "machine learning engineer",
+    "data scientist",
     "sales", "recruiter", "recruiting", "hr ",
     "customer success", "account manager", "account executive",
     "phd required", "doctorate required",
     "director of sales", "vp sales",
     "legal counsel", "general counsel",
     "executive assistant", "administrative",
+    "microsoft 365", "power platform", "sharepoint",
 }
 
 # ─────────────────────────────
@@ -70,9 +79,13 @@ LARGE_COMPANY_BLOCKLIST = {
     "chime", "sofi", "affirm", "klarna", "revolut",
     # Large AI Companies (established, not startups)
     "openai", "anthropic", "deepmind", "cohere",  # These are elite but large now
-    # Consulting/Enterprise
+    # Consulting/Enterprise/Staffing
     "accenture", "deloitte", "mckinsey", "bcg", "bain", "kpmg", "pwc", "ey",
     "capgemini", "infosys", "wipro", "tcs", "cognizant",
+    # Indian IT staffing / body shops (frequent ATS noise, not product companies)
+    "siro clinpharm", "nagarro", "codeforce360",
+    "akaasa", "xforia", "verito", "argyll",
+    "sr partners",
 }
 
 LOCATION_INCLUDE_KEYWORDS = {
@@ -85,11 +98,11 @@ LOCATION_INCLUDE_KEYWORDS = {
 # SALARY FLOORS (Annual)
 # ─────────────────────────────
 SALARY_FLOORS = {
-    "us": 150000,      # $150K USD minimum for US roles
-    "eu": 90000,       # €90K EUR minimum for EU roles  
-    "uk": 80000,       # £80K GBP minimum for UK roles
-    "latam": 100000,   # $100K USD minimum for LATAM (often USD-denominated)
-    "remote": 120000,  # $120K USD for unspecified remote roles
+    "us": 42000,       # $3,500/mo hard floor (CAREER_FOCUS Section 4)
+    "eu": 36000,       # ~€3K/mo equivalent
+    "uk": 30000,       # ~£2.5K/mo equivalent
+    "latam": 30000,    # $2,500/mo (CAREER_FOCUS: $2.5K–4.5K/mo startup range)
+    "remote": 36000,   # $3K/mo — reject below hard floor
 }
 
 # ─────────────────────────────

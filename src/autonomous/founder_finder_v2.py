@@ -160,13 +160,17 @@ class FounderFinderV2:
             if channel == "email":
                 email = self._extract_email(founder_data)
                 if email:
+                    subject = message_data.get("subject", f"Re: {job.title} at {company}")
                     sent = await self._send_email_message(
                         email,
                         message_data["message"],
-                        message_data.get("subject", f"Re: {job.title} at {company}"),
+                        subject,
                         founder_name or "Hiring Team",
                         company,
                     )
+                    if sent:
+                        result["email"] = email
+                        result["subject"] = subject
 
             elif channel == "linkedin":
                 linkedin_url = self._extract_linkedin(founder_data)
@@ -582,10 +586,10 @@ wa.me/50766623757"""
     async def _send_email_message(
         self, email: str, message: str, subject: str, founder_name: str, company: str
     ) -> bool:
-        """Send email via Resend"""
+        """Send email via Resend using verified aideazz.xyz domain"""
         try:
             if not self.email_service:
-                logger.warning("⚠️ Email service not configured")
+                logger.warning("⚠️ Email service not configured — queuing for manual send")
                 await self._save_to_manual_queue({
                     "channel": "email",
                     "contact": founder_name,
@@ -597,18 +601,36 @@ wa.me/50766623757"""
                     "created_at": datetime.utcnow().isoformat(),
                 })
                 return True
-            
-            await self.email_service.send_email(
+
+            import os
+            from_email = os.getenv("FROM_EMAIL", "Elena Revicheva <aipa@aideazz.xyz>")
+
+            result = await self.email_service.send_email(
                 to=email,
                 subject=subject,
                 body=message,
-                from_name="Elena Revicheva",
-                from_email="elena@vibejobhunter.com",
+                from_email=from_email,
+                html=False,
             )
-            
-            logger.info(f"✅ Email sent to {founder_name} ({email})")
-            return True
-            
+
+            if result.get("success"):
+                logger.info(f"✅ Email sent to {founder_name} ({email})")
+                return True
+            else:
+                logger.error(f"❌ Email send blocked/failed for {email}: {result.get('error')}")
+                await self._save_to_manual_queue({
+                    "channel": "email",
+                    "contact": founder_name,
+                    "company": company,
+                    "email": email,
+                    "subject": subject,
+                    "message": message,
+                    "status": "send_failed",
+                    "error": result.get("error", "unknown"),
+                    "created_at": datetime.utcnow().isoformat(),
+                })
+                return False
+
         except Exception as e:
             logger.error(f"❌ Email send error: {e}")
             return False
@@ -689,25 +711,20 @@ wa.me/50766623757"""
     def _extract_email(self, data: Dict[str, Any]) -> Optional[str]:
         """
         Extract best email from data.
-        Priority: verified emails > patterns > None
+        Priority: verified emails > personal patterns > None
+        Never returns ATS addresses (careers@, jobs@, etc.)
         """
-        # First check for verified emails (from Hunter.io)
         verified = data.get("verified_emails", [])
         if verified:
-            # Return highest confidence verified email
             return verified[0].get('email')
-        
-        # Fall back to patterns
+
         patterns = data.get("email_patterns", [])
         if patterns:
-            # Filter out ATS emails (careers@, jobs@, etc.)
-            ats_patterns = ['careers@', 'jobs@', 'hr@', 'recruiting@', 'talent@', 'apply@']
+            ats_patterns = ['careers@', 'jobs@', 'hr@', 'recruiting@', 'talent@', 'apply@', 'applications@']
             for pattern in patterns:
                 if not any(ats in pattern.lower() for ats in ats_patterns):
                     return pattern
-            # If all are ATS, still return first (ATS submitter handles those)
-            return patterns[0]
-        
+
         return None
 
     def _extract_linkedin(self, data: Dict[str, Any]) -> Optional[str]:
