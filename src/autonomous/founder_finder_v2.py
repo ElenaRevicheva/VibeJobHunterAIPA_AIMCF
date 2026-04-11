@@ -104,6 +104,53 @@ class FounderFinderV2:
     # ORCHESTRATOR ENTRYPOINT
     # ════════════════════════════════════════════════════════════
 
+    def _resolve_company_url(self, job: JobPosting) -> str:
+        """
+        Derive company website from job data.
+        JobPosting.url is usually an ATS board URL (greenhouse, lever, etc.),
+        NOT the company homepage. We need the real domain for Hunter.io lookup.
+        """
+        if hasattr(job, 'company_url') and getattr(job, 'company_url', ''):
+            return job.company_url
+
+        job_url = getattr(job, 'url', '') or ''
+
+        # ATS URL → company slug → slug.com
+        ats_extractors = [
+            ('boards.greenhouse.io/', 'greenhouse.io/'),
+            ('jobs.lever.co/', 'lever.co/'),
+            ('jobs.ashbyhq.com/', 'ashbyhq.com/'),
+            ('apply.workable.com/', 'workable.com/'),
+        ]
+        for _, marker in ats_extractors:
+            if marker in job_url:
+                slug = job_url.split(marker, 1)[1].split('/')[0].split('?')[0]
+                if slug:
+                    return f"https://{slug}.com"
+
+        # Non-ATS URL that looks like a company site (not a job board)
+        board_hosts = ['greenhouse.io', 'lever.co', 'ashbyhq.com', 'workable.com',
+                       'indeed.com', 'linkedin.com', 'dice.com', 'wellfound.com',
+                       'torre.ai', 'himalayas.app', 'remoteok.com', 'ai-jobs.net']
+        if job_url.startswith('http'):
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(job_url)
+                host = parsed.hostname or ''
+                if host and not any(b in host for b in board_hosts):
+                    return f"https://{host.replace('www.', '')}"
+            except Exception:
+                pass
+
+        # Last resort: guess from company name
+        slug = job.company.lower().strip()
+        for remove in [' inc', ' inc.', ' ltd', ' llc', ' corp', ' co.', ' co']:
+            slug = slug.replace(remove, '')
+        slug = slug.replace(' ', '').replace(',', '').replace('.', '')
+        if slug:
+            return f"https://{slug}.com"
+        return ''
+
     async def find_and_message(self, job: JobPosting, profile: Profile) -> Dict[str, Any]:
         """
         Complete workflow: Find founder → Generate message → Send
@@ -122,10 +169,12 @@ class FounderFinderV2:
 
         try:
             # Step 1: Find founder
+            company_url = self._resolve_company_url(job)
+            logger.info(f"🌐 Resolved company URL for {company}: {company_url}")
             founder_data = await self.find_founder(
                 company,
                 {
-                    "url": getattr(job, "company_url", ""),
+                    "url": company_url,
                     "description": getattr(job, "description", ""),
                 },
             )
@@ -589,7 +638,7 @@ wa.me/50766623757"""
         """Send email via Resend using verified aideazz.xyz domain"""
         try:
             if not self.email_service:
-                logger.warning("⚠️ Email service not configured — queuing for manual send")
+                logger.error("❌ Email service not configured — RESEND_API_KEY missing? Queuing for manual send but reporting FAILURE.")
                 await self._save_to_manual_queue({
                     "channel": "email",
                     "contact": founder_name,
@@ -600,7 +649,7 @@ wa.me/50766623757"""
                     "status": "pending_manual_send",
                     "created_at": datetime.utcnow().isoformat(),
                 })
-                return True
+                return False
 
             import os
             from_email = os.getenv("FROM_EMAIL", "Elena Revicheva <aipa@aideazz.xyz>")
