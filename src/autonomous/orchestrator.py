@@ -733,7 +733,7 @@ class AutonomousOrchestrator:
                             stats.priority_applied += 1
                         self.stats["applications_today"] += 1
                         self.stats["applications_sent"] += 1
-                        logger.info(f"✅ Applied to {job.company} via ATS")
+                        logger.info(f"✅ Application cycle completed for {job.company} (see delivery log above)")
                         
                         # Add to top matches
                         if len(stats.top_matches) < 5:
@@ -868,7 +868,21 @@ class AutonomousOrchestrator:
                 self.stats["applications_generated"] += 1
                 logger.info(f"✅ Application materials ready for {job.company}")
             
-            applied = result.get('email_sent', False) or result.get('materials_generated', False)
+            applied = bool(result.get('application_delivered'))
+            
+            if applied:
+                parts = []
+                if result.get('ats_live_submitted'):
+                    parts.append(f"ATS:{result.get('ats_type', '?')}")
+                if result.get('email_sent'):
+                    parts.append('email')
+                logger.info(
+                    f"✅ Application delivered for {job.company} ({', '.join(parts) if parts else 'channel'})"
+                )
+            elif result.get('materials_generated'):
+                logger.warning(
+                    f"📄 Materials only for {job.company} — no live ATS submit and no application email"
+                )
             
             # Mark as applied in seen_jobs so it's never retried (TTL-proof)
             if applied and hasattr(self, 'job_monitor') and self.job_monitor:

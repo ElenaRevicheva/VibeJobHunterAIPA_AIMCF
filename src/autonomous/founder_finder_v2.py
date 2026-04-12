@@ -205,36 +205,41 @@ class FounderFinderV2:
             
             logger.info(f"📡 Best channel for {company}: {channel}")
 
-            sent = False
+            # Only Resend email counts as automated "success" for stats — LinkedIn/Twitter are manual copy queues.
+            email_delivered = False
+            manual_queued = False
+
             if channel == "email":
                 email = self._extract_email(founder_data)
                 if email:
                     subject = message_data.get("subject", f"Re: {job.title} at {company}")
-                    sent = await self._send_email_message(
+                    email_delivered = await self._send_email_message(
                         email,
                         message_data["message"],
                         subject,
                         founder_name or "Hiring Team",
                         company,
                     )
-                    if sent:
+                    if email_delivered:
                         result["email"] = email
                         result["subject"] = subject
 
             elif channel == "linkedin":
                 linkedin_url = self._extract_linkedin(founder_data)
                 if linkedin_url:
-                    sent = await self._send_linkedin_message(
+                    manual_queued = await self._send_linkedin_message(
                         linkedin_url,
                         message_data["message"],
                         founder_name or "Contact",
                         company,
                     )
+                else:
+                    logger.warning(f"⚠️ No LinkedIn URL for {company}")
 
             elif channel == "twitter":
                 twitter_handle = self._extract_twitter(founder_data)
                 if twitter_handle:
-                    sent = await self._send_twitter_dm(
+                    manual_queued = await self._send_twitter_dm(
                         twitter_handle,
                         message_data["message"],
                         founder_name or "Contact",
@@ -243,22 +248,30 @@ class FounderFinderV2:
             else:
                 logger.warning(f"⚠️ No valid contact channel for {company}")
 
-            result["message_sent"] = sent
-            result["success"] = sent
+            result["message_sent"] = email_delivered
+            result["success"] = email_delivered
+            result["manual_copy_queued"] = manual_queued
 
             # Step 4: Log attempt
+            log_status = (
+                "sent" if email_delivered else "manual_queued" if manual_queued else "failed"
+            )
             await self._log_outreach_attempt(
                 job,
                 founder_data,
-                "sent" if sent else "failed",
+                log_status,
                 channel,
                 message_data["message"],
             )
-            
-            if sent:
-                logger.info(f"✅ Outreach sent to {company} via {channel}")
+
+            if email_delivered:
+                logger.info(f"✅ Employer outreach email delivered (Resend) for {company}")
+            elif manual_queued:
+                logger.info(
+                    f"📋 {company}: copy saved for manual {channel} — NOT counted as automated send"
+                )
             else:
-                logger.error(f"❌ Failed to send outreach to {company}")
+                logger.error(f"❌ No automated email sent for {company} (channel={channel})")
 
             return result
 

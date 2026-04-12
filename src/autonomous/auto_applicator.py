@@ -13,9 +13,13 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 import os
 import json
 import uuid
+import base64
+
+from .email_service import validate_email_for_resend
 
 from anthropic import AsyncAnthropic
 from ..utils.claude_helper import acall_claude
@@ -173,6 +177,119 @@ Write the cover letter now:"""
         except Exception as e:
             logger.error(f"Failed to generate cover letter: {e}")
             return None
+
+    def _extract_company_domain(self, job: Dict[str, Any]) -> Optional[str]:
+        """Hostname for Hunter.io (e.g. xsolla.com). Mirrors founder_finder ATS → company slug logic."""
+        intel = job.get('company_intel') or {}
+        if isinstance(intel, dict):
+            w = intel.get('website') or intel.get('url')
+            if w and isinstance(w, str) and w.startswith('http'):
+                try:
+                    host = urlparse(w).hostname or ''
+                    if host:
+                        return host.replace('www.', '')
+                except Exception:
+                    pass
+
+        job_url = job.get('url') or ''
+        ats_markers = [
+            ('boards.greenhouse.io/', 'greenhouse.io/'),
+            ('jobs.lever.co/', 'lever.co/'),
+            ('jobs.ashbyhq.com/', 'ashbyhq.com/'),
+            ('apply.workable.com/', 'workable.com/'),
+        ]
+        for _, marker in ats_markers:
+            if marker in job_url:
+                slug = job_url.split(marker, 1)[1].split('/')[0].split('?')[0]
+                if slug:
+                    return f'{slug}.com'
+
+        board_hosts = (
+            'greenhouse.io', 'lever.co', 'ashbyhq.com', 'workable.com',
+            'indeed.com', 'linkedin.com', 'dice.com', 'wellfound.com',
+            'torre.ai', 'himalayas.app', 'remoteok.com', 'ai-jobs.net',
+        )
+        if job_url.startswith('http'):
+            try:
+                host = urlparse(job_url).hostname or ''
+                if host and not any(b in host for b in board_hosts):
+                    return host.replace('www.', '')
+            except Exception:
+                pass
+
+        company = (job.get('company') or '').lower().strip()
+        for remove in (' inc', ' inc.', ' ltd', ' llc', ' corp', ' co.', ' co'):
+            company = company.replace(remove, '')
+        slug = company.replace(' ', '').replace(',', '').replace('.', '')
+        if slug:
+            return f'{slug}.com'
+        return None
+
+    def _pick_hunter_email_for_resend(self, rows: List[Dict[str, Any]]) -> Optional[str]:
+        """First Hunter row whose address passes Resend rules (personal / hello@ / contact@)."""
+        if not rows:
+            return None
+        role_boost = (
+            'recruit', 'talent', 'people', 'hiring', 'engineer',
+            'director', 'founder', 'ceo', 'cto', 'vp ', 'head ',
+        )
+
+        def sort_key(row: Dict[str, Any]) -> tuple:
+            pos = (row.get('position') or '').lower()
+            boost = 0
+            for i, kw in enumerate(role_boost):
+                if kw in pos:
+                    boost = len(role_boost) - i
+                    break
+            conf = int(row.get('confidence') or 0)
+            return (-boost, -conf)
+
+        for row in sorted(rows, key=sort_key):
+            em = row.get('email')
+            if not em:
+                continue
+            if validate_email_for_resend(em).get('allowed'):
+                return em
+        return None
+
+    async def _discover_contact_email(self, job: Dict[str, Any]) -> Optional[str]:
+        domain = self._extract_company_domain(job)
+        if not domain:
+            logger.warning('    ⚠️ Contact fallback: could not resolve company domain')
+            return None
+        try:
+            from .email_verifier import get_email_verifier
+            verifier = get_email_verifier()
+            search = await verifier.search_domain(domain, limit=10)
+            emails = search.get('emails') or []
+            picked = self._pick_hunter_email_for_resend(emails)
+            if picked:
+                logger.info(f'    📬 Hunter contact for application package: {picked} (domain={domain})')
+            else:
+                logger.warning(
+                    f"    ⚠️ Hunter returned {len(emails)} emails at {domain}, none pass Resend recipient rules"
+                )
+            return picked
+        except Exception as e:
+            logger.warning(f'    ⚠️ Hunter contact discovery failed: {e}')
+            return None
+
+    def _resume_attachment_dict(self, resume_pdf_path: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not resume_pdf_path:
+            return None
+        path = Path(resume_pdf_path)
+        if not path.is_file():
+            return None
+        try:
+            raw = path.read_bytes()
+            return {
+                'filename': path.name,
+                'content': base64.b64encode(raw).decode('utf-8'),
+                'type': 'application/pdf',
+            }
+        except Exception as e:
+            logger.warning(f'    ⚠️ Could not read resume PDF for attachment: {e}')
+            return None
     
     async def process_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
         """Process a single job application with intelligent resume selection"""
@@ -188,6 +305,12 @@ Write the cover letter now:"""
             'match_score': job.get('match_score', 0),
             'materials_generated': False,
             'email_sent': False,
+            'ats_submitted': False,
+            'ats_dry_run': False,
+            'ats_unknown': False,
+            'ats_live_submitted': False,
+            'contact_fallback': False,
+            'application_delivered': False,
             'db_tracked': False,
             'timestamp': datetime.now().isoformat()
         }
@@ -268,6 +391,10 @@ Write the cover letter now:"""
                     
                     async with ATSSubmitter() as submitter:
                         ats_type = submitter._detect_ats_type(job.get('url', ''), job.get('source', ''), job.get('company', ''))
+                        result['ats_type'] = ats_type
+                        if ats_type == 'unknown':
+                            result['ats_unknown'] = True
+                            logger.info('    ℹ️ Unknown ATS — will try email to a discoverable contact (no portal automation)')
                         
                         if ats_type != 'unknown':
                             logger.info(f"    🚀 Submitting to {ats_type}...")
@@ -317,22 +444,31 @@ Write the cover letter now:"""
                             else:
                                 logger.warning(f"    ⚠️ ATS submission failed: {submission_result.error}")
                         else:
-                            logger.debug(f"    ℹ️ Unknown ATS type - skipping form submission")
+                            pass  # unknown ATS: already logged above
                             
                 except ImportError:
                     logger.debug("    ℹ️ ATS submitter not available (playwright not installed)")
                 except Exception as e:
                     logger.warning(f"    ⚠️ ATS submission error: {e}")
             
-            # Send email (if configured)
-            if self.email_service:
-                logger.info(f"  📧 Sending application...")
+            ats_live = bool(result.get('ats_submitted') and not result.get('ats_dry_run'))
+            result['ats_live_submitted'] = ats_live
+            if ats_live:
+                logger.info('  ✅ Live ATS form submission succeeded — skipping duplicate application email')
+
+            # Send application package by email when we did NOT complete a live ATS submit
+            dry_sim = bool(result.get('ats_dry_run') and result.get('ats_submitted'))
+            if dry_sim:
+                logger.info('  🔒 ATS dry-run only — skipping application email (avoid duplicate when switching to live)')
+
+            resume_attachment = self._resume_attachment_dict(resume_pdf_path)
+
+            if self.email_service and not ats_live and not dry_sim:
+                logger.info('  📧 Application email path (live ATS not used)...')
                 
-                # Get founder info for personalized outreach
                 founder_info = job.get('founder_info')
                 match_score = job.get('match_score', 0)
                 
-                # Determine email target (prioritize founder for high-score jobs)
                 hiring_email = None
                 is_founder_outreach = False
                 
@@ -341,61 +477,71 @@ Write the cover letter now:"""
                     email_patterns = founder_info.get('email_patterns', [])
                     domain = founder_info.get('domain', '')
                     
-                    # Get primary founder name if available
-                    primary_founder = founder_info.get('primary_founder', {})
-                    founder_name = primary_founder.get('name', '') if isinstance(primary_founder, dict) else ''
-                    
                     if email_patterns and domain:
-                        # Prioritize: founder@ > hello@ > hi@ > contact@
                         priority_prefixes = ['founder', 'hello', 'hi', 'contact', 'team']
                         for prefix in priority_prefixes:
                             for pattern in email_patterns:
                                 if pattern.startswith(f"{prefix}@"):
-                                    hiring_email = pattern
-                                    is_founder_outreach = True
-                                    break
+                                    if validate_email_for_resend(pattern).get('allowed'):
+                                        hiring_email = pattern
+                                        is_founder_outreach = True
+                                        break
                             if hiring_email:
                                 break
                         
-                        # Fallback to first pattern
                         if not hiring_email and email_patterns:
-                            hiring_email = email_patterns[0]
-                            is_founder_outreach = True
+                            for pattern in email_patterns:
+                                if validate_email_for_resend(pattern).get('allowed'):
+                                    hiring_email = pattern
+                                    is_founder_outreach = True
+                                    break
                 
-                # MEDIUM-SCORE (50-74): Use careers/jobs email
+                # Explicit job email if allowed (not careers@ / jobs@)
                 if not hiring_email:
-                    hiring_email = job.get('email')
-                    if not hiring_email:
-                        domain = company.lower().replace(' ', '').replace(',', '').replace('.', '')
-                        hiring_email = f"careers@{domain}.com"
+                    je = job.get('email')
+                    if je and validate_email_for_resend(je).get('allowed'):
+                        hiring_email = je
+                
+                # Hunter: discover a person at company domain (when ATS unknown or blocked generic path)
+                if not hiring_email:
+                    hiring_email = await self._discover_contact_email(job)
+                    if hiring_email:
+                        result['contact_fallback'] = True
                 
                 try:
-                    # Use founder outreach template for high-score matches
-                    if is_founder_outreach:
-                        logger.info(f"    👤 FOUNDER OUTREACH: {hiring_email}")
-                        email_result = await self._send_founder_email(
-                            to=hiring_email,
-                            company=company,
-                            role=title,
-                            cover_letter=cover_letter,
-                            founder_info=founder_info
-                        )
+                    if hiring_email:
+                        if is_founder_outreach:
+                            logger.info(f"    👤 Application via founder-style path: {hiring_email}")
+                            email_result = await self._send_founder_email(
+                                to=hiring_email,
+                                company=company,
+                                role=title,
+                                cover_letter=cover_letter,
+                                founder_info=founder_info or {}
+                            )
+                        else:
+                            email_result = await self.email_service.send_application_email(
+                                to=hiring_email,
+                                company=company,
+                                role=title,
+                                cover_letter=cover_letter,
+                                resume_attachment=resume_attachment,
+                            )
+                        
+                        result['email_sent'] = email_result.get('success', False)
+                        result['email_to'] = hiring_email
+                        result['email_sent_to'] = hiring_email
+                        result['is_founder_outreach'] = is_founder_outreach
+                        
+                        if result['email_sent']:
+                            logger.info(f"    ✅ Application email sent to {hiring_email}" + (" (founder template)" if is_founder_outreach else ""))
+                        else:
+                            logger.warning(f"    ⚠️ Email failed: {email_result.get('error')}")
                     else:
-                        email_result = await self.email_service.send_application_email(
-                            to=hiring_email,
-                            company=company,
-                            role=title,
-                            cover_letter=cover_letter
+                        logger.warning(
+                            '  ⚠️ No Resend-safe recipient — materials saved locally only '
+                            '(use ATS portal manually or ensure HUNTER_API_KEY for domain search)'
                         )
-                    
-                    result['email_sent'] = email_result.get('success', False)
-                    result['email_to'] = hiring_email
-                    result['is_founder_outreach'] = is_founder_outreach
-                    
-                    if result['email_sent']:
-                        logger.info(f"    ✅ Email sent to {hiring_email}" + (" (FOUNDER)" if is_founder_outreach else ""))
-                    else:
-                        logger.warning(f"    ⚠️ Email failed: {email_result.get('error')}")
                         
                 except Exception as e:
                     logger.error(f"    ❌ Email error: {e}")
@@ -418,14 +564,30 @@ Write the cover letter now:"""
                 except Exception as e:
                     logger.error(f"    ⚠️ DB tracking failed: {e}")
             
+            result['application_delivered'] = bool(
+                (result.get('ats_submitted') and not result.get('ats_dry_run'))
+                or result.get('email_sent')
+            )
+            if not result['application_delivered'] and result.get('materials_generated'):
+                logger.warning(f"  ⚠️ Application not delivered (materials only): {company}")
+
             # Notify Telegram
             if self.telegram and result['materials_generated']:
                 try:
+                    if result.get('application_delivered'):
+                        if result.get('ats_live_submitted'):
+                            status_line = '📋 Live ATS form submission'
+                        else:
+                            status_line = '📧 Application email sent'
+                        head = f"✅ Delivered: {company}"
+                    else:
+                        status_line = '📄 Materials saved only (not submitted to employer)'
+                        head = f"⚠️ Not delivered: {company}"
                     await self.telegram.send_message(
-                        f"✅ Applied: {company}\n"
+                        f"{head}\n"
                         f"📋 {title}\n"
                         f"📊 Score: {job.get('match_score', 0)}\n"
-                        f"📧 {'Sent' if result['email_sent'] else 'Materials ready'}"
+                        f"{status_line}"
                     )
                 except Exception as e:
                     logger.error(f"    ⚠️ Telegram notify failed: {e}")
