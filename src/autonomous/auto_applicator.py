@@ -260,16 +260,46 @@ Write the cover letter now:"""
         try:
             from .email_verifier import get_email_verifier
             verifier = get_email_verifier()
+
+            # 1️⃣ Domain Search (existing behaviour)
             search = await verifier.search_domain(domain, limit=10)
             emails = search.get('emails') or []
             picked = self._pick_hunter_email_for_resend(emails)
             if picked:
-                logger.info(f'    📬 Hunter contact for application package: {picked} (domain={domain})')
-            else:
-                logger.warning(
-                    f"    ⚠️ Hunter returned {len(emails)} emails at {domain}, none pass Resend recipient rules"
-                )
-            return picked
+                logger.info(f'    📬 Hunter Domain Search hit: {picked} (domain={domain})')
+                return picked
+
+            # 2️⃣ Email Finder — try common hiring-related names
+            #    Hunter Email Finder returns pre-verified results
+            finder_names = [
+                ('Hiring', 'Manager'),
+                ('Talent', 'Acquisition'),
+                ('People', 'Operations'),
+            ]
+            # If we have a founder name from company intel, try that too
+            founder_info = job.get('founder_info') or {}
+            primary = founder_info.get('primary_founder') or {}
+            fname = primary.get('name', '')
+            if fname and ' ' in fname:
+                parts = fname.strip().split()
+                finder_names.insert(0, (parts[0], parts[-1]))
+
+            for first, last in finder_names:
+                result = await verifier.find_email(domain, first, last)
+                if result.get('found') and result.get('email'):
+                    em = result['email']
+                    if validate_email_for_resend(em).get('allowed'):
+                        logger.info(
+                            f'    📬 Hunter Email Finder hit: {em} '
+                            f'(searched {first} {last} @ {domain}, score={result.get("score")})'
+                        )
+                        return em
+
+            logger.warning(
+                f"    ⚠️ Hunter: Domain Search ({len(emails)} emails) + Email Finder "
+                f"({len(finder_names)} names) at {domain} — no Resend-safe recipient found"
+            )
+            return None
         except Exception as e:
             logger.warning(f'    ⚠️ Hunter contact discovery failed: {e}')
             return None
@@ -472,8 +502,8 @@ Write the cover letter now:"""
                 hiring_email = None
                 is_founder_outreach = False
                 
-                # HIGH-SCORE (75+): Try founder email first
-                if match_score >= 75 and founder_info:
+                # SCORE 60+: Try founder email first (lowered from 75 to catch more matches)
+                if match_score >= 60 and founder_info:
                     email_patterns = founder_info.get('email_patterns', [])
                     domain = founder_info.get('domain', '')
                     
