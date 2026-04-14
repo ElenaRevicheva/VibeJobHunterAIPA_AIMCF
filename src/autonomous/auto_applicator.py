@@ -225,8 +225,13 @@ Write the cover letter now:"""
             return f'{slug}.com'
         return None
 
-    def _pick_hunter_email_for_resend(self, rows: List[Dict[str, Any]]) -> Optional[str]:
-        """First Hunter row whose address passes Resend rules (personal / hello@ / contact@)."""
+    def _pick_hunter_email_for_resend(self, rows: List[Dict[str, Any]], relaxed: bool = False) -> Optional[str]:
+        """First Hunter row whose address passes Resend rules.
+
+        Args:
+            relaxed: When True (high-score jobs) also accept professional hiring
+                     inboxes like talent@, recruiting@, hr@ etc.
+        """
         if not rows:
             return None
         role_boost = (
@@ -248,11 +253,17 @@ Write the cover letter now:"""
             em = row.get('email')
             if not em:
                 continue
-            if validate_email_for_resend(em).get('allowed'):
+            if validate_email_for_resend(em, relaxed=relaxed).get('allowed'):
                 return em
         return None
 
-    async def _discover_contact_email(self, job: Dict[str, Any]) -> Optional[str]:
+    async def _discover_contact_email(self, job: Dict[str, Any], relaxed: bool = False) -> Optional[str]:
+        """Discover a deliverable contact email for the job's company.
+
+        Args:
+            relaxed: When True (high-score jobs, score >= 80) accept professional
+                     hiring inboxes in addition to personal/founder patterns.
+        """
         domain = self._extract_company_domain(job)
         if not domain:
             logger.warning('    ⚠️ Contact fallback: could not resolve company domain')
@@ -264,7 +275,7 @@ Write the cover letter now:"""
             # 1️⃣ Domain Search (existing behaviour)
             search = await verifier.search_domain(domain, limit=10)
             emails = search.get('emails') or []
-            picked = self._pick_hunter_email_for_resend(emails)
+            picked = self._pick_hunter_email_for_resend(emails, relaxed=relaxed)
             if picked:
                 logger.info(f'    📬 Hunter Domain Search hit: {picked} (domain={domain})')
                 return picked
@@ -288,7 +299,7 @@ Write the cover letter now:"""
                 result = await verifier.find_email(domain, first, last)
                 if result.get('found') and result.get('email'):
                     em = result['email']
-                    if validate_email_for_resend(em).get('allowed'):
+                    if validate_email_for_resend(em, relaxed=relaxed).get('allowed'):
                         logger.info(
                             f'    📬 Hunter Email Finder hit: {em} '
                             f'(searched {first} {last} @ {domain}, score={result.get("score")})'
@@ -498,46 +509,51 @@ Write the cover letter now:"""
                 
                 founder_info = job.get('founder_info')
                 match_score = job.get('match_score', 0)
-                
+
+                # For high-score jobs (>= 80) allow professional hiring inboxes
+                # (talent@, recruiting@, hr@, careers@ etc.) in addition to
+                # founder/personal patterns so we don't drop strong matches.
+                relaxed_email = match_score >= 80
+
                 hiring_email = None
                 is_founder_outreach = False
-                
+
                 # SCORE 60+: Try founder email first (lowered from 75 to catch more matches)
                 if match_score >= 60 and founder_info:
                     email_patterns = founder_info.get('email_patterns', [])
                     domain = founder_info.get('domain', '')
-                    
+
                     if email_patterns and domain:
                         priority_prefixes = ['founder', 'hello', 'hi', 'contact', 'team']
                         for prefix in priority_prefixes:
                             for pattern in email_patterns:
                                 if pattern.startswith(f"{prefix}@"):
-                                    if validate_email_for_resend(pattern).get('allowed'):
+                                    if validate_email_for_resend(pattern, relaxed=relaxed_email).get('allowed'):
                                         hiring_email = pattern
                                         is_founder_outreach = True
                                         break
                             if hiring_email:
                                 break
-                        
+
                         if not hiring_email and email_patterns:
                             for pattern in email_patterns:
-                                if validate_email_for_resend(pattern).get('allowed'):
+                                if validate_email_for_resend(pattern, relaxed=relaxed_email).get('allowed'):
                                     hiring_email = pattern
                                     is_founder_outreach = True
                                     break
-                
-                # Explicit job email if allowed (not careers@ / jobs@)
+
+                # Explicit job email if allowed (relaxed for high-score jobs)
                 if not hiring_email:
                     je = job.get('email')
-                    if je and validate_email_for_resend(je).get('allowed'):
+                    if je and validate_email_for_resend(je, relaxed=relaxed_email).get('allowed'):
                         hiring_email = je
-                
+
                 # Hunter: discover a person at company domain (when ATS unknown or blocked generic path)
                 if not hiring_email:
-                    hiring_email = await self._discover_contact_email(job)
+                    hiring_email = await self._discover_contact_email(job, relaxed=relaxed_email)
                     if hiring_email:
                         result['contact_fallback'] = True
-                
+
                 try:
                     if hiring_email:
                         if is_founder_outreach:
@@ -556,6 +572,7 @@ Write the cover letter now:"""
                                 role=title,
                                 cover_letter=cover_letter,
                                 resume_attachment=resume_attachment,
+                                relaxed_validation=relaxed_email,
                             )
                         
                         result['email_sent'] = email_result.get('success', False)

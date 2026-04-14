@@ -48,22 +48,60 @@ ALLOWED_FOUNDER_PATTERNS = [
     r'^contact@'              # Only if verified human-monitored
 ]
 
+# Professional hiring inboxes that are human-monitored — safe to email for
+# high-score jobs (score >= 80) when no founder/personal email is available.
+RELAXED_HIRING_PATTERNS = [
+    r'^talent@',
+    r'^recruiting@',
+    r'^hr@',
+    r'^careers@',
+    r'^jobs@',
+    r'^apply@',
+    r'^applications@',
+    r'^people@',
+    r'^hiring@',
+    r'^team@',
+]
 
-def validate_email_for_resend(email: str) -> Dict:
+
+def validate_email_for_resend(email: str, relaxed: bool = False) -> Dict:
     """
-    🚨 CRITICAL: Validates if email should be sent via Resend
-    
+    Validates if email should be sent via Resend.
+
+    Args:
+        email: Recipient address to validate.
+        relaxed: When True (high-score jobs, score >= 80) also allow professional
+                 hiring inboxes like talent@, recruiting@, hr@, careers@ etc.
+                 that are blocked under strict mode to protect sender reputation
+                 for low-value sends.
+
     Returns:
         {
             'allowed': bool,
             'reason': str,
-            'email_type': 'ats' | 'founder' | 'blocked',
+            'email_type': 'ats' | 'founder' | 'hiring' | 'blocked' | 'unknown',
             'suggested_action': str
         }
     """
     email_lower = email.lower()
-    
-    # Check 1: Block ATS/generic emails
+
+    # Relaxed mode: accept professional hiring inboxes for high-score jobs
+    if relaxed:
+        is_hiring_pattern = any(
+            re.match(pattern, email_lower)
+            for pattern in RELAXED_HIRING_PATTERNS
+        )
+        if is_hiring_pattern:
+            logger.info(f"✅ RELAXED-VALIDATED: {email} allowed as hiring inbox (high-score job)")
+            return {
+                'allowed': True,
+                'reason': 'Professional hiring inbox — relaxed validation for high-score job',
+                'email_type': 'hiring',
+                'suggested_action': 'proceed_with_hiring_outreach',
+                'email': email
+            }
+
+    # Strict mode (default): block ATS/generic emails
     for blocked_pattern in BLOCKED_EMAIL_PATTERNS:
         if blocked_pattern in email_lower:
             logger.warning(f"🚫 BLOCKED: {email} matches pattern '{blocked_pattern}'")
@@ -75,13 +113,13 @@ def validate_email_for_resend(email: str) -> Dict:
                 'suggested_action': 'use_ats_api_or_portal',
                 'email': email
             }
-    
-    # Check 2: Validate founder/personal email patterns
+
+    # Check founder/personal email patterns
     is_founder_pattern = any(
-        re.match(pattern, email_lower) 
+        re.match(pattern, email_lower)
         for pattern in ALLOWED_FOUNDER_PATTERNS
     )
-    
+
     if not is_founder_pattern:
         logger.warning(f"⚠️ SUSPICIOUS: {email} doesn't match founder patterns")
         logger.info(f"   → Verify this is a real person's email")
@@ -92,7 +130,7 @@ def validate_email_for_resend(email: str) -> Dict:
             'suggested_action': 'verify_email_is_personal',
             'email': email
         }
-    
+
     # Passed validation
     logger.info(f"✅ VALIDATED: {email} is allowed for Resend")
     return {
@@ -439,19 +477,21 @@ class EmailService:
         company: str,
         role: str,
         cover_letter: str,
-        resume_attachment: Optional[Dict] = None
+        resume_attachment: Optional[Dict] = None,
+        relaxed_validation: bool = False
     ) -> Dict:
         """
-        Send a job application email with standard formatting
-        
-        🚨 NEW: Validates recipient before sending
-        ⚠️ IMPORTANT: This should ONLY be used for founder outreach emails,
-                      NOT for ATS submissions (which should use proper APIs)
+        Send a job application email with standard formatting.
+
+        Args:
+            relaxed_validation: Pass True for high-score jobs (score >= 80) to allow
+                                professional hiring inboxes (talent@, recruiting@, hr@ etc.)
+                                in addition to founder/personal patterns.
         """
-        
-        # 🚨 VALIDATE: Check if this is an ATS email that should be blocked
-        validation = validate_email_for_resend(to)
-        
+
+        # Validate: check if this is an address we should send to
+        validation = validate_email_for_resend(to, relaxed=relaxed_validation)
+
         if not validation['allowed']:
             logger.error(f"🚫 Application email BLOCKED to {to}")
             logger.error(f"   Company: {company}, Role: {role}")
