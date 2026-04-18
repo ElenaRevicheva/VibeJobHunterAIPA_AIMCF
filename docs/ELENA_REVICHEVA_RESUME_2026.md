@@ -54,7 +54,7 @@ Replicate (Flux Pro — image generation), Luma Labs (Dream Machine — video), 
 GitHub webhooks, Telegram, WhatsApp, PayPal Subscriptions, Resend (transactional email), Hunter.io, Google Places API, Make.com, Buffer, Twitter/X API
 
 **Eval & Quality**
-117-test eval harness (unit + integration + golden-set layers), $0 API cost, 0.52s runtime. Deterministic + LLM hybrid analysis for code review pipeline.
+131-test eval harness, 4 layers (keyword scoring, bias compensation, golden-set routing, LLM-as-judge consistency), ~$0.03/run. Deterministic + LLM hybrid analysis for code review pipeline.
 
 ---
 
@@ -77,11 +77,14 @@ Full-stack marketing system that makes AIdeazz discoverable by Google AND AI ass
 - **Tech:** TypeScript, Python, Node.js, React, Oracle DB, Claude, Groq, Resend, Google Places API, Hunter.io, GSC API, GA4
 
 ### VibeJobHunter — Autonomous Job Discovery & Outreach Pipeline
-End-to-end job search automation: scrape → filter → score → apply → outreach.
-- Hard-gate filtering (company size, role category, salary floor) + AI match scoring (60+ threshold)
+End-to-end job search automation: discover → score → apply → outreach → follow-up. Runs 24/7 autonomously.
+- 10 job sources (218 ATS company APIs + Dice, YC, RemoteOK, Wellfound, WWR, AI Jobs, Torre.ai LATAM, Himalayas)
+- 7-level penalty system + bias compensation + AI dimensional scoring (100 pts, 6 dimensions) — evidence-tuned thresholds
+- 6 resume variants auto-selected per job signal — not one-size-fits-all
 - ATS auto-apply (Greenhouse, Lever, Ashby via Playwright) + founder email outreach via Resend
-- Voice-enabled Telegram interface for on-demand job shortlisting (Whisper STT)
-- 117-test eval harness for scoring calibration
+- Auto follow-up after 5 days of silence; response detection + classification (positive/negative/interview)
+- Voice-enabled Telegram interface for on-demand shortlisting (Whisper STT)
+- 131-test eval harness, 4 layers — keyword, bias compensation, golden-set routing, LLM-as-judge consistency
 - **Tech:** Python, FastAPI, Claude, Groq Whisper, Playwright, Oracle Cloud, Telegram Bot API
 
 ### EspaLuz — Bilingual AI Language Tutor (Paying Subscribers)
