@@ -1,6 +1,6 @@
 # ELENA REVICHEVA
 
-**AI Systems Operator & Fractional AI Lead | 7yr Board-Level Executive → 9 Production AI Agents**
+**Executive-Turned-AI-Builder | 7yr Board-Level Leadership + 9 Production AI Systems**
 
 Panama (UTC-5) | Remote Worldwide
 aipa@aideazz.xyz | +507 616 66 716
@@ -8,95 +8,115 @@ LinkedIn: linkedin.com/in/elenarevicheva | GitHub: github.com/ElenaRevicheva | P
 
 ---
 
-## WHAT I DO
+## PROFESSIONAL SUMMARY
 
-I deploy and operate AI systems that run businesses autonomously — job pipelines, marketing engines, language tutors, content agents, code review systems. Since 2025: 9 production AI agents running 24/7 on Oracle Cloud at $0/month infrastructure cost, built using AI-assisted development workflows (Cursor, Claude Code).
+Seven years as Deputy CEO running large-scale digital infrastructure programs at the board level — then pivoted to building AI systems hands-on. Since 2025: designed, deployed, and operate 9 production AI agents on Oracle Cloud at $0/month infrastructure cost, using AI-assisted development workflows (Cursor, Claude Code).
 
-Before that: 7 years as Deputy CEO running large-scale digital infrastructure programs at the board level. I have sat in the room where decisions get made, and I have shipped the systems those decisions require.
-
-The combination is rare: I can design an AI pipeline, deploy it to production, and explain it to a CEO and a developer in the same conversation.
+The combination is rare: I can architect an LLM pipeline, deploy it to production, and explain it to a CEO and a developer in the same conversation. I build for outcomes, not demos — every system listed below is live, serving real users, 24/7.
 
 ---
 
-## WHAT I'VE SHIPPED (LIVE, NOW)
+## KEY RESULTS
 
-### AI Marketing Engine — GEO + SEO Automation
-*Makes a business discoverable by Google AND by AI assistants (ChatGPT, Perplexity, Claude)*
-
-Built and operate a full autonomous marketing system:
-- **Discoverability:** JSON-LD structured data, AI bot permissions (GPTBot, ClaudeBot, PerplexityBot), noscript static content for AI crawlers, sitemap, canonical/hreflang, www→apex 301 — site is correctly indexed by Google and citable by LLMs
-- **Content pipeline:** Daily automated blog publishing (Claude → Hashnode → Dev.to cross-post for DA 90+ backlinks). Topic selection from Google Search Console gap analysis. Zero manual effort after setup.
-- **Lead pipeline:** Inquiry form with UTM attribution → Oracle database → Resend email notification → reCAPTCHA verification. Every inbound lead tracked end-to-end.
-- **Outreach pipeline:** Automated cold email — target list sourced (YC companies, Google Places), emails Claude-generated, sent via Resend, tracked. Daily cap enforced.
-- **Lead triage:** AI classification of inbound inquiries → urgency scoring (1–5) → web dashboard + Telegram alerts.
-
-### VibeJobHunter — Autonomous Job Discovery & Application Pipeline
-*End-to-end job search automation: discover → score → apply → outreach → follow-up*
-
-- 10 job sources (218 company ATS APIs + Dice, YC, RemoteOK, Wellfound, WWR, AI Jobs, Torre.ai, Himalayas)
-- 7-level penalty scoring system with bias compensation + AI dimensional scoring (100 pts, 6 dimensions)
-- 6 resume variants auto-selected per job signal — not one-size-fits-all
-- ATS auto-apply (Greenhouse, Lever, Ashby) + founder outreach via Resend
-- Auto follow-up after 5 days silence; response detection + classification (positive/negative/interview)
-- **Quality gate:** 131-test eval harness, 4 layers — keyword scoring, bias compensation, golden-set routing, LLM-as-judge (Claude Haiku, ≥75% agreement threshold). $0.08/run. Catches false positives before they waste application slots.
-
-### CTO AIPA — AI Code Review & Technical Operations System
-- Automated GitHub PR review: diff fetch → security/complexity/architecture scan → model routing (Claude for critical paths, Groq for standard) → GitHub comment + Oracle persistence
-- 76% requests to cost-optimized models (Groq Llama), 24% to high-capability models (Claude) — deliberate cost/quality tradeoff
-- Telegram + HTTP interface for on-demand technical Q&A across all repos
-- Groq → Claude Haiku fallback chain prevents crashes on rate limits
-
-### EspaLuz — Bilingual AI Language Tutor (Paying Subscribers)
-WhatsApp + Telegram AI tutor with persistent per-user memory, voice transcription, OCR, PayPal subscription billing. 19 countries. Multi-modal: text + voice + image → personalized language coaching.
-
-### Atuona Creative AI — Multi-Modal Creative Agent
-Full LLM → image → video → publish pipeline. Claude generates text → Flux Pro creates visuals → Luma/Runway produces video → blockchain publishing. 48+ NFTs on Polygon. Persistent creative memory.
-
-### Additional Live Agents
-CMO AIPA (LinkedIn/Instagram autonomous content), ALGOM Alpha (crypto/market analysis on X), OpenClaw Vibejob Shortlist (voice-enabled YC job shortlisting via Telegram)
+- **9 production AI systems** running 24/7 on a single Oracle Cloud VM — $0/month infra (startup credits + Always Free tier)
+- **Autonomous job discovery pipeline** processing 1,900+ listings with 7-level penalty scoring, 6 auto-selected resume variants, ATS form automation (Greenhouse/Lever/Ashby), and founder email outreach via Resend
+- **76/24 multi-model routing** — 76% requests to cost-optimized models (Groq Llama), 24% to high-capability models (Claude) for critical paths. Deliberate cost/quality tradeoff, not default.
+- **AI Marketing Engine (GEO + SEO)** — built a system that makes a business discoverable by both Google and AI assistants (ChatGPT, Perplexity, Claude): JSON-LD structured data, automated daily blog publishing with GSC gap topic selection, Dev.to cross-posting for DA 90+ backlinks, UTM attribution pipeline, AI-powered lead triage with urgency scoring, and automated cold outreach — all running autonomously
+- **3-layer automated resilience** — health cron (every 5 min) + systemd/PM2 restart policies + OCI keepalive. Systems recover from failures without human intervention.
+- **Bilingual AI tutor with paying subscribers** — WhatsApp + Telegram, persistent memory, voice transcription, OCR, PayPal subscriptions (early traction, honest: very early stage)
 
 ---
 
-## HOW I WORK
+## CORE SKILLS
 
-**AI-assisted development** — Cursor + Claude Code for rapid build/deploy/iterate cycles. This is not a gap. This is how production AI gets built fast in 2026. I design the system, prompt engineer the components, deploy, monitor, and operate.
+**LLM Systems & Agents**
+Claude (Opus, Sonnet, Haiku), OpenAI GPT-4o, Groq (Llama 3.3 70B, Whisper), multi-model routing, tool calling, multi-step agent orchestration, prompt engineering, structured outputs, persistent memory systems, conversation context management, model fallback chains
 
-**3-layer automated resilience** — health cron (every 5 min) + systemd/PM2 restart policies + OCI keepalive. Systems recover from failures without human intervention.
-
-**Multi-model routing** — I select models by task criticality and cost, not by default. 76/24 Groq/Claude split is a deliberate architecture decision.
-
-**Eval-driven quality** — I don't ship and hope. The 131-test harness exists because I've been burned by systems that look like they work. Layer 4 uses Claude as an independent judge to validate my deterministic scoring against 22 golden-set jobs.
-
----
-
-## SKILLS
-
-**AI Systems & Operations**
-Multi-agent orchestration, LLM pipeline design, prompt engineering, structured outputs, persistent memory systems, model fallback chains, multi-model routing, tool calling, conversation context management
+**AI-Assisted Development**
+Cursor, Claude Code — daily workflow for rapid build/deploy/iterate cycles. Not a gap to hide — this is how production AI gets built fast in 2026.
 
 **GEO + SEO Marketing Automation**
-JSON-LD schema markup, AI bot permissions, noscript AI crawler blocks, sitemap/canonical/hreflang, Google Search Console, GA4, automated content pipelines, UTM attribution, reCAPTCHA Enterprise
+JSON-LD schema markup (Organization, Person, FAQPage), AI bot permissions (GPTBot, ClaudeBot, PerplexityBot), noscript static content for AI crawlers, sitemap generation, canonical/hreflang management, Google Search Console, GA4, automated content publishing with GSC gap topic selection, UTM attribution, reCAPTCHA Enterprise
 
-**Infrastructure & Operations**
-Oracle Autonomous Database (mTLS, thick mode), Oracle Cloud Infrastructure, PM2, systemd, 3-layer automated resilience (health cron + process manager + OCI keepalive)
+**Programming**
+TypeScript, Python, JavaScript, SQL
 
-**Integrations & APIs**
-Telegram Bot API, WhatsApp Business API, GitHub API (webhooks + Octokit), PayPal Subscriptions, Resend, Hunter.io, Google Places API, Hashnode API, Dev.to API, Replicate, Luma Labs, Runway ML, Whisper (voice transcription)
+**Backend & APIs**
+Node.js, Express, FastAPI, REST APIs, webhook architectures, asynchronous workflows, GitHub API (Octokit), Telegram Bot API (Grammy), WhatsApp Business API
 
-**Models Used in Production**
-Claude (Opus, Sonnet, Haiku), Groq (Llama 3.3 70B, Whisper), OpenAI GPT-4o, Flux Pro (image), Luma Dream Machine + Runway Gen-3 (video)
+**Databases & Infrastructure**
+Oracle Autonomous Database 26ai (mTLS, thick mode), PostgreSQL, Oracle Cloud Infrastructure (OCI), PM2, systemd, IPFS/4everland hosting
 
-**Implementation languages:** Python, TypeScript, JavaScript, SQL
+**Multi-Modal AI**
+Replicate (Flux Pro — image generation), Luma Labs (Dream Machine — video), Runway ML (Gen-3), Whisper (voice transcription), OCR — full text→image→video→publish pipeline in production
+
+**Integrations**
+GitHub webhooks, Telegram, WhatsApp, PayPal Subscriptions, Resend (transactional email), Hunter.io, Google Places API, Make.com, Buffer, Twitter/X API
+
+**Eval & Quality**
+131-test eval harness, 4 layers (keyword scoring, bias compensation, golden-set routing, LLM-as-judge consistency), ~$0.03/run. Deterministic + LLM hybrid analysis for code review pipeline.
+
+---
+
+## PRODUCTION AI SYSTEMS
+
+### CTO AIPA — AI Code Review & Technical Co-Founder
+Automated GitHub PR/push review system with deterministic security analysis + LLM-generated feedback.
+- GitHub webhooks → diff fetch → security/complexity/architecture scan → model routing (Claude for critical, Groq for standard) → GitHub comment + Oracle persistence
+- Groq → Claude Haiku fallback chain prevents shared-process crashes on rate limits
+- Telegram + HTTP API interface for on-demand technical Q&A across all repos
+- **Tech:** TypeScript, Node.js, Express, Claude, Groq, Oracle DB, GitHub API, PM2
+
+### AI Marketing Engine — GEO + SEO Automation (Phases 1–5)
+Full-stack marketing system that makes AIdeazz discoverable by Google AND AI assistants.
+- **Phase 1 (GEO/SEO):** 3 JSON-LD schemas, noscript block for AI crawlers, sitemap (11 URLs with live Hashnode slugs), robots.txt with AI bot permissions, www→apex 301 redirect, hreflang EN/ES, GA4 analytics
+- **Phase 2 (Content):** Daily automated blog publishing via Claude → Hashnode API → Dev.to cross-post (DA 90+ canonical backlink). GSC gap topic selection picks the keyword with least current traffic. Oracle content_log tracks every post.
+- **Phase 3 (Attribution):** Inquiry form with UTM capture → Oracle business_leads → Resend email notification → reCAPTCHA Enterprise verification. End-to-end from form submit to team inbox.
+- **Phase 4 (Outreach):** Automated cold email pipeline — YC companies + Google Places + document ingestion → Hunter.io → Claude-generated emails → Resend with honest send tracking. Daily cap enforced.
+- **Phase 5 (Lead Triage):** AI classification of inbound inquiries + outreach replies → urgency scoring (1–5) → web dashboard + Telegram alerts. Groq → Haiku → optional Sonnet refine.
+- **Tech:** TypeScript, Python, Node.js, React, Oracle DB, Claude, Groq, Resend, Google Places API, Hunter.io, GSC API, GA4
+
+### VibeJobHunter — Autonomous Job Discovery & Outreach Pipeline
+End-to-end job search automation: discover → score → apply → outreach → follow-up. Runs 24/7 autonomously.
+- 10 job sources (218 ATS company APIs + Dice, YC, RemoteOK, Wellfound, WWR, AI Jobs, Torre.ai LATAM, Himalayas)
+- 7-level penalty system + bias compensation + AI dimensional scoring (100 pts, 6 dimensions) — evidence-tuned thresholds
+- 6 resume variants auto-selected per job signal — not one-size-fits-all
+- ATS auto-apply (Greenhouse, Lever, Ashby via Playwright) + founder email outreach via Resend
+- Auto follow-up after 5 days of silence; response detection + classification (positive/negative/interview)
+- Voice-enabled Telegram interface for on-demand shortlisting (Whisper STT)
+- 131-test eval harness, 4 layers — keyword, bias compensation, golden-set routing, LLM-as-judge consistency
+- **Tech:** Python, FastAPI, Claude, Groq Whisper, Playwright, Oracle Cloud, Telegram Bot API
+
+### EspaLuz — Bilingual AI Language Tutor (Paying Subscribers)
+WhatsApp + Telegram AI tutor with persistent per-user memory, voice transcription, OCR, and PayPal subscription billing.
+- Multi-modal: text + voice + image input → personalized language coaching
+- Persistent conversation memory in Oracle DB — tutor remembers each student's level and progress
+- PayPal webhook integration for subscription management
+- **Tech:** Python, GPT-4o, Whisper, Oracle DB, WhatsApp Business API, Telegram Bot API, PayPal
+
+### Atuona Creative AI — Multi-Modal Creative Agent
+AI agent for poetry, visual storytelling, and short film production. Persistent emotional/creative state.
+- Full LLM → image → video pipeline: Claude Opus generates text → Flux Pro creates visuals → Luma/Runway produces video → automated social formatting → blockchain publishing
+- 48+ NFTs published on Polygon via Thirdweb
+- Persistent creative memory (moods, metaphors, character insights) saved to JSON state file
+- **Tech:** TypeScript, Claude Opus, Replicate, Luma Labs, Runway, Telegram Bot API, Thirdweb, Polygon
+
+### Additional Live Systems
+- **CMO AIPA** — Automated LinkedIn/Instagram content publishing synced with technical releases (Python, Claude, Make.com, Buffer)
+- **ALGOM Alpha** — AI crypto education bot on X/Twitter with market analysis (Node.js, ElizaOS)
+- **OpenClaw Vibejob Shortlist** — Voice-enabled Telegram bot for YC AI company shortlisting
 
 ---
 
 ## EXECUTIVE BACKGROUND (2011–2018)
 
 **Deputy CEO & Chief Legal Officer** — JSC "E-GOV OPERATOR" | Russia | 2011–2018
-Led large-scale public-sector digital transformation programs at board level — 7 years. Managed cross-functional teams (IT, legal, compliance) in highly regulated environment. This is why I can explain AI systems to non-technical stakeholders: I've sat in the room where decisions get made.
+- Led large-scale public-sector digital transformation programs at board level — 7 years
+- Managed cross-functional teams (IT, legal, compliance) in highly regulated environment
+- This is why I can explain AI systems to non-technical stakeholders: I've sat in the room where decisions get made
 
 **Deputy CEO (Business Development)** — Fundery LLC (Fintech) | Russia | 2017–2018
-ICO compliance, investor relations, blockchain launch strategy.
+- ICO compliance, investor relations, blockchain launch strategy
 
 ---
 
@@ -116,14 +136,6 @@ Russian (Native) · English (Fluent) · Spanish (Intermediate) · French (Elemen
 
 ---
 
-## I AM LOOKING FOR
+## TARGET ROLES
 
-**Fractional AI Ops Lead / Fractional AI Builder** — wire up a company's AI stack, build the pipelines, make them run without babysitting
-
-**Internal AI Tools Lead** — join a team that has developers, I design and operate the AI layer
-
-**AI Program Manager / AI Ops** — manage the AI systems, not just advise on them
-
-**Founding AI Hire (Pre-Seed/Seed)** — early-stage companies that need someone who ships, not just someone who talks about shipping
-
-I am not looking for: software engineering roles with coding tests. My methodology is AI-assisted development. If a role requires whiteboard algorithms without tooling, I'm not your candidate — and I'd rather both of us know that upfront.
+Fractional AI Builder / Consultant · Founding AI Hire (Pre-Seed/Seed) · AI Automation Specialist · Internal AI Tools Builder · AI Integration Engineer · AI Ops / AI Program Manager
