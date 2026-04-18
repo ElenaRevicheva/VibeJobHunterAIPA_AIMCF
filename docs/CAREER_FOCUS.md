@@ -136,6 +136,8 @@ Apply only in early-stage or highly technical orgs with founder-led hiring:
 - Indian IT staffing firms retained in `LARGE_COMPANY_BLOCKLIST` (Siro Clinpharm, Nagarro, etc.); product companies (Deel, GitLab, etc.) removed — filter is role-based, not company-name-based
 - Career gate pass rate improved to ~20.7% (from ~24%), confirming tighter filtering
 
+**Eval harness:** All 4 layers complete — 131 tests (keyword scoring, bias compensation, golden-set routing, LLM-as-judge consistency), ~$0.03/run. Layer 4 uses Claude Haiku as independent judge against 22 golden-set jobs, ≥75% agreement threshold.
+
 ### Hard Gates (Phase 0) — IMPLEMENTED in `job_gate.py`
 
 A job is discarded unless ALL are true:
@@ -185,6 +187,7 @@ YC company bonus: +15 pts applied before routing.
 | Oracle Cloud / OCI / systemd / PM2 | 9 agents, $0/month infra, 3-layer resilience (health cron + systemd + keepalive) |
 | API design (REST, webhooks) | Express, Grammy, Telegram, GitHub, Replicate, Luma, Runway |
 | Executive communication | 7 years board-level — can translate AI systems to non-technical decision-makers |
+| Evals / observability | 131-test eval harness, 4 layers (keyword, bias, golden-set, LLM-as-judge). $0.03/run. |
 
 ### ⚠️ Partial / exposure only
 
@@ -199,7 +202,6 @@ YC company bonus: +15 pts applied before routing.
 | Skill | Reality |
 |-------|---------|
 | RAG (production-grade) | Conversational memory ≠ production RAG. Employers test this specifically. Mark as gap. |
-| Evals / observability | Eval harness under construction (Layers 1–3 done). Not complete yet. |
 | LLM fine-tuning (LoRA, QLoRA) | Post-first-role territory. Don't mention unless asked. |
 
 ---
@@ -213,7 +215,7 @@ YC company bonus: +15 pts applied before routing.
 | # | Question | What a sharp answer looks like |
 |---|----------|-------------------------------|
 | Q1 | Why this model routing strategy? | "76% Groq for speed and cost — standard review cycles need latency, not depth. 24% Claude for critical paths (security, payments) where reasoning quality matters more than cost. Deliberate tradeoff — not default." |
-| Q2 | How did you measure quality / regressions? | Currently weakest answer. The eval harness closes this. Answer in progress: "Layers 1–3 of an eval framework are built — unit tests for keyword detection, integration tests for the full pipeline. Layer 4 (LLM-as-judge for consistency) is the next build." |
+| Q2 | How did you measure quality / regressions? | "131-test eval harness, 4 layers. Layers 1–3 are deterministic ($0, <5s): keyword scoring, bias compensation, golden-set routing across 22 human-labeled jobs. Layer 4 is Claude-as-judge — validates the engine's decisions against an independent LLM, 75% agreement threshold. Catches regressions before deploy." |
 | Q3 | What failed in production and how did you recover? | PM2 stale env bug: token rotation silently failed because PM2 injects stale vars. Fixed with `dotenv.config({ override: true })` as first line in every module. Also: Telegram bot Conflict errors from two services polling the same token. Fixed by owning the polling in exactly one service. |
 | Q4 | Why this infra and cost profile? | Oracle 26ai Always Free: mTLS security, native vector search (no separate vector DB needed), $0/month. Deliberate choice — not a cost-cutting accident. Startup-grade infra discipline. |
 
@@ -346,6 +348,7 @@ Applications:        3–5/day (capped for quality)
 | LinkedIn CMO | ✅ Live | Daily posts at 21:30 UTC — narrative needs updating |
 | Telegram Bot | ✅ Live | Real-time notifications + commands |
 | **Claude Resilience** | ✅ **NEW (Apr 10)** | `claude_helper.py` — `call_claude_sync`, `call_claude_async`, `acall_claude` with retry on 529/503/429. Wired into `message_generator.py`, `auto_applicator.py`, `company_researcher.py`, `job_matcher.py`. |
+| **Eval Harness** | ✅ **DONE** | 131 tests, 4 layers, all green. |
 
 ### ⚠️ Known Limitations
 | Component | Status | Notes |
@@ -369,11 +372,12 @@ Applications:        3–5/day (capped for quality)
 | 2c | **Add Claude 529/503/429 retry resilience** | ✅ DONE (Apr 10) | Shared `claude_helper.py` with 3x exponential backoff. Wired into all 5 Claude call sites in message_generator, plus auto_applicator, company_researcher, job_matcher. Pattern from EspaLuz WhatsApp. |
 | 3 | **Rewrite positioning** — lead with executive + builder hybrid | This week | LinkedIn headline, resume headers, outreach templates |
 | 4 | **Activate fractional channels** (Toptal, Braintrust, A-Team, LinkedIn DMs) | This week | One reference > any skill addition |
-| 5 | **Build eval harness — Layers 1+3** (in progress) | Week 1–2 | Closes Q2 interview gap AND fixes scoring calibration |
+| 5 | **Build eval harness — Layers 1–4** | ✅ DONE (Mar 30) | All 4 layers complete — 131 tests. Layer 4 (LLM-as-judge) uses Claude Haiku, 12 curated cases + 22 golden-set jobs, ≥75% agreement. ~$0.03/run. |
 | 6 | **Tighten top 2 READMEs** (VibeJobHunter + CTO AIPA) | Week 1–2 | 30-second GitHub impression for founders |
 | 7 | **Rehearse the four interview answers** — 90 seconds each | Ongoing | Career analysis: biggest risk is answer sharpness, not skills |
 | 8 | **Add RAG to EspaLuz** using Oracle 26ai native vectors | Week 2–4 | Closes biggest technical gap with least new infra |
 | 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | Week 3–5 | One honest line on resume. Credible answer to "AWS experience?" |
+| 10 | **GEO + SEO Marketing Engine (Phases 1-5)** | ✅ DONE (Apr 17-18) | Full-stack marketing automation: JSON-LD schemas, noscript AI crawler block, sitemap (11 URLs), daily automated blog publishing with GSC gap topic selection, Dev.to cross-posting, UTM attribution pipeline, reCAPTCHA Enterprise inquiry form, automated cold outreach (YC + Google Places + doc ingest), AI-powered lead triage with urgency scoring + dashboard, www→apex 301 redirect (Cloudflare), hreflang EN/ES. All running autonomously on Oracle. |
 
 ---
 
@@ -481,6 +485,6 @@ When presenting Elena's background in any context:
 
 ---
 
-> Last updated: April 10, 2026 | Aligned with `elena_career_analysis_v2.html` — Honest Edition v2  
+> Last updated: April 18, 2026 | Aligned with CLAUDE.md verified scan + marketing engine completion  
 > v4 changes: hard gate recalibration deployed, founder outreach email fixes, Claude retry resilience, salary floor correction  
 > This document is the single source of truth for VibeJobHunter targeting decisions.

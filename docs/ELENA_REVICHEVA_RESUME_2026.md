@@ -19,7 +19,7 @@ The combination is rare: I can architect an LLM pipeline, deploy it to productio
 ## KEY RESULTS
 
 - **9 production AI systems** running 24/7 on a single Oracle Cloud VM — $0/month infra (startup credits + Always Free tier)
-- **Autonomous job discovery pipeline** processing 1,900+ listings → 250+ tailored applications + 140+ founder outreach messages via Resend
+- **Autonomous job discovery pipeline** processing 1,900+ listings with 7-level penalty scoring, 6 auto-selected resume variants, ATS form automation (Greenhouse/Lever/Ashby), and founder email outreach via Resend
 - **76/24 multi-model routing** — 76% requests to cost-optimized models (Groq Llama), 24% to high-capability models (Claude) for critical paths. Deliberate cost/quality tradeoff, not default.
 - **AI Marketing Engine (GEO + SEO)** — built a system that makes a business discoverable by both Google and AI assistants (ChatGPT, Perplexity, Claude): JSON-LD structured data, automated daily blog publishing with GSC gap topic selection, Dev.to cross-posting for DA 90+ backlinks, UTM attribution pipeline, AI-powered lead triage with urgency scoring, and automated cold outreach — all running autonomously
 - **3-layer automated resilience** — health cron (every 5 min) + systemd/PM2 restart policies + OCI keepalive. Systems recover from failures without human intervention.
