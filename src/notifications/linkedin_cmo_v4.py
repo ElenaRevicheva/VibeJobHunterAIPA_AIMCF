@@ -23,7 +23,7 @@ Updated: December 2025 - PROXY METRICS INTEGRATION!
 import requests
 import random
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List
 import os
 import anthropic
@@ -50,7 +50,7 @@ LINKEDIN_CMO_VERSION = "5.1_VIBE_CODING_PHILOSOPHY"
 BUILD_TIMESTAMP = "2025-12-21_18:30_UTC"
 GIT_COMMIT_HASH = "2eeaefe"
 POSITIONING_UPGRADE = "VIBE_CODING_LIFE_TRANSFORMATION"
-NEW_CONTENT_TYPES = ["vibe_coding_philosophy", "filosofia_vibe_coding"]
+NEW_CONTENT_TYPES = ["vibe_coding_philosophy", "filosofia_vibe_coding", "marketing_engine_geo_seo"]
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🎯" * 40)
@@ -59,7 +59,8 @@ logger.info(f"📦 BUILD: {BUILD_TIMESTAMP} | COMMIT: {GIT_COMMIT_HASH}")
 logger.info(f"🔖 [FINGERPRINT: 2025-12-21_VIBE_CODING_PHILOSOPHY_DEPLOYED]")
 logger.info(f"🆕 NEW POST TYPES: {NEW_CONTENT_TYPES}")
 logger.info(f"🌍 LANGUAGE: True EN↔ES alternation (not random)")
-logger.info(f"🖼️ IMAGES: 14 images with anti-repeat rotation")
+logger.info(f"📅 LANE: Alternate UTC days — AIdeazz pool vs marketing_engine template (same 1 post/day)")
+logger.info(f"🖼️ IMAGES: 18 assets with anti-repeat rotation (14 portfolio + 4 marketing-engine diagrams)")
 logger.info(f"🧠 THIS IS TRUE AI MARKETING CO-FOUNDER!")
 logger.info("🎯" * 40)
 
@@ -167,6 +168,20 @@ class LinkedInCMO:
                 json.dump(data, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save data: {e}")
+
+    @staticmethod
+    def _utc_today_is_marketing_engine_lane(now: Optional[datetime] = None) -> bool:
+        """
+        Alternate calendar days (UTC): one day = AIdeazz narrative pool only;
+        the next = fixed marketing_engine_geo_seo post. Same single daily slot—no extra volume.
+
+        Uses UTC date so the lane matches the 21:30 UTC cron regardless of server local TZ.
+        Odd proleptic Gregorian ordinal → marketing lane; even → AIdeazz lane.
+        """
+        dt = now or datetime.now(timezone.utc)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).date().toordinal() % 2 == 1
     
     # BILINGUAL CONTENT TEMPLATES
     # Based on Elena's resume - HIGH VALUE, NO BEGGING
@@ -446,6 +461,28 @@ And yes, I'm completely transparent about how I got here.
 
 #VibeCoding #LifeTransformation #AICoFounders #TransparentJobSearch #BuildInPublic #FoundingEngineer""",
             "hashtags": "#VibeCoding #LifeTransformation #AICoFounders #TransparentJobSearch #BuildInPublic"
+        },
+
+        "marketing_engine_geo_seo": {
+            "content": """I published a phased roadmap for AIdeazz's marketing engine—here is the honest version in one post.
+
+What "GEO + SEO" means in our stack (no hype):
+
+**GEO (how we use the term)** — make aideazz.xyz legible to crawlers and assistants: structured data, sitemaps, canonical/hreflang hygiene, robots rules aligned with intent. That improves discoverability and consistent interpretation; it does **not** guarantee rankings, citations, or revenue.
+
+**SEO (same foundation in practice)** — Search Console, build-time sitemap including live blog URLs, centralized SPA meta/OG, fixes where static HTML fought client-side routing (duplicate canonical class of issues).
+
+**After the base exists** — long-form publishing on a schedule, UTM on inquiry flows, outreach logging, lead triage: each phase is spelled out as shipped vs pending in the doc. Phase 6 (showcase packaging) is still **not started** in that roadmap—calling that out on purpose.
+
+Full implementation table + prompts live here (source of truth):
+https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+Architecture/workflow visuals: same diagrams we use internally—now in the VibeJobHunter repo `assets/` (`marketing_engine_architecture*.png`, `marketing_engine_workflow*.png`) for Buffer/LinkedIn.
+
+If you are building something similar: start with crawlability and measurement, then automate content and attribution—not the reverse.
+
+#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering""",
+            "hashtags": "#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering"
         }
     }
     
@@ -605,6 +642,28 @@ Y sí, soy completamente transparente sobre cómo llegué aquí.
 
 #VibeCoding #TransformaciónDeVida #CoFundadoresIA #BúsquedaTransparente #BuildInPublic #FoundingEngineer""",
             "hashtags": "#VibeCoding #TransformaciónDeVida #CoFundadoresIA #BúsquedaTransparente #BuildInPublic"
+        },
+
+        "marketing_engine_geo_seo": {
+            "content": """Documenté por fases el motor de marketing de AIdeazz—esta es la versión sobria en un solo post.
+
+Qué significa "GEO + SEO" aquí (sin promesas mágicas):
+
+**GEO (cómo lo usamos)** — hacer aideazz.xyz legible para rastreadores y asistentes: datos estructurados, sitemaps, canonical/hreflang limpio, robots acorde a la intención. Eso ayuda a descubrimiento e interpretación consistente; **no** garantiza posiciones, citas en LLMs ni ingresos.
+
+**SEO (la misma base, en la práctica)** — Search Console, sitemap en build con URLs reales del blog, meta/OG centralizado para la SPA, correcciones donde el HTML estático competía con el router del cliente (familia de problemas de canonical duplicado).
+
+**Cuando la base está** — publicación larga en calendario, UTM en formularios de contacto, registro de outreach, triage de leads: en el documento cada fase aparece como entregada o pendiente. La fase 6 (paquete showcase) sigue **sin iniciar** en esa hoja de ruta—lo digo a propósito.
+
+Tabla de implementación + prompts (fuente de verdad):
+https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+Diagramas de arquitectura/flujo: los mismos que usamos en operación—ahora en el repo VibeJobHunter `assets/` (`marketing_engine_architecture*.png`, `marketing_engine_workflow*.png`) para Buffer/LinkedIn.
+
+Si construyes algo parecido: primero rastreabilidad y medición, luego automatización de contenido y atribución—no al revés.
+
+#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering""",
+            "hashtags": "#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering"
         }
     }
     
@@ -617,6 +676,10 @@ Y sí, soy completamente transparente sobre cómo llegué aquí.
         """
         if not self.use_ai_generation:
             # Fallback to templates if no API key (AIPA mode)
+            return None
+
+        # Template-only: factual GEO/SEO engine explainer (avoid LLM drift into hype)
+        if post_type == "marketing_engine_geo_seo":
             return None
         
         try:
@@ -814,6 +877,8 @@ Generate FRESH, creative content (not templates). Think strategically about what
         # Choose post type
         if post_type == "random":
             available_types = list(self.LINKEDIN_POSTS_EN.keys() if language == "en" else self.LINKEDIN_POSTS_ES.keys())
+            # Marketing-engine posts only on alternate UTC days (see post_to_linkedin); never from random pool here
+            available_types = [t for t in available_types if t != "marketing_engine_geo_seo"]
             post_type = random.choice(available_types)
             logger.info(f"📝 Selected post type: {post_type} (from {len(available_types)} available)")
             
@@ -821,6 +886,8 @@ Generate FRESH, creative content (not templates). Think strategically about what
             if post_type in ["vibe_coding_philosophy", "filosofia_vibe_coding"]:
                 logger.info(f"🔖 [FINGERPRINT: VIBE_CODING_PHILOSOPHY_SELECTED] → {post_type}")
                 logger.info(f"🧠 Generating life transformation story content...")
+            elif post_type == "marketing_engine_geo_seo":
+                logger.info("📐 Selected template: GEO+SEO marketing engine (roadmap-aligned, no LLM)")
         
         # Try AI Co-Founder generation first (if enabled)
         ai_content = None
@@ -893,7 +960,11 @@ Generate FRESH, creative content (not templates). Think strategically about what
             f"{github_base}/image_1.10.jpeg",
             f"{github_base}/image_1.11.jpeg",
             f"{github_base}/image_1.12.jpeg",
-            f"{github_base}/image_1.13.jpeg"
+            f"{github_base}/image_1.13.jpeg",
+            f"{github_base}/marketing_engine_architecture.png",
+            f"{github_base}/marketing_engine_architecture_1.png",
+            f"{github_base}/marketing_engine_workflow.png",
+            f"{github_base}/marketing_engine_workflow_1.png",
         ]
         
         # Track last used image to avoid repetition
@@ -1208,6 +1279,15 @@ Be specific and actionable."""
             True if successful
         """
         logger.info("🎯 LinkedIn CMO: Starting post workflow...")
+
+        # Alternate days (UTC): AIdeazz narrative vs marketing-engine roadmap—one post/day unchanged
+        if post_type == "random" and self._utc_today_is_marketing_engine_lane():
+            post_type = "marketing_engine_geo_seo"
+            logger.info(
+                "📅 Lane (UTC): marketing engine (GEO+SEO)—next UTC day uses the usual AIdeazz pool"
+            )
+        elif post_type == "random":
+            logger.info("📅 Lane (UTC): AIdeazz narrative pool (marketing-engine template excluded)")
         
         # Step 1: Weekly market analysis (runs once per week)
         if datetime.now().weekday() == 0:  # Monday
@@ -1221,7 +1301,9 @@ Be specific and actionable."""
             
             # Adapt post type based on strategic decision
             if strategy_focus == "hiring" and post_type == "random":
-                post_type = random.choice(["open_to_work", "technical_showcase", "transformation_story"])
+                post_type = random.choice([
+                    "open_to_work", "technical_showcase", "transformation_story",
+                ])
                 logger.info(f"🎯 Strategic focus: HIRING → Selected '{post_type}' post")
             elif strategy_focus == "fundraising" and post_type == "random":
                 post_type = "seeking_funding"
