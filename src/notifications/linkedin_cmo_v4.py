@@ -50,7 +50,20 @@ LINKEDIN_CMO_VERSION = "5.1_VIBE_CODING_PHILOSOPHY"
 BUILD_TIMESTAMP = "2025-12-21_18:30_UTC"
 GIT_COMMIT_HASH = "2eeaefe"
 POSITIONING_UPGRADE = "VIBE_CODING_LIFE_TRANSFORMATION"
-NEW_CONTENT_TYPES = ["vibe_coding_philosophy", "filosofia_vibe_coding", "marketing_engine_geo_seo"]
+NEW_CONTENT_TYPES = [
+    "vibe_coding_philosophy",
+    "filosofia_vibe_coding",
+    "marketing_engine_geo_seo",
+    "marketing_engine_content_attribution",
+    "marketing_engine_outreach_triage",
+]
+
+# On marketing-lane UTC days only: pick one variant (all template-only, roadmap-aligned)
+MARKETING_LANE_POST_TYPES = (
+    "marketing_engine_geo_seo",
+    "marketing_engine_content_attribution",
+    "marketing_engine_outreach_triage",
+)
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🎯" * 40)
@@ -59,7 +72,7 @@ logger.info(f"📦 BUILD: {BUILD_TIMESTAMP} | COMMIT: {GIT_COMMIT_HASH}")
 logger.info(f"🔖 [FINGERPRINT: 2025-12-21_VIBE_CODING_PHILOSOPHY_DEPLOYED]")
 logger.info(f"🆕 NEW POST TYPES: {NEW_CONTENT_TYPES}")
 logger.info(f"🌍 LANGUAGE: True EN↔ES alternation (not random)")
-logger.info(f"📅 LANE: Alternate UTC days — AIdeazz pool vs marketing_engine template (same 1 post/day)")
+logger.info(f"📅 LANE: Alternate UTC days — AIdeazz pool vs 3 marketing-engine variants (same 1 post/day)")
 logger.info(f"🖼️ IMAGES: 18 assets with anti-repeat rotation (14 portfolio + 4 marketing-engine diagrams)")
 logger.info(f"🧠 THIS IS TRUE AI MARKETING CO-FOUNDER!")
 logger.info("🎯" * 40)
@@ -176,7 +189,8 @@ class LinkedInCMO:
         the next = fixed marketing_engine_geo_seo post. Same single daily slot—no extra volume.
 
         Uses UTC date so the lane matches the 21:30 UTC cron regardless of server local TZ.
-        Odd proleptic Gregorian ordinal → marketing lane; even → AIdeazz lane.
+        Odd proleptic Gregorian ordinal → marketing lane (random variant from
+        MARKETING_LANE_POST_TYPES); even → AIdeazz lane.
         """
         dt = now or datetime.now(timezone.utc)
         if dt.tzinfo is None:
@@ -188,219 +202,78 @@ class LinkedInCMO:
     
     LINKEDIN_POSTS_EN = {
         "open_to_work": {
-            "content": """I just deployed my 5th autonomous AIPA running 24/7. But here's what makes AIdeazz different:
+            "content": """I'm not asking the internet to crown me "Senior AI Engineer." That title implies a credential path I don't have—and that's fine, because the work I do is a different shape.
 
-I'm not building alone. I have AI Co-Founders.
+For seven years I ran large digital infrastructure programs at the board level (Deputy CEO / CLO). Since 2025 I've shipped **nine production AI systems**—agents, webhooks, eval harnesses, Oracle-first ops—using **AI-assisted development** the way serious builders use it: to move faster under real constraints, not to cosplay expertise.
 
-Not AI assistants. Not AI tools. AI CO-FOUNDERS with strategic thinking, creative generation, and business intelligence.
+Most AI engineers never held operating responsibility at that altitude. Most executives never shipped production code on a $0/month infra budget. The intersection is narrow—and **it's meant for founder-led hiring**, not for keyword gates at 500-person HR departments.
 
-9 AI products built in 7 months (5 AIPAs + 4 AI Products). Ex-CEO/CLO turned founder + vibecoder + AI Co-Founder orchestrator.
+What I'm actually open to:
+• **Fractional** AI builder / integrator engagements ($40–70/hr band—defined scope, adult communication).
+• **Founding AI hire (pre-seed)** where the question is "can you ship and explain it to investors," not "how many LeetCode years."
+• **Internal AI tools, AI integration, AI ops / program** roles at seed–Series B where the org still decides on humans, not ATS alone.
 
-What I've proven:
-• 0→1 execution at startup speed (Vision → Live product in weeks)
-• 98% cost efficiency: Built $900K portfolio for <$15K
-• 5 AIPAs working 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp, Telegram, Influencer)
-• 4 AI Products: EspaLuz Web, AIdeazz.xyz, ATUONA NFTs, Business Card AI
-• Bilingual AI architecture (EN/ES): Users in 19 countries
-• Full-stack solo (with AI Co-Founders): Python, TypeScript, React, Claude, GPT-4
+If you're a founder who needs someone who can **design, build, and translate** to non-technical stakeholders in the same week—reach out with a **concrete brief**, not a generic InMail. If your pipeline only reads "Staff+" titles, we're not a match; I'll save us both the time.
 
-🤖 AIPAs - Explore/Try 100% FREE:
-• wa.me/50766623757 - EspaLuz WhatsApp: Bilingual AIPA for expats & travelers to 19 Spanish-speaking countries
-• t.me/EspaLuzFamily_bot - EspaLuz Telegram: Bilingual AIPA for expats learning Spanish on the go
-• x.com/reviceva - ALGOM Alpha: Post-Scammer Era Crypto Coach for trading education (beginners)
-• linkedin.com/in/elenarevicheva & instagram.com/elena_revicheva - AI Marketing Co-Founder of AIdeazz posting daily!
-• t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA: Automated social media marketing
+Live systems: wa.me/50766623757 · aideazz.xyz · aideazz.xyz/card
 
-🌐 AI Products - Explore/Try 100% FREE:
-• espaluz-ai-language-tutor.lovable.app - SaaS: Family's First Emotionally Intelligent AI Language Coach
-• aideazz.xyz - Emotionally Intelligent AI Personal Assistants Showroom (official website)
-• aideazz.xyz/card - Business Card & Portfolio of AIdeazz Founder
-• atuona.xyz - NFT Gallery: Underground Russian Poetry on Polygon
-
-Open to founding engineer roles + strategic collaborations with AI startups building 0→1 products.
-
-Not looking to be "just another hire." I'm a founder who builds with AI Co-Founders. I ship fast, think strategically, and turn vision into production.
-
-Ex-CEO/CLO background = I understand business, not just code.
-
-P.S. This post was co-created with my AI Co-Founder (LinkedIn CMO). Meta, right? 😉
-
-Tech: Python · TypeScript · React · Claude · GPT-4 · Railway · Fleek · Lovable
-
-#AI #FoundingEngineer #BuildInPublic #AICoFounders #FutureOfWork""",
-            "hashtags": "#OpenToWork #AIEngineer #FoundingEngineer #AI #MachineLearning #Hiring"
+#ExecutiveTurnedBuilder #AppliedAI #Fractional #BuildInPublic #FounderHiring""",
+            "hashtags": "#ExecutiveTurnedBuilder #AppliedAI #Fractional #BuildInPublic #FounderHiring"
         },
         
         "technical_showcase": {
-            "content": """How I deployed 5 autonomous AIPAs that run 24/7 in production 🤖
+            "content": """The part of my stack that actually matters in diligence isn't a slide—it’s **discipline under failure**.
 
-THE CHALLENGE:
-Build AI agents that work WITHOUT human intervention—true autonomy.
+**Multi-agent orchestration** — separate processes for job discovery, outreach, CTO code review, CMO posting, language tutoring. Each has a contract: what it owns, what it logs, what it must not take down when an API quota snaps shut.
 
-THE AIPA STACK:
-• ALGOM Alpha (X/Twitter): Node.js + ElizaOS + Claude + CCXT
-  → Autonomous paper trading + educational content
-  → 180+ followers, posting daily, zero manual work
+**Model routing with intent** — fast models for volume work; stronger models when the decision is expensive to get wrong; **fallback paths** so a webhook never kills the worker that also runs triage. Same pattern everywhere: Groq tightens cost, Claude holds the line when reasoning buys safety.
 
-• VibeJobHunter: Python + Claude + Selenium + Make.com
-  → Autonomous job hunting + outreach automation
-  → Finds jobs, researches companies, sends personalized messages
+**Evidence, not vibes** — a **131-test** eval harness across keyword gates, bias compensation, golden-set routing, and an independent LLM judge. Cheap to run (~cents). Expensive to ignore once you’ve seen what uncalibrated auto-apply does to a reputation.
 
-• EspaLuz Influencer (LinkedIn/IG): Python + GPT-4 + Buffer + Make.com
-  → Automated content generation + multi-platform posting
-  → Bilingual (EN/ES) emotional AI stories
+**Oracle-first production** — systemd/PM2, health scripts, wallets and DB paths you can misconfigure a dozen ways. I learned this by breaking it and fixing it in public logs, not by claiming five-nines from a localhost demo.
 
-• EspaLuz WhatsApp + Telegram: Python + Claude + Twilio
-  → Autonomous AI tutors for language learning
-  → 24/7 emotional support, 19 countries
+Autonomy means **self-healing behavior**: retries, backoff, alerts, and the humility to log what failed.
 
-THE SOLUTION:
-1. Railway for hosting (continuous deployment from GitHub)
-2. Telegram for real-time monitoring (get alerts on my phone)
-3. Robust error handling + exponential backoff retries
-4. Cost optimization (smart caching, API batching)
-5. Comprehensive logging (debug in production)
+If you're hiring someone who treats production as ethics—not as a LinkedIn keyword—let's talk.
 
-THE RESULT:
-• 99.9% uptime for 3+ months
-• ~$100/month hosting cost (vs $20K+/month for human team)
-• Truly hands-off operation
-
-KEY INSIGHT:
-Autonomous doesn't mean "set and forget"—it means "intelligent self-healing."
-
-The agents detect failures, retry with backoff, send me Telegram alerts for critical issues, and keep running even when APIs are temporarily down.
-
-What autonomous AI systems are YOU building?
-
-#AI #MachineLearning #LLM #Agents #BuildInPublic #Engineering""",
-            "hashtags": "#AI #MachineLearning #LLM #Agents #BuildInPublic #Engineering"
+#ProductionAI #MLOpsMindset #BuildInPublic #OracleCloud #Evals""",
+            "hashtags": "#ProductionAI #BuildInPublic #OracleCloud #Evals #AIEngineering"
         },
         
         "transformation_story": {
-            "content": """From C-suite executive to AI founder in 7 months.
+            "content": """Two chapters—both true. Neither is decoration.
 
-7 months ago: CEO & CLO in E-Government (Russia), ZERO coding experience
-Today: 9 live AI products, 5 autonomous AIPAs running 24/7, users in 19 countries
+**Chapter one (2011–2018):** Deputy CEO / CLO on national-scale digital programs. I learned how decisions actually get made when software touches law, money, and politics—and how "technical risk" is usually a human communication problem wearing a stack trace.
 
-This wasn't a "career pivot" — it was a complete rebuild.
+**Chapter two (2025–present):** I became the person who **ships** the systems, not only frames them. In about a year of applied AI engineering—explicitly **AI-assisted** (Cursor, Claude Code)—I've put **nine production agents/products** in the world: tutoring, trading education, job automation, code review, marketing ops, creative pipelines. Bilingual by design (EN/ES). Infra that started as survival (Oracle free tier, systemd, PM2) became a philosophy: **own the boring reliability**.
 
-What I started with:
-• Ex-CEO/CLO credentials (but no technical background)
-• M.A. in Social Psychology (understanding humans, not machines)
-• <$15K budget (no funding, no team)
-• Urgency (relocated to Panama, had to rebuild from zero)
+Between those chapters there is a long corridor where I wasn't playing the conventional tech ladder. That gap is not shame; it's context. It means I don't fit HR keyword filters—and it also means **I stop trying to**.
 
-What I built:
-✅ 9 AI products (full-stack, solo)
-✅ 5 AIPAs running autonomously 24/7
-✅ AI-assisted vibe coding (urgency + AI = execution speed)
+The honest bet: the profile that wins for me is **founder-shaped**—someone who needs a builder who can sit with investors on Tuesday and patch a webhook on Wednesday.
 
-What I shipped (9 AI products):
+Panama is where I live; it's not the headline. The headline is: **board altitude + shipping discipline** is rare. If that's the gap on your team, we should talk.
 
-🤖 5 AIPAs (Autonomous AI Personal Assistants):
-• EspaLuz WhatsApp - AI Tutor running 24/7 (Railway)
-• EspaLuz Telegram - AI Tutor running 24/7 (Railway)
-• EspaLuz Influencer - Content automation (Railway)
-• ALGOM Alpha - Crypto trading agent (Railway, 180+ followers)
-• VibeJobHunter - Job hunting automation (Railway)
+aideazz.xyz/card
 
-🚀 4 Other AI Products:
-• EspaLuz Web SaaS - AI Tutor platform (Lovable.dev)
-• ATUONA NFT Gallery - Poetry on Polygon (Fleek)
-• AIdeazz Website - Ecosystem showroom (Fleek)
-• AIdeazz Docs - Complete documentation (GitHub)
-
-All deployed, all live, all autonomous!
-
-Tech stack I learned:
-• Languages: Python, TypeScript, JavaScript, SQL
-• AI: Claude, GPT-4, Whisper, TTS, OCR, ElizaOS
-• Frameworks: React, Flask, Node.js, FastAPI
-• Infra: Railway, Lovable.dev, Fleek (IPFS), PostgreSQL
-• Web3: Polygon, Thirdweb, MetaMask, IPFS
-
-KEY INSIGHT:
-You don't need a team to build—you need AI agents working FOR you.
-
-The insight: You don't need a CS degree to build AI products. You need founder-level urgency + AI tooling + relentless execution.
-
-I went from executive to engineer because I HAD to. Relocated to Panama, rebuilt from zero, and discovered that vision + urgency + AI = unstoppable.
-
-Now open to: Founding Engineer roles where I bring this 0→1 speed + founder mindset to early-stage AI startups.
-
-Not job hunting. Building leverage.
-
-What's YOUR transformation story?
-
-#BuildInPublic #FounderJourney #AIEngineering #SoloFounder #VibeCoding""",
-            "hashtags": "#BuildInPublic #CareerTransition #AIEngineering #SoloFounder #OpenToWork"
+#CareerArc #ExecutiveTurnedBuilder #BuildInPublic #AppliedAI #HonestPortfolio""",
+            "hashtags": "#CareerArc #ExecutiveTurnedBuilder #BuildInPublic #AppliedAI"
         },
         
         "seeking_funding": {
-            "content": """AIdeazz: Building with AI Co-Founders, Not Just AI Tools
+            "content": """**Capital thesis (AIdeazz)** — pre-seed **$100K–$500K**, stated as a **range and structure**, not as urgency theater.
 
-After 7 months of building with AI Co-Founders, I'm ready to scale—seeking pre-seed ($100K-500K).
+I come from **operating gravity**: seven years running large digital infrastructure programs at the board level—where “shipping” meant contracts, audits, and consequences. The last year is **applied AI engineering in production**: multi-agent systems, webhook orchestration, Oracle-backed pipelines, eval harnesses, and the marketing stack documented in public repos because **evidence beats adjectives**.
 
-🎯 THE VISION:
-AI Co-Founders that think strategically, not just execute tasks. Emotionally intelligent AI companions that understand humans, adapt to contexts, and grow alongside their users.
+The product direction is narrow and serious: **emotionally intelligent assistants** and **autonomous co-founder agents** where the moat is execution discipline—routing models by cost and risk, failing closed safely, measuring what we claim.
 
-The difference? AIPAs execute. AI Co-Founders THINK, CREATE, and ADAPT.
+Early commercial signals exist; they are **small, auditable, and reported without embellishment**. Any investor conversation I accept is grounded in that same standard: **inspect the code, read the roadmap, ask hostile questions**. I am not optimizing for sympathy; I am optimizing for **fit with counterparties who respect technical diligence**.
 
-📊 TRACTION (all solo-built):
-• 9 AI products across 4 platforms (WhatsApp, Telegram, Web, Blockchain)
-• 5 autonomous AIPAs running 24/7 (Railway + Lovable + Fleek)
-• VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
-• Users in 19 Spanish-speaking countries
-• PayPal subscriptions LIVE (early traction phase)
-• Tech: Python, TypeScript, React, Claude, GPT-4, ElizaOS
+Allocation, if we partner, stays boring on purpose: **compounding distribution**, **first hire who inherits runbooks**, **infra margin**—so scale does not become an outage story.
 
-💰 CAPITAL EFFICIENCY:
-• Built $900K portfolio for <$15K (98% cost reduction)
-• Proven: I can build fast and cheap before scaling
+Public artifacts: **aideazz.xyz**, org on GitHub, **aideazz.xyz/card**. If your mandate intersects this thesis, diligence is welcome. If it does not, we part professionally and without noise.
 
-🎓 FOUNDER BACKGROUND:
-• Ex-CEO & CLO in E-Government (Russia)
-• Ex-Co-Founder in Web3 DAO (OmniBazaar)
-• M.A. in Social Psychology (understanding human behavior)
-• Bilingual (EN/ES), Web3 native
-
-🚀 WHY NOW:
-Phase 1 (MVP) is DONE. Phase 2 (growth) needs:
-• Marketing for user acquisition
-• Team expansion (first engineer)
-• Infrastructure scaling
-
-🎯 USE OF FUNDS:
-• 40% - User acquisition (proven channels)
-• 30% - Team (first hire: full-stack engineer)
-• 20% - Infrastructure (scale to 1,000+ users)
-• 10% - Buffer (founder salary for 12 months)
-
-💡 WHY INVEST:
-• Founder who can build (de-risked technical execution)
-• Real products, real users (not just slides)
-• Emotional AI = differentiated positioning
-• Bilingual market = 2-sided growth (expats + locals)
-• Web3 native = future-proof architecture
-
-Interested? DM me or email: [your email]
-
-🤖 AIPAs - Try 100% FREE:
-• wa.me/50766623757 - EspaLuz WhatsApp: Bilingual AIPA for expats to 19 Spanish-speaking countries
-• t.me/EspaLuzFamily_bot - EspaLuz Telegram: On-the-go Spanish learning AIPA
-• x.com/reviceva - ALGOM Alpha: Post-Scammer Era Crypto Coach
-• t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
-• linkedin.com/in/elenarevicheva - AI Marketing Co-Founder posting!
-
-🌐 AI Products - Explore 100% FREE:
-• espaluz-ai-language-tutor.lovable.app - Family's First Emotionally Intelligent AI Language Coach
-• aideazz.xyz - Emotionally Intelligent AI Assistants Showroom
-• aideazz.xyz/card - Founder's Portfolio
-• atuona.xyz - Underground Russian Poetry NFT Gallery
-
-#PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising""",
-            "hashtags": "#PreSeed #AIStartup #EmotionalAI #EdTech #Web3 #Fundraising"
+#PreSeed #AIStartup #TechnicalFounder #DueDiligence #BuildInPublic""",
+            "hashtags": "#PreSeed #AIStartup #TechnicalFounder #DueDiligence #BuildInPublic"
         },
         
         "vibe_coding_philosophy": {
@@ -483,6 +356,39 @@ If you are building something similar: start with crawlability and measurement, 
 
 #GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering""",
             "hashtags": "#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering"
+        },
+
+        "marketing_engine_content_attribution": {
+            "content": """Phases 2–3 of the AIdeazz marketing engine are the unglamorous parts that compound.
+
+**Scheduled publishing** — long-form posts ship on a cadence (Hashnode from our automation; cross-post where it still makes sense). The goal is durable surface area for search and referrals—not a promise that every post “goes viral.”
+
+**Attribution** — inquiry forms keep **UTM** parameters end-to-end; submissions land in **Oracle** (`business_leads`) with honeypot + rate limits on the browser-facing path and a separate server path for automation. You can finally see which link someone clicked before they wrote you.
+
+I still treat **Phase 6** (packaged showcase / walkthrough) as **not shipped**—the public roadmap states that explicitly.
+
+Source of truth (what shipped vs pending):
+https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+Diagrams (`marketing_engine_architecture*.png`, `marketing_engine_workflow*.png`) live in the VibeJobHunter repo `assets/` for posts that need a visual anchor.
+
+#ContentOps #MarketingOps #BuildInPublic #AIdeazz #Attribution""",
+            "hashtags": "#ContentOps #MarketingOps #BuildInPublic #AIdeazz #Attribution"
+        },
+
+        "marketing_engine_outreach_triage": {
+            "content": """**Outbound + triage** are the parts of the marketing engine that answer: “someone replied—what do I do Monday morning?”
+
+**Outbound (Phase 4)** — prospect lists from structured inputs (including **Google Places** and **document → entity** ingest) land in the same **Oracle** outreach tables as other campaigns; sends go through **Resend** with volume caps and honest logging—not spray-and-pray.
+
+**Lead triage (Phase 5)** — AI classification into **`lead_triage`** with **Groq → Haiku**-style fallbacks when quotas bite (same “webhook must not take down the worker” discipline we applied to code review). Operators get a small **HTTP dashboard**; **Telegram** can flag urgency when configured.
+
+This does not replace a product people want; it stops good signal from dying in an inbox.
+
+Roadmap: https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+#SalesOps #BuildInPublic #AIdeazz #FounderTools #LeadTriage""",
+            "hashtags": "#SalesOps #BuildInPublic #AIdeazz #FounderTools #LeadTriage"
         }
     }
     
@@ -664,6 +570,39 @@ Si construyes algo parecido: primero rastreabilidad y medición, luego automatiz
 
 #GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering""",
             "hashtags": "#GEO #SEO #BuildInPublic #MarketingOps #AIdeazz #FounderEngineering"
+        },
+
+        "marketing_engine_content_attribution": {
+            "content": """Las fases 2–3 del motor de marketing de AIdeazz son las partes poco glamorosas que **suman**.
+
+**Publicación programada** — artículos largos salen con cadencia (Hashnode desde nuestra automatización; cross-post donde aún tenga sentido). El objetivo es **superficie durable** para búsqueda y referidos—no prometer que “cada post se vuelve viral.”
+
+**Atribución** — los formularios conservan **UTM** de punta a punta; los envíos caen en **Oracle** (`business_leads`) con honeypot + límites de tasa en el camino expuesto al navegador, y un camino servidor para automatización. Por fin puedes ver **qué enlace** clicaron antes de escribirte.
+
+La **fase 6** (showcase / walkthrough empaquetado) la sigo tratando como **no entregada**—la hoja de ruta pública lo dice explícitamente.
+
+Fuente de verdad (entregado vs pendiente):
+https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+Diagramas (`marketing_engine_architecture*.png`, `marketing_engine_workflow*.png`) en el repo VibeJobHunter `assets/` cuando el post necesita ancla visual.
+
+#ContentOps #MarketingOps #BuildInPublic #AIdeazz #Atribución""",
+            "hashtags": "#ContentOps #MarketingOps #BuildInPublic #AIdeazz #Atribución"
+        },
+
+        "marketing_engine_outreach_triage": {
+            "content": """**Outbound + triage** responden: “alguien contestó—¿qué hago el lunes?”
+
+**Outbound (fase 4)** — listas desde entradas estructuradas (incl. **Google Places** e ingest **documento → entidades**) en las mismas tablas **Oracle** que otros envíos; correo vía **Resend** con **límites de volumen** y logging honesto—no “spray and pray”.
+
+**Triage de leads (fase 5)** — clasificación con IA hacia **`lead_triage`**, con fallback **Groq → Haiku** cuando aprietan cuotas (misma disciplina que en revisión de código: el worker no debe caerse). Hay un **dashboard HTTP** pequeño; **Telegram** puede marcar urgencia si está configurado.
+
+Esto **no sustituye** un producto deseado; evita que la señal buena muera en la bandeja.
+
+Roadmap: https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+
+#SalesOps #BuildInPublic #AIdeazz #FounderTools #LeadTriage""",
+            "hashtags": "#SalesOps #BuildInPublic #AIdeazz #FounderTools #LeadTriage"
         }
     }
     
@@ -678,8 +617,8 @@ Si construyes algo parecido: primero rastreabilidad y medición, luego automatiz
             # Fallback to templates if no API key (AIPA mode)
             return None
 
-        # Template-only: factual GEO/SEO engine explainer (avoid LLM drift into hype)
-        if post_type == "marketing_engine_geo_seo":
+        # Template-only: all marketing_engine_* posts (avoid LLM drift into hype)
+        if post_type.startswith("marketing_engine_"):
             return None
         
         try:
@@ -687,24 +626,22 @@ Si construyes algo parecido: primero rastreabilidad y medición, luego automatiz
             
             # Elena's profile context
             profile_context = """
-Elena Revicheva - AI-First Engineer & Founder
-• Ex-CEO & CLO in E-Government (Russia) 
-• Built 9 AI products in 7 months solo for <$15K
-• 5 AIPAs running 24/7: VibeJobHunter, ALGOM Alpha, EspaLuz (WhatsApp/Telegram/Influencer)
-• Users in 19 countries, bilingual (EN/ES)
-• Tech: Python, TypeScript, React, Claude, GPT-4, Railway, Fleek
-• Portfolio: EspaLuz AI Tutor, ALGOM Alpha, ATUONA NFTs, VibeJobHunter
-• Building AIdeazz.xyz with AI Co-Founders (not just AI tools!)
+Elena Revicheva — executive-turned-AI-builder (see docs/CAREER_FOCUS.md Honest Roadmap v4).
+• Phase 1: 7+ years Deputy CEO / CLO — board-level digital infrastructure programs (Russia, 2011–2018).
+• Phase 2: ~1 year hands-on shipping 9 production AI systems (2025–present) using AI-assisted development (Cursor, Claude Code) — real uptime, Oracle-first $0/month infra where applicable.
+• Rare hybrid: can translate between a CEO and a debugger; NOT a conventional "Senior AI Engineer" pedigree (no CS degree; honest about ATS limits).
+• Right fit: founders, founding AI hire (pre-seed), fractional ($40–70/hr), internal AI tools / AI integration / AI ops at seed–Series B — quality conversations over volume.
+• Products: VibeJobHunter, CTO/CMO AIPA, EspaLuz stack, ALGOM, Atuona; bilingual EN/ES; users across markets — traction real but early.
 """
             
-            # Strategic goals based on post type
+            # Strategic goals based on post type (aligned with CAREER_FOCUS.md — no credential cosplay)
             goals = {
-                "open_to_work": "Attract founding engineer roles + strategic collaborations. Show founder mindset, not job seeker. Emphasize Ex-CEO background + AI Co-Founder concept. POWERFUL tone, full dignity.",
-                "technical_showcase": "Demonstrate technical depth - 5 AIPAs running autonomously. Show AI Co-Founder concept in action. Position as builder who ships fast.",
-                "transformation_story": "CEO → Founder journey. Emphasize urgency + AI-assisted vibe coding. Show AI Co-Founders enable solo building at team speed.",
-                "seeking_funding": "Pitch AIdeazz pre-seed ($100K-500K). Emphasize AI Co-Founder differentiation, not just AI tools. Show traction: 9 products, users in 19 countries.",
-                "vibe_coding_philosophy": "DEEPLY PERSONAL & PHILOSOPHICAL post about life transformation through vibe coding. Tell the REAL story: 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments. Ex-CEO who never coded had to rebuild life from scratch. Each AIdeazz product solves a REAL problem in Elena's journey: EspaLuz (learning Spanish to integrate), VibeJobHunter (finding serious role, not spam), CTO/CMO AIPA (no team so built AI co-founders), ALGOM (teaching safe crypto after scam era), Atuona (poetry as therapy during transformation). This is SURVIVAL STRATEGY not shortcuts. Be radically transparent: AI sends applications but it's Elena's code, strategy, judgment, scoring algorithms, prompts. NOT here to scam with AI hallucinations or ship foolish products. Wants: serious role, real compensation, real team. 11 products in 10 months solo <$15K proves the skills. The AI is the vehicle, Elena is the architect.",
-                "filosofia_vibe_coding": "POST PROFUNDAMENTE PERSONAL Y FILOSÓFICO sobre transformación de vida a través de vibe coding. Contar la historia REAL: reubicación 2022 a Panamá con 0 español, 0 equipo, 0 inversiones. Ex-CEO que nunca programó tuvo que reconstruir vida desde cero. Cada producto de AIdeazz resuelve un problema REAL: EspaLuz (aprender español para integrarse), VibeJobHunter (encontrar rol serio, no spam), CTO/CMO AIPA (sin equipo, construyó co-fundadores IA), ALGOM (enseñar cripto seguro después de era de estafas), Atuona (poesía como terapia). Es ESTRATEGIA DE SUPERVIVENCIA no atajos. Ser radicalmente transparente: IA envía aplicaciones pero es código, estrategia, juicio, algoritmos de Elena. NO estafar con alucinaciones de IA. Quiere: rol serio, compensación real, equipo real. 11 productos en 10 meses sola <$15K demuestra las habilidades."
+                "open_to_work": "Attract FOUNDER-LED conversations: fractional AI builder, founding AI hire (pre-seed), internal tools / AI integration roles. Lead with executive+builder hybrid honesty. Explicitly AVOID positioning as Senior/Staff/Principal AI Engineer or FAANG-style seniority. Mention narrow path (CAREER_FOCUS): ATS is a poor channel for this profile; founders who need ship+communicate are the fit. Dignified, precise, zero panic.",
+                "technical_showcase": "Demonstrate PRODUCTION DISCIPLINE: multi-agent orchestration, webhooks→Oracle, multi-model routing (cost/criticality), eval harness (131 tests), resilience patterns — not a buzzword soup. Honest stack: Python/TS, systemd/PM2 on Oracle, etc. Tie each claim to something shippable. No 'I am a principal architect' framing.",
+                "transformation_story": "Two-phase TRUE story: executive layer (2011–2018) then rebuild into applied AI builder (~2025–present). Acknowledge 2018–2025 conventional-tech gap without apology theater. Panama context as geography, not melodrama. What the rebuild taught about leverage, shame vs rigor, and choosing channels that read the hybrid profile.",
+                "seeking_funding": "Write as a **technical founder memo in public**: pre-seed range $100K–500K as structural fact only. Lead with operating + engineering credibility (board programs history + production AI systems, Oracle, evals, documented marketing engine). Frame capital as **selective partnership** on thesis fit—invite **diligence and sharp questions**, never pleading or FOMO. No sympathy hooks, no 'support my dream', no inflated metrics. Tone: calm, precise, professionally dignified.",
+                "vibe_coding_philosophy": "DEEPLY PERSONAL & PHILOSOPHICAL post about life transformation through vibe coding. Tell the REAL story: 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments. Ex-CEO who never coded had to rebuild life from scratch. Each AIdeazz product solves a REAL problem in Elena's journey: EspaLuz (learning Spanish to integrate), VibeJobHunter (finding serious role, not spam), CTO/CMO AIPA (no team so built AI co-founders), ALGOM (teaching safe crypto after scam era), Atuona (poetry as therapy during transformation). This is SURVIVAL STRATEGY not shortcuts. Be radically transparent: AI sends applications but it's Elena's code, strategy, judgment, scoring algorithms, prompts. NOT here to scam with AI hallucinations or ship foolish products. Align 'what I want' with CAREER_FOCUS: right founder role / fractional / founding AI hire — not generic prestige titles.",
+                "filosofia_vibe_coding": "POST PROFUNDAMENTE PERSONAL Y FILOSÓFICO sobre transformación de vida a través de vibe coding. Contar la historia REAL: reubicación 2022 a Panamá con 0 español, 0 equipo, 0 inversiones. Ex-CEO que nunca programó tuvo que reconstruir vida desde cero. Cada producto de AIdeazz resuelve un problema REAL: EspaLuz (aprender español para integrarse), VibeJobHunter (encontrar rol serio, no spam), CTO/CMO AIPA (sin equipo, construyó co-fundadores IA), ALGOM (enseñar cripto seguro después de era de estafas), Atuona (poesía como terapia). Es ESTRATEGIA DE SUPERVIVENCIA no atajos. Ser radicalmente transparente: IA envía aplicaciones pero es código, estrategia, juicio, algoritmos de Elena. Alinear lo que busca con CAREER_FOCUS: fundadores, fractional, primer AI hire — no títulos 'Senior' genéricos."
             }
             
             prompt = f"""You are LinkedIn CMO, an AI Co-Founder (not just an assistant) for AIdeazz.
@@ -719,13 +656,13 @@ TASK: Generate a {language.upper()} LinkedIn post for: {post_type}
 GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities')}
 
 REQUIREMENTS:
-- Powerful, confident tone (founder, NOT job seeker)
-- Mention AI Co-Founders concept (building WITH AI, not just using tools)
-- Include specific numbers: 9 AI products (5 AIPAs + 4 AI Products), <$15K budget, 19+ countries
-- Emphasize EMOTIONAL INTELLIGENCE in AI (not just functionality)
-- Bilingual architecture emphasis (EN/ES)
-- Ex-CEO/CLO background = business + technical strategic thinking
-- Key positioning: "Emotionally Intelligent AI" (AIdeazz differentiator)
+- Tone: confident builder + executive judgment — NOT needy job seeker, NOT generic AI influencer cadence.
+- Align with docs/CAREER_FOCUS.md: executive-turned-AI-builder; narrow honest targeting; do NOT sell 'Senior/Staff AI Engineer' fantasy.
+- If post_type is seeking_funding: **capital thesis only**—professional dignity, tech and operating depth first; **no begging**, no FOMO, no "please support"; invite **diligence**, not a crowd.
+- Mention building WITH AI (Cursor, Claude) as deliberate practice where relevant — not as a substitute for owning architecture decisions.
+- Use realistic portfolio numbers when cited (9 production systems / agents, bilingual EN/ES, early traction) — no vanity metrics you cannot defend in diligence.
+- If product links appear, keep them substantive (aideazz, EspaLuz, portfolio card) — not link-stuffing.
+- Bilingual architecture emphasis only when it serves the argument.
 - Links with descriptions:
   * wa.me/50766623757 - EspaLuz WhatsApp AIPA (bilingual coach for expats)
   * t.me/EspaLuzFamily_bot - EspaLuz Telegram AIPA (on-the-go learning)
@@ -878,7 +815,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
         if post_type == "random":
             available_types = list(self.LINKEDIN_POSTS_EN.keys() if language == "en" else self.LINKEDIN_POSTS_ES.keys())
             # Marketing-engine posts only on alternate UTC days (see post_to_linkedin); never from random pool here
-            available_types = [t for t in available_types if t != "marketing_engine_geo_seo"]
+            available_types = [t for t in available_types if not t.startswith("marketing_engine_")]
             post_type = random.choice(available_types)
             logger.info(f"📝 Selected post type: {post_type} (from {len(available_types)} available)")
             
@@ -886,8 +823,8 @@ Generate FRESH, creative content (not templates). Think strategically about what
             if post_type in ["vibe_coding_philosophy", "filosofia_vibe_coding"]:
                 logger.info(f"🔖 [FINGERPRINT: VIBE_CODING_PHILOSOPHY_SELECTED] → {post_type}")
                 logger.info(f"🧠 Generating life transformation story content...")
-            elif post_type == "marketing_engine_geo_seo":
-                logger.info("📐 Selected template: GEO+SEO marketing engine (roadmap-aligned, no LLM)")
+            elif post_type.startswith("marketing_engine_"):
+                logger.info(f"📐 Marketing-engine template (no LLM): {post_type}")
         
         # Try AI Co-Founder generation first (if enabled)
         ai_content = None
@@ -1145,36 +1082,35 @@ Current date: {current_date.strftime('%Y-%m-%d')}
 Recent posts: {len(recent_posts)} tracked
 Current focus: {self.strategy_data.get('current_focus', 'balanced')}
 
-Elena's current priorities:
-1. Get hired at AI startup (URGENT - relocated to Panama, need income)
-2. Raise pre-seed for AIdeazz ($100K-500K)
-3. Build founder brand
+Single source of truth: docs/CAREER_FOCUS.md (Honest Roadmap v4, April 2026).
 
-Recent LinkedIn activity context:
-- Job market: AI roles competitive but available
-- Fundraising: Pre-seed market tight but AIdeazz has traction
-- Brand building: Daily posting establishing thought leadership
+Elena's real positioning (do NOT contradict):
+- Executive-turned-AI-builder: 7+ years board-level digital programs (2011–2018) + ~1 year shipping production AI systems (2025–present) with AI-assisted workflows (Cursor, Claude).
+- The fit is NARROW: founders, pre-seed founding AI hire, fractional ($40–70/hr), internal AI tools / AI integration / AI ops at seed–Series B — NOT "Senior/Staff AI Engineer" ATS pipelines.
+- Honest constraints: no CS pedigree, 2018–2025 gap in conventional tech roles, AI-assisted development is explicit strength for some buyers and a filter for others.
+- Priorities: right founder conversations + fractional proof + selective full-time ($2.5K–4.5K/mo realistic band per doc) — NOT panic framing.
+- AIdeazz: pre-seed ($100K–500K) is a **parallel capital thesis** — traction early/small; never inflate revenue. Fundraising voice = **institutional dignity**: thesis, execution record, selective fit — never needy, never “please invest.”
+
+LinkedIn CMO narrative (corrected):
+- Lead with hybrid rareness (executive who ships production AI), production systems + eval discipline, $0/month Oracle infra story.
+- Avoid generic "AI architect" hype and credential contests.
+
+TASK: Decide content strategy for this week.
+
+Should Elena focus more on:
+A) "hiring" — open_to_work + technical_showcase + transformation_story (founder-led / fractional / founding-AI-hire angle only)
+B) "fundraising" — seeking_funding (dignified **capital thesis** post: craft, diligence welcome, counterparties not crowds — zero solicitation tone)
+C) "balanced" — mix of A and B
+
+Respond with ONE WORD only on the first line: hiring, fundraising, or balanced
+
+Second line: one sentence WHY (grounded in CAREER_FOCUS).
 """
             
             prompt = f"""You are LinkedIn CMO, an AI Co-Founder making strategic decisions.
 
 {context}
-
-TASK: Decide content strategy for this week.
-
-Should Elena focus more on:
-A) "hiring" - More open_to_work + technical_showcase posts (attract recruiters/founders)
-B) "fundraising" - More seeking_funding posts (attract investors)
-C) "balanced" - Mix of both
-
-Consider:
-- Urgency (she needs income NOW - just relocated)
-- Traction (9 products built, 5 AIPAs live)
-- Market timing (end of year, budget planning season)
-
-Respond with ONE WORD: hiring, fundraising, or balanced
-
-Then on new line, explain WHY in 1 sentence."""
+"""
 
             response = await client.messages.create(
                 model="claude-sonnet-4-20250514",  # Current production model
@@ -1280,11 +1216,11 @@ Be specific and actionable."""
         """
         logger.info("🎯 LinkedIn CMO: Starting post workflow...")
 
-        # Alternate days (UTC): AIdeazz narrative vs marketing-engine roadmap—one post/day unchanged
+        # Alternate days (UTC): AIdeazz narrative vs marketing-engine variants—one post/day unchanged
         if post_type == "random" and self._utc_today_is_marketing_engine_lane():
-            post_type = "marketing_engine_geo_seo"
+            post_type = random.choice(MARKETING_LANE_POST_TYPES)
             logger.info(
-                "📅 Lane (UTC): marketing engine (GEO+SEO)—next UTC day uses the usual AIdeazz pool"
+                f"📅 Lane (UTC): marketing engine — variant {post_type} (next UTC day: AIdeazz pool)"
             )
         elif post_type == "random":
             logger.info("📅 Lane (UTC): AIdeazz narrative pool (marketing-engine template excluded)")
