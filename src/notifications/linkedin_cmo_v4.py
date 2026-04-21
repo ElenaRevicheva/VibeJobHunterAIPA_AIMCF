@@ -81,6 +81,48 @@ AIdeazz "AI Marketing Engine" (public roadmap): AIPA_AITCF docs/oracle/AIDEAZZ_A
 PORTFOLIO_URL = "https://aideazz.xyz/portfolio"
 
 
+def _bytes_look_like_image(data: bytes) -> bool:
+    """True if the first bytes match a common raster format (Buffer rejects HTML/404 bodies)."""
+    if not data or len(data) < 12:
+        return False
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    if data.startswith(b"\xff\xd8\xff"):
+        return True
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return True
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return True
+    return False
+
+
+def _probe_image_url_downloads_like_buffer(url: str, timeout: float = 12.0) -> bool:
+    """GET first chunk; verify status, Content-Type, and magic bytes (same URL we send to Make)."""
+    try:
+        r = requests.get(
+            url,
+            timeout=timeout,
+            stream=True,
+            headers={"User-Agent": "AIdeazz-LinkedInCMO/1.0 (image preflight)"},
+        )
+        if r.status_code != 200:
+            logger.warning(f"🎨 Image probe HTTP {r.status_code}: {url}")
+            return False
+        ct = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if not ct.startswith("image/"):
+            logger.warning(f"🎨 Image probe bad Content-Type {ct!r}: {url}")
+            return False
+        chunk = next(r.iter_content(8192), b"")
+        r.close()
+        if not _bytes_look_like_image(chunk):
+            logger.warning(f"🎨 Image probe: body does not look like image bytes: {url}")
+            return False
+        return True
+    except Exception as e:
+        logger.warning(f"🎨 Image probe exception for {url}: {e}")
+        return False
+
+
 def _linkedin_finalize_post_body(body: str, language: str) -> str:
     """
     LinkedIn does not render **bold**; it shows asterisks. Strip markdown debris and
@@ -977,26 +1019,50 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
             f"{github_base}/marketing_engine_workflow_1.png",
         ]
         
-        # Track last used image to avoid repetition
+        # Track last used image to avoid repetition (only after a URL passes Buffer-safe probe)
         last_image_file = self.data_dir / "last_used_image.txt"
         try:
-            with open(last_image_file, "r") as f:
+            with open(last_image_file, "r", encoding="utf-8") as f:
                 last_used = f.read().strip()
         except FileNotFoundError:
             last_used = None
         
-        # Select from images NOT used last time
         available_images = [img for img in all_images if img != last_used]
-        if not available_images:  # Safety fallback
-            available_images = all_images
-        
-        selected_image = random.choice(available_images)
-        
-        # Save for next run
-        with open(last_image_file, "w") as f:
-            f.write(selected_image)
-        
-        logger.info(f"🎨 Selected image: {selected_image.split('/')[-1]} (last: {last_used.split('/')[-1] if last_used else 'none'})")
+        if not available_images:
+            available_images = list(all_images)
+
+        order = available_images[:]
+        random.shuffle(order)
+        selected_image = ""
+        for candidate in order:
+            if _probe_image_url_downloads_like_buffer(candidate):
+                selected_image = candidate
+                break
+        if not selected_image:
+            logger.error(
+                "🎨 No asset passed image probe; retrying full pool (GitHub raw may have been transient)"
+            )
+            for candidate in all_images:
+                if _probe_image_url_downloads_like_buffer(candidate):
+                    selected_image = candidate
+                    break
+
+        if selected_image:
+            try:
+                with open(last_image_file, "w", encoding="utf-8") as f:
+                    f.write(selected_image)
+            except OSError as e:
+                logger.warning(f"🎨 Could not save last_used_image.txt: {e}")
+        else:
+            logger.error(
+                "🎨 All image URLs failed probe — sending empty imageURL so Make/Buffer can post text-only "
+                "(fix assets or network if you require an image every time)"
+            )
+
+        logger.info(
+            f"🎨 imageURL for Make/Buffer: {selected_image or '(empty — text only)'} "
+            f"| previous: {last_used or 'none'}"
+        )
         
         try:
             payload = {
