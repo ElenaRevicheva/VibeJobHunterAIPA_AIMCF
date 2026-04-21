@@ -23,6 +23,13 @@ if str(ROOT) not in sys.path:
 
 os.chdir(ROOT)
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env")
+except Exception as e:
+    print(f"warning: could not load .env via python-dotenv: {e}", file=sys.stderr)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
