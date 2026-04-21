@@ -16,6 +16,11 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+# LinkedIn CMO: one post per **Panama calendar day** at **20:00 local** (America/Panama = UTC−5, no DST).
+PANAMA_TZ = ZoneInfo("America/Panama")
+LINKEDIN_POST_PANAMA_HOUR = 20
 
 from ..core.models import Profile, JobPosting
 from ..utils.logger import setup_logger
@@ -94,7 +99,7 @@ class AutonomousOrchestrator:
             if self.linkedin_cmo.enabled:
                 logger.info("=" * 50)
                 logger.info("✅ LinkedIn CMO INITIALIZED & ENABLED")
-                logger.info("   📅 Daily posts: 00:XX UTC (7:00 PM Panama)")
+                logger.info(f"   📅 Daily posts: {LINKEDIN_POST_PANAMA_HOUR}:00 America/Panama (UTC−5)")
                 logger.info("   🔗 Webhook: configured ✓")
                 logger.info("=" * 50)
             else:
@@ -213,13 +218,14 @@ class AutonomousOrchestrator:
         logger.info("🚀 Autonomous Orchestrator READY")
 
     # ─────────────────────────────
-    # LINKEDIN CMO SCHEDULER (FIXED - UTC TIME)
+    # LINKEDIN CMO SCHEDULER — 20:00 America/Panama (UTC−5)
     # ─────────────────────────────
     async def check_linkedin_schedule(self):
         """
-        Check if it's time for daily LinkedIn post (00:XX UTC / 7:00 PM Panama)
-        
-        IMPORTANT: Uses datetime.utcnow() for consistent UTC time on Railway servers
+        One LinkedIn/Buffer post per **Panama local calendar day**, at 20:00 (8 PM) Panama City time.
+
+        `linkedin_cmo_data/last_post_date.txt` stores an ISO **Panama** date so the window stays
+        correct when 8 PM Panama is already the next calendar day in UTC.
         """
         # Check if LinkedIn CMO is available and enabled
         if not self.linkedin_cmo:
@@ -227,42 +233,37 @@ class AutonomousOrchestrator:
             return
         
         if not self.linkedin_cmo.enabled:
-            # Log this once per hour to help diagnose missing posts
-            now_utc = datetime.utcnow()
-            if now_utc.minute == 0:  # Only log at top of each hour
+            now_pa = datetime.now(PANAMA_TZ)
+            if now_pa.minute == 0:
                 logger.warning("📣 LinkedIn CMO: DISABLED - check MAKE_WEBHOOK_URL_LINKEDIN env var")
             return
 
-        # Use UTC time explicitly for Railway/cloud servers
-        now_utc = datetime.utcnow()
-        today = now_utc.date()
+        now_pa = datetime.now(PANAMA_TZ)
+        today_pa = now_pa.date()
 
-        # Already posted today?
-        if self.last_linkedin_post_date == today:
+        if self.last_linkedin_post_date == today_pa:
             return
 
-        # Post at 15:10 UTC (10:10 AM Panama time zone, UTC-5)
-        if now_utc.hour == 15 and now_utc.minute >= 10:
-            # True language alternation: EN on even weekdays, ES on odd
-            language = "en" if now_utc.weekday() % 2 == 0 else "es"
+        # First successful check during the 8 PM Panama hour (linkedin_loop sleeps ~10m).
+        if now_pa.hour != LINKEDIN_POST_PANAMA_HOUR:
+            return
 
-            logger.info("=" * 50)
-            logger.info("📣 LINKEDIN CMO: TRIGGERING DAILY POST")
-            logger.info(f"   🕐 Time (UTC): {now_utc.strftime('%Y-%m-%d %H:%M:%S')}")
-            logger.info(f"   🌍 Language: {language.upper()}")
-            logger.info("=" * 50)
-            
-            try:
-                await self.linkedin_cmo.post_to_linkedin(
-                    post_type="random",
-                    language=language
-                )
-                self.last_linkedin_post_date = today
-                self._save_last_linkedin_post_date(today)
-                logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
-            except Exception as e:
-                logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}")
-                # Don't set last_linkedin_post_date so we retry next check
+        logger.info("=" * 50)
+        logger.info("📣 LINKEDIN CMO: TRIGGERING DAILY POST")
+        logger.info(f"   🕐 America/Panama: {now_pa.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info("   🌍 Language: random → LinkedInCMO EN↔ES alternation file")
+        logger.info("=" * 50)
+        
+        try:
+            await self.linkedin_cmo.post_to_linkedin(
+                post_type="random",
+                language="random",
+            )
+            self.last_linkedin_post_date = today_pa
+            self._save_last_linkedin_post_date(today_pa)
+            logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
+        except Exception as e:
+            logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}")
 
     # ─────────────────────────────
     # AUTONOMOUS MODE

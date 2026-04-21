@@ -5,7 +5,7 @@ FastAPI Web Server for VibeJobHunter + GA4 Dashboard
 MODE:
 - Web server (FastAPI)
 - ATS Job Hunter (hourly)
-- LinkedIn CMO posting (daily 4:30 PM Panama)
+- LinkedIn CMO posting (daily 8:00 PM America/Panama — orchestrator)
 - Telegram Bot (always-on)
 
 ALL running in ONE Railway service
@@ -284,7 +284,7 @@ def main():
             
             return {
                 "status": "success",
-                "message": "Tech update received. CMO will feature it in next daily post (4:30 PM Panama).",
+                "message": "Tech update received. CMO will feature it in next daily post (20:00 America/Panama).",
                 "update": new_update,
                 "pending_count": pending_count,
                 "fingerprint": DEPLOY_FINGERPRINT

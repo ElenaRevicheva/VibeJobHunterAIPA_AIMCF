@@ -121,7 +121,7 @@ class LinkedInCMO:
         # LinkedIn CMO initialization log
         logger.info("=" * 60)
         logger.info("🧠 AI MARKETING CO-FOUNDER v5.0")
-        logger.info("   📅 Daily posts: 4:30 PM Panama (21:30 UTC)")
+        logger.info("   📅 Daily posts: 20:00 America/Panama (orchestrator; UTC−5)")
         logger.info("   🌍 Languages: EN/ES bilingual")
         logger.info("   🔗 Portfolio: 9 products (5 AIPAs + 4 AI Products)")
         logger.info("=" * 60)
@@ -142,7 +142,7 @@ class LinkedInCMO:
         else:
             logger.info("📝 Template mode: Using pre-written content")
         
-        logger.info("🎉 LinkedIn CMO ready! Daily posts at 21:30 UTC (4:30 PM Panama)")
+        logger.info("🎉 LinkedIn CMO ready! Daily post time: 20:00 America/Panama (see orchestrator)")
         
         # Initialize performance tracking database
         self.data_dir = Path("linkedin_cmo_data")
@@ -188,7 +188,7 @@ class LinkedInCMO:
         Alternate calendar days (UTC): one day = AIdeazz narrative pool only;
         the next = fixed marketing_engine_geo_seo post. Same single daily slot—no extra volume.
 
-        Uses UTC date so the lane matches the 21:30 UTC cron regardless of server local TZ.
+        Uses UTC calendar date for lane; orchestrator fires posts at 20:00 America/Panama.
         Odd proleptic Gregorian ordinal → marketing lane (random variant from
         MARKETING_LANE_POST_TYPES); even → AIdeazz lane.
         """

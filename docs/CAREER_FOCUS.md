@@ -345,7 +345,7 @@ Applications:        3–5/day (capped for quality)
 | Email Service | ✅ **Working + retry** | Resend API via `aipa@aideazz.xyz`. Claude calls have 3x retry with exponential backoff (shared `claude_helper.py`). |
 | ATS Form Submission | ✅ Working | Playwright + Greenhouse email verification |
 | Daily Caps | ✅ Enforced | 5/day applications, 2/day founder outreach |
-| LinkedIn CMO | ✅ Live | Daily posts at 21:30 UTC — narrative needs updating |
+| LinkedIn CMO | ✅ Live | Daily posts **20:00 America/Panama** (orchestrator); narrative updated Apr 2026 |
 | Telegram Bot | ✅ Live | Real-time notifications + commands |
 | **Claude Resilience** | ✅ **NEW (Apr 10)** | `claude_helper.py` — `call_claude_sync`, `call_claude_async`, `acall_claude` with retry on 529/503/429. Wired into `message_generator.py`, `auto_applicator.py`, `company_researcher.py`, `job_matcher.py`. |
 | **Eval Harness** | ✅ **DONE** | 131 tests, 4 layers, all green. |
