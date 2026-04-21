@@ -58,12 +58,24 @@ NEW_CONTENT_TYPES = [
     "marketing_engine_outreach_triage",
 ]
 
-# On marketing-lane UTC days only: pick one variant (all template-only, roadmap-aligned)
+# On marketing-lane UTC days only: pick one variant (AI-authored from engine facts + roadmap)
 MARKETING_LANE_POST_TYPES = (
     "marketing_engine_geo_seo",
     "marketing_engine_content_attribution",
     "marketing_engine_outreach_triage",
 )
+
+# Ground-truth facts for prompts (paraphrase in voice; do not invent metrics beyond this)
+MARKETING_ENGINE_FACTS = """
+AIdeazz "AI Marketing Engine" (public roadmap): AIPA_AITCF docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+— Core thesis: pair human craft with machine legibility—structured data, honest crawl paths, attribution, and disciplined outreach—not hype or "guaranteed AI citations."
+— GEO (generative engine optimization): treat answers-in-chat as a *distribution surface* that still rewards clarity, sourcing, and quotable specifics; refuse snake-oil ranking promises.
+— SEO remains relevant as durable discovery; the engine emphasizes schema/entity consistency and pages humans would still respect if LLMs vanished tomorrow.
+— Content & attribution lane: provenance, quotes, first-party evidence, and measurement loops so teams know what actually moved a conversation (not vanity dashboards alone).
+— Outreach / triage lane: respect inbox economics—qualify, summarize, route; protect good inbound from dying in noise (sales-ops hygiene, not spray-and-pray).
+— Infra posture: Oracle-first / low fixed-cost ops where applicable; production discipline (webhooks, evals, resilience) over slide-deck storytelling.
+— Elena positioning: executive judgment + hands-on shipping (CAREER_FOCUS.md)—marketing posts should sound like a co-founder explaining a thesis, not an influencer cadence.
+""".strip()
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🎯" * 40)
@@ -72,7 +84,7 @@ logger.info(f"📦 BUILD: {BUILD_TIMESTAMP} | COMMIT: {GIT_COMMIT_HASH}")
 logger.info(f"🔖 [FINGERPRINT: 2025-12-21_VIBE_CODING_PHILOSOPHY_DEPLOYED]")
 logger.info(f"🆕 NEW POST TYPES: {NEW_CONTENT_TYPES}")
 logger.info(f"🌍 LANGUAGE: True EN↔ES alternation (not random)")
-logger.info(f"📅 LANE: Alternate UTC days — AIdeazz pool vs 3 marketing-engine variants (same 1 post/day)")
+logger.info(f"📅 LANE: Alternate UTC days — AIdeazz pool vs 3 marketing-engine variants (AI + engine facts; same 1 post/day)")
 logger.info(f"🖼️ IMAGES: 18 assets with anti-repeat rotation (14 portfolio + 4 marketing-engine diagrams)")
 logger.info(f"🧠 THIS IS TRUE AI MARKETING CO-FOUNDER!")
 logger.info("🎯" * 40)
@@ -186,7 +198,7 @@ class LinkedInCMO:
     def _utc_today_is_marketing_engine_lane(now: Optional[datetime] = None) -> bool:
         """
         Alternate calendar days (UTC): one day = AIdeazz narrative pool only;
-        the next = fixed marketing_engine_geo_seo post. Same single daily slot—no extra volume.
+        the next = marketing-engine lane (AI + roadmap facts; template only if API fails). Same single daily slot.
 
         Uses UTC calendar date for lane; orchestrator fires posts at 20:00 America/Panama.
         Odd proleptic Gregorian ordinal → marketing lane (random variant from
@@ -617,15 +629,10 @@ Roadmap: https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDE
             # Fallback to templates if no API key (AIPA mode)
             return None
 
-        # Template-only: all marketing_engine_* posts (avoid LLM drift into hype)
-        if post_type.startswith("marketing_engine_"):
-            return None
-        
-        try:
-            client = AsyncAnthropic(api_key=self.anthropic_api_key)
-            
-            # Elena's profile context
-            profile_context = """
+        is_marketing_lane = post_type.startswith("marketing_engine_")
+
+        # Elena's profile context
+        profile_context = """
 Elena Revicheva — executive-turned-AI-builder (see docs/CAREER_FOCUS.md Honest Roadmap v4).
 • Phase 1: 7+ years Deputy CEO / CLO — board-level digital infrastructure programs (Russia, 2011–2018).
 • Phase 2: ~1 year hands-on shipping 9 production AI systems (2025–present) using AI-assisted development (Cursor, Claude Code) — real uptime, Oracle-first $0/month infra where applicable.
@@ -633,69 +640,92 @@ Elena Revicheva — executive-turned-AI-builder (see docs/CAREER_FOCUS.md Honest
 • Right fit: founders, founding AI hire (pre-seed), fractional ($40–70/hr), internal AI tools / AI integration / AI ops at seed–Series B — quality conversations over volume.
 • Products: VibeJobHunter, CTO/CMO AIPA, EspaLuz stack, ALGOM, Atuona; bilingual EN/ES; users across markets — traction real but early.
 """
-            
-            # Strategic goals based on post type (aligned with CAREER_FOCUS.md — no credential cosplay)
-            goals = {
-                "open_to_work": "Attract FOUNDER-LED conversations: fractional AI builder, founding AI hire (pre-seed), internal tools / AI integration roles. Lead with executive+builder hybrid honesty. Explicitly AVOID positioning as Senior/Staff/Principal AI Engineer or FAANG-style seniority. Mention narrow path (CAREER_FOCUS): ATS is a poor channel for this profile; founders who need ship+communicate are the fit. Dignified, precise, zero panic.",
-                "technical_showcase": "Demonstrate PRODUCTION DISCIPLINE: multi-agent orchestration, webhooks→Oracle, multi-model routing (cost/criticality), eval harness (131 tests), resilience patterns — not a buzzword soup. Honest stack: Python/TS, systemd/PM2 on Oracle, etc. Tie each claim to something shippable. No 'I am a principal architect' framing.",
-                "transformation_story": "Two-phase TRUE story: executive layer (2011–2018) then rebuild into applied AI builder (~2025–present). Acknowledge 2018–2025 conventional-tech gap without apology theater. Panama context as geography, not melodrama. What the rebuild taught about leverage, shame vs rigor, and choosing channels that read the hybrid profile.",
-                "seeking_funding": "Write as a **technical founder memo in public**: pre-seed range $100K–500K as structural fact only. Lead with operating + engineering credibility (board programs history + production AI systems, Oracle, evals, documented marketing engine). Frame capital as **selective partnership** on thesis fit—invite **diligence and sharp questions**, never pleading or FOMO. No sympathy hooks, no 'support my dream', no inflated metrics. Tone: calm, precise, professionally dignified.",
-                "vibe_coding_philosophy": "DEEPLY PERSONAL & PHILOSOPHICAL post about life transformation through vibe coding. Tell the REAL story: 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments. Ex-CEO who never coded had to rebuild life from scratch. Each AIdeazz product solves a REAL problem in Elena's journey: EspaLuz (learning Spanish to integrate), VibeJobHunter (finding serious role, not spam), CTO/CMO AIPA (no team so built AI co-founders), ALGOM (teaching safe crypto after scam era), Atuona (poetry as therapy during transformation). This is SURVIVAL STRATEGY not shortcuts. Be radically transparent: AI sends applications but it's Elena's code, strategy, judgment, scoring algorithms, prompts. NOT here to scam with AI hallucinations or ship foolish products. Align 'what I want' with CAREER_FOCUS: right founder role / fractional / founding AI hire — not generic prestige titles.",
-                "filosofia_vibe_coding": "POST PROFUNDAMENTE PERSONAL Y FILOSÓFICO sobre transformación de vida a través de vibe coding. Contar la historia REAL: reubicación 2022 a Panamá con 0 español, 0 equipo, 0 inversiones. Ex-CEO que nunca programó tuvo que reconstruir vida desde cero. Cada producto de AIdeazz resuelve un problema REAL: EspaLuz (aprender español para integrarse), VibeJobHunter (encontrar rol serio, no spam), CTO/CMO AIPA (sin equipo, construyó co-fundadores IA), ALGOM (enseñar cripto seguro después de era de estafas), Atuona (poesía como terapia). Es ESTRATEGIA DE SUPERVIVENCIA no atajos. Ser radicalmente transparente: IA envía aplicaciones pero es código, estrategia, juicio, algoritmos de Elena. Alinear lo que busca con CAREER_FOCUS: fundadores, fractional, primer AI hire — no títulos 'Senior' genéricos."
-            }
-            
-            prompt = f"""You are LinkedIn CMO, an AI Co-Founder (not just an assistant) for AIdeazz.
+
+        marketing_facts_block = ""
+        if is_marketing_lane:
+            marketing_facts_block = f"""
+
+MARKETING ENGINE — GROUND TRUTH (use as substance; paraphrase in your own voice; do not invent metrics beyond this):
+{MARKETING_ENGINE_FACTS}
+
+Public roadmap URL (include once if natural): https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDEAZZ_AI_MARKETING_ENGINE_FULL_ROADMAP.md
+"""
+
+        # Strategic goals based on post type (aligned with CAREER_FOCUS.md — no credential cosplay)
+        goals = {
+            "open_to_work": "Attract FOUNDER-LED conversations: fractional AI builder, founding AI hire (pre-seed), internal tools / AI integration roles. Lead with executive+builder hybrid honesty. Explicitly AVOID positioning as Senior/Staff/Principal AI Engineer or FAANG-style seniority. Mention narrow path (CAREER_FOCUS): ATS is a poor channel for this profile; founders who need ship+communicate are the fit. Dignified, precise, zero panic.",
+            "technical_showcase": "Demonstrate PRODUCTION DISCIPLINE: multi-agent orchestration, webhooks→Oracle, multi-model routing (cost/criticality), eval harness (131 tests), resilience patterns — not a buzzword soup. Honest stack: Python/TS, systemd/PM2 on Oracle, etc. Tie each claim to something shippable. No 'I am a principal architect' framing.",
+            "transformation_story": "Two-phase TRUE story: executive layer (2011–2018) then rebuild into applied AI builder (~2025–present). Acknowledge 2018–2025 conventional-tech gap without apology theater. Panama context as geography, not melodrama. What the rebuild taught about leverage, shame vs rigor, and choosing channels that read the hybrid profile.",
+            "seeking_funding": "Write as a **technical founder memo in public**: pre-seed range $100K–500K as structural fact only. Lead with operating + engineering credibility (board programs history + production AI systems, Oracle, evals, documented marketing engine). Frame capital as **selective partnership** on thesis fit—invite **diligence and sharp questions**, never pleading or FOMO. No sympathy hooks, no 'support my dream', no inflated metrics. Tone: calm, precise, professionally dignified.",
+            "vibe_coding_philosophy": "DEEPLY PERSONAL & PHILOSOPHICAL post about life transformation through vibe coding. Tell the REAL story: 2022 relocation to Panama with 0 Spanish, 0 team, 0 investments. Ex-CEO who never coded had to rebuild life from scratch. Each AIdeazz product solves a REAL problem in Elena's journey: EspaLuz (learning Spanish to integrate), VibeJobHunter (finding serious role, not spam), CTO/CMO AIPA (no team so built AI co-founders), ALGOM (teaching safe crypto after scam era), Atuona (poetry as therapy during transformation). This is SURVIVAL STRATEGY not shortcuts. Be radically transparent: AI sends applications but it's Elena's code, strategy, judgment, scoring algorithms, prompts. NOT here to scam with AI hallucinations or ship foolish products. Align 'what I want' with CAREER_FOCUS: right founder role / fractional / founding AI hire — not generic prestige titles.",
+            "filosofia_vibe_coding": "POST PROFUNDAMENTE PERSONAL Y FILOSÓFICO sobre transformación de vida a través de vibe coding. Contar la historia REAL: reubicación 2022 a Panamá con 0 español, 0 equipo, 0 inversiones. Ex-CEO que nunca programó tuvo que reconstruir vida desde cero. Cada producto de AIdeazz resuelve un problema REAL: EspaLuz (aprender español para integrarse), VibeJobHunter (encontrar rol serio, no spam), CTO/CMO AIPA (sin equipo, construyó co-fundadores IA), ALGOM (enseñar cripto seguro después de era de estafas), Atuona (poesía como terapia). Es ESTRATEGIA DE SUPERVIVENCIA no atajos. Ser radicalmente transparente: IA envía aplicaciones pero es código, estrategia, juicio, algoritmos de Elena. Alinear lo que busca con CAREER_FOCUS: fundadores, fractional, primer AI hire — no títulos 'Senior' genéricos.",
+            "marketing_engine_geo_seo": "Essay-level post: **GEO + SEO** as ethics of machine legibility and durable discovery—not growth hacks or 'guaranteed citations.' Ground every claim in MARKETING ENGINE facts above. Acknowledge reader fatigue from AI spam; show **emotional intelligence** (empathy, restraint, moral seriousness) while staying technically concrete (schema, crawl paths, sourcing, what still works if chat UIs change). Explicitly refuse snake-oil. Sound like a **marketing co-founder** explaining a thesis, not a template.",
+            "marketing_engine_content_attribution": "Essay-level post: **content ops + attribution**—provenance, first-party evidence, measurement that answers 'what actually moved the conversation' vs vanity dashboards. Use engine facts; tie to production discipline (evals, logging, honest metrics). Emotional intelligence: respect the team's time and shame around 'marketing didn't work'—offer a rigorous, kind framing.",
+            "marketing_engine_outreach_triage": "Essay-level post: **outbound + lead triage** as inbox economics and sales hygiene—qualify, summarize, route; protect good signal from noise (not spray-and-pray). Ground in engine facts (Oracle tables, volume limits, fallbacks). Emotional intelligence: seriousness about consent, boundaries, and operator dignity.",
+        }
+
+        word_band = "280-420 words" if is_marketing_lane else "260-380 words"
+        max_tokens = 1100 if is_marketing_lane else 900
+
+        prompt = f"""You are LinkedIn CMO: an AI **marketing co-founder** for AIdeazz (not a template bot).
 
 CONTEXT:
 {profile_context}
+{marketing_facts_block}
 
-YOUR ROLE: Strategic AI partner who thinks about business goals, generates creative content, and builds founder brand.
+YOUR ROLE: Strategic partner—sharp on tech, grown-up on tone, emotionally intelligent. You use the marketing engine **at depth** (roadmap, infra, ethics of distribution), not LinkedIn influencer cadence.
 
-TASK: Generate a {language.upper()} LinkedIn post for: {post_type}
+TASK: Generate a {language.upper()} LinkedIn post for post_type `{post_type}`.
 
-GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities')}
+GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities with technical depth and emotional intelligence.')}
 
 REQUIREMENTS:
-- Tone: confident builder + executive judgment — NOT needy job seeker, NOT generic AI influencer cadence.
-- Align with docs/CAREER_FOCUS.md: executive-turned-AI-builder; narrow honest targeting; do NOT sell 'Senior/Staff AI Engineer' fantasy.
-- If post_type is seeking_funding: **capital thesis only**—professional dignity, tech and operating depth first; **no begging**, no FOMO, no "please support"; invite **diligence**, not a crowd.
-- Mention building WITH AI (Cursor, Claude) as deliberate practice where relevant — not as a substitute for owning architecture decisions.
-- Use realistic portfolio numbers when cited (9 production systems / agents, bilingual EN/ES, early traction) — no vanity metrics you cannot defend in diligence.
-- If product links appear, keep them substantive (aideazz, EspaLuz, portfolio card) — not link-stuffing.
-- Bilingual architecture emphasis only when it serves the argument.
-- Links with descriptions:
-  * wa.me/50766623757 - EspaLuz WhatsApp AIPA (bilingual coach for expats)
-  * t.me/EspaLuzFamily_bot - EspaLuz Telegram AIPA (on-the-go learning)
-  * x.com/reviceva - ALGOM Alpha (Post-Scammer Era Crypto Coach)
+- **Profound + tech-savvy**: name real primitives where relevant (webhooks, Oracle, eval harness, model routing, schema)—never vague 'AI-powered' filler.
+- **Emotional intelligence**: empathy and specificity without performative vulnerability; respect the reader's skepticism.
+- **Anti-template**: no numbered '3 lessons', no 'hot take' bait, no hollow motivation. Vary structure; let one clear thesis carry the post.
+- Tone: confident builder + executive judgment — NOT needy job seeker, NOT generic influencer voice.
+- Align with docs/CAREER_FOCUS.md where personal arc applies; do NOT sell 'Senior/Staff AI Engineer' fantasy.
+- If post_type is seeking_funding: **capital thesis only**—dignity, depth first; no begging, no FOMO; invite diligence.
+- If this is a marketing_engine_* post: **no hype**—no guaranteed rankings, no miracle GEO claims; refuse snake-oil explicitly.
+- Mention building WITH AI (Cursor, Claude) only where it serves honesty about how the stack is built—not as substitute for judgment.
+- Use realistic portfolio numbers when cited (9 production systems / agents, bilingual EN/ES, early traction)—nothing you could not defend in diligence.
+- Product links only when substantive (not stuffing):
+  * wa.me/50766623757 - EspaLuz WhatsApp AIPA
+  * t.me/EspaLuzFamily_bot - EspaLuz Telegram AIPA
+  * x.com/reviceva - ALGOM Alpha
   * t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
-  * linkedin.com/in/elenarevicheva - AI Marketing Co-Founder posting
-  * espaluz-ai-language-tutor.lovable.app - Family's First Emotionally Intelligent AI Language Coach
-  * aideazz.xyz - Emotionally Intelligent AI Assistants Showroom
-  * aideazz.xyz/card - Founder's Portfolio
-  * atuona.xyz - Underground Russian Poetry NFT Gallery
+  * linkedin.com/in/elenarevicheva
+  * espaluz-ai-language-tutor.lovable.app - EspaLuz app
+  * aideazz.xyz - AIdeazz showroom
+  * aideazz.xyz/card - Portfolio card
+  * atuona.xyz - Atuona
 - Language: {'English' if language == 'en' else 'Spanish'}
-- Length: 250-350 words
+- Length: {word_band}
 - End with relevant hashtags (4-6)
 
-Generate FRESH, creative content (not templates). Think strategically about what will resonate."""
+Write **fresh** prose each time—same facts allowed, different angle and cadence."""
 
-            response = await client.messages.create(
-                model="claude-sonnet-4-20250514",  # Current production model
-                max_tokens=800,
-                temperature=0.8,  # Creative but not random
-                messages=[{
-                    "role": "user",
-                    "content": prompt
-                }]
-            )
-            
-            content = response.content[0].text.strip()
-            logger.info(f"🧠 AI Co-Founder generated FRESH {language.upper()} content ({len(content)} chars)")
-            return content
-            
-        except Exception as e:
-            logger.error(f"AI Co-Founder generation failed: {e}")
-            return None  # Fall back to templates
+        client = AsyncAnthropic(api_key=self.anthropic_api_key)
+        last_err: Optional[Exception] = None
+        for attempt in range(1, 3):
+            try:
+                response = await client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=max_tokens,
+                    temperature=0.78,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                content = response.content[0].text.strip()
+                logger.info(
+                    f"🧠 AI Co-Founder generated {language.upper()} content ({len(content)} chars, attempt {attempt})"
+                )
+                return content
+            except Exception as e:
+                last_err = e
+                logger.warning(f"AI Co-Founder generation attempt {attempt}/2 failed: {e}")
+
+        logger.error(f"AI Co-Founder generation failed after retries: {last_err}")
+        return None  # Caller falls back to templates so the daily post still ships
     
     async def generate_linkedin_post(self, post_type: str = "random", language: str = "random") -> Dict[str, str]:
         """
@@ -824,7 +854,7 @@ Generate FRESH, creative content (not templates). Think strategically about what
                 logger.info(f"🔖 [FINGERPRINT: VIBE_CODING_PHILOSOPHY_SELECTED] → {post_type}")
                 logger.info(f"🧠 Generating life transformation story content...")
             elif post_type.startswith("marketing_engine_"):
-                logger.info(f"📐 Marketing-engine template (no LLM): {post_type}")
+                logger.info(f"📐 Marketing-engine lane (AI + roadmap facts; template only if API fails): {post_type}")
         
         # Try AI Co-Founder generation first (if enabled)
         ai_content = None
@@ -841,11 +871,14 @@ Generate FRESH, creative content (not templates). Think strategically about what
             content = ai_content
             logger.info("🧠 Using AI Co-Founder generated content")
         else:
-            # Fallback to templates (AIPA mode)
+            # Always ship a post: templates only when no API key or Claude failed after retries
             posts = self.LINKEDIN_POSTS_EN if language == "en" else self.LINKEDIN_POSTS_ES
             post_data = posts.get(post_type, posts[list(posts.keys())[0]])
             content = post_data["content"]
-            logger.info("📝 Using template content (AIPA mode)")
+            if self.use_ai_generation:
+                logger.warning("📝 Using roadmap-aligned template fallback (AI unavailable); daily post still ships")
+            else:
+                logger.info("📝 Using template content (no ANTHROPIC_API_KEY)")
         
         return {
             "content": content,
