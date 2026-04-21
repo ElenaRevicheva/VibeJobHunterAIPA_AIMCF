@@ -29,6 +29,7 @@ import os
 import anthropic
 from anthropic import AsyncAnthropic
 import json
+import re
 from pathlib import Path
 
 # Logger must be defined BEFORE it's used in try/except blocks
@@ -76,6 +77,40 @@ AIdeazz "AI Marketing Engine" (public roadmap): AIPA_AITCF docs/oracle/AIDEAZZ_A
 — Infra posture: Oracle-first / low fixed-cost ops where applicable; production discipline (webhooks, evals, resilience) over slide-deck storytelling.
 — Elena positioning: executive judgment + hands-on shipping (CAREER_FOCUS.md)—marketing posts should sound like a co-founder explaining a thesis, not an influencer cadence.
 """.strip()
+
+PORTFOLIO_URL = "https://aideazz.xyz/portfolio"
+
+
+def _linkedin_finalize_post_body(body: str, language: str) -> str:
+    """
+    LinkedIn does not render **bold**; it shows asterisks. Strip markdown debris and
+    normalize broken hashtag tokens. Ensure the portfolio URL appears once with a calm CTA.
+    """
+    if not body:
+        return body
+    t = body.replace("\r\n", "\n")
+    t = t.replace("**", "").replace("__", "")
+    t = re.sub(r"(?i)hashtag#", "#", t)
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    low = t.lower()
+    if "aideazz.xyz/portfolio" not in low:
+        lang = (language or "en").lower()
+        portfolio_line = (
+            f"What I build — portfolio: {PORTFOLIO_URL}"
+            if lang.startswith("en")
+            else f"Lo que construyo — portafolio: {PORTFOLIO_URL}"
+        )
+        lines = t.split("\n")
+        idx = len(lines)
+        while idx > 0 and lines[idx - 1].strip().startswith("#"):
+            idx -= 1
+        head = "\n".join(lines[:idx]).rstrip()
+        tail = "\n".join(lines[idx:]).strip()
+        t = f"{head}\n\n{portfolio_line}"
+        if tail:
+            t = f"{t}\n\n{tail}"
+    return t.strip()
+
 
 # Log version IMMEDIATELY on module import (before class even loads!)
 logger.info("🎯" * 40)
@@ -680,13 +715,15 @@ TASK: Generate a {language.upper()} LinkedIn post for post_type `{post_type}`.
 GOAL: {goals.get(post_type, 'Build founder brand and attract opportunities with technical depth and emotional intelligence.')}
 
 REQUIREMENTS:
-- **Profound + tech-savvy**: name real primitives where relevant (webhooks, Oracle, eval harness, model routing, schema)—never vague 'AI-powered' filler.
-- **Emotional intelligence**: empathy and specificity without performative vulnerability; respect the reader's skepticism.
-- **Anti-template**: no numbered '3 lessons', no 'hot take' bait, no hollow motivation. Vary structure; let one clear thesis carry the post.
+- Profound + tech-savvy: name real primitives where relevant (webhooks, Oracle, eval harness, model routing, schema)—never vague 'AI-powered' filler.
+- Emotional intelligence: empathy and specificity without performative vulnerability; respect the reader's skepticism.
+- Anti-template: no numbered '3 lessons', no 'hot take' bait, no hollow motivation. Vary structure; let one clear thesis carry the post.
+- Never use markdown bold/italic (no double-asterisk or double-underscore); LinkedIn shows those characters literally.
 - Tone: confident builder + executive judgment — NOT needy job seeker, NOT generic influencer voice.
 - Align with docs/CAREER_FOCUS.md where personal arc applies; do NOT sell 'Senior/Staff AI Engineer' fantasy.
-- If post_type is seeking_funding: **capital thesis only**—dignity, depth first; no begging, no FOMO; invite diligence.
-- If this is a marketing_engine_* post: **no hype**—no guaranteed rankings, no miracle GEO claims; refuse snake-oil explicitly.
+- If post_type is seeking_funding: capital thesis only—dignity, depth first; no begging, no FOMO; invite diligence.
+- If this is a marketing_engine_* post: no hype—no guaranteed rankings, no miracle GEO claims; refuse snake-oil explicitly.
+- Include {PORTFOLIO_URL} once in the body with a short, dignified line (what you ship / how to assess fit)—not buried after hashtags.
 - Mention building WITH AI (Cursor, Claude) only where it serves honesty about how the stack is built—not as substitute for judgment.
 - Use realistic portfolio numbers when cited (9 production systems / agents, bilingual EN/ES, early traction)—nothing you could not defend in diligence.
 - Product links only when substantive (not stuffing):
@@ -698,12 +735,13 @@ REQUIREMENTS:
   * espaluz-ai-language-tutor.lovable.app - EspaLuz app
   * aideazz.xyz - AIdeazz showroom
   * aideazz.xyz/card - Portfolio card
+  * aideazz.xyz/portfolio - Canonical portfolio (preferred single link for capability signal)
   * atuona.xyz - Atuona
 - Language: {'English' if language == 'en' else 'Spanish'}
 - Length: {word_band}
 - End with relevant hashtags (4-6)
 
-Write **fresh** prose each time—same facts allowed, different angle and cadence."""
+Write fresh prose each time—same facts allowed, different angle and cadence."""
 
         client = AsyncAnthropic(api_key=self.anthropic_api_key)
         last_err: Optional[Exception] = None
@@ -913,6 +951,8 @@ Write **fresh** prose each time—same facts allowed, different angle and cadenc
                 post_content["type"]
             )
             logger.info("✅ UTM tracking applied")
+
+        content = _linkedin_finalize_post_body(content, post_content.get("language") or "en")
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
         github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets"
@@ -970,19 +1010,21 @@ Write **fresh** prose each time—same facts allowed, different angle and cadenc
                 "author": post_content["author"],
                 "imageURL": selected_image,
                 "videoURL": "",
-                "hook": "LinkedIn CMO Automated Post",
-                "audience": "Tech Professionals & Founders",
-                "emotional_state": "Ambitious",
-                "target_market": "AI Startups",
-                "viral_potential": "High",
-                "instagram_focus": "Professional Growth",
-                "linkedin_focus": "Career & Networking"
+                "hook": "Founder-led post — AIdeazz",
+                "audience": "Founders & technical leaders",
+                "emotional_state": "Professional",
+                "target_market": "Product-led teams",
+                "viral_potential": "Organic",
+                "instagram_focus": "Builder signal",
+                "linkedin_focus": "Portfolio & operating thesis",
             }
             
+            body_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             response = requests.post(
                 self.make_webhook_url,
-                json=payload,
-                timeout=10
+                data=body_bytes,
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                timeout=25,
             )
             
             if response.status_code == 200:
@@ -1472,8 +1514,10 @@ CREATE A LINKEDIN POST:
 4. Make it accessible: Non-technical audience should understand the value
 5. Show momentum: We're shipping, improving, growing
 6. Length: 150-250 words
-7. Use relevant emojis (🚀 🤖 ✨ 🔧 etc.)
+7. Emojis: at most one or two if they feel natural—never a cluster.
 8. End with hashtags: #BuildingInPublic #AICoFounders #AIdeazz #TechProgress
+9. No markdown bold (no ** characters); LinkedIn shows them literally.
+10. Include once: {PORTFOLIO_URL} with a one-line dignified CTA.
 
 IMPORTANT:
 - Don't be too technical (avoid jargon)

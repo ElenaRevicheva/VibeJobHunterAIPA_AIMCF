@@ -255,15 +255,21 @@ class AutonomousOrchestrator:
         logger.info("=" * 50)
         
         try:
-            await self.linkedin_cmo.post_to_linkedin(
+            ok = await self.linkedin_cmo.post_to_linkedin(
                 post_type="random",
                 language="random",
             )
-            self.last_linkedin_post_date = today_pa
-            self._save_last_linkedin_post_date(today_pa)
-            logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
+            if ok:
+                self.last_linkedin_post_date = today_pa
+                self._save_last_linkedin_post_date(today_pa)
+                logger.info("📣 LinkedIn CMO: Post completed successfully ✅")
+            else:
+                logger.error(
+                    "📣 LinkedIn CMO: Make.com/webhook did not confirm success — "
+                    "last_post_date NOT updated; will retry while still in the 8 PM Panama window"
+                )
         except Exception as e:
-            logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}")
+            logger.error(f"📣 LinkedIn CMO: Post FAILED - {e}", exc_info=True)
 
     # ─────────────────────────────
     # AUTONOMOUS MODE
@@ -288,7 +294,8 @@ class AutonomousOrchestrator:
         async def linkedin_loop():
             while self.is_running:
                 await self.check_linkedin_schedule()
-                await asyncio.sleep(600)
+                # 3 min cadence so a restart or a failed webhook rarely misses the full 8 PM Panama hour
+                await asyncio.sleep(180)
 
         asyncio.create_task(linkedin_loop())
 
@@ -323,7 +330,7 @@ class AutonomousOrchestrator:
         marker = Path("linkedin_cmo_data/last_post_date.txt")
         try:
             if marker.exists():
-                text = marker.read_text().strip()
+                text = marker.read_text(encoding="utf-8").strip()
                 if text:
                     from datetime import date
                     return date.fromisoformat(text)
@@ -336,7 +343,7 @@ class AutonomousOrchestrator:
         marker = Path("linkedin_cmo_data/last_post_date.txt")
         try:
             marker.parent.mkdir(exist_ok=True)
-            marker.write_text(post_date.isoformat())
+            marker.write_text(post_date.isoformat(), encoding="utf-8")
         except Exception as e:
             logger.warning(f"⚠️ Could not save last LinkedIn post date: {e}")
 
