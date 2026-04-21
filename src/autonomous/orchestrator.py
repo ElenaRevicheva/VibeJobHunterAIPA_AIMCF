@@ -244,7 +244,7 @@ class AutonomousOrchestrator:
         if self.last_linkedin_post_date == today_pa:
             return
 
-        # First successful check during the 8 PM Panama hour (linkedin_loop sleeps ~10m).
+        # First successful check during the 8 PM Panama hour (linkedin_loop checks every ~3 min).
         if now_pa.hour != LINKEDIN_POST_PANAMA_HOUR:
             return
 

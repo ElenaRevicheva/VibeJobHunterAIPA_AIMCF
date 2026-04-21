@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Fire 4 marketing-engine LinkedIn posts via Make.com, one after another, each with a fixed
-GitHub raw image (architecture / workflow PNGs). Does not change the orchestrator schedule.
+GitHub raw image (architecture / workflow PNGs). Does not change the orchestrator schedule and
+does not write linkedin_cmo_data/last_post_date.txt (only the 20:00 Panama scheduler does).
 
 Usage (from repo root, with env like production):
   python3 scripts/run_marketing_engine_four_image_test.py --sleep-seconds 45
