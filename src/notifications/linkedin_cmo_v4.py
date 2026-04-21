@@ -1021,43 +1021,58 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
         
         # Track last used image to avoid repetition (only after a URL passes Buffer-safe probe)
         last_image_file = self.data_dir / "last_used_image.txt"
-        try:
-            with open(last_image_file, "r", encoding="utf-8") as f:
-                last_used = f.read().strip()
-        except FileNotFoundError:
-            last_used = None
-        
-        available_images = [img for img in all_images if img != last_used]
-        if not available_images:
-            available_images = list(all_images)
+        last_used: Optional[str] = None
+        forced = (post_content.get("forced_image_url") or "").strip()
 
-        order = available_images[:]
-        random.shuffle(order)
-        selected_image = ""
-        for candidate in order:
-            if _probe_image_url_downloads_like_buffer(candidate):
-                selected_image = candidate
-                break
-        if not selected_image:
-            logger.error(
-                "🎨 No asset passed image probe; retrying full pool (GitHub raw may have been transient)"
-            )
-            for candidate in all_images:
-                if _probe_image_url_downloads_like_buffer(candidate):
-                    selected_image = candidate
-                    break
-
-        if selected_image:
+        if forced:
+            logger.info("🎨 forced_image_url (one-shot test): skipping random rotation for this send")
+            if not _probe_image_url_downloads_like_buffer(forced):
+                logger.error(f"🎨 forced_image_url failed image probe — aborting send: {forced}")
+                return False
+            selected_image = forced
             try:
                 with open(last_image_file, "w", encoding="utf-8") as f:
                     f.write(selected_image)
             except OSError as e:
                 logger.warning(f"🎨 Could not save last_used_image.txt: {e}")
         else:
-            logger.error(
-                "🎨 All image URLs failed probe — sending empty imageURL so Make/Buffer can post text-only "
-                "(fix assets or network if you require an image every time)"
-            )
+            try:
+                with open(last_image_file, "r", encoding="utf-8") as f:
+                    last_used = f.read().strip()
+            except FileNotFoundError:
+                last_used = None
+
+            available_images = [img for img in all_images if img != last_used]
+            if not available_images:
+                available_images = list(all_images)
+
+            order = available_images[:]
+            random.shuffle(order)
+            selected_image = ""
+            for candidate in order:
+                if _probe_image_url_downloads_like_buffer(candidate):
+                    selected_image = candidate
+                    break
+            if not selected_image:
+                logger.error(
+                    "🎨 No asset passed image probe; retrying full pool (GitHub raw may have been transient)"
+                )
+                for candidate in all_images:
+                    if _probe_image_url_downloads_like_buffer(candidate):
+                        selected_image = candidate
+                        break
+
+            if selected_image:
+                try:
+                    with open(last_image_file, "w", encoding="utf-8") as f:
+                        f.write(selected_image)
+                except OSError as e:
+                    logger.warning(f"🎨 Could not save last_used_image.txt: {e}")
+            else:
+                logger.error(
+                    "🎨 All image URLs failed probe — sending empty imageURL so Make/Buffer can post text-only "
+                    "(fix assets or network if you require an image every time)"
+                )
 
         logger.info(
             f"🎨 imageURL for Make/Buffer: {selected_image or '(empty — text only)'} "
@@ -1336,7 +1351,13 @@ Be specific and actionable."""
             logger.error(f"Market analysis failed: {e}")
             return {}
     
-    async def post_to_linkedin(self, post_type: str = "random", language: str = "random") -> bool:
+    async def post_to_linkedin(
+        self,
+        post_type: str = "random",
+        language: str = "random",
+        *,
+        forced_image_url: Optional[str] = None,
+    ) -> bool:
         """
         Generate and post to LinkedIn (via Make.com)
         
@@ -1351,6 +1372,7 @@ Be specific and actionable."""
         Args:
             post_type: Type of post or "random"
             language: "en", "es", or "random"
+            forced_image_url: If set, sent as imageURL after probe (marketing-engine image test script only).
         
         Returns:
             True if successful
@@ -1394,6 +1416,8 @@ Be specific and actionable."""
         
         # Step 4: Generate post (with strategic context)
         post_content = await self.generate_linkedin_post(post_type, language)
+        if forced_image_url:
+            post_content["forced_image_url"] = forced_image_url.strip()
         
         logger.info(f"📝 Generated LinkedIn post: {post_content['type']} ({post_content['language'].upper()})")
         if post_content.get("ai_generated"):
