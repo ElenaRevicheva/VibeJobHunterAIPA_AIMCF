@@ -262,10 +262,12 @@ When presenting Elena's background in any context:
 4. EspaLuz: "early paid users" — not "revenue-generating product at scale"
 5. LangChain: "exposure" — not a core skill
 6. RAG: honest gap — do not claim partial without production evidence
+7. **Claude Code + Cursor: state proactively.** "I use Claude Code and Cursor daily — that's how one person ships 9 production agents. I review every line and own every decision." Not a gap to hide; a velocity advantage to lead with.
+8. **Coding assessments: disqualifier, not a hurdle.** Any role that requires a whiteboard or take-home scratch-coding test is incompatible with this workflow. State this upfront and move on — do not apply and be surprised.
 
 ## Interview Talking Points (from this codebase + career analysis v2)
 
-- **Lead with the hybrid:** "I'm an executive-turned-AI-builder — 7 years running digital infrastructure at board level, past year shipping 9 production AI systems. I can talk to a CEO and a developer in the same conversation."
+- **Lead with the hybrid:** "I'm an executive-turned-AI-builder — 7 years running digital infrastructure at board level, past year shipping 9 production AI systems. I build with Claude Code and Cursor daily — that's how one person ships this much. I can talk to a CEO and a developer in the same conversation."
 - **"I built a dimensional scoring system"** — 6-dimension, 100-point job→profile match with bias compensation + 7-level penalty system, evidence-tuned thresholds, not just keyword matching
 - **"131-test eval harness, 4 layers"** — keyword scoring, bias compensation, golden-set routing, LLM-as-judge consistency. Layers 1–3: deterministic, $0, <1s. Layer 4: Claude-as-judge validates engine agrees with informed LLM ≥75%. Production regressions caught before deploy.
 - **"Model routing by signal type"** — Claude for deep analysis; lightweight rules for domain filtering; cost-controlled by `USE_AI_JOB_ANALYSIS` flag. AI gate prevents expensive Claude calls on obviously-wrong jobs.
