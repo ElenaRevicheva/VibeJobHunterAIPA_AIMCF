@@ -58,9 +58,14 @@ This invites credential comparison that the timeline cannot win. It positions El
 
 ### ✅ Lead with what's genuinely rare
 
-> "I'm an **executive-turned-AI-builder.** I spent 7 years running large-scale digital infrastructure programs at the board level — which means I understand what AI systems need to do to actually change how an organization operates, not just technically. Since 2025 I've shipped 9 production AI systems using modern AI-assisted development workflows. I build fast, I deploy to production, and I can talk to a CEO and a developer in the same conversation."
+> "I'm an **executive-turned-AI-builder.** I spent 7 years running large-scale digital infrastructure programs at the board level — which means I understand what AI systems need to do to actually change how an organization operates, not just technically. Since 2025 I've shipped 9 production AI systems using modern AI-assisted development workflows. I build with Claude Code and Cursor daily — that's how I move fast. I deploy to production, and I can talk to a CEO and a developer in the same conversation."
 
 **This positioning is honest. It's also genuinely rare. Most AI engineers can't do the executive layer. Most executives can't ship production systems. The hybrid is the differentiator — own it explicitly.**
+
+**On AI tools — state this proactively, not defensively:**
+> "I use Claude Code and Cursor daily. That's not a gap — it's why I can ship 9 production agents solo. If your process includes a traditional whiteboard or take-home coding assessment, I'll be honest: that's not how I work and not a good use of either of our time. If you care about what ships in production, I can show you that directly."
+
+Companies that filter on scratch-coding ability are not the right fit. Stating this upfront saves both sides time and finds the right founders faster.
 
 ### What the profile actually is
 Not a junior. Not a FAANG senior. Not a generic freelancer. An **applied AI builder with executive operating experience** — best suited for founders and operators who need someone who can design, build, AND communicate AI systems to non-technical stakeholders. That person is rare and valuable. That's the job to find.
@@ -73,7 +78,7 @@ Not a junior. Not a FAANG senior. Not a generic freelancer. An **applied AI buil
 
 | Role | Why it fits | Realistic range |
 |------|-------------|-----------------|
-| AI Automation Specialist | Values shipped systems over credentials; VibeJobHunter is a direct portfolio piece | $2.5K–4K/mo |
+| AI Automation Specialist | Values shipped systems over credentials; VibeJobHunter is a direct portfolio piece | $3.5K–4K/mo |
 | Internal AI Tools Builder | Small team, outcome-focused; executive communication is a bonus not a liability | $3K–4.5K/mo |
 | AI Integration Engineer | Webhook/API/multi-platform work is direct evidence; OCI infra is a differentiator | $3K–4.5K/mo |
 | **Founding AI hire (pre-seed)** | Founders care about what ships and who can communicate it; pedigree filters don't apply | $3K–5K/mo + equity |
@@ -90,6 +95,7 @@ Not a junior. Not a FAANG senior. Not a generic freelancer. An **applied AI buil
 | ML Engineer | Requires ML fundamentals (training, fine-tuning, evaluation) not yet built. |
 | Any company with 20+ engineers | Structured hiring processes with credential filters. Not founder-led decisions. |
 | "X years of Python/TypeScript" roles | Timeline doesn't support the years claim. Don't apply and risk wasting an interview slot. |
+| **Any role with a take-home or live coding assessment** | Designed for engineers who code from scratch. You build with Claude Code and Cursor — this is a legitimate workflow but incompatible with scratch-coding tests. State this upfront; do not waste a slot. |
 | Microsoft 365 / Power Platform roles | Completely different ecosystem. Portfolio piece doesn't help. |
 | Generic "AI Engineer" at large companies | Same credential filter problem as Senior titles. |
 
@@ -109,7 +115,7 @@ Apply only in early-stage or highly technical orgs with founder-led hiring:
 | Channel | Realistic range |
 |---------|----------------|
 | Fractional / contractor | $40–70/hr (~$7K–12K/mo at 20–30hr/wk) |
-| Startup full-time (right-fit role) | $2.5K–4.5K/mo |
+| Startup full-time (right-fit role) | $3.5K–4.5K/mo |
 | Founding AI hire + equity | $3K–5K/mo |
 | $4K+/month (full-time) | Achievable — requires strong interview performance |
 
@@ -218,6 +224,7 @@ YC company bonus: +15 pts applied before routing.
 | Q2 | How did you measure quality / regressions? | "131-test eval harness, 4 layers. Layers 1–3 are deterministic ($0, <5s): keyword scoring, bias compensation, golden-set routing across 22 human-labeled jobs. Layer 4 is Claude-as-judge — validates the engine's decisions against an independent LLM, 75% agreement threshold. Catches regressions before deploy." |
 | Q3 | What failed in production and how did you recover? | PM2 stale env bug: token rotation silently failed because PM2 injects stale vars. Fixed with `dotenv.config({ override: true })` as first line in every module. Also: Telegram bot Conflict errors from two services polling the same token. Fixed by owning the polling in exactly one service. |
 | Q4 | Why this infra and cost profile? | Oracle 26ai Always Free: mTLS security, native vector search (no separate vector DB needed), $0/month. Deliberate choice — not a cost-cutting accident. Startup-grade infra discipline. |
+| Q5 | Do you use AI tools to code? | Yes — Claude Code and Cursor daily. That's how one person ships 9 production agents. I review every line, I understand the system, I own the decisions. The tool is fast; the judgment is mine. If you need someone who writes from scratch without AI assistance, I'm not the right fit — and I'd rather be honest about that now. |
 
 **Practice rule:** Write these out. Say them out loud. Time each one. 90 seconds.
 
