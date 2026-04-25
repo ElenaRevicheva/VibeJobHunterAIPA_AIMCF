@@ -199,7 +199,7 @@ YC company bonus: +15 pts applied before routing.
 
 | Skill | Honest state |
 |-------|-------------|
-| LangChain / LangGraph | LangChain imported in EspaLuz; not used in primary agents. Call it "exposure." |
+| LangChain / LangGraph | LangChain **production use** in EspaLuz Telegram: `PostgresChatMessageHistory` + retrieval wired (Apr 25, 2026). Not used in primary agents (CTO AIPA, VJH). Say "production use in EspaLuz, exposure elsewhere." LangGraph: not yet built. |
 | Docker / containerization | Familiar. Production runs bare on Ubuntu with systemd/PM2. |
 | AWS / GCP | One deploy. Enough for one honest line. Not a differentiator yet. |
 
@@ -207,7 +207,7 @@ YC company bonus: +15 pts applied before routing.
 
 | Skill | Reality |
 |-------|---------|
-| RAG (production-grade) | Conversational memory ≠ production RAG. Employers test this specifically. Mark as gap. |
+| RAG (production-grade) | ✅ **Done (Apr 25, 2026).** EspaLuz Telegram: OpenAI `text-embedding-3-small` → pgvector (`espaluz_embeddings`, ivfflat, cosine similarity > 0.75). 2-layer memory injected into Claude system prompt every reply. Confirmed live in prod logs. No longer a gap. |
 | LLM fine-tuning (LoRA, QLoRA) | Post-first-role territory. Don't mention unless asked. |
 
 ---
@@ -382,7 +382,7 @@ Applications:        3–5/day (capped for quality)
 | 5 | **Build eval harness — Layers 1–4** | ✅ DONE (Mar 30) | All 4 layers complete — 131 tests. Layer 4 (LLM-as-judge) uses Claude Haiku, 12 curated cases + 22 golden-set jobs, ≥75% agreement. ~$0.03/run. |
 | 6 | **Tighten top 2 READMEs** (VibeJobHunter + CTO AIPA) | Week 1–2 | 30-second GitHub impression for founders |
 | 7 | **Rehearse the four interview answers** — 90 seconds each | Ongoing | Career analysis: biggest risk is answer sharpness, not skills |
-| 8 | **Add RAG to EspaLuz** using Oracle 26ai native vectors | Week 2–4 | Closes biggest technical gap with least new infra |
+| 8 | **Add RAG to EspaLuz** (pgvector + OpenAI embeddings) | ✅ **DONE (Apr 25, 2026)** | 2-layer memory: LangChain exact history + pgvector semantic search. `espaluz_rag.py` + `espaluz_embeddings` table. Injected into Claude system prompt. Confirmed live. |
 | 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | Week 3–5 | One honest line on resume. Credible answer to "AWS experience?" |
 | 10 | **GEO + SEO Marketing Engine (Phases 1-5)** | ✅ DONE (Apr 17-18) | Full-stack marketing automation: JSON-LD schemas, noscript AI crawler block, sitemap (11 URLs), daily automated blog publishing with GSC gap topic selection, Dev.to cross-posting, UTM attribution pipeline, reCAPTCHA Enterprise inquiry form, automated cold outreach (YC + Google Places + doc ingest), AI-powered lead triage with urgency scoring + dashboard, www→apex 301 redirect (Cloudflare), hreflang EN/ES. All running autonomously on Oracle. |
 
