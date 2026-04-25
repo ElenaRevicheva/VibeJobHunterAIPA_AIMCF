@@ -207,7 +207,7 @@ YC company bonus: +15 pts applied before routing.
 
 | Skill | Reality |
 |-------|---------|
-| RAG (production-grade) | ✅ **Done (Apr 25, 2026).** EspaLuz Telegram: OpenAI `text-embedding-3-small` → pgvector (`espaluz_embeddings`, ivfflat, cosine similarity > 0.75). 2-layer memory injected into Claude system prompt every reply. Confirmed live in prod logs. No longer a gap. |
+| RAG (production-grade) | ✅ **Done (Apr 25, 2026).** Both EspaLuz Telegram AND WhatsApp: shared `espaluz_rag.py`, OpenAI `text-embedding-3-small` → pgvector (`espaluz_embeddings`, ivfflat, cosine similarity > 0.75). 2-layer memory (LangChain exact + semantic) injected into Claude system prompt every reply. Separate session namespaces per platform. Confirmed live in prod logs on both bots. No longer a gap. |
 | LLM fine-tuning (LoRA, QLoRA) | Post-first-role territory. Don't mention unless asked. |
 
 ---
