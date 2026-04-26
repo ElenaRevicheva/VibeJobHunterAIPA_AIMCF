@@ -165,11 +165,13 @@ A job is discarded unless ALL are true:
 | Bilingual / global | 5 | EN/ES bonus |
 | Web3 (optional) | 10 | Polygon, IPFS, DAO signals |
 
-**Routing thresholds:**
-- **Score ≥ 60 → ATS auto-apply** (only after hard gate passes)
-- **Score 58–59 → Founder outreach** (personalized, not ATS)
-- **Score 55–57 → Review queue**
-- **Score < 55 → Discard**
+**Routing thresholds (LangGraph pipeline, live Apr 26):**
+- **Score ≥ 70 → ATS auto-submit** (LangGraph submit_node, no human needed)
+- **Score 60–69 → Human approval** (LangGraph interrupts, sends Telegram ask: `/approve_vjh_{id}` or `/reject_vjh_{id}`)
+- **Score 55–59 → Founder outreach** (personalized email, daily cap 2/day)
+- **Score < 55 → Discard** (checkpointed — never re-applied)
+
+All stages now visible in `autonomous_data/vjh_checkpoint.db`. No more silent failures.
 
 YC company bonus: +15 pts applied before routing.
 
@@ -194,12 +196,13 @@ YC company bonus: +15 pts applied before routing.
 | API design (REST, webhooks) | Express, Grammy, Telegram, GitHub, Replicate, Luma, Runway |
 | Executive communication | 7 years board-level — can translate AI systems to non-technical decision-makers |
 | Evals / observability | 131-test eval harness, 4 layers (keyword, bias, golden-set, LLM-as-judge). $0.03/run. |
+| LangChain + LangGraph | **Both in production (Apr 2026).** LangChain: `PostgresChatMessageHistory` + pgvector RAG in EspaLuz Telegram + WhatsApp. LangGraph: full StateGraph in VJH — 7 nodes, SQLite checkpointer, human-approval interrupt, deduplication by thread_id. First cycle confirmed live on Oracle Apr 26. |
+| Semantic RAG / pgvector | Production: `espaluz_embeddings` table (PostgreSQL + pgvector, ivfflat index), OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3. Live in 2 bots. |
 
 ### ⚠️ Partial / exposure only
 
 | Skill | Honest state |
 |-------|-------------|
-| LangChain / LangGraph | LangChain **production use** in EspaLuz Telegram: `PostgresChatMessageHistory` + retrieval wired (Apr 25, 2026). Not used in primary agents (CTO AIPA, VJH). Say "production use in EspaLuz, exposure elsewhere." LangGraph: not yet built. |
 | Docker / containerization | Familiar. Production runs bare on Ubuntu with systemd/PM2. |
 | AWS / GCP | One deploy. Enough for one honest line. Not a differentiator yet. |
 
