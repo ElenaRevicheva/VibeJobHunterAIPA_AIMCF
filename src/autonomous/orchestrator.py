@@ -452,23 +452,54 @@ class AutonomousOrchestrator:
                 return
             
             # ═════════════════════════════════════════════════════
-            # STEP 2: Score jobs (with bias compensation)
+            # STEP 2 + 3: LangGraph pipeline (score + route + apply)
+            # Replaces: _score_and_route_jobs + _process_jobs_with_routing
+            #
+            # What changed:
+            #   - Each job gets thread_id=vjh_{job_id} in SQLite checkpoint
+            #   - Already-processed jobs are SKIPPED (fixes Deel x7 deduplication)
+            #   - submit_node captures real HTTP response + confirmation_id
+            #   - Score 60-69 → interrupt_before submit → Telegram ask → Elena approves
+            #   - All stage transitions visible in autonomous_data/vjh_checkpoint.db
             # ═════════════════════════════════════════════════════
-            logger.info("📊 Step 2: Scoring jobs against Elena's profile...")
-            
-            scored_jobs = await self._score_and_route_jobs(new_jobs, cycle_stats)
-            
-            if not scored_jobs:
-                logger.warning("⚠️ No jobs were successfully scored")
-                return
-            
-            # Sort by score
-            scored_jobs.sort(key=lambda j: j.match_score, reverse=True)
-            
-            # ═════════════════════════════════════════════════════
-            # STEP 3: Multi-channel routing with daily caps
-            # ═════════════════════════════════════════════════════
-            await self._process_jobs_with_routing(scored_jobs, cycle_stats)
+            logger.info("📊 Step 2+3: LangGraph pipeline (gate → score → route → apply)...")
+
+            try:
+                from ..langgraph_pipeline import VJHLangGraphRunner
+                runner = VJHLangGraphRunner()
+                cycle_id = datetime.utcnow().strftime("%Y-%m-%d-%Hh")
+                lg_summary = await runner.process_jobs(new_jobs, cycle_id=cycle_id)
+
+                # Mirror into CycleStats so _send_cycle_summary still works
+                cycle_stats.auto_applied   = lg_summary.get("applied", 0)
+                cycle_stats.outreach_sent  = lg_summary.get("outreach_sent", 0)
+                cycle_stats.review_queued  = lg_summary.get("human_pending", 0)
+                cycle_stats.discarded      = (
+                    lg_summary.get("discarded", 0) + lg_summary.get("gated_out", 0)
+                )
+                cycle_stats.errors         = lg_summary.get("errors", 0)
+                skipped = lg_summary.get("skipped_dedup", 0)
+
+                self.stats["applications_sent"] += cycle_stats.auto_applied
+                self.stats["founder_outreach"]  += cycle_stats.outreach_sent
+
+                logger.info(
+                    f"LangGraph cycle done | applied={cycle_stats.auto_applied} "
+                    f"outreach={cycle_stats.outreach_sent} "
+                    f"human_pending={cycle_stats.review_queued} "
+                    f"discarded={cycle_stats.discarded} "
+                    f"skipped_dedup={skipped} "
+                    f"errors={cycle_stats.errors}"
+                )
+
+            except Exception as lg_err:
+                logger.error(f"LangGraph pipeline error: {lg_err}", exc_info=True)
+                # Fallback: run old pipeline so cycle never goes completely dark
+                logger.warning("Falling back to legacy _score_and_route_jobs")
+                scored_jobs = await self._score_and_route_jobs(new_jobs, cycle_stats)
+                if scored_jobs:
+                    scored_jobs.sort(key=lambda j: j.match_score, reverse=True)
+                    await self._process_jobs_with_routing(scored_jobs, cycle_stats)
             
             # ═════════════════════════════════════════════════════
             # STEP 4: Send comprehensive cycle summary
