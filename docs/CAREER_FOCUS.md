@@ -1,7 +1,7 @@
 # 🎯 CAREER FOCUS — VibeJobHunter (Honest Roadmap v4)
 
 > **Aligned with:** `elena_career_analysis_v2.html` — Honest Edition, March 2026  
-> **Updated:** April 10, 2026 — Phase 4 outreach operational, hard gate recalibration complete, Claude retry resilience added.  
+> **Updated:** April 26, 2026 — §14 dream workflow (encoded vs roadmap): unified daily CTO briefing narrative aligned with portfolio; Sprint Briefing / Telegram voice paths documented. *(Earlier Apr 10: Phase 4 outreach, hard gate recalibration, Claude retry resilience.)*  
 > **Previous version corrected:** salary floors, role targeting, and positioning were miscalibrated against the actual profile.  
 > **This document supersedes all prior CAREER_FOCUS versions.**
 
@@ -13,6 +13,7 @@ This document is the **single source of truth** for:
 - Founder / recruiter outreach
 - Fractional engagement strategy
 - LinkedIn CMO narrative
+- Dream workflow evidence — what’s encoded vs roadmap (§14), for founder-facing “operator cognition” narrative
 
 ---
 
@@ -198,6 +199,7 @@ YC company bonus: +15 pts applied before routing.
 | Evals / observability | 131-test eval harness, 4 layers (keyword, bias, golden-set, LLM-as-judge). $0.03/run. |
 | LangChain + LangGraph | **Both in production (Apr 2026).** LangChain: `PostgresChatMessageHistory` + pgvector RAG in EspaLuz Telegram + WhatsApp. LangGraph: full StateGraph in VJH — 7 nodes, SQLite checkpointer, human-approval interrupt, deduplication by thread_id. First cycle confirmed live on Oracle Apr 26. |
 | Semantic RAG / pgvector | Production: `espaluz_embeddings` table (PostgreSQL + pgvector, ivfflat index), OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3. Live in 2 bots. |
+| Dream workflow — encoded slice (CTO AIPA + Telegram) | **Voice in:** CTO Telegram bot — voice → Whisper transcription → same intent pipeline as text (`telegram-bot.ts`). **Memory:** Oracle diary/tasks (and related knowledge categories) consumed by Sprint Briefing when enabled. **Repos → briefing:** Sprint Briefing (`src/sprint-briefing/`): GitHub / Linear → Groq + Claude → optional OpenAI TTS → Telegram; opt-in HTTP route only when `SPRINT_BRIEFING_SECRET` set; optional cron. **AWS:** Lambda stub + SAM template (`src/lambda/sprint-briefing-aws.ts`, `infra/aws/sprint-briefing/`) for scheduled runs without Oracle wallet. **Not merged yet:** one daily artifact mixing morning voice + repo reality + commitments — roadmap §14. |
 
 ### ⚠️ Partial / exposure only
 
@@ -388,6 +390,42 @@ Applications:        3–5/day (capped for quality)
 | 8 | **Add RAG to EspaLuz** (pgvector + OpenAI embeddings) | ✅ **DONE (Apr 25, 2026)** | 2-layer memory: LangChain exact history + pgvector semantic search. `espaluz_rag.py` + `espaluz_embeddings` table. Injected into Claude system prompt. Confirmed live. |
 | 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | Week 3–5 | One honest line on resume. Credible answer to "AWS experience?" |
 | 10 | **GEO + SEO Marketing Engine (Phases 1-5)** | ✅ DONE (Apr 17-18) | Full-stack marketing automation: JSON-LD schemas, noscript AI crawler block, sitemap (11 URLs), daily automated blog publishing with GSC gap topic selection, Dev.to cross-posting, UTM attribution pipeline, reCAPTCHA Enterprise inquiry form, automated cold outreach (YC + Google Places + doc ingest), AI-powered lead triage with urgency scoring + dashboard, www→apex 301 redirect (Cloudflare), hreflang EN/ES. All running autonomously on Oracle. |
+| 11 | **Unified daily CTO briefing** — dream workflow (voice + repos + diary/tasks, §14) | 🔜 Roadmap | Merge Sprint output with labeled/persisted voice + Oracle commitments; single delivery moment; “cognitive offload” positioning for founders — not “saved minutes on a task.” |
+
+---
+
+## 1️⃣4️⃣ DREAM WORKFLOW — UNIFIED DAILY CTO BRIEFING (ENCODED VS ROADMAP)
+
+> **Why this belongs in CAREER FOCUS:** Founders evaluating an executive-turned-builder care whether you **reduce cognitive load for operators** — whether the human can **stop holding the entire system in their head** — not only whether you automated a script. This section states **honestly** what runs in production today vs what is the intentional next product step.
+
+### Outcome you’re building toward (plain language)
+
+- **Wake up →** voice priorities to the CTO bot on Telegram.  
+- **Walk to coffee →** voice ideas for a new feature.  
+- **Work session →** the assistant still reflects **what mattered this morning** — because priorities and commitments live in **memory**, not in chat RAM.
+
+The win is **trust + coherence**: one place to reconstruct reality. The before/after is **not** “saved time on one task” — it’s **stopped having to hold the whole operating picture in your head.**
+
+### ✅ Already encoded today (cross-product reuse; CTO AIPA unless noted)
+
+| Piece | What exists |
+|-------|-------------|
+| **Voice in** | CTO Telegram bot: voice messages → file download → Whisper transcription → intent handling aligned with text (`telegram-bot.ts`). **Production.** |
+| **Structured memory** | Diary / tasks / ideas paths into **Oracle** knowledge categories where wired — same direction as “single brain” across your agents. |
+| **Repos → narrative → optional audio** | **Sprint Briefing** in CTO AIPA (`src/sprint-briefing/`): GitHub (+ optional Linear) → Groq clustering → Claude narrative → optional OpenAI TTS → Telegram **sendAudio**. Oracle diary/tasks context when configured and not skipped. |
+| **Opt-in surface** | `POST /sprint-briefing/run` is registered **only when** `SPRINT_BRIEFING_SECRET` is set — deployments without it **do not expose** that route. Optional schedule via `SPRINT_BRIEFING_CRON` when secret + env complete. |
+| **AWS (optional)** | Lambda entry sets `SPRINT_BRIEFING_SKIP_ORACLE=1`; SAM template under `infra/aws/sprint-briefing/` — scheduled invocation; bundling/secrets are **operator-owned**. Not required for the Telegram voice loop. |
+
+### 🔜 Roadmap — “one unified daily briefing” (the actual dream goal)
+
+- **Single merged artifact:** One daily (or on-demand) briefing that combines **(a)** your voice-sourced priorities and ideas **as persisted diary/tasks/chunks**, **(b)** repo truth (what actually moved), **(c)** open commitments from Oracle — **same skeleton every time**: your stated priorities → repo reality → commitments → **≤3 bullets** for “focus this session.”
+- **Conflict rule:** If repos imply “shipping X” but **you** said “pause X,” **your voice wins** in the narrative; repos stay as context, not as overwriting intent.
+- **Delivery discipline:** Prefer **one** Telegram message (text always; audio optional). Cognitive offload requires **predictability**, not notification spam.
+- **Traceability (later):** Sections map to sources (diary timestamp, PR, task id) — auditability for **you** first; demos second.
+
+### Founder-facing line (≈90 seconds)
+
+> “I’m shipping the operator loop: voice in, structured memory, repo signal, optional spoken briefing. The pieces are live — transcription, Oracle-backed context, synthesis from GitHub/Linear, Groq plus Claude, Telegram delivery. The product step left is **merging** those into **one** daily narrative so nobody reconstructs five tools from memory.”
 
 ---
 
@@ -495,6 +533,6 @@ When presenting Elena's background in any context:
 
 ---
 
-> Last updated: April 18, 2026 | Aligned with CLAUDE.md verified scan + marketing engine completion  
-> v4 changes: hard gate recalibration deployed, founder outreach email fixes, Claude retry resilience, salary floor correction  
+> Last updated: April 26, 2026 | §14 dream workflow (encoded vs roadmap) added; Sprint Briefing / Telegram voice evidence cross-referenced.  
+> v4 baseline: hard gate recalibration, founder outreach email fixes, Claude retry resilience, salary floor correction; marketing engine completion (Apr 18).  
 > This document is the single source of truth for VibeJobHunter targeting decisions.
