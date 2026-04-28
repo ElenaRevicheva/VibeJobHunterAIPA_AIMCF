@@ -31,29 +31,33 @@ def gate_node(state: JobState) -> dict:
     try:
         from src.autonomous.job_gate import JobGate
 
-        gate = JobGate()
-        job_mock = type('Job', (), {
-            'title': state['title'],
-            'description': state['description'],
-            'company': state['company'],
-            'url': state['url'],
-            'id': state['job_id'],
-        })()
+        # JobGate.passes() is a @staticmethod that expects a dict with .get() calls
+        job_dict = {
+            'title':        state.get('title', ''),
+            'description':  state.get('description', ''),
+            'company':      state.get('company', ''),
+            'location':     state.get('location', ''),
+            'salary_min':   state.get('salary_min'),
+            'salary_max':   state.get('salary_max'),
+            'company_size': state.get('company_size', ''),
+            'company_info': state.get('company_info', ''),
+        }
 
-        passed, reason = gate.should_apply(job_mock)
+        passed = JobGate.passes(job_dict)
+        reason = "passed all filters" if passed else "filtered by career gate"
 
         if passed:
             logger.info(f"[gate] PASS  {state['company']} — {state['title']}")
             return {
                 "gate_passed": True,
-                "gate_reason": reason or "passed all filters",
+                "gate_reason": reason,
                 "status": "gate_passed",
             }
         else:
-            logger.info(f"[gate] FAIL  {state['company']} — {reason}")
+            logger.info(f"[gate] FAIL  {state['company']} — {state['title']}")
             return {
                 "gate_passed": False,
-                "gate_reason": reason or "filtered out",
+                "gate_reason": reason,
                 "status": "gated_out",
             }
 
