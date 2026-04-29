@@ -33,7 +33,7 @@ Elena has ~1 year of AI engineering (since 2025), built with AI-assisted tools (
 The profile has two distinct phases. Both must be understood, neither hidden.
 
 ### Phase 1: Senior Executive, 2011–2018
-Deputy CEO and Chief Legal Officer — Russian public digital infrastructure programs. Board-level governance, enterprise digital transformation, cross-functional technical programs in highly regulated environments. **7+ years at senior leadership layer.** This is real and rare — most AI engineers have never operated at this level.
+Deputy CEO and Chief Legal Officer — Russian public digital infrastructure programs. Board-level governance, enterprise digital transformation, 7+ years at senior leadership. **Important qualifiers:** this experience is from Russia and ended ~2018 — approximately 8 years ago. It does not transfer to modern operations manager roles (no Slack, Google Sheets, Zapier, Notion, etc. experience). The executive communication skill is real. The credentials are dated and Russia-specific. Do not pitch this as a basis for ops management.
 
 ### Phase 2: Applied AI Builder, 2025–Present
 Designed and deployed 9 production AI systems on Oracle Cloud using AI-assisted development (Cursor, Claude Code). Real systems, real users, real uptime. ~1 year of hands-on AI engineering. EspaLuz has early paid users — traction is real but very early and very small.
@@ -91,13 +91,16 @@ Not a junior. Not a FAANG senior. Not a generic freelancer. An **applied AI buil
 
 | Role | Why it's a waste |
 |------|-----------------|
-| Senior / Staff / Principal AI Engineer | Implies 5+ years, CS background, traditional path. ATS filters you before a human sees your name. |
-| ML Engineer | Requires ML fundamentals (training, fine-tuning, evaluation) not yet built. |
-| Any company with 20+ engineers | Structured hiring processes with credential filters. Not founder-led decisions. |
-| "X years of Python/TypeScript" roles | Timeline doesn't support the years claim. Don't apply and risk wasting an interview slot. |
-| **Any role with a take-home or live coding assessment** | Designed for engineers who code from scratch. You build with Claude Code and Cursor — this is a legitimate workflow but incompatible with scratch-coding tests. State this upfront; do not waste a slot. |
-| Microsoft 365 / Power Platform roles | Completely different ecosystem. Portfolio piece doesn't help. |
+| **Operations Manager / Project Manager / COO** | Elena has zero experience with modern ops tools — Slack, Google Sheets, Zapier, Notion, Airtable, Monday.com. The executive experience is from Russia, ended 2018 (~8 years ago). Nobody wants this ops manager. Do not suggest these roles. |
+| Senior / Staff / Principal AI Engineer | Implies 5+ years, CS background, traditional path. ATS filters before a human sees her name. |
+| ML Engineer | Requires ML fundamentals (training, fine-tuning) not built. |
+| Any company with 20+ engineers | Structured credential filters. Not founder-led. |
+| "X years of Python/TypeScript" roles | Timeline doesn't support years claim. |
+| **Any role with a take-home or live coding assessment** | Elena cannot write production code without Claude Code and Cursor. She would fail a proctored test. This is not a gap to hide — it is the truth. State it upfront and move on. |
+| Microsoft 365 / Power Platform roles | Wrong ecosystem entirely. |
 | Generic "AI Engineer" at large companies | Same credential filter problem as Senior titles. |
+| **SF-based AI startups requiring in-person work** | Elena is in Panama. No US work authorization. |
+| **Startup investor pitch / accelerator** | ~10 paid subscribers, most personal connections. AILA unbuilt. Solo founder. Not investor-ready. |
 
 ### 🟡 SECONDARY — CONDITIONAL
 
@@ -204,7 +207,7 @@ YC company bonus: +15 pts applied before routing.
 | Skill | Honest state |
 |-------|-------------|
 | Docker / containerization | Familiar. Production runs bare on Ubuntu with systemd/PM2. |
-| AWS / GCP | One deploy. Enough for one honest line. Not a differentiator yet. |
+| AWS Lambda + EventBridge + Oracle (S3 wallet) | **Sprint Briefing Agent — shipped Apr 28, 2026. Full two-way memory loop.** Every morning at 8AM Panama, AWS wakes up on its own and does this in sequence: reads all 12 of Elena's active code repos to see what changed overnight → reads Elena's own voice notes and task list from her Oracle database (voice notes she left for herself the night before, transcribed and saved by CTO AIPA bot) → passes everything to Claude to write a briefing → converts it to a male voice audio → delivers it to Telegram. One person managing 12 live AI products: this is how she stays oriented every morning without reading dashboards. **The loop is real in both directions** — Elena talks to the bot at night, the bot talks back in the morning. AWS piece: Lambda (serverless, ~$2/month, runs only when triggered), EventBridge scheduler (the alarm clock), Oracle wallet stored in private S3 bucket (secure read-only access to her database from cloud). Not a demo — runs every day. |
 
 ### ❌ Gaps — do not claim these on resume
 
@@ -386,20 +389,28 @@ Applications:        3–5/day (capped for quality)
 | 6 | **Tighten top 2 READMEs** (VibeJobHunter + CTO AIPA) | Week 1–2 | 30-second GitHub impression for founders |
 | 7 | **Rehearse the four interview answers** — 90 seconds each | Ongoing | Career analysis: biggest risk is answer sharpness, not skills |
 | 8 | **Add RAG to EspaLuz** (pgvector + OpenAI embeddings) | ✅ **DONE (Apr 25, 2026)** | 2-layer memory: LangChain exact history + pgvector semantic search. `espaluz_rag.py` + `espaluz_embeddings` table. Injected into Claude system prompt. Confirmed live. |
-| 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | Week 3–5 | One honest line on resume. Credible answer to "AWS experience?" |
+| 9 | **One AWS deployment** (Lambda or EC2, lightest possible) | ✅ **DONE (Apr 28, 2026)** | **Sprint Briefing Agent — the full story in plain language:** Elena sends voice notes to her CTO AI bot throughout the day — priorities, ideas, things to remember. The bot transcribes them and saves them to her Oracle database. Then, every morning at 8AM Panama, a separate AWS function wakes up on a timer, reads all 12 of her active GitHub repos (what changed in the code overnight?), reads her saved voice notes and tasks from Oracle, hands everything to Claude to write a morning briefing, converts that text to a male voice audio, and sends the MP3 to her Telegram. She wakes up, hits play, and hears what she told herself to remember plus what happened in all her projects — while making coffee. **Why this matters as a career story:** one person running 12 live AI products, managing her own cognitive load with a system she designed and built herself. The AWS piece (Lambda) runs only when triggered and costs ~$2/month. The Oracle piece uses a secure wallet stored in private cloud storage — her live database is never exposed. Full loop: talk to the bot at night → briefing audio in the morning. Built from scratch in one session. Ships to production same day. |
 | 10 | **GEO + SEO Marketing Engine (Phases 1-5)** | ✅ DONE (Apr 17-18) | Full-stack marketing automation: JSON-LD schemas, noscript AI crawler block, sitemap (11 URLs), daily automated blog publishing with GSC gap topic selection, Dev.to cross-posting, UTM attribution pipeline, reCAPTCHA Enterprise inquiry form, automated cold outreach (YC + Google Places + doc ingest), AI-powered lead triage with urgency scoring + dashboard, www→apex 301 redirect (Cloudflare), hreflang EN/ES. All running autonomously on Oracle. |
 
 ---
 
-## BOTTOM LINE
+## BOTTOM LINE — HONEST VERSION (updated Apr 27, 2026)
 
-You are not a Senior AI Engineer by conventional definition. You are something rarer and harder to categorize: an executive who learned to ship production AI systems in a year using AI-assisted tools, who runs 9 live agents at $0/month infra cost, and who can communicate at board level and code level in the same day.
+**What Elena actually is:** Someone who can use Claude Code and Cursor to deliver working Telegram bots, WhatsApp automations, and LLM-wired pipelines. The output is real and demonstrable. The methodology is entirely AI-assisted.
 
-That profile doesn't fit a job title. It fits a **founder who needs their first serious AI hire** or a **fractional engagement where the brief is "make our AI actually work."**
+**What Elena is not:** A traditional software developer. A modern operations manager. An investor-ready solo founder. A candidate who can pass a proctored coding test.
 
-**Stop mass-applying through ATS pipelines. Start direct outreach to founders. One right conversation with the right founder is worth more than 50 auto-applied Greenhouse submissions.**
+**The fastest realistic path to $3,000/month:**
 
-**The target is achievable. The channel is the thing that needs to change.**
+1. **Upwork** — profile as "Telegram & WhatsApp Bot Builder | AI Automation". Clients pay for working bots, not for methodology. 10 production systems = real portfolio proof. $500–1,500 per project. First client is hard; second is easier. Takes 3–6 weeks to gain traction.
+
+2. **AI evaluation/training work** (Scale AI, DataAnnotation, Remotasks) — start within days. $15–35/hour for evaluating AI outputs and writing prompts. Not $3K guaranteed but real cash while Upwork builds.
+
+3. **Direct employer who builds with AI tools** (like InTech Ideas) — if they use Claude Code / Cursor themselves, Elena can deliver. Ask about tools upfront in every interview.
+
+**What to stop doing:** Mass-applying through ATS for roles that require traditional coding credentials. Pitching investors on a startup with ~10 subscribers. Applying for ops roles. Searching for the perfect AI Engineer title.
+
+**The channel is the thing that needs to change — not the skills.**
 
 ---
 
@@ -495,6 +506,8 @@ When presenting Elena's background in any context:
 
 ---
 
-> Last updated: April 18, 2026 | Aligned with CLAUDE.md verified scan + marketing engine completion  
+> Last updated: April 28, 2026 | AWS Sprint Briefing Agent — full Oracle memory loop closed  
+> v4.2 changes: AWS/Oracle story rewritten in plain language — full two-way loop explained (voice notes in → briefing audio out), Portfolio row and Priority 9 updated  
+> v4.1 changes: AWS deployment done (Priority 9 closed), Sprint Briefing Agent added to portfolio, AWS skill row updated  
 > v4 changes: hard gate recalibration deployed, founder outreach email fixes, Claude retry resilience, salary floor correction  
 > This document is the single source of truth for VibeJobHunter targeting decisions.
