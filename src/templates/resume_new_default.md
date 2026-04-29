@@ -22,7 +22,7 @@ Seeking roles in AI-focused companies as an **AI Product Engineer**, **Applied L
 ## CORE SKILLS
 
 ### AI and LLMs
-Claude (Opus, Sonnet, Haiku), OpenAI GPT-4, Groq (Llama 3.3 70B, Whisper), Model Context Protocol (MCP), Prompt Engineering, Multi-turn Context Design, Tool/Function Calling
+Claude (Opus, Sonnet, Haiku), OpenAI GPT-4, Groq (Llama 3.3 70B, Whisper), Model Context Protocol (MCP), LangChain, LangGraph (StateGraph, checkpointer, human-in-the-loop interrupt), Prompt Engineering, Multi-turn Context Design, Tool/Function Calling, Semantic RAG (pgvector + OpenAI embeddings)
 
 ### AI-Assisted Development
 Cursor IDE (primary development environment), AI-assisted Code Generation and Refactoring, Human-in-the-loop Validation Workflows, Rapid Prototyping to Production Iteration
@@ -37,7 +37,7 @@ FastAPI, Flask, Node.js, Express, REST APIs, Async Workflows
 React, Vite, Tailwind CSS, Framer Motion
 
 ### Databases and Infrastructure
-PostgreSQL, Oracle Autonomous Database (mTLS), Oracle Cloud Infrastructure (OCI), Railway, Supabase, Docker, PM2, Ubuntu
+PostgreSQL (pgvector, ivfflat index, semantic search), Oracle Autonomous Database (mTLS), Oracle Cloud Infrastructure (OCI), AWS Lambda (Node.js runtime, serverless), AWS EventBridge (scheduled cron), AWS S3, Railway, Supabase, Docker, PM2, Ubuntu
 
 ### Integrations
 GitHub API (Octokit), Telegram Bot API, WhatsApp Business API, PayPal Subscriptions, Twitter/X API, Make.com, Buffer
@@ -61,24 +61,31 @@ Founder and lead builder of an AI-first ecosystem of applied LLM products and au
 - Deployed, monitored, and operated production services independently
 
 **Key Outcomes:**
-- 8+ live AI products deployed in under 10 months
-- 11 active GitHub repositories
+- 12+ live AI products and agents deployed, operating autonomously in production
+- 12 active GitHub repositories
 - Users across 19 countries
 - Live subscription monetization via PayPal
 - Approximately 99% cost reduction compared to traditional multi-role development teams
+- Built and shipped entirely using AI-augmented development (Cursor + Claude Code) — not traditional manual coding
 
 ---
 
-### CTO AIPA - AI Technical Assistant (Production System)
+### CTO AIPA - AI Technical Co-Founder (Production System)
 
-Autonomous AI system supporting technical decision-making and code review across multiple repositories.
+Autonomous AI system supporting technical decision-making, code review, and daily briefing across 12 active repositories.
 
-- Automated repository analysis and PR review via GitHub API
-- Model routing between Claude (deep analysis) and Groq (low-latency inference)
+- Automated PR review and security scanning via GitHub API; model routing (Groq for speed, Claude for critical analysis)
 - Human-approved AI code generation and PR workflows
 - Persistent system memory using Oracle Autonomous Database with mTLS
+- Voice input: voice notes → Whisper transcription → intent detection → Oracle diary/task storage
 
-**Technologies:** TypeScript, Node.js, Express, Claude, Groq, Oracle Cloud, GitHub API, PM2
+**Sprint Briefing Agent** (AWS Lambda, shipped Apr 2026) — daily autonomous morning briefing:
+- Runs every day at 8AM on AWS Lambda (serverless, ~$2/month) triggered by EventBridge scheduler
+- Reads all 12 GitHub repos overnight + retrieves owner's saved voice notes and tasks from Oracle (via S3 wallet, thin-mode Oracle connector — no server dependency)
+- Passes combined signals to Groq (clustering) → Claude (narrative) → OpenAI TTS → Telegram audio
+- Full two-way loop: voice notes in at night → spoken briefing out in the morning
+
+**Technologies:** TypeScript, Node.js, Express, Claude, Groq, OpenAI, Oracle Cloud (mTLS + S3 wallet), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2
 
 ---
 
@@ -96,12 +103,27 @@ Autonomous AI agent for marketing strategy and content execution.
 
 ### EspaLuz - AI Spanish/English Tutor (Production System)
 
-Built bilingual EN/ES AI tutor with persistent emotional memory, OCR, TTS, and multimodal learning.
+Built bilingual EN/ES AI tutor with 2-layer persistent memory, semantic RAG, OCR, TTS, and multimodal learning.
 
-- Deployed on WhatsApp Business API and Telegram
-- Early traction across 19 Spanish-speaking countries; PayPal subscriptions live
+- Deployed on WhatsApp Business API and Telegram; early traction across 19 Spanish-speaking countries; PayPal subscriptions live
+- **2-layer memory system:** LangChain `PostgresChatMessageHistory` (exact conversation history) + pgvector semantic search (`espaluz_embeddings` table, OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3) — injected into Claude system prompt on every reply
+- Separate session namespaces per platform (WhatsApp / Telegram); shared `espaluz_rag.py` module
 
-**Technologies:** Python, GPT-4, LangChain, Whisper, PostgreSQL, Railway
+**Technologies:** Python, GPT-4, LangChain, pgvector (PostgreSQL), OpenAI embeddings, Whisper, WhatsApp API, Railway
+
+---
+
+### VibeJobHunter AIPA - Autonomous AI Job Search System (Production System)
+
+Full-stack AI pipeline that autonomously scrapes, scores, filters, and applies to jobs — with human-in-the-loop approval for edge cases.
+
+- **LangGraph pipeline** (StateGraph, 7 nodes): scrape → gate → score → route → apply/outreach/discard. SQLite checkpointer for full session persistence; human-approval interrupt for 60–69 score band (Telegram `/approve` / `/reject` commands)
+- **4-layer eval harness** (131 tests, ~$0.03/run): Layer 1–3 deterministic (keyword scoring, bias compensation, 22-job golden set); Layer 4 Claude Haiku as independent judge, ≥75% agreement threshold — catches regressions before deploy
+- Multi-ATS Playwright automation (Greenhouse, Lever, Ashby); founder outreach via Resend API
+- Hard gate: company size, stage, role category filters prevent auto-applying to roles that credential-filter (Senior/Staff/Principal/ML Engineer excluded)
+- Daily cap: 5 applications + 2 founder outreach emails; all decisions logged to checkpoint DB
+
+**Technologies:** Python, LangGraph, LangChain, Claude (Haiku + Sonnet), Playwright, SQLite, Resend API, Telegram Bot API
 
 ---
 

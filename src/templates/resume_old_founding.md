@@ -23,7 +23,7 @@ Now seeking to join an AI startup or company focused on AI as **AI Engineer** | 
 
 ## 📊 KEY ACHIEVEMENTS
 
-- **11 AI products (7 live AI agents)** in 10 months (March–December 2025) — solo-built full-stack
+- **12+ live AI products and agents** — solo-built using AI-augmented development (Cursor + Claude Code), not traditional coding
 - **Deployed AI Co-Founders:** CTO AIPA (autonomous code reviewer across 8 GitHub repositories, Oracle Cloud) + CMO AIPA (LinkedIn content automation, Railway) — **$0/month operational cost**
 - **99%+ cost reduction** vs. team-based development ($900K → <$15K)
 - **Users in 19 Spanish-speaking countries** — dual-sided market with bilingual (EN/ES) architecture
@@ -35,13 +35,13 @@ Now seeking to join an AI startup or company focused on AI as **AI Engineer** | 
 
 ## ⚙️ TECHNICAL STACK
 
-**AI/ML:** GPT · Claude · Groq (Llama 3.3 70B) · Whisper · TTS · MCP · LangChain · ElizaOS
+**AI/ML:** GPT · Claude · Groq (Llama 3.3 70B) · Whisper · TTS · MCP · LangChain · LangGraph · Semantic RAG (pgvector + OpenAI embeddings) · ElizaOS
 
 **Languages:** Python · TypeScript · JavaScript · Node.js · SQL
 
 **Frameworks:** React · Flask · FastAPI · Express.js · Node.js · Vite
 
-**Infrastructure:** PostgreSQL · Oracle Autonomous Database 26ai · Supabase · Docker · Railway · Oracle Cloud Infrastructure (OCI)
+**Infrastructure:** PostgreSQL (pgvector) · Oracle Autonomous Database 26ai · AWS Lambda · AWS EventBridge · AWS S3 · Supabase · Docker · Railway · Oracle Cloud Infrastructure (OCI)
 
 **Frontend:** Tailwind CSS · shadcn/ui · Framer Motion · i18next
 
@@ -87,6 +87,8 @@ Autonomous code review automation across entire GitHub ecosystem — **eliminate
 
 **Deployment:** Oracle Cloud (startup credits), 99.9% uptime, PM2 process manager
 
+**Sprint Briefing Agent** (AWS Lambda, Apr 2026): daily autonomous audio briefing — EventBridge wakes Lambda at 8AM Panama, reads 12 repos + owner's Oracle diary/tasks (S3 wallet, thin-mode Oracle), passes to Groq + Claude, delivers male-voice MP3 to Telegram. Full two-way loop: voice notes in → briefing out. ~$2/month AWS cost.
+
 ---
 
 #### CMO AIPA — AI Marketing Co-Founder (LIVE)
@@ -112,11 +114,26 @@ Autonomous LinkedIn and Instagram content generation — **NOT templates, but st
 ### ✅ ESPALUZ — Emotionally Intelligent WhatsApp Spanish Tutor (LIVE)
 💬 WhatsApp | Telegram | Web App
 
-Bilingual AI tutor bridging expats to Spanish speaking countries and locals (EN↔ES). Persistent emotional memory, OCR, TTS, voice synthesis.
+Bilingual AI tutor bridging expats to Spanish speaking countries and locals (EN↔ES). 2-layer persistent memory, semantic RAG, OCR, TTS, voice synthesis.
 
 → Live in WhatsApp & Telegram; 19 countries; PayPal subscriptions active.
 
-**Tech:** Python, GPT-4, WhatsApp API, LangChain, MCP, OCR, TTS, HeyGen, Railway, PostgreSQL
+**2-layer memory:** LangChain `PostgresChatMessageHistory` (exact history) + pgvector semantic RAG (`espaluz_embeddings`, OpenAI `text-embedding-3-small`, cosine > 0.75, top_k=3) — injected into Claude system prompt every reply. Separate session namespaces per platform.
+
+**Tech:** Python, GPT-4, LangChain, pgvector (PostgreSQL), OpenAI embeddings, WhatsApp API, MCP, OCR, TTS, Railway
+
+---
+
+### ✅ VIBEJOBHUNTER AIPA — Autonomous AI Job Search System (LIVE)
+
+Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously — with human-in-the-loop for edge cases.
+
+- **LangGraph pipeline** (7 nodes, StateGraph): scrape → gate → score → route → apply/outreach/discard. Human-approval interrupt via Telegram commands. SQLite checkpoint persistence.
+- **4-layer eval harness** (131 tests): deterministic scoring, bias compensation, 22-job golden set, Claude Haiku as independent judge (≥75% agreement). ~$0.03/run.
+- Multi-ATS Playwright automation (Greenhouse, Lever, Ashby) + founder email outreach via Resend
+- Hard gate excludes Senior/Staff/Principal/ML roles; daily cap 5 applications + 2 founder outreach
+
+**Tech:** Python, LangGraph, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API
 
 ---
 
