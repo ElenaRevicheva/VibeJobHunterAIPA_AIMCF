@@ -15,7 +15,7 @@
 
 Founder of AIdeazz.xyz, building emotionally intelligent AI Personal Assistants (AIPAs) — conscious AI companions for education, cultural adaptation, professional and personal growth.
 
-Ex-CEO and CLO in E-Government (Russia). Relocated to Panama in 2022 to rebuild from zero and launch **11 AI products** (solo-built full-stack) for **<$15K** in 10 months.
+Ex-CEO and CLO in E-Government (Russia). Relocated to Panama in 2022 to rebuild from zero and launch **12+ live AI products and agents** using AI-augmented development (Cursor + Claude Code) — not traditional coding.
 
 Now seeking to join an AI startup or company focused on AI as **AI Engineer** | **Product Builder** | **Founding Engineer** | **Technical Lead**.
 
@@ -204,7 +204,7 @@ ICO compliance & investor relations during blockchain boom.
 
 > Founder-level execution meets emotionally intelligent AI vision — from concept to GTM.
 
-✅ **Proven 0→1 AI-First Builder:** 11 live AI products in 10 months, 10x faster shipping with 99%+ cost reduction
+✅ **Proven 0→1 AI-First Builder:** 12+ live AI products and agents, 10x faster shipping with 99%+ cost reduction — built with AI-augmented development (Cursor + Claude Code), not traditional manual coding
 
 ✅ **Full-Stack Capability:** End-to-end ownership from vision to deployment to growth
 

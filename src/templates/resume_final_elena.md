@@ -1,153 +1,147 @@
 # ELENA REVICHEVA
 
-**AI Product Engineer & Founder | Building Emotionally Intelligent AI**
+**AI Product Engineer | Applied LLM Systems | AI-Assisted Software Development**
 
-📍 {location} | 🌎 Bilingual EN/ES  
-📧 {email} | elena.revicheva2016@gmail.com  
-📱 +507 61666716 (WhatsApp, Telegram)  
-🔗 [aideazz.xyz/card](https://aideazz.xyz/card) | [linkedin.com/in/elenarevicheva](https://linkedin.com/in/elenarevicheva) | [github.com/ElenaRevicheva](https://github.com/ElenaRevicheva)  
+Panama City, Panama | Remote Worldwide | On-site | Hybrid
+
+📧 aipa@aideazz.xyz | elena.revicheva2016@gmail.com | 📱 +507 616 66 716 (WhatsApp/Telegram)
+🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
 🌐 ENS: aideazz.eth
 
 ---
 
 ## SUMMARY
 
-AI Engineer & Founder of AIdeazz.xyz — building emotionally intelligent AI Personal Assistants (AIPAs) for education, cultural adaptation, and personal growth.
+Executive-turned-AI-builder. Former Deputy CEO and Chief Legal Officer in E-Government (Russia, 2011–2018) — 7 years running large-scale digital infrastructure programs at board level. Since 2025, shipped 12+ live AI products and agents as solo founder of AIdeazz.xyz.
 
-**Background:** 7 years as Deputy CEO & CLO in E-Government IT (Russia), managing regional digital infrastructure. Relocated to Panama in 2022 as single mother to rebuild as AI entrepreneur. Shipped 6 production AI systems (2 live with paying users) in 7 months — all solo, for <$15K.
+Primary strength is **AI-augmented development**: using Cursor, Claude Code, and Groq to design, generate, and iterate production code under clear human intent, constraints, and validation — not traditional manual coding. This is how one person ships 9 autonomous AI agents and manages 12 active repositories. Can talk to a CEO and a developer in the same conversation.
+
+Seeking roles as **AI Product Engineer**, **Applied LLM Engineer**, **Founding AI Engineer**, or **Fractional AI Consultant/Builder**.
 
 ---
 
 ## KEY ACHIEVEMENTS
 
-• **6 production AI deployments** in 7 months (2 live with paying users) — solo full-stack development  
-• **98% cost reduction** vs traditional teams ($900K → <$15K)  
-• **PayPal Subscriptions LIVE** with active users across 19 Spanish-speaking countries  
-• **Full-stack solo development:** TypeScript, Python, React, PostgreSQL, Web3  
-• **8+ AI services integrated:** Claude, GPT, Whisper, TTS, HeyGen, OCR, ElizaOS  
-• **Live monetization:** PayPal subscriptions operational, crypto payments in testing  
-• **End-to-end execution:** Vision → Design → Build → Deploy → Go-to-Market
+• **12+ live AI products and agents** operating autonomously in production — solo-built using AI-augmented development (Cursor + Claude Code)
+• **99% cost reduction** vs traditional multi-role development teams ($900K → <$15K)
+• **Full two-way AI memory loop**: voice notes into CTO bot at night → spoken morning briefing audio delivered to Telegram at 8AM via AWS Lambda — cognitive offload for a solo operator running 12 active products
+• **LangGraph pipeline in production**: 7-node StateGraph (VJH) with human-approval interrupt, SQLite checkpointer, 131-test eval harness (Claude Haiku as independent judge)
+• **Semantic RAG in production**: pgvector + OpenAI embeddings in EspaLuz — 2-layer memory (exact history + cosine semantic search) injected into every Claude reply
+• **AWS Lambda + EventBridge**: serverless scheduled deployment (Sprint Briefing Agent), ~$2/month
+• **PayPal subscriptions live** — users across 19 countries
+• **12 active GitHub repositories**, all monitored and reviewed by autonomous CTO AIPA
 
 ---
 
 ## TECHNICAL STACK
 
-**AI/ML:** OpenAI GPT · Anthropic Claude · Model Context Protocol (MCP) · Whisper · TTS · HeyGen · OCR · LangChain · ElizaOS  
-**Languages:** Python · TypeScript · JavaScript · Node.js · SQL  
-**Frameworks:** React · Flask · Vite · Deno Edge Functions · Gunicorn  
-**Frontend:** Tailwind CSS · shadcn/ui · Framer Motion · i18next (bilingual EN/ES)  
-**Infrastructure:** PostgreSQL · Supabase · Docker · Railway  
-**APIs & Integrations:** WhatsApp · Telegram · X/Twitter · PayPal · CCXT · WebSocket  
-**Web3:** Polygon · Thirdweb SDK · MetaMask · IPFS · DAO Design  
-**Platforms:** Railway · Lovable.dev · Replit · Make.com · Buffer
+**AI/ML:** Claude (Opus, Sonnet, Haiku) · OpenAI GPT-4 · Groq (Llama 3.3 70B) · Whisper · OpenAI TTS · LangChain · LangGraph (StateGraph, checkpointer, human interrupt) · Semantic RAG (pgvector + OpenAI embeddings) · MCP · ElizaOS
 
----
+**Languages:** Python · TypeScript · JavaScript · Node.js · SQL
 
-## LIVE AI PRODUCTS
+**Frameworks:** FastAPI · Flask · Express.js · React · Vite · Tailwind CSS
 
-### Founder & AI Engineer — AIdeazz | Panama (Remote) | Mar 2025–Present
-**Member of Innovation Smart District (ISD), Panama**
+**Databases:** PostgreSQL (pgvector, ivfflat, cosine similarity) · Oracle Autonomous Database 26ai (mTLS) · SQLite
 
-Building an ecosystem of emotionally intelligent AI Personal Assistants (AIPAs) for language learning, cultural adaptation, and personal growth.
+**Cloud & Infra:** Oracle Cloud Infrastructure (OCI) · AWS Lambda · AWS EventBridge · AWS S3 · Railway · PM2 · Ubuntu · Docker
 
-#### 1️⃣ EspaLuz — AI Spanish Tutor (LIVE with PAYING USERS)
-[WhatsApp](https://wa.me/50766623757) | [Telegram](https://t.me/EspaLuzFamily_bot) | [Web App](https://aideazz.xyz)
+**APIs:** GitHub API (Octokit) · Telegram Bot API · WhatsApp Business API · PayPal Subscriptions · Twitter/X · Resend · Playwright (ATS automation) · Replicate · Luma Labs
 
-**Product:** Bilingual AI tutor serving dual-sided market — expat families learning Spanish + local professionals improving English = cultural bridging across 19 countries.
-
-**Tech:** Python, OpenAI GPT-4, WhatsApp API, LangChain, Model Context Protocol (MCP) for persistent memory, OCR (image text translation), TTS/Voice synthesis, HeyGen video avatars.
-
-**Architecture:** Railway deployment, PostgreSQL database, real-time processing.
-
-**Traction:** Active paying users across Panama and LATAM; **PayPal subscriptions LIVE**, crypto payments integrated (testing).
-
-**Competitive Edge:** Persistent family memory, emotional context awareness, cultural adaptation tracking — remembers learning pace, family dynamics, emotional state across sessions (vs ChatGPT/Google Translate).
-
-#### 2️⃣ ALGOM Alpha — AI Crypto Advisor (LIVE)
-[X/Twitter](https://x.com/algom_alpha)
-
-**Product:** AI crypto mentor teaching safe trading to beginners through autonomous paper trading with real-time market analysis. Educational focus: digital literacy, risk management, technical analysis basics.
-
-**Tech:** Node.js, Eliza OS (autonomous AI framework), Twitter API v2, WebSocket, CCXT integration (5 crypto exchanges), Technical indicators (MA, RSI).
-
-**Traction:** 170+ followers on X; daily automated insights and transparent paper trading results.
-
-#### 3️⃣ Additional Products (LIVE)
-
-**EspaLuz Influencer Bot** — AI SMM automation generating daily content, auto-posting to LinkedIn + Instagram (Python, Make.com, Buffer API, GPT)
-
-**AIdeazz Ecosystem Platform** — Central bilingual hub (React, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion, i18next) at [aideazz.xyz](https://aideazz.xyz)
-
-**Atuona NFT Gallery** — Web3 underground poetry collection on Polygon blockchain (Thirdweb SDK, IPFS, React) at [atuona.xyz](https://atuona.xyz)
+**Web3:** Polygon · Thirdweb · IPFS · DAO Design · Smart Contract Interaction
 
 ---
 
 ## PROFESSIONAL EXPERIENCE
 
-### Operational Co-Founder — OmniBazaar (Decentralized Marketplace) | Remote | Oct 2024–Present
-_(part-time advisor, concurrent with AIdeazz)_
+### Founder and AI Product Engineer
+**AIdeazz.xyz** | Panama/Remote | 2025–Present
 
-• Structured legal-compliant DAO LLC setup (Marshall Islands) for decentralized marketplace  
-• Drafted Operating Agreement for DAO tokenomics and smart contract enforceability  
-• Led strategic planning and operational structure for decentralized asset trading
+Founder and lead builder of an AI-first ecosystem of applied LLM products and autonomous AI agents, developed using AI-augmented (Cursor + Claude Code) workflows.
 
-### Deputy CEO & CLO — JSC "E-GOV OPERATOR" (E-Government) | Russia | May 2011–Jun 2018
+**CTO AIPA — AI Technical Co-Founder (Production)**
 
-• Led IT project management and digital infrastructure rollout for regional e-Government  
-• Managed board-level corporate governance, legal compliance, HR, and risk strategy  
-• Drove cross-functional collaboration across technical and public service departments  
-• Oversaw budgets and strategic partnerships with government entities  
-• **Key Achievement:** Successfully deployed large-scale digital transformation projects for public services
+Autonomous AI system for technical decision-making, code review, and daily briefing across 12 active repositories.
 
-### Deputy CEO (Business Development) — Fundery LLC (Fintech/Blockchain) | Russia | Aug 2017–Apr 2018
-_(concurrent with E-GOV role)_
+• Automated PR review and security scanning via GitHub API; model routing (Groq for speed, Claude for critical analysis)
+• Voice input pipeline: voice notes → Whisper transcription → intent detection → Oracle diary/task storage (mTLS)
+• **Sprint Briefing Agent** (AWS Lambda, Apr 2026): EventBridge fires daily at 8AM Panama → Lambda reads 12 repos + owner's Oracle voice notes/tasks (S3 wallet, thin-mode Oracle connector) → Groq clustering + Claude narrative → OpenAI TTS → Telegram MP3 audio. Full two-way loop: voice notes in at night → spoken briefing out in the morning. ~$2/month AWS cost.
 
-• Led legal support for ICO structuring, investor relations, and smart contract compliance  
-• Authored investment passport for ICO launch, navigating emerging crypto regulations  
-• Negotiated contracts and managed regulatory compliance strategy during ICO boom
+*Technologies: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS + S3 wallet), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2*
 
 ---
 
-## EDUCATION & CERTIFICATIONS
+**VibeJobHunter AIPA — Autonomous AI Job Search System (Production)**
 
-**Polkadot Blockchain Academy (PBA-X Wave #3)** | July 2025  
-**How-To-DAO Cohort Graduate** | April 2025  
-**Master's in Social Psychology** — Penza State University, Russia | 2018  
-**Blockchain Regulation** — MGIMO (Moscow State Institute of Int'l Relations) | 2017  
-**Presidential Program for Executive Management** — RANEPA, Russia | 2015  
-_Internship: Nyskapingsparken Innovation Park, Bergen, Norway_
+Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously with human-in-the-loop for edge cases.
+
+• **LangGraph pipeline** (7 nodes, StateGraph): scrape → gate → score → route → apply/outreach/discard. Human-approval interrupt via Telegram commands (`/approve_vjh_{id}` / `/reject_vjh_{id}`). SQLite checkpoint persistence.
+• **4-layer eval harness** (131 tests, ~$0.03/run): deterministic scoring, bias compensation, 22-job golden set, Claude Haiku as independent judge (≥75% agreement) — catches regressions before deploy
+• Multi-ATS Playwright automation (Greenhouse, Lever, Ashby) + founder email outreach via Resend API
+• Hard gate excludes Senior/Staff/Principal/ML roles; daily cap 5 applications + 2 founder outreach emails
+
+*Technologies: Python, LangGraph, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API*
+
+---
+
+**EspaLuz — AI Spanish/English Tutor (Production, Paying Users)**
+
+Bilingual EN/ES AI tutor with 2-layer persistent memory, semantic RAG, OCR, TTS, and multimodal learning.
+
+• Deployed on WhatsApp Business API and Telegram; early traction across 19 Spanish-speaking countries; PayPal subscriptions live
+• **2-layer memory**: LangChain `PostgresChatMessageHistory` (exact conversation history) + pgvector semantic RAG (`espaluz_embeddings` table, OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3) — injected into Claude system prompt on every reply
+• Separate session namespaces per platform (WhatsApp / Telegram); shared `espaluz_rag.py` module
+
+*Technologies: Python, GPT-4, LangChain, pgvector (PostgreSQL), OpenAI embeddings, Whisper, WhatsApp API, Railway*
+
+---
+
+**CMO AIPA — AI Marketing Agent (Production)**
+
+Autonomous AI agent for marketing strategy and content execution — daily bilingual (EN/ES) content, strategic reasoning, integrated with CTO AIPA for automated release announcements. *Technologies: Python, FastAPI, Claude, Make.com, Buffer, Railway*
+
+**Atuona Creative AI** (atuona.xyz) — Multimodal AI creative pipeline: LLM → image → video → blockchain publishing. *Technologies: TypeScript, Node.js, Claude Opus, Replicate, Luma Labs, Thirdweb, Polygon*
+
+**ALGOM Alpha** — AI crypto education bot on X (@reviceva). *Technologies: Node.js, ElizaOS, CCXT, Twitter API*
+
+---
+
+### Operational Co-Founder
+**OmniBazaar** (Decentralized Marketplace) | Remote | 2024–2025
+• Structured DAO LLC (Marshall Islands); designed governance, tokenomics, DAO operating agreements
+
+### Deputy CEO and Chief Legal Officer
+**JSC "E-GOV OPERATOR"** | Russia | 2011–2018
+• Led large-scale public-sector digital transformation; board-level governance; cross-functional teams (IT, legal, compliance); enterprise technology programs
+
+### Deputy CEO (Business Development)
+**Fundery LLC** (Fintech/Blockchain) | Russia | 2017–2018
+• ICO compliance, investor relations, regulatory documentation, blockchain launch strategy
+
+---
+
+## EDUCATION AND CERTIFICATIONS
+
+• **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025
+• **How-To-DAO Cohort Graduate** | 2025
+• **Master of Arts in Social Psychology** | Penza State University | 2018
+• **Blockchain Regulation** | MGIMO | 2017
+• **Presidential Program for Executive Management** | RANEPA | 2015
+• Internship: Nyskapingsparken Innovation Park, Bergen, Norway
 
 ---
 
 ## LANGUAGES
 
-🇷🇺 Russian (Native) | 🇬🇧 English (Fluent) | 🇪🇸 Spanish (Intermediate) | 🇫🇷 French (Elementary)
+Russian (Native) | English (Fluent) | Spanish (Intermediate) | French (Elementary)
 
 ---
 
-## OPEN TO
+## TARGET ROLES
 
-✅ **Founding Engineer** | **AI Product Manager** | **Full-Stack AI Engineer** | **LLM Engineer**  
-✅ **AI Solutions Architect** | **Technical Leadership** roles  
-✅ **Hybrid approach:** Full-time/Part-time role + Pre-seed collaboration for AIdeazz  
-_(Parallel execution capacity — you get full technical execution, I scale AIdeazz vision alongside)_
+AI Product Engineer | Applied LLM Engineer | Founding AI Engineer | Fractional AI Consultant/Builder | AI Ops / AI Program Manager
 
----
-
-## WHY WORK WITH ME
-
-**Proven 0→1 Execution:** 6 AI products (2 live with paying users) in 7 months  
-**AI-First Builder:** 10× faster shipping with 98% cost reduction through modern AI-assisted development  
-**Full-Stack Capability:** End-to-end ownership from vision to deployment to monetization  
-**Bilingual Products:** Dual markets (EN/ES) across 19 countries = 2× revenue potential  
-**Web3 Native:** Deep understanding of blockchain, DAOs, NFTs, tokenomics, decentralization  
-**Emotional Intelligence:** Building AI that genuinely connects with humans and follows their journey  
-**Cross-Disciplinary:** Legal + Technical + Creative + Business = Rare combination
+Open to: Full-time, Part-time, Contract, Remote
 
 ---
 
-💡 _"Have any AIdeazz? Get on the ledger."_ ⚡
-
----
-
-**Full portfolio & detailed case studies:** [aideazz.xyz/card](https://aideazz.xyz/card)
+📧 aipa@aideazz.xyz | 💬 +507 616 66 716 (WhatsApp/Telegram) | 🔗 aideazz.xyz/card
