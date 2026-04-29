@@ -47,6 +47,14 @@ Polygon, Thirdweb, IPFS, NFT Platforms, Smart Contract Interaction
 
 ---
 
+## HOW I BUILD
+
+**I develop exclusively using AI-augmented workflows — Cursor IDE and Claude Code as primary tools.** This is not a workaround; it is a deliberate, modern methodology that produced 12+ production systems running today. I own every design decision, system architecture choice, and production outcome. The AI compresses execution; the judgment is entirely mine.
+
+If your hiring process includes a live whiteboard coding session or proctored syntax test, I will tell you that directly rather than go through a process designed for a different kind of engineer. If what matters is production systems that run, I can show you mine. That conversation tends to go much better.
+
+---
+
 ## PROFESSIONAL EXPERIENCE
 
 ### Founder and AI Product Engineer

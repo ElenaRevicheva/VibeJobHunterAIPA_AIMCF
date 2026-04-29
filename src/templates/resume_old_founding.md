@@ -33,6 +33,12 @@ Now seeking to join an AI startup or company focused on AI as **AI Engineer** | 
 
 ---
 
+## ⚙️ HOW I BUILD
+
+**I build exclusively with AI-augmented development — Cursor IDE and Claude Code as primary tools.** This is the deliberate methodology behind 12+ production systems. I own every architecture decision, every system design choice, every production outcome — the AI dramatically accelerates execution, the judgment is mine. One thing worth saying upfront: if your process includes a proctored coding test or live syntax assessment, that is not my workflow and I will tell you so directly rather than waste either of our time. Founders who care about shipped systems find this refreshing.
+
+---
+
 ## ⚙️ TECHNICAL STACK
 
 **AI/ML:** GPT · Claude · Groq (Llama 3.3 70B) · Whisper · TTS · MCP · LangChain · LangGraph · Semantic RAG (pgvector + OpenAI embeddings) · ElizaOS

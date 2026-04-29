@@ -19,10 +19,16 @@ Busco roles en empresas enfocadas en IA como **AI Product Engineer**, **Applied 
 
 ---
 
+## CÓMO CONSTRUYO
+
+**Desarrollo con flujos de trabajo asistidos por IA — Cursor IDE y Claude Code como herramientas principales.** Esto no es un atajo; es la metodología detrás de 12+ sistemas en producción. Cada decisión de arquitectura, integración y diseño de sistema es mía — la IA comprime el tiempo de ejecución, el criterio y la responsabilidad son completamente humanos. Si tu proceso incluye una prueba de codificación en vivo o un examen supervisado de sintaxis, lo diré con claridad desde el principio: ese no es mi flujo de trabajo. Si lo que importa es que los sistemas funcionen en producción, puedo mostrarte los míos directamente.
+
+---
+
 ## HABILIDADES CLAVE
 
 ### IA y LLMs
-Claude (Opus, Sonnet, Haiku), OpenAI GPT-4, Groq (Llama 3.3 70B, Whisper), Model Context Protocol (MCP), Prompt Engineering, diseño de contexto multi-turno, tool/function calling
+Claude (Opus, Sonnet, Haiku), OpenAI GPT-4, Groq (Llama 3.3 70B, Whisper), Model Context Protocol (MCP), LangChain, LangGraph (StateGraph, checkpointer, aprobación humana en el loop), RAG semántico (pgvector + embeddings OpenAI), Prompt Engineering, diseño de contexto multi-turno, tool/function calling
 
 ### Desarrollo Asistido por IA
 Cursor IDE (entorno principal), generación y refactorización de código asistida por IA, flujos de validación human-in-the-loop, prototipado rápido e iteración hasta producción
@@ -37,7 +43,7 @@ FastAPI, Flask, Node.js, Express, REST APIs, flujos asíncronos
 React, Vite, Tailwind CSS, Framer Motion
 
 ### Bases de Datos e Infraestructura
-PostgreSQL, Oracle Autonomous Database (mTLS), Oracle Cloud Infrastructure (OCI), Railway, Supabase, Docker, PM2, Ubuntu
+PostgreSQL (pgvector, índice ivfflat, búsqueda semántica), Oracle Autonomous Database (mTLS), Oracle Cloud Infrastructure (OCI), AWS Lambda (serverless), AWS EventBridge (cron programado), AWS S3, Railway, Supabase, Docker, PM2, Ubuntu
 
 ### Integraciones
 GitHub API (Octokit), Telegram Bot API, WhatsApp Business API, PayPal Subscriptions, Twitter/X API, Make.com, Buffer
@@ -61,11 +67,11 @@ Fundadora y principal builder de un ecosistema AI-first de productos LLM aplicad
 - Despliegue, monitoreo y operación independiente de servicios en producción
 
 **Resultados Clave:**
-- Más de 8 productos de IA en producción en menos de 10 meses
-- 11 repositorios activos en GitHub
-- Usuarios en 19 países
-- Monetización por suscripción activa vía PayPal
-- Aproximadamente 99% de reducción de costos frente a equipos tradicionales multi-rol
+- 12+ productos y agentes de IA en producción, operando de forma autónoma
+- 12 repositorios activos en GitHub
+- Usuarios en 19 países; monetización activa vía PayPal
+- ~99% de reducción de costos frente a equipos tradicionales multi-rol
+- Construido íntegramente con desarrollo asistido por IA (Cursor + Claude Code) — no codificación manual tradicional
 
 ---
 
@@ -96,12 +102,36 @@ Agente autónomo de IA para estrategia y ejecución de marketing.
 
 ### EspaLuz — Tutor de IA Español/Inglés (Sistema en Producción)
 
-Tutor bilingüe EN/ES con memoria emocional persistente, OCR, TTS y aprendizaje multimodal.
+Tutor bilingüe EN/ES con memoria persistente de 2 capas, RAG semántico, OCR, TTS y aprendizaje multimodal.
 
-- Desplegado en WhatsApp Business API y Telegram
-- Tracción temprana en 19 países hispanohablantes; suscripciones PayPal activas
+- Desplegado en WhatsApp Business API y Telegram; tracción temprana en 19 países hispanohablantes; suscripciones PayPal activas
+- **Memoria de 2 capas:** LangChain `PostgresChatMessageHistory` (historial exacto) + búsqueda semántica pgvector (tabla `espaluz_embeddings`, embeddings OpenAI `text-embedding-3-small`, similitud coseno > 0.75, top_k=3) — inyectada en el prompt de Claude en cada respuesta
+- Espacios de sesión separados por plataforma (WhatsApp / Telegram)
 
-**Tecnologías:** Python, GPT-4, LangChain, Whisper, PostgreSQL, Railway
+**Tecnologías:** Python, GPT-4, LangChain, pgvector (PostgreSQL), embeddings OpenAI, Whisper, WhatsApp API, Railway
+
+---
+
+### VibeJobHunter AIPA — Sistema Autónomo de Búsqueda de Empleo (Producción)
+
+Pipeline de IA que clasifica, puntúa, filtra y aplica a empleos de forma autónoma con aprobación humana en casos límite.
+
+- **Pipeline LangGraph** (7 nodos, StateGraph): scraping → filtro → puntuación → enrutamiento → aplicar/outreach/descartar. Interrupción para aprobación humana vía Telegram. Persistencia con SQLite checkpointer.
+- **Harness de evaluación de 4 capas** (131 pruebas): scoring determinista, compensación de sesgo, golden set de 22 empleos, Claude Haiku como juez independiente (≥75% acuerdo). ~$0.03/ejecución.
+- Automatización Playwright para múltiples ATS (Greenhouse, Lever, Ashby) + outreach a fundadores vía Resend API
+
+**Tecnologías:** Python, LangGraph, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API
+
+---
+
+### CTO AIPA — Asistente Técnico de IA (Sistema en Producción)
+
+Sistema autónomo para revisión de código en 12 repositorios + briefing diario por voz.
+
+- Revisión automática de PRs vía GitHub API; enrutamiento de modelos (Groq/velocidad, Claude/análisis crítico)
+- **Sprint Briefing Agent** (AWS Lambda, abr 2026): EventBridge dispara Lambda a las 8AM Panamá → lee 12 repos + notas de voz/tareas de Oracle (wallet S3, conector Oracle thin-mode) → Groq + Claude → TTS OpenAI → audio MP3 a Telegram. Bucle bidireccional: notas de voz por la noche → briefing hablado por la mañana. ~$2/mes en AWS.
+
+**Tecnologías:** TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS + wallet S3), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2
 
 ---
 
@@ -159,7 +189,7 @@ Tutor bilingüe EN/ES con memoria emocional persistente, OCR, TTS y aprendizaje 
 
 ## ROLES OBJETIVO
 
-AI Product Engineer | Applied LLM Engineer | AI Engineer | Founding Engineer | AI Solutions Architect
+AI Product Engineer | Applied LLM Engineer | Founding AI Engineer | Consultora/Constructora de IA Fraccional ($40–70/hr) | AI Ops / AI Program Manager
 
 ---
 

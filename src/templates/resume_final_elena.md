@@ -20,6 +20,12 @@ Seeking roles as **AI Product Engineer**, **Applied LLM Engineer**, **Founding A
 
 ---
 
+## HOW I BUILD
+
+**I develop exclusively using AI-augmented workflows — Cursor IDE and Claude Code as primary tools.** This is not a limitation; it is a deliberate, modern approach that produced 12+ production AI systems currently running in the wild. Every architecture decision, system design, and production outcome is mine — the AI compresses execution time, the judgment is entirely human. If your hiring process includes a proctored coding assessment or live whiteboard test, I will say so directly rather than go through a process designed for a different kind of engineer. If production systems matter more than whiteboard performance, I can show you mine in detail.
+
+---
+
 ## KEY ACHIEVEMENTS
 
 • **12+ live AI products and agents** operating autonomously in production — solo-built using AI-augmented development (Cursor + Claude Code)

@@ -1,6 +1,6 @@
 # ELENA REVICHEVA
 
-**Senior AI Engineer | LLM Systems | Production AI at Scale**
+**AI Product Engineer | LLM Systems | Production AI at Scale**
 
 📍 Panama City, Panama (Remote) | 🌎 Bilingual EN/ES  
 📧 aipa@aideazz.xyz | 📱 +507 6166-6716 (WhatsApp) | 💬 [Telegram](https://t.me/ElenaRevicheva)  
@@ -10,9 +10,13 @@
 
 ## SUMMARY
 
-**Production AI Engineer** with 7 live AI agents serving users across 19 countries. Deep experience with LLMs (Claude, GPT, Groq), autonomous agents, and full-stack AI infrastructure.
+**Executive-turned-AI-builder.** 7 years as Deputy CEO/CLO in E-Government, since 2025 shipping 12+ live AI products and agents as solo founder using AI-augmented development (Cursor + Claude Code). Deep hands-on experience with LLMs (Claude, Groq, GPT), autonomous agents, LangGraph pipelines, semantic RAG, and AWS serverless deployments — all in production.
 
-Built and deployed 11 AI products in 10 months — including autonomous AI Co-Founders that run 24/7 with zero human intervention.
+---
+
+## HOW I BUILD
+
+**I develop using AI-augmented workflows — Cursor IDE and Claude Code as primary tools.** This is not a gap; it is the methodology behind 12+ production systems. Every architectural decision, integration choice, and system design is mine — the AI accelerates execution, I own the judgment. If your process includes a live whiteboard coding session or proctored syntax test, I am not the right fit and I will tell you that upfront rather than waste either of our time. If what matters to you is production systems that run, I can walk you through mine directly.
 
 ---
 
@@ -102,9 +106,9 @@ Built and deployed 11 AI products in 10 months — including autonomous AI Co-Fo
 
 | Achievement | Result |
 |-------------|--------|
-| AI products shipped | 11 in 10 months |
-| Live AI agents | 7 with paying users |
-| AI services integrated | 10+ (Claude, GPT, Groq, Whisper...) |
+| AI products shipped | 12+ live in production |
+| Active GitHub repos | 12 |
+| AI services integrated | 10+ (Claude, Groq, GPT, LangGraph, pgvector...) |
 | Autonomous operation | 24/7, zero intervention |
 | Cost efficiency | 99%+ reduction ($900K → <$15K) |
 | International reach | 19 countries |
@@ -137,12 +141,12 @@ Full-stack AI development, from LLM integration to deployment
 
 ## SEEKING
 
-🎯 **Senior AI Engineer** — LLM-focused product teams  
-🎯 **Staff AI Engineer** — High-autonomy, production systems  
 🎯 **AI Product Engineer** — End-to-end AI product ownership  
-🎯 **LLM Engineer** — Claude/GPT integration specialists
+🎯 **Applied LLM Engineer** — LangChain/LangGraph/RAG systems  
+🎯 **Founding AI Engineer** — 0→1 at seed/Series A  
+🎯 **Fractional AI Consultant/Builder** — $40–70/hr, direct founder access
 
-**Compensation:** $150K+ base (US/Remote) | Equity expected at early-stage
+**Compensation:** $3.5K–5K/month (full-time) | $40–70/hr (fractional) | Equity at early-stage
 
 ---
 

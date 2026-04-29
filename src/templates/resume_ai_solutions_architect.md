@@ -10,9 +10,15 @@
 
 ## SUMMARY
 
-**AI Solutions Architect** with hands-on experience designing, building, and deploying production AI systems at scale. Architected 11 AI products including autonomous agent pipelines that operate 24/7 with enterprise-grade reliability.
+**AI Solutions Architect and executive-turned-builder.** Designed and shipped 12+ live AI products and agents using AI-augmented development (Cursor + Claude Code) — including LangGraph pipelines, semantic RAG (pgvector), and AWS Lambda serverless deployments. 7 years as Deputy CEO/CLO in E-Government gives real enterprise systems context.
 
-Unique combination: **Technical depth** (10+ AI services in production) + **Executive background** (7 years C-suite managing IT infrastructure).
+Unique combination: **Technical depth** (LangGraph, pgvector RAG, Oracle Cloud, AWS Lambda in production) + **Executive background** (7 years C-suite managing IT infrastructure at board level).
+
+---
+
+## HOW I BUILD
+
+**I develop using AI-augmented workflows — Cursor IDE and Claude Code as primary tools.** This is the methodology behind 12+ production systems, not a shortcut. Architecture decisions, system design, integration logic — all mine. The AI compresses execution time; the judgment and ownership are entirely human. If your hiring process includes a live syntax test or proctored coding assessment, I will be straightforward: that is not how I work and not a meaningful signal for what I deliver. If production systems matter more to you than whiteboard performance, I can show you mine in detail.
 
 ---
 
@@ -131,12 +137,12 @@ Unique combination: **Technical depth** (10+ AI services in production) + **Exec
 
 | Metric | Result |
 |--------|--------|
-| Systems architected | 11 AI products |
+| Systems shipped | 12+ live AI products and agents |
+| Active GitHub repos | 12 |
 | Production uptime | 99%+ |
 | Cost optimization | 99% reduction vs traditional |
-| AI services integrated | 10+ |
-| Enterprise database | Oracle Autonomous DB (mTLS) |
-| Multi-cloud | Oracle Cloud + Railway + Supabase |
+| AI services integrated | 12+ (Claude, Groq, LangGraph, pgvector, AWS...) |
+| Cloud platforms | Oracle Cloud (mTLS) + AWS Lambda/EventBridge + Railway |
 
 ---
 
@@ -151,14 +157,14 @@ Unique combination: **Technical depth** (10+ AI services in production) + **Exec
 
 ## SEEKING
 
-🎯 **AI Solutions Architect** — Enterprise AI implementations  
-🎯 **Principal Engineer** — AI platform architecture  
-🎯 **Technical Lead** — AI/ML infrastructure teams  
-🎯 **Staff Engineer** — High-scale AI systems
+🎯 **AI Solutions Architect** — AI systems design for founders/operators  
+🎯 **Founding AI Engineer** — 0→1 architecture ownership  
+🎯 **AI Integration Engineer** — Multi-system, multi-cloud pipelines  
+🎯 **Fractional AI Consultant/Builder** — $40–70/hr, direct founder access
 
-**Location:** Remote preferred | Open to hybrid for exceptional opportunities
+**Location:** Remote preferred | Open to hybrid
 
-**Compensation:** $150K–$220K (US/Remote) | Equity expected at startups
+**Compensation:** $3.5K–5K/month (full-time) | $40–70/hr (fractional) | Equity at early-stage
 
 ---
 

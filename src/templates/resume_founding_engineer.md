@@ -10,15 +10,22 @@
 
 ## SUMMARY
 
-**Founder-level engineer** who ships production AI systems solo. Built 11 AI products (7 live agents) in 10 months for <$15K — a 99%+ cost reduction vs traditional teams.
+**Founding-level AI builder** who ships production systems using AI-augmented development (Cursor + Claude Code). 12+ live AI products and agents in production — LangGraph pipelines, semantic RAG, AWS Lambda deployments, Oracle Cloud. Not demos. Not prototypes. Running daily.
 
 Looking for: **Founding Engineer** role at a seed/Series A startup where I can own the entire technical stack and build 0→1.
 
 **Why me over other candidates:**
 - I've already built what most candidates promise they'll build
-- 7 live AI agents with paying users in 19 countries
-- Deployed AI Co-Founders (CTO + CMO AIPAs) running 24/7 at $0/month
+- 12+ live AI agents and products, users in 19 countries
+- Deployed AI Co-Founders (CTO + CMO AIPAs) running 24/7; Sprint Briefing Agent on AWS Lambda
+- LangGraph pipeline in production, 131-test eval harness, semantic RAG with pgvector
 - Try my AI right now: [wa.me/50766623757](https://wa.me/50766623757)
+
+---
+
+## HOW I BUILD
+
+**I build using AI-augmented development — Cursor IDE and Claude Code as primary tools.** 12+ production systems is the proof that this works. I own every design decision, integration choice, and production outcome — the AI compresses the time between idea and shipped code. One thing worth stating clearly: if your process includes a proctored coding test or live syntax session, I will tell you upfront that is not my workflow and suggest we look at running systems instead. Founders who care about what ships find this refreshing. Those who need whiteboard performance will find a better fit elsewhere — and that is genuinely fine.
 
 ---
 
@@ -26,22 +33,22 @@ Looking for: **Founding Engineer** role at a seed/Series A startup where I can o
 
 | Metric | Result |
 |--------|--------|
-| **Products shipped** | 11 AI products in 10 months (solo) |
-| **Live AI agents** | 7 (with paying users) |
+| **Products shipped** | 12+ live AI products and agents (solo) |
+| **Active GitHub repos** | 12 |
 | **Cost reduction** | 99%+ ($900K → <$15K) |
 | **Revenue** | PayPal subscriptions LIVE |
 | **Countries reached** | 19 Spanish-speaking countries |
-| **AI Co-Founders** | CTO AIPA + CMO AIPA ($0/month) |
+| **AI stack in production** | LangGraph · pgvector RAG · AWS Lambda · Oracle Cloud |
 
 ---
 
 ## TECHNICAL STACK (FULL-STACK)
 
-**AI/ML:** Claude · GPT · Groq (Llama 3.3 70B) · Whisper · TTS · MCP · LangChain · ElizaOS  
+**AI/ML:** Claude · GPT · Groq (Llama 3.3 70B) · Whisper · OpenAI TTS · LangChain · LangGraph (StateGraph, human interrupt) · Semantic RAG (pgvector + OpenAI embeddings) · MCP · ElizaOS  
 **Backend:** Python · FastAPI · Flask · Node.js · Express.js · TypeScript  
 **Frontend:** React · Tailwind · shadcn/ui · Framer Motion · i18next  
-**Infrastructure:** PostgreSQL · Oracle Cloud · Docker · Railway · PM2  
-**APIs:** WhatsApp · Telegram · GitHub API · PayPal · Make.com · Buffer  
+**Infrastructure:** PostgreSQL (pgvector) · Oracle Cloud (mTLS) · AWS Lambda · AWS EventBridge · AWS S3 · Railway · Docker · PM2  
+**APIs:** WhatsApp · Telegram · GitHub API · PayPal · Playwright (ATS) · Resend · Make.com  
 **Web3:** Polygon · Thirdweb · IPFS · DAO Design
 
 ---
@@ -56,7 +63,7 @@ Built entire AI ecosystem single-handedly. No team, no investors, no excuses.
 **🤖 AI Co-Founders (Flagship Achievement)**
 
 **CTO AIPA** — Autonomous Code Reviewer
-- Reviews PRs across 8 GitHub repos (24/7, sub-30s response)
+- Reviews PRs across 12 GitHub repos (24/7, sub-30s response)
 - Security scanning, complexity analysis, performance optimization
 - Stack: TypeScript, Groq, Claude, Oracle Database, GitHub API
 - Impact: $0/month (vs $120K/year senior dev)
@@ -111,10 +118,10 @@ Built entire AI ecosystem single-handedly. No team, no investors, no excuses.
 
 ## OPEN TO
 
-🎯 **Founding Engineer** (0.5-3% equity)  
+🎯 **Founding Engineer** (0.5–3% equity)  
 🎯 **First Engineer** at seed/Series A  
 🎯 **Technical Co-Founder** (equity-heavy)  
-🎯 **Staff/Principal Engineer** (high autonomy)
+🎯 **Fractional AI Consultant/Builder** ($40–70/hr, direct founder engagement)
 
 **Location:** Remote-first | Open to relocation for right opportunity
 
