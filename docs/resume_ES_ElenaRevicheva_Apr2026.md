@@ -1,6 +1,6 @@
 # ELENA REVICHEVA
 
-**Ingeniera de IA Aplicada | Sistemas LLM · Agentes de IA · Pipelines Autónomos**
+**Ingeniera de IA Aplicada | Construyo Sistemas de IA que Funcionan en Producción**
 
 📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portafolio](https://aideazz.xyz/card)
@@ -24,53 +24,34 @@ Costa del Este, Juan Díaz, Ciudad de Panamá | Remoto Global | UTC-5
 
 ## CÓMO CONSTRUYO
 
-**Construyo sistemas de IA en producción usando un flujo de trabajo de desarrollo asistido por IA — Cursor IDE y Claude Code como herramientas principales de uso diario.** Esta no es una solución atajo; es una metodología deliberada y moderna que ha producido 12+ sistemas en producción funcionando actualmente. Cada decisión de arquitectura, diseño de sistema y resultado productivo es mío — la IA comprime el tiempo de ejecución, el criterio es completamente humano.
+Construyo usando **Cursor IDE y Claude Code como herramientas principales de uso diario** — un flujo de trabajo asistido por IA que produjo 12+ sistemas en producción en menos de un año, a una fracción de lo que costaría un equipo tradicional. Cada decisión de diseño y resultado del sistema es mío; la IA comprime el tiempo de ejecución. Este enfoque es deliberado y moderno, no un atajo.
 
-Si tu proceso de selección incluye una prueba de codificación supervisada o una pizarra en vivo, lo diré directamente desde el inicio: ese no es mi flujo de trabajo. Si los sistemas en producción importan más que el desempeño en pizarra, puedo mostrarte los míos en detalle.
+**Nota para equipos de selección:** Si tu proceso incluye una prueba de codificación supervisada o una pizarra en vivo, lo diré directamente desde el inicio — ese no es mi flujo de trabajo. Si lo que importa son sistemas en producción que funcionan, puedo mostrarte los míos.
 
 ---
 
 ## RESUMEN PROFESIONAL
 
-Ingeniera de IA Aplicada con experiencia práctica construyendo y operando sistemas LLM en producción — pipelines agénticos con LangGraph, memoria semántica de 2 capas con RAG/pgvector, arneses de evaluación automatizados y despliegue serverless en AWS Lambda.
+En los últimos 12 meses, construí y lancé 12 productos de IA — como fundadora independiente, sin equipo. El equivalente a lo que la mayoría de las empresas asigna a 4–5 ingenieros, al menos del 1% del costo.
 
-Mi perfil combina 7+ años de liderazgo ejecutivo en programas de infraestructura digital a gran escala (Subdirectora General, sector E-Government ruso) con 12+ meses de ejecución de productos de IA como fundadora independiente: 12 sistemas en producción, 12 repositorios activos, usuarios en 19 países. Traduzco arquitectura técnica a decisiones de negocio — y viceversa — en la misma conversación.
+No son demos ni prototipos. Son sistemas operando 24/7: un motor de búsqueda de empleo que aplica de forma autónoma, un tutor de idiomas que recuerda a sus estudiantes, un agente de revisión de código que vigila 12 repositorios, un briefing de voz entregado cada mañana a las 8AM. Usuarios reales. Pagos reales. Infraestructura real.
 
-Busco roles como **Ingeniera de IA Aplicada**, **AI Product Engineer**, **Founding AI Engineer** o **Consultora de IA Fraccional**.
+Antes de la IA, trabajé 7 años como Subdirectora General y Directora Legal dirigiendo grandes programas de infraestructura digital para el gobierno ruso — tecnología enterprise, decisiones a nivel de consejo directivo, equipos multidisciplinarios. Sé pensar a nivel de sistemas y hablar tanto con decisores como con desarrolladores, en la misma conversación.
+
+**Lo que busco:** Un rol donde pueda construir productos de IA que importen — como ingeniera fundadora, ingeniera de IA aplicada, o consultora de IA fraccional.
 
 ---
 
-## HABILIDADES TÉCNICAS CLAVE
+## QUÉ HE CONSTRUIDO — RESULTADOS CLAVE
 
-### Sistemas LLM y Agentes
-Claude (Opus, Sonnet, Haiku) · OpenAI GPT-4 · Groq (Llama 3.3 70B, Whisper) · enrutamiento de modelos · tool/function calling · orquestación multi-paso · ingeniería de prompts · salidas estructuradas · diseño de contexto multi-turno
-
-### Frameworks de Agentes y Memoria
-**LangGraph** (StateGraph, checkpointer SQLite, interrupción con aprobación humana) · **LangChain** (PostgresChatMessageHistory, cadenas de recuperación) · **RAG Semántico** (pgvector + embeddings OpenAI `text-embedding-3-small`, similitud coseno > 0.75, índice ivfflat, top_k=3)
-
-### Evaluación y Control de Calidad
-Arnés de evaluación de 4 capas: scoring por palabras clave (C1) · compensación de sesgo (C2) · enrutamiento por golden set (C3) · **Claude Haiku como juez LLM independiente** (C4, umbral ≥75% de acuerdo, 22 trabajos en golden set) · ~$0.03/ejecución · detección de regresiones antes de cada despliegue
-
-### Desarrollo Asistido por IA
-Cursor IDE (entorno principal) · Claude Code · generación y refactorización de código asistida por IA · prototipado rápido → producción
-
-### Programación
-Python · TypeScript · JavaScript · SQL
-
-### Backend y APIs
-Node.js · Express · FastAPI · Flask · REST APIs · flujos asíncronos · manejo de webhooks · PostgreSQL
-
-### Frontend
-React 18 + TypeScript + Vite · Tailwind CSS · Framer Motion
-
-### Bases de Datos e Infraestructura
-PostgreSQL (pgvector, ivfflat, similitud coseno) · Oracle Autonomous Database (mTLS) · Oracle Cloud Infrastructure (OCI) · **AWS Lambda** (Node.js, serverless) · **AWS EventBridge** (cron programado) · AWS S3 · Railway · Supabase · Docker · PM2 · Ubuntu
-
-### Integraciones
-GitHub API (Octokit) · Telegram Bot API · WhatsApp Business API · PayPal Subscriptions · Twitter/X API · Make.com · Buffer · Resend · Playwright (automatización ATS)
-
-### Web3
-Polygon · Thirdweb · IPFS · Plataformas NFT · Interacción con Smart Contracts
+| | |
+|---|---|
+| **12+ productos de IA en producción** | Operando de forma autónoma, 24/7, con $0/mes en infraestructura cloud |
+| **99% de reducción de costos** | Entregué sola lo que costaría ~$900K con un equipo tradicional |
+| **Usuarios en 19 países** | Suscripciones activas vía PayPal |
+| **1.900+ empleos procesados** | Por una IA que aplica, hace seguimiento y sabe cuándo pedir aprobación humana |
+| **~$2/mes en AWS** | Sistema serverless que lee 12 productos y entrega un briefing de voz diario |
+| **$0.03 por verificación de calidad** | Sistema de pruebas automatizadas que detecta problemas antes de llegar a los usuarios |
 
 ---
 
@@ -79,87 +60,68 @@ Polygon · Thirdweb · IPFS · Plataformas NFT · Interacción con Smart Contrac
 ### Ingeniera de IA Aplicada y Fundadora
 **AIdeazz.xyz** | Panamá / Remoto | 2025 – Presente
 
-Fundadora y constructora principal de un ecosistema AI-first de 12+ sistemas LLM en producción y agentes autónomos — desarrollados con flujos de trabajo asistidos por IA (Cursor + Claude Code).
+---
+
+### VibeJobHunter — Sistema Autónomo de Búsqueda de Empleo
+
+**Qué hace:** Encuentra empleos, los puntúa según compatibilidad, aplica automáticamente y se detiene para pedir aprobación humana solo cuando la decisión es genuinamente dudosa. Sin búsqueda manual. Sin formularios repetitivos. Solo resultados.
+
+**Resultados:** Procesó 1.900+ ofertas de empleo. Generó 250+ aplicaciones personalizadas y 140+ mensajes de outreach. Construido con una capa de pruebas de calidad — 131 verificaciones automatizadas se ejecutan antes de cada actualización, incluyendo una IA que audita de forma independiente la lógica de puntuación para detectar regresiones.
+
+**Cómo funciona (para el lector técnico):** Pipeline LangGraph con estado (StateGraph de 7 nodos) con persistencia de sesión SQLite e interrupción con aprobación humana para puntuaciones límite. Evaluación de 4 capas: scoring por palabras clave, compensación de sesgo, golden set de 22 empleos, y Claude Haiku como juez LLM independiente (umbral ≥75% de acuerdo). Automatización de formularios multi-ATS vía Playwright. Outreach vía API Resend.
+
+*Tech: Python · LangGraph · LangChain · Claude · Playwright · SQLite · Resend · Telegram Bot API*
 
 ---
 
-**VibeJobHunter AIPA — Pipeline Autónomo de Búsqueda de Empleo (Producción)**
+### EspaLuz — Tutor de IA en Español/Inglés (Usuarios de Pago, 19 Países)
 
-Pipeline de IA de pila completa que raspa, puntúa, filtra y aplica a empleos de forma autónoma — con aprobación humana en el loop para casos límite.
+**Qué hace:** Un tutor de español/inglés en WhatsApp y Telegram que realmente recuerda a sus estudiantes. En lugar de empezar desde cero en cada sesión, recuerda conversaciones pasadas y muestra contexto relevante automáticamente — como lo haría un buen tutor humano. Los estudiantes pagan una suscripción mensual.
 
-- **LangGraph StateGraph** (7 nodos): scraping → filtro → puntuación → enrutamiento → aplicar / outreach / descartar. Checkpointer SQLite (`thread_id` por trabajo para deduplicación completa); interrupción de aprobación humana para banda de puntuación 60–69 vía Telegram (`/approve_vjh_{id}` / `/reject_vjh_{id}`)
-- **Arnés de evaluación de 4 capas** (131 pruebas, ~$0.03/ejecución): Capas 1–3 deterministas (scoring por palabras clave, compensación de sesgo, golden set de 22 trabajos); Capa 4 = Claude Haiku como juez LLM independiente con umbral ≥75% de acuerdo — detecta regresiones antes de cada despliegue
-- Automatización Playwright multi-ATS (Greenhouse, Lever, Ashby) + outreach por email a fundadores vía API Resend
-- Filtro duro: categoría de rol, etapa y tamaño de empresa para evitar aplicaciones a roles con filtros de credenciales; límite diario 5 aplicaciones + 2 correos de outreach
+**Resultados:** Activo en 19 países hispanohablantes. Suscripciones PayPal en funcionamiento. Desplegado en WhatsApp y Telegram desde una base de código compartida.
 
-*Tech: Python, LangGraph, LangChain, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API*
+**Cómo funciona (para el lector técnico):** Memoria de 2 capas — historial de conversación LangChain (exactas las últimas 5 conversaciones) + búsqueda semántica sobre el historial completo vía pgvector (embeddings OpenAI, similitud coseno > 0.75). Ambas capas se inyectan en el prompt del sistema de la IA antes de cada respuesta. Espacios de sesión separados por plataforma.
 
----
-
-**EspaLuz — Tutor de IA Español/Inglés (Producción, Usuarios de Pago)**
-
-Tutor de IA bilingüe EN/ES con memoria persistente de 2 capas, RAG semántico, OCR, TTS y aprendizaje multimodal — desplegado en WhatsApp Business API y Telegram.
-
-- **Arquitectura de memoria de 2 capas**: LangChain `PostgresChatMessageHistory` (últimas 5 conversaciones exactas) + **RAG semántico con pgvector** (tabla `espaluz_embeddings`, embeddings OpenAI `text-embedding-3-small`, similitud coseno > 0.75, top_k=3) — inyectados en el prompt de Claude antes de cada respuesta. El bot recuerda lo que dijiste la semana pasada y muestra contexto relevante sin que tengas que repetirte.
-- Espacios de sesión separados por plataforma (`telegram_*` / `whatsapp_*`); módulo compartido `espaluz_rag.py`
-- Tracción temprana en 19 países hispanohablantes; suscripciones PayPal activas
-
-*Tech: Python, GPT-4, LangChain, pgvector (PostgreSQL), embeddings OpenAI, Whisper, WhatsApp Business API, Railway*
+*Tech: Python · GPT-4 · LangChain · pgvector · embeddings OpenAI · Whisper · WhatsApp Business API · Railway*
 
 ---
 
-**CTO AIPA — Co-Fundador Técnico de IA (Producción)**
+### CTO AIPA — Socio Técnico de IA
 
-Sistema autónomo de IA para revisión de código, toma de decisiones técnicas y briefing diario en 12 repositorios GitHub activos.
+**Qué hace:** Un sistema de IA que vigila los 12 productos las 24 horas — revisa cambios de código, señala riesgos de seguridad, y cada mañana a las 8AM entrega un briefing de voz a mi teléfono: qué cambió durante la noche, qué me dije que haría ayer, qué necesita atención hoy.
 
-- Revisión automática de PRs y escaneo de seguridad vía GitHub API; enrutamiento inteligente de modelos (Groq Llama 3.3 70B para velocidad, Claude para análisis crítico/seguridad)
-- Pipeline de voz: notas de voz → transcripción Whisper → detección de intención → almacenamiento en tabla `knowledge_base` de Oracle (diario/tareas, mTLS)
-- **Sprint Briefing Agent** (AWS Lambda, abr. 2026): cron de EventBridge se activa a las 8AM Panamá → Lambda lee actividad nocturna de 12 repos GitHub + recupera notas de voz y tareas del propietario desde Oracle vía wallet S3 (conector Oracle thin-mode — sin Instant Client, JS puro) → Groq agrupa las señales → Claude escribe la narrativa → OpenAI TTS (voz onyx) genera MP3 → entregado a Telegram. Bucle de memoria bidireccional completo: notas de voz por la noche → audio de briefing por la mañana. ~$2/mes en AWS.
+**Resultados:** Cada cambio de código en 12 repositorios revisado automáticamente. Cada briefing matutino entregado en horario. Las notas de voz grabadas de noche se convierten en parte del audio de la mañana siguiente. Ciclo de retroalimentación completo, totalmente autónomo.
 
-*Tech: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS + wallet S3), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2*
+**Cómo funciona (para el lector técnico):** Webhook de GitHub → análisis de seguridad y complejidad → enrutamiento de modelos (Claude para críticos, Groq para estándar). Voz → transcripción Whisper → base de datos Oracle. Sprint Briefing Agent en AWS Lambda: cron de EventBridge a las 8AM Panamá → lee GitHub + Oracle (diario/tareas) vía wallet S3 (conector Oracle thin-mode) → Groq agrupa señales → Claude escribe narrativa → OpenAI TTS genera audio → entrega por Telegram. ~$2/mes.
 
----
-
-**Agente de Marketing IA (CMO AIPA) — Producción**
-
-Agente de contenido bilingüe (EN/ES) autónomo para estrategia de marketing y ejecución de contenido — integrado con CTO AIPA para anuncios automáticos de lanzamientos.
-
-*Tech: Python, FastAPI, Claude, Make.com, Buffer, Railway*
+*Tech: TypeScript · Node.js · Claude · Groq · OpenAI TTS · Oracle Cloud (mTLS) · AWS Lambda · AWS EventBridge · AWS S3 · GitHub API · PM2*
 
 ---
 
-**Productos Adicionales Desplegados**
+### Agente de Marketing IA (CMO AIPA)
 
-**ALGOM Alpha** — Bot de educación cripto e IA en X (@reviceva). *Tech: Node.js, ElizaOS, CCXT, Twitter API*
+**Qué hace:** Escribe y publica contenido bilingüe (inglés/español) diariamente — estratégico, no basado en plantillas. Cuando un producto lanza una nueva funcionalidad, el agente de marketing lo detecta y publica automáticamente sobre ello.
 
-**Atuona Creative AI** (atuona.xyz) — Pipeline creativo multimodal de IA: LLM → imagen → video → publicación blockchain. *Tech: TypeScript, Node.js, Claude Opus, Replicate, Luma Labs API, Thirdweb, Polygon*
+*Tech: Python · FastAPI · Claude · Make.com · Buffer · Railway*
 
 ---
 
-**Métricas Clave del Portafolio**
+### Productos Adicionales
 
-| Métrica | Resultado |
-|---------|-----------|
-| Sistemas de IA en producción | 12+ operando autónomamente |
-| Repositorios GitHub activos | 12 |
-| Usuarios por países | 19 |
-| Reducción de costos vs. desarrollo tradicional | ~99% ($900K → <$15K) |
-| Pipeline LangGraph | StateGraph 7 nodos, checkpointer SQLite, interrupción humana |
-| RAG semántico | pgvector + embeddings OpenAI, memoria 2 capas, live en prod |
-| Arnés de evaluación | 131 pruebas, 4 capas, juez LLM, ~$0.03/ejecución |
-| AWS Lambda | Sprint Briefing Agent, cron EventBridge, ~$2/mes |
+**Atuona Creative AI** (atuona.xyz) — Pipeline creativo de IA: texto → imagen → video → publicación blockchain. *Tech: TypeScript · Node.js · Claude Opus · Replicate · Luma Labs · Thirdweb · Polygon*
+
+**ALGOM Alpha** — Bot de educación cripto e IA en X (@reviceva). *Tech: Node.js · ElizaOS · CCXT · Twitter API*
 
 ---
 
 ### Cofundadora Operativa
 **OmniBazaar** (Marketplace Descentralizado) | Remoto | 2024 – 2025
-- Estructuración de DAO LLC (Islas Marshall); diseño de gobernanza, tokenomics y acuerdos DAO alineados con smart contracts
+- Estructuración de DAO LLC (Islas Marshall); diseño de gobernanza, tokenomics y acuerdos DAO
 
 ### Subdirectora General y Directora Legal
 **JSC "E-GOV OPERATOR"** | Rusia | 2011 – 2018
-- Liderazgo de iniciativas de transformación digital del sector público a nivel de consejo directivo
-- Gestión de equipos multidisciplinarios (IT, legal, compliance, programas tecnológicos enterprise)
-- Gobernanza corporativa en el sector E-Government regional ruso
+- Liderazgo de grandes programas de transformación digital para el gobierno regional ruso a nivel de consejo directivo
+- Gestión de equipos multidisciplinarios (IT, legal, compliance); programas de tecnología enterprise
 
 ### Subdirectora General (Desarrollo de Negocio)
 **Fundery LLC** (Fintech/Blockchain) | Rusia | 2017 – 2018
@@ -167,10 +129,32 @@ Agente de contenido bilingüe (EN/ES) autónomo para estrategia de marketing y e
 
 ---
 
+## HABILIDADES TÉCNICAS
+
+*(Para quienes quieren el stack completo)*
+
+**IA y Agentes:** Claude (Opus, Sonnet, Haiku) · OpenAI GPT-4 · Groq (Llama 3.3 70B, Whisper) · LangGraph · LangChain · RAG Semántico (pgvector + embeddings OpenAI) · enrutamiento de modelos · tool calling · orquestación multi-paso · ingeniería de prompts
+
+**Evaluación:** Harness de 4 capas · LLM-como-juez · pruebas de golden set · detección de regresiones
+
+**Lenguajes:** Python · TypeScript · JavaScript · SQL
+
+**Backend:** Node.js · Express · FastAPI · Flask · REST APIs · flujos asíncronos · webhooks
+
+**Frontend:** React 18 + TypeScript + Vite · Tailwind CSS · Framer Motion
+
+**Infraestructura:** PostgreSQL (pgvector) · Oracle Autonomous Database (mTLS) · Oracle Cloud (OCI) · AWS Lambda · AWS EventBridge · AWS S3 · Railway · Supabase · Docker · PM2 · Ubuntu
+
+**Integraciones:** GitHub API · Telegram Bot API · WhatsApp Business API · PayPal · Twitter/X · Playwright · Resend · Make.com · Buffer
+
+**Web3:** Polygon · Thirdweb · IPFS · Smart Contracts
+
+---
+
 ## EDUCACIÓN Y CERTIFICACIONES
 
-- **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025 | Online
-- **How-To-DAO Cohort Graduate** | 2025 | Online
+- **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025
+- **How-To-DAO Cohort Graduate** | 2025
 - **Máster en Psicología Social** | Universidad Estatal de Penza | 2018 | Rusia
 - **Regulación Blockchain** | MGIMO | 2017 | Moscú
 - **Programa Presidencial de Dirección Ejecutiva** | RANEPA | 2015 | Moscú
@@ -186,7 +170,7 @@ Ruso (Nativo) | Inglés (Fluido) | Español (Intermedio) | Francés (Básico)
 
 ## ROLES OBJETIVO
 
-Ingeniera de IA Aplicada · AI Product Engineer · Founding AI Engineer · Agentic AI Engineer · Internal AI Tools Engineer · Consultora de IA Fraccional ($40–70/hr)
+Ingeniera de IA Aplicada · AI Product Engineer · Founding AI Engineer · Constructora de Herramientas Internas de IA · Consultora de IA Fraccional ($40–70/hr)
 
 Disponible para: Tiempo completo · Medio tiempo · Contrato · Remoto
 
