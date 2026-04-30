@@ -1,6 +1,6 @@
 # ELENA REVICHEVA
 
-**Applied AI Engineer | LLM Systems · AI Agents · Autonomous Pipelines** | **AI Systems Operator | AI Automation Lead
+**Applied AI Engineer | LLM Systems · AI Agents · Autonomous Pipelines | AI Systems Operator | AI Automation Lead**
 
 📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
@@ -17,7 +17,7 @@ Costa del Este, Panama City | Remote Worldwide | UTC-5
 | **Nationality** | Russian |
 | **Panama Residence** | Carné de Residente Permanente |
 | **Panamanian Work Permit** | Type 4B |
-| **RUC - PERSONA NATURAL EXTRANJERA | 8-NT-2-781965 DV 90, Actividad Empresarial Ocupación 21320 - PROGRAMADORES INFORMATICOS |
+| **RUC - PERSONA NATURAL EXTRANJERA** | 8-NT-2-781965 DV 90, Actividad Empresarial Ocupación 21320 - PROGRAMADORES INFORMATICOS |
 | **Panamanian Driver's License** | Type C |
 | **Location** | Costa del Este, Juan Díaz, Panama City |
 
@@ -28,8 +28,7 @@ Costa del Este, Panama City | Remote Worldwide | UTC-5
 
 Applied AI Engineer with hands-on experience building and operating production LLM systems — agentic pipelines with LangGraph, 2-layer semantic memory with RAG/pgvector, automated evaluation harnesses, and serverless cloud deployment on AWS Lambda.
 
-Background combines 7+ years of executive leadership in large-scale digital infrastructure programs (Deputy CEO & CLO, Russian E-Government sector) with 12+ months of solo AI product execution: 12 production systems, 12 active repositories, early users across 19 countries. Can translate technical architecture to business decisions — and back — in the same conversation. I combine executive-level thinking with practical system execution — able to translate
-business needs into working AI solutions.
+Background combines 7+ years of executive leadership in large-scale digital infrastructure programs (Deputy CEO & CLO, Russian E-Government sector) with 12+ months of solo AI product execution: 12 production systems, 12 active repositories, early users across 19 countries. Can translate technical architecture into business decisions — and back — in the same conversation.
 
 I use AI-assisted development to accelerate execution, while maintaining full ownership of system design, debugging, and production behavior. Comfortable working within existing teams, tools, and processes — not only building from scratch. 
 
@@ -96,7 +95,7 @@ business and personal use cases, from idea to production and ongoing optimizatio
 
 **VibeJobHunter AIPA — Autonomous Job Search Pipeline (Production)**
 
-Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously — with human-in-the-loop approval for edge cases. Autonomous Job Pipeline: end-to-end system for job discovery, scoring, application, and follow-up, generating 250+ tailored applications and 140+ outreach messages
+Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously — with human-in-the-loop approval for edge cases. Generated 250+ tailored applications and 140+ outreach messages across 1,900+ listings in production.
 
 - **LangGraph StateGraph** (7 nodes): scrape → gate → score → route → apply / outreach / discard. SQLite checkpointer (`thread_id` per job for full deduplication); human-approval interrupt for score band 60–69 via Telegram (`/approve_vjh_{id}` / `/reject_vjh_{id}`)
 - **4-layer evaluation harness** (131 tests, ~$0.03/run): Layers 1–3 deterministic (keyword scoring, bias compensation, 22-job golden set); Layer 4 = Claude Haiku as independent LLM judge at ≥75% agreement — catches scoring regressions before deploy
@@ -109,8 +108,7 @@ Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autono
 
 **EspaLuz — AI Spanish/English Tutor (Production, Paying Users)**
 
-Bilingual EN/ES AI tutor with 2-layer persistent memory, semantic RAG, OCR, TTS, and multimodal learning — deployed on WhatsApp Business API and Telegram. subscription-based assistant for expats to Spanish speaking countries with messaging, voice, and
-persistent user context (early paying users via PayPal)
+Subscription-based bilingual EN/ES AI tutor with 2-layer persistent memory, semantic RAG, OCR, TTS, and multimodal learning — deployed on WhatsApp Business API and Telegram. Early paying users via PayPal; traction across 19 Spanish-speaking countries.
 
 - **2-layer memory architecture**: LangChain `PostgresChatMessageHistory` (exact last 5 conversation turns) + **pgvector semantic RAG** (`espaluz_embeddings` table, OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3) — injected into Claude system prompt before every reply. This means the bot remembers what you said last week and surfaces relevant past context without you repeating yourself.
 - Separate session namespaces per platform (`telegram_*` / `whatsapp_*`); shared `espaluz_rag.py` module across both deployments
@@ -126,16 +124,15 @@ Autonomous AI system for code review, technical decision-making, and daily brief
 
 - Automated PR review and security scanning via GitHub API; intelligent model routing (Groq Llama 3.3 70B for speed, Claude for critical/security analysis)
 - Voice input pipeline: voice notes → Whisper transcription → intent detection → Oracle `knowledge_base` table (diary/task storage, mTLS)
-- **Sprint Briefing Agent** (AWS Lambda, Apr 2026): EventBridge cron fires at 8AM Panama daily → Lambda reads 12 GitHub repos overnight activity + retrieves owner's voice notes and tasks from Oracle via S3 wallet (thin-mode Oracle connector — no Instant Client, pure JS) → Groq clusters the signals → Claude writes a narrative → OpenAI TTS (onyx voice) renders MP3 → delivered to Telegram. Full two-way memory loop: voice notes spoken at night → briefing audio plays in the morning. ~$2/month AWS cost.
+- **Sprint Briefing Agent** (AWS Lambda, Apr 2026): EventBridge cron fires at 8AM Panama daily → Lambda reads 12 GitHub repos overnight activity + retrieves owner's voice notes and tasks from Oracle via a secure REST proxy on the CTO server → Groq clusters the signals → Claude writes a narrative → OpenAI TTS (onyx voice) renders MP3 → delivered to Telegram. Full two-way memory loop: voice notes spoken at night → briefing audio plays in the morning. ~$2/month AWS cost.
 
-*Tech: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS + S3 wallet), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2*
+*Tech: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2*
 
 ---
 
 **AI Marketing Agent (CMO AIPA) — Production**
 
-AI Marketing Automation (GEO + SEO): fully automated content, discoverability, lead
-capture, and outreach system operating with minimal manual input. Autonomous bilingual (EN/ES) content agent for marketing strategy and content execution — integrated with CTO AIPA for automated release announcements.
+Autonomous bilingual (EN/ES) content agent: GEO+SEO content automation, discoverability, lead capture, and outreach pipeline — integrated with CTO AIPA for automated release announcements. Operates with minimal manual input.
 
 *Tech: Python, FastAPI, Claude, Make.com, Buffer, Railway*
 
@@ -156,16 +153,15 @@ capture, and outreach system operating with minimal manual input. Autonomous bil
 | Production AI systems | 12+ operating autonomously |
 | Active GitHub repositories | 12 |
 | Early users across Spanish-speaking countries | 19 |
-| Cost vs traditional development | ~99% reduction ($900K → <$15K). Significant cost reduction compared to traditional development approaches (from team-based budgets to lean, AI-assisted builds) |
+| Cost vs traditional development | ~99% reduction ($900K → <$15K) vs. traditional team-based builds |
 | LangGraph pipeline | 7-node StateGraph, SQLite checkpointer, human interrupt |
 | Semantic RAG | pgvector + OpenAI embeddings, 2-layer memory, confirmed live |
-| Eval harness | 131 tests, 4 layers, LLM-as-judge, ~$0.03/run | autonomous job discovery and outreach pipeline processing 1,900+
-job listings, with voice-enabled Telegram interface for on-demand shortlisting,
-generating 250+ tailored applications and 140+ outreach messages |
+| Eval harness | 131 tests, 4 layers, LLM-as-judge, ~$0.03/run |
+| Job pipeline throughput | 1,900+ listings processed · 250+ tailored applications · 140+ outreach messages |
 | AWS Lambda | Sprint Briefing Agent, EventBridge cron, ~$2/month |
-| Production AI systems on Oracle Cloud (24/7 runtime, zero crash-restarts) |
-|Multi-model routing architecture (76% requests routed to cost-optimized models, 24% to high-capability models for complex tasks) |
-| Self-healing system architecture with automated monitoring and recovery, enabling continuous operation without manual intervention |
+| Oracle Cloud uptime | 24/7 runtime, zero crash-restarts |
+| Multi-model routing | 76% cost-optimized models · 24% high-capability for complex tasks |
+| System resilience | Self-healing architecture, automated recovery, no manual intervention |
 
 ---
 
@@ -187,7 +183,7 @@ generating 250+ tailored applications and 140+ outreach messages |
 
 ## EDUCATION AND CERTIFICATIONS
 
-- ** Anthropic Academy** The Anthropic Claude Certification Program | 2026 | Currently in progress
+- **Anthropic Academy** — Claude Certification Program | 2026 | In Progress
 - **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025 | Online
 - **How-To-DAO Cohort Graduate** | 2025 | Online
 - **MA Social Psychology** | Penza State University | 2018 | Russia
