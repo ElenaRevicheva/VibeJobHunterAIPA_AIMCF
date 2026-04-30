@@ -41,7 +41,7 @@ Seeking roles as **Applied AI Engineer**, **AI Product Engineer**, **Founding AI
 
 **I build production AI systems using an AI-augmented development workflow — Cursor IDE and Claude Code as daily primary tools.** This is not a shortcut; it is a deliberate, modern methodology that produced 12+ production systems currently running in the wild. Every architecture decision, system design, and production outcome is mine — the AI compresses execution time, the judgment is entirely human.
 
-If your hiring process includes a proctored coding assessment or a live whiteboard test, I will say so upfront: that is not my workflow. If production systems matter more than whiteboard performance, I can show you mine in detail.
+If your hiring process includes a proctored coding assessment or a live whiteboard test, I prefer to be transparent: that is not my workflow. My strength is in building and operating real systems. I’m happy to walk through live production architectures and decisions in detail.
 ---
 
 ## CORE TECHNICAL SKILLS
