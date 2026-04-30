@@ -166,7 +166,7 @@ Autonomous bilingual (EN/ES) content agent: GEO+SEO content automation, discover
 ---
 
 ### Operational Co-Founder
-**OmniBazaar** (Decentralized Marketplace) | Remote | 2024 – 2025
+**OmniBazaar** (Decentralized Marketplace Start up) | Remote | 2024 – 2025
 - Structured DAO LLC (Marshall Islands); designed governance, tokenomics, and DAO operating agreements aligned with smart contracts
 
 ### Deputy CEO and Chief Legal Officer
