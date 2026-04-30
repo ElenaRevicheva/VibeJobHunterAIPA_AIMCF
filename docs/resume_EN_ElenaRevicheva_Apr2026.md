@@ -5,7 +5,7 @@
 📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
 
-Costa del Este, Juan Díaz, Panama City | Remote Worldwide | UTC-5
+Costa del Este, Panama City | Remote Worldwide | UTC-5
 
 ---
 
