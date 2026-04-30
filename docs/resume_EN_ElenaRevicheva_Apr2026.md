@@ -17,7 +17,7 @@ Costa del Este, Panama City | Remote Worldwide | UTC-5
 | **Nationality** | Russian |
 | **Panama Residence** | Carné de Residente Permanente |
 | **Panamanian Work Permit** | Type 4B |
-| **RUC - PERSONA NATURAL EXTRANJERA | 8-NT-2-781965 DV 90 | Actividad Empresarial Ocupación 21320 - PROGRAMADORES INFORMATICOS |
+| **RUC - PERSONA NATURAL EXTRANJERA | 8-NT-2-781965 DV 90, Actividad Empresarial Ocupación 21320 - PROGRAMADORES INFORMATICOS |
 | **Panamanian Driver's License** | Type C |
 | **Location** | Costa del Este, Juan Díaz, Panama City |
 
