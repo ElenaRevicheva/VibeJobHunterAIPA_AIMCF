@@ -16,8 +16,8 @@ Costa del Este, Panama City | Remote Worldwide | UTC-5
 | **Date of Birth** | December 11, 1985 |
 | **Nationality** | Russian |
 | **Panama Residence** | Carné de Residente Permanente |
-| **Work Permit** | Type 4B |
-| **Driver's License** | Type C |
+| **Panamanian Work Permit** | Type 4B |
+| **Panamanian Driver's License** | Type C |
 | **Location** | Costa del Este, Juan Díaz, Panama City |
 
 ---
