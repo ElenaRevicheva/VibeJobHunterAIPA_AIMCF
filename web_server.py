@@ -402,6 +402,69 @@ def main():
             return {"ok": False, "error": str(e)}
 
     # ─────────────────────────────
+    # ESPALUZ INFLUENCER TECH-MILESTONE ENDPOINTS
+    # Same Oracle VM — EspaLuz Influencer polls localhost:8080 for CTO milestones.
+    # Uses separate posted_influencer flag so LinkedIn/X/Instagram track independently.
+    # ─────────────────────────────
+
+    @app.get("/api/influencer-updates")
+    async def get_influencer_updates(request: Request, limit: int = 1):
+        """Return unposted-on-Influencer CTO milestones for EspaLuz Influencer bot."""
+        import json
+        from pathlib import Path
+        if not _x_auth_ok(request):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        if not storage_file.exists():
+            return {"ok": True, "pending": [], "total": 0}
+        try:
+            with open(storage_file, "r", encoding="utf-8") as f:
+                updates = json.load(f)
+            pending = [u for u in updates if not u.get("posted_influencer", False)]
+            return {"ok": True, "pending": pending[:limit], "total": len(pending)}
+        except Exception as e:
+            logger.warning(f"⚠️ [Influencer-Updates] Read error: {e}")
+            return {"ok": True, "pending": [], "total": 0}
+
+    @app.post("/api/influencer-updates/mark")
+    async def mark_influencer_posted(request: Request):
+        """Mark a CTO milestone as posted by EspaLuz Influencer. Body: {repo, received_at}."""
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        if not _x_auth_ok(request):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        body = await request.json()
+        repo = body.get("repo", "")
+        received_at = body.get("received_at", "")
+        if not repo or not received_at:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="repo and received_at required")
+        storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        if not storage_file.exists():
+            return {"ok": True, "marked": False}
+        try:
+            with open(storage_file, "r", encoding="utf-8") as f:
+                updates = json.load(f)
+            marked = False
+            for u in updates:
+                if u.get("repo") == repo and u.get("received_at", "").startswith(received_at[:16]) and not u.get("posted_influencer"):
+                    u["posted_influencer"] = True
+                    u["posted_influencer_at"] = datetime.now().isoformat()
+                    marked = True
+                    break
+            if marked:
+                with open(storage_file, "w", encoding="utf-8") as f:
+                    json.dump(updates, f, indent=2, ensure_ascii=False)
+                logger.info(f"✅ [Influencer-Updates] Marked: {repo} @ {received_at[:16]}")
+            return {"ok": True, "marked": marked}
+        except Exception as e:
+            logger.error(f"❌ [Influencer-Updates] Mark error: {e}")
+            return {"ok": False, "error": str(e)}
+
+    # ─────────────────────────────
     # SERVER CONFIG
     # ─────────────────────────────
     port = int(os.getenv("PORT", 8080))
