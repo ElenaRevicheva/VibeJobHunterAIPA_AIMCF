@@ -1045,6 +1045,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
             f"{github_base}/marketing_engine_architecture_1.png",
             f"{github_base}/marketing_engine_workflow.png",
             f"{github_base}/marketing_engine_workflow_1.png",
+            f"{github_base}/sprinter.jpg",
         ]
         
         # Track last used image to avoid repetition (only after a URL passes Buffer-safe probe)
