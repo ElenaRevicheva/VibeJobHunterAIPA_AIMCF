@@ -157,7 +157,7 @@ async def lifespan(app):
 # Main
 # ------------------------------------------------------------------
 def main():
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Request
     from fastapi.middleware.cors import CORSMiddleware
     
     # Create app with lifespan
@@ -332,6 +332,75 @@ def main():
                 "fingerprint": DEPLOY_FINGERPRINT
             }
     
+    # ─────────────────────────────
+    # X (TWITTER) TECH UPDATE ENDPOINTS
+    # Used by dragontrade-agent (same Oracle VM) to post tech milestones @reviceva.
+    # Auth: Authorization: Bearer <X_UPDATES_SECRET> (optional).
+    # ─────────────────────────────
+    _X_SECRET = os.environ.get("X_UPDATES_SECRET", "")
+
+    def _x_auth_ok(request) -> bool:
+        if not _X_SECRET:
+            return True
+        return request.headers.get("Authorization", "") == f"Bearer {_X_SECRET}"
+
+    @app.get("/api/x-updates")
+    async def get_x_updates(request: Request, limit: int = 3):
+        """Return unposted-on-X tech updates for dragontrade-agent to tweet."""
+        import json
+        from pathlib import Path
+        if not _x_auth_ok(request):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        if not storage_file.exists():
+            return {"ok": True, "pending": [], "total": 0}
+        try:
+            with open(storage_file, "r", encoding="utf-8") as f:
+                updates = json.load(f)
+            pending = [u for u in updates if not u.get("posted_x", False)]
+            return {"ok": True, "pending": pending[:limit], "total": len(pending)}
+        except Exception as e:
+            logger.warning(f"⚠️ [X-Updates] Read error: {e}")
+            return {"ok": True, "pending": [], "total": 0}
+
+    @app.post("/api/x-updates/mark")
+    async def mark_x_posted(request: Request):
+        """Mark a tech update as posted on X. Body: {repo, timestamp}."""
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        if not _x_auth_ok(request):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        body = await request.json()
+        repo = body.get("repo", "")
+        ts = body.get("timestamp", "")
+        if not repo or not ts:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="repo and timestamp required")
+        storage_file = Path("cto_aipa_updates/pending_tech_updates.json")
+        if not storage_file.exists():
+            return {"ok": True, "marked": False, "note": "no file"}
+        try:
+            with open(storage_file, "r", encoding="utf-8") as f:
+                updates = json.load(f)
+            marked = False
+            for u in updates:
+                if u.get("repo") == repo and (u.get("timestamp") == ts or u.get("received_at", "").startswith(ts[:16])) and not u.get("posted_x"):
+                    u["posted_x"] = True
+                    u["posted_x_at"] = datetime.now().isoformat()
+                    marked = True
+                    break
+            if marked:
+                with open(storage_file, "w", encoding="utf-8") as f:
+                    json.dump(updates, f, indent=2, ensure_ascii=False)
+                logger.info(f"✅ [X-Updates] Marked as X-posted: {repo} @ {ts}")
+            return {"ok": True, "marked": marked}
+        except Exception as e:
+            logger.error(f"❌ [X-Updates] Mark error: {e}")
+            return {"ok": False, "error": str(e)}
+
     # ─────────────────────────────
     # SERVER CONFIG
     # ─────────────────────────────
