@@ -21,8 +21,8 @@
  * (CMO_API_URL not needed — defaults to localhost:8080)
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
 // Same Oracle VM — CMO AIPA runs on port 8080 (vibejobhunter-web systemd service)
 const CMO_API_URL = (process.env.CMO_API_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
@@ -125,22 +125,18 @@ function apiPost(path, data) {
  * @param {number} postCount      — current post count (for hashtag rotation)
  * @returns {boolean}             — true if a tech tweet was posted, false otherwise
  *
- * HOW TO WIRE INTO index.js (dragontrade-agent on Oracle VM):
+ * HOW TO WIRE INTO index.js (dragontrade-agent on Oracle VM — ES module):
  *
- *   const { checkAndPostTechUpdate } = require('./x-tech-updater');
+ *   import { checkAndPostTechUpdate } from './x-tech-updater.js';
  *
- *   // Inside createAuthenticPost() or selectRealInsightType(), add:
- *   // ~20% chance to post a tech milestone when one is pending
- *   if (Math.random() < 0.2) {
- *     const posted = await checkAndPostTechUpdate(this.client, this.postCount || 0);
- *     if (posted) return; // used the slot — skip regular content this cycle
+ *   // Inside createAuthenticPost(), after the DISABLE_POSTING check:
+ *   // Every 5th post, try to post a tech milestone first
+ *   if (this.postCount % 5 === 0) {
+ *     try {
+ *       const posted = await checkAndPostTechUpdate(this.client, this.postCount);
+ *       if (posted) return null; // used the slot — skip regular content
+ *     } catch (_) { /* safe fallback */ }
  *   }
- *
- * Deploy on Oracle:
- *   cp /home/ubuntu/VibeJobHunterAIPA_AIMCF/cto_aipa_updates/x-tech-updater.js \
- *      /home/ubuntu/dragontrade-agent/x-tech-updater.js
- *   echo "X_UPDATES_SECRET=your_secret" >> /home/ubuntu/dragontrade-agent/.env
- *   pm2 restart dragontrade-agent --update-env
  */
 async function checkAndPostTechUpdate(twitterClient, postCount = 0) {
   try {
@@ -177,4 +173,4 @@ async function checkAndPostTechUpdate(twitterClient, postCount = 0) {
   }
 }
 
-module.exports = { checkAndPostTechUpdate, formatTweet };
+export { checkAndPostTechUpdate, formatTweet };
