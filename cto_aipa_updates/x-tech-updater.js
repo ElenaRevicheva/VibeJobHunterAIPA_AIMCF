@@ -8,18 +8,24 @@
  *   3. Posts via the twitterClient passed in
  *   4. Calls POST /api/x-updates/mark to record it as done
  *
- * SAFE: If the Oracle API is unreachable or returns no data, returns null
+ * SAFE: If CMO AIPA is unreachable or returns no data, returns false
  * and the bot falls back to its normal content rotation.
  *
- * SETUP (Railway env vars to add):
- *   CMO_API_URL    = https://<oracle-vm-public-ip>:8080   (no trailing slash)
- *   X_UPDATES_SECRET = <same value as X_UPDATES_SECRET in Oracle .env>
+ * SETUP (Oracle VM — dragontrade-agent and CMO AIPA are on the SAME machine):
+ *   Default: http://127.0.0.1:8080 (no config needed — same VM)
+ *   Optional override via env: CMO_API_URL=http://127.0.0.1:8080
+ *   Optional auth: X_UPDATES_SECRET=<same value as in VJH .env>
+ *
+ * Add to /home/ubuntu/dragontrade-agent/.env:
+ *   X_UPDATES_SECRET=your_secret_here
+ * (CMO_API_URL not needed — defaults to localhost:8080)
  */
 
 const https = require('https');
 const http = require('http');
 
-const CMO_API_URL = (process.env.CMO_API_URL || '').replace(/\/$/, '');
+// Same Oracle VM — CMO AIPA runs on port 8080 (vibejobhunter-web systemd service)
+const CMO_API_URL = (process.env.CMO_API_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
 const X_UPDATES_SECRET = process.env.X_UPDATES_SECRET || '';
 
 /** Hashtag bank — rotate to avoid repetition */
@@ -71,7 +77,6 @@ function formatTweet(update, hashtagIndex) {
 /** Simple HTTP/HTTPS GET that returns parsed JSON or null */
 function apiGet(path) {
   return new Promise((resolve) => {
-    if (!CMO_API_URL) { resolve(null); return; }
     const url = `${CMO_API_URL}${path}`;
     const lib = url.startsWith('https') ? https : http;
     const headers = X_UPDATES_SECRET
@@ -92,7 +97,6 @@ function apiGet(path) {
 /** Simple HTTP/HTTPS POST with JSON body */
 function apiPost(path, data) {
   return new Promise((resolve) => {
-    if (!CMO_API_URL) { resolve(null); return; }
     const url = `${CMO_API_URL}${path}`;
     const parsed = new URL(url);
     const bodyStr = JSON.stringify(data);
@@ -120,6 +124,23 @@ function apiPost(path, data) {
  * @param {object} twitterClient  — the already-authenticated Twitter v2 client
  * @param {number} postCount      — current post count (for hashtag rotation)
  * @returns {boolean}             — true if a tech tweet was posted, false otherwise
+ *
+ * HOW TO WIRE INTO index.js (dragontrade-agent on Oracle VM):
+ *
+ *   const { checkAndPostTechUpdate } = require('./x-tech-updater');
+ *
+ *   // Inside createAuthenticPost() or selectRealInsightType(), add:
+ *   // ~20% chance to post a tech milestone when one is pending
+ *   if (Math.random() < 0.2) {
+ *     const posted = await checkAndPostTechUpdate(this.client, this.postCount || 0);
+ *     if (posted) return; // used the slot — skip regular content this cycle
+ *   }
+ *
+ * Deploy on Oracle:
+ *   cp /home/ubuntu/VibeJobHunterAIPA_AIMCF/cto_aipa_updates/x-tech-updater.js \
+ *      /home/ubuntu/dragontrade-agent/x-tech-updater.js
+ *   echo "X_UPDATES_SECRET=your_secret" >> /home/ubuntu/dragontrade-agent/.env
+ *   pm2 restart dragontrade-agent --update-env
  */
 async function checkAndPostTechUpdate(twitterClient, postCount = 0) {
   try {
