@@ -1,11 +1,11 @@
 # ELENA REVICHEVA
 
-**Applied AI Engineer | LLM Systems · AI Agents · Autonomous Pipelines | AI Systems Operator | AI Automation Lead**
+**Applied AI Engineer | I Build AI Systems That Work in Production**
 
 📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
 
-Costa del Este, Panama City | Remote Worldwide | UTC-5
+Costa del Este, Juan Díaz, Panama City | Remote Worldwide | UTC-5
 
 ---
 
@@ -16,70 +16,42 @@ Costa del Este, Panama City | Remote Worldwide | UTC-5
 | **Date of Birth** | December 11, 1985 |
 | **Nationality** | Russian |
 | **Panama Residence** | Carné de Residente Permanente |
-| **Panamanian Work Permit** | Type 4B |
-| **RUC - PERSONA NATURAL EXTRANJERA** | 8-NT-2-781965 DV 90, Actividad Empresarial Ocupación 21320 - PROGRAMADORES INFORMATICOS |
-| **Panamanian Driver's License** | Type C |
+| **Work Permit** | Type 4B |
+| **Driver's License** | Type C |
 | **Location** | Costa del Este, Juan Díaz, Panama City |
 
 ---
 
+## HOW I BUILD
+
+I build using **Cursor IDE and Claude Code as daily primary tools** — an AI-augmented workflow that produced 12+ production systems in under a year, at a fraction of what a traditional team would cost. Every design decision and system outcome is mine; the AI compresses the time it takes to execute. This approach is deliberate and modern, not a shortcut.
+
+**Note for hiring teams:** If your process includes a proctored coding test or live whiteboard session, I'll say so upfront — that's not my workflow. If what matters is production systems that run, I can show you mine.
+
+---
 
 ## PROFESSIONAL SUMMARY
 
-Applied AI Engineer with hands-on experience building and operating production LLM systems — agentic pipelines with LangGraph, 2-layer semantic memory with RAG/pgvector, automated evaluation harnesses, and serverless cloud deployment on AWS Lambda.
+In the past 12 months, I built and shipped 12 AI products — as a solo founder, without a team. The equivalent of what most companies would staff 4–5 engineers to do, at under 1% of the cost.
 
-Background combines 7+ years of executive leadership in large-scale digital infrastructure programs (Deputy CEO & CLO, Russian E-Government sector) with 12+ months of solo AI product execution: 12 production systems, 12 active repositories, early users across 19 countries. Can translate technical architecture into business decisions — and back — in the same conversation.
+These are not demos or prototypes. They are systems running 24/7: a job search engine that applies autonomously, a language tutor that remembers its students, a code review agent watching 12 repositories, a daily voice briefing delivered every morning at 8AM. Real users. Real payments. Real infrastructure.
 
-I use AI-assisted development to accelerate execution, while maintaining full ownership of system design, debugging, and production behavior. Comfortable working within existing teams, tools, and processes — not only building from scratch. 
+Before AI, I spent 7 years as Deputy CEO and Chief Legal Officer running large-scale digital programs for the Russian government — enterprise technology, board-level decisions, cross-functional teams. I know how to think at a systems level and how to talk to decision-makers, not just developers.
 
-Seeking roles as **Applied AI Engineer**, **AI Product Engineer**, **Founding AI Engineer**, or **Fractional AI Consultant/Builder**.
-
+**What I'm looking for:** A role where I can build AI products that matter — as a founding engineer, applied AI engineer, or fractional builder.
 
 ---
-## HOW I BUILD
 
-**I build production AI systems using an AI-augmented development workflow — Cursor IDE and Claude Code as daily primary tools.** This is not a shortcut; it is a deliberate, modern methodology that produced 12+ production systems currently running in the wild. Every architecture decision, system design, and production outcome is mine — the AI compresses execution time, the judgment is entirely human.
+## WHAT I'VE BUILT — KEY RESULTS
 
-If your hiring process includes a proctored coding assessment or a live whiteboard test, I prefer to be transparent: that is not my workflow. My strength is in building and operating real systems. I’m happy to walk through live production architectures and decisions in detail.
----
-
-## CORE TECHNICAL SKILLS
-
-### LLM Systems and Agents
-Claude (Opus, Sonnet, Haiku) · OpenAI GPT-4 · Groq (Llama 3.3 70B, Whisper) · model routing · tool/function calling · multi-step orchestration · prompt engineering · structured outputs · multi-turn context design
-
-### Agent Frameworks & Memory
-**LangGraph** (StateGraph, SQLite checkpointer, human-in-the-loop interrupt) · **LangChain** (PostgresChatMessageHistory, retrieval chains) · **Semantic RAG** (pgvector + OpenAI `text-embedding-3-small`, cosine similarity > 0.75, ivfflat index, top_k=3)
-
-### Evaluation and Quality Assurance
-4-layer eval harness: keyword scoring (L1) · bias compensation (L2) · golden-set routing (L3) · **Claude Haiku as independent LLM judge** (L4, ≥75% agreement threshold, 22 golden-set jobs) · ~$0.03/run · regression-catching before every deploy · Worked with early users to iterate on products behavior and prioritize features based on real usage
-
-### AI-Augmented Development
-Cursor IDE (primary environment) · Claude Code · AI-assisted code generation, refactoring, and system iteration · rapid prototyping → production
-
-### Programming
-Python · TypeScript · JavaScript · SQL
-
-### Backend and APIs
-Node.js · Express · FastAPI · Flask · REST APIs · async workflows · webhook handling · PostgreSQL
-
-### Frontend
-React 18 + TypeScript + Vite · Tailwind CSS · Framer Motion
-
-### Databases and Infrastructure
-PostgreSQL (pgvector, ivfflat, cosine similarity) · Oracle Autonomous Database (mTLS) · Oracle Cloud Infrastructure (OCI) · **AWS Lambda** (Node.js, serverless) · **AWS EventBridge** (scheduled cron) · AWS S3 · Railway · Supabase · Docker · PM2 · Ubuntu
-
-### Infrastructure & Operations
-Cloud deployment, process management, system monitoring, and self-healing architectures for reliable 24/7 operation
-
-### Integrations
-GitHub API (Octokit) · Telegram Bot API · WhatsApp Business API · PayPal Subscriptions · Twitter/X API · Make.com · Buffer · Resend · Playwright (ATS automation)
-
-### GEO plus SEO Automation
-AI-driven content systems, structured data, discoverability for search engines and AI crawlers, automated publishing and lead pipelines
-
-### Web3
-Polygon · Thirdweb · IPFS · NFT Platforms · Smart Contract Interaction
+| | |
+|---|---|
+| **12+ AI products in production** | Running autonomously, 24/7, on $0/month cloud infrastructure |
+| **99% cost reduction** | Delivered solo what would cost ~$900K with a traditional team |
+| **Users in 19 countries** | Live subscription payments via PayPal |
+| **1,900+ job listings processed** | By an AI that applies, follows up, and knows when to ask a human |
+| **~$2/month AWS bill** | For a serverless system that reads 12 products and delivers a daily voice briefing |
+| **$0.03 per quality check** | Automated testing system that catches problems before they reach users |
 
 ---
 
@@ -88,92 +60,68 @@ Polygon · Thirdweb · IPFS · NFT Platforms · Smart Contract Interaction
 ### Applied AI Engineer & Founder
 **AIdeazz.xyz** | Panama / Remote | 2025 – Present
 
-Founder and sole builder of an AI-first ecosystem of 12+ production LLM systems and autonomous agents — developed using AI-augmented workflows (Cursor + Claude Code). Designed, built, and currently operate AI systems and automation pipelines across real-world
-business and personal use cases, from idea to production and ongoing optimization. Production systems with real users (early traction), payments, and continuous operation.
+---
+
+### VibeJobHunter — Autonomous Job Search System
+
+**What it does:** Finds jobs, scores them by fit, applies automatically, and pauses to ask for human approval only when a decision is genuinely borderline. No manual searching. No repetitive form-filling. Just results.
+
+**Results:** Processed 1,900+ job listings. Generated 250+ tailored applications and 140+ outreach messages. Built with a quality-testing layer — 131 automated checks run before every update, including an AI that independently audits the scoring logic to catch regressions.
+
+**How it works (for the technical reader):** LangGraph stateful pipeline (7-node StateGraph) with SQLite session persistence and human-in-the-loop interrupt for borderline scores. 4-layer evaluation harness: keyword scoring, bias compensation, 22-job golden set, and Claude Haiku as independent LLM judge (≥75% agreement threshold). Multi-ATS form automation via Playwright. Outreach via Resend API.
+
+*Tech: Python · LangGraph · LangChain · Claude · Playwright · SQLite · Resend · Telegram Bot API*
 
 ---
 
-**VibeJobHunter AIPA — Autonomous Job Search Pipeline (Production)**
+### EspaLuz — AI Language Tutor (Paying Users, 19 Countries)
 
-Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously — with human-in-the-loop approval for edge cases. Generated 250+ tailored applications and 140+ outreach messages across 1,900+ listings in production.
+**What it does:** A Spanish/English tutor on WhatsApp and Telegram that actually remembers its students. Instead of starting from scratch every session, it recalls past conversations and surfaces relevant context automatically — the way a good human tutor would. Students pay a monthly subscription.
 
-- **LangGraph StateGraph** (7 nodes): scrape → gate → score → route → apply / outreach / discard. SQLite checkpointer (`thread_id` per job for full deduplication); human-approval interrupt for score band 60–69 via Telegram (`/approve_vjh_{id}` / `/reject_vjh_{id}`)
-- **4-layer evaluation harness** (131 tests, ~$0.03/run): Layers 1–3 deterministic (keyword scoring, bias compensation, 22-job golden set); Layer 4 = Claude Haiku as independent LLM judge at ≥75% agreement — catches scoring regressions before deploy
-- Multi-ATS Playwright automation (Greenhouse, Lever, Ashby) + founder email outreach via Resend API
-- Hard gate: role category, company stage, and size filters prevent auto-applying to credential-filtered roles; daily cap 5 applications + 2 outreach emails
+**Results:** Live in 19 Spanish-speaking countries. PayPal subscriptions active. Deployed on both WhatsApp and Telegram from a shared codebase.
 
-*Tech: Python, LangGraph, LangChain, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API*
+**How it works (for the technical reader):** 2-layer memory — LangChain conversation history (exact last 5 turns) + semantic search over full history via pgvector (OpenAI embeddings, cosine similarity > 0.75). Both layers injected into the AI's system prompt before every reply. Separate session namespaces per platform.
 
----
-
-**EspaLuz — AI Spanish/English Tutor (Production, Paying Users)**
-
-Subscription-based bilingual EN/ES AI tutor with 2-layer persistent memory, semantic RAG, OCR, TTS, and multimodal learning — deployed on WhatsApp Business API and Telegram. Early paying users via PayPal; traction across 19 Spanish-speaking countries.
-
-- **2-layer memory architecture**: LangChain `PostgresChatMessageHistory` (exact last 5 conversation turns) + **pgvector semantic RAG** (`espaluz_embeddings` table, OpenAI `text-embedding-3-small`, cosine similarity > 0.75, top_k=3) — injected into Claude system prompt before every reply. This means the bot remembers what you said last week and surfaces relevant past context without you repeating yourself.
-- Separate session namespaces per platform (`telegram_*` / `whatsapp_*`); shared `espaluz_rag.py` module across both deployments
-- Early traction across 19 Spanish-speaking countries; PayPal subscriptions live 
-
-*Tech: Python, GPT-4, LangChain, pgvector (PostgreSQL), OpenAI embeddings, Whisper, WhatsApp Business API, Railway*
+*Tech: Python · GPT-4 · LangChain · pgvector · OpenAI embeddings · Whisper · WhatsApp Business API · Railway*
 
 ---
 
-**CTO AIPA — AI Technical Co-Founder (Production)**
+### CTO AIPA — AI Technical Partner
 
-Autonomous AI system for code review, technical decision-making, and daily briefing across 12 active GitHub repositories.
+**What it does:** An AI system that watches all 12 products around the clock — reviewing code changes, flagging security risks, and every morning at 8AM delivering a spoken audio briefing to my phone: what changed overnight, what I told myself to do yesterday, what needs attention today.
 
-- Automated PR review and security scanning via GitHub API; intelligent model routing (Groq Llama 3.3 70B for speed, Claude for critical/security analysis)
-- Voice input pipeline: voice notes → Whisper transcription → intent detection → Oracle `knowledge_base` table (diary/task storage, mTLS)
-- **Sprint Briefing Agent** (AWS Lambda, Apr 2026): EventBridge cron fires at 8AM Panama daily → Lambda reads 12 GitHub repos overnight activity + retrieves owner's voice notes and tasks from Oracle via a secure REST proxy on the CTO server → Groq clusters the signals → Claude writes a narrative → OpenAI TTS (onyx voice) renders MP3 → delivered to Telegram. Full two-way memory loop: voice notes spoken at night → briefing audio plays in the morning. ~$2/month AWS cost.
+**Results:** Every code change across 12 repositories reviewed automatically. Every morning briefing delivered on schedule. Voice notes spoken at night become part of the next morning's audio. Full feedback loop, fully autonomous.
 
-*Tech: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS), AWS Lambda, AWS EventBridge, AWS S3, GitHub API, PM2*
+**How it works (for the technical reader):** GitHub webhook → security + complexity analysis → model routing (Claude for critical, Groq for standard). Voice input → Whisper transcription → Oracle database. Sprint Briefing Agent on AWS Lambda: EventBridge cron at 8AM Panama → reads GitHub + Oracle diary/tasks via S3 wallet (thin-mode Oracle connector) → Groq clusters signals → Claude writes narrative → OpenAI TTS renders audio → Telegram delivery. ~$2/month.
 
----
-
-**AI Marketing Agent (CMO AIPA) — Production**
-
-Autonomous bilingual (EN/ES) content agent: GEO+SEO content automation, discoverability, lead capture, and outreach pipeline — integrated with CTO AIPA for automated release announcements. Operates with minimal manual input.
-
-*Tech: Python, FastAPI, Claude, Make.com, Buffer, Railway*
+*Tech: TypeScript · Node.js · Claude · Groq · OpenAI TTS · Oracle Cloud (mTLS) · AWS Lambda · AWS EventBridge · AWS S3 · GitHub API · PM2*
 
 ---
 
-**Additional Deployed Products**
+### AI Marketing Agent (CMO AIPA)
 
-**ALGOM Alpha** — AI crypto education and market analysis bot on X (@reviceva). *Tech: Node.js, ElizaOS, CCXT, Twitter API*
+**What it does:** Writes and publishes bilingual (English/Spanish) content daily — strategy-aware, not templated. When a product ships a new feature, the marketing agent picks it up and posts about it automatically.
 
-**Atuona Creative AI** (atuona.xyz) — Multimodal AI creative pipeline: LLM → image → video → blockchain NFT Drops publishing. *Tech: TypeScript, Node.js, Claude Opus, Replicate, Luma Labs API, Thirdweb.com, Polygon*
+*Tech: Python · FastAPI · Claude · Make.com · Buffer · Railway*
 
 ---
 
-**Key Portfolio Metrics**
+### Additional Products
 
-| Metric | Result |
-|--------|--------|
-| Production AI systems | 12+ operating autonomously |
-| Active GitHub repositories | 12 |
-| Early users across Spanish-speaking countries | 19 |
-| Cost vs traditional development | ~99% reduction ($900K → <$15K) vs. traditional team-based builds |
-| LangGraph pipeline | 7-node StateGraph, SQLite checkpointer, human interrupt |
-| Semantic RAG | pgvector + OpenAI embeddings, 2-layer memory, confirmed live |
-| Eval harness | 131 tests, 4 layers, LLM-as-judge, ~$0.03/run |
-| Job pipeline throughput | 1,900+ listings processed · 250+ tailored applications · 140+ outreach messages |
-| AWS Lambda | Sprint Briefing Agent, EventBridge cron, ~$2/month |
-| Oracle Cloud uptime | 24/7 runtime, zero crash-restarts |
-| Multi-model routing | 76% cost-optimized models · 24% high-capability for complex tasks |
-| System resilience | Self-healing architecture, automated recovery, no manual intervention |
+**Atuona Creative AI** (atuona.xyz) — AI creative pipeline: text → image → video → blockchain publishing. *Tech: TypeScript · Node.js · Claude Opus · Replicate · Luma Labs · Thirdweb · Polygon*
+
+**ALGOM Alpha** — AI crypto education bot on X (@reviceva). *Tech: Node.js · ElizaOS · CCXT · Twitter API*
 
 ---
 
 ### Operational Co-Founder
-**OmniBazaar** (Decentralized Marketplace Start up) | Remote | 2024 – 2025
-- Structured DAO LLC (Marshall Islands); designed governance, tokenomics, and DAO operating agreements aligned with smart contracts
+**OmniBazaar** (Decentralized Marketplace) | Remote | 2024 – 2025
+- Structured DAO LLC (Marshall Islands); designed governance, tokenomics, DAO operating agreements
 
 ### Deputy CEO and Chief Legal Officer
 **JSC "E-GOV OPERATOR"** | Russia | 2011 – 2018
-- Led large-scale public-sector digital transformation at board level
-- Managed cross-functional teams (IT, legal, compliance, enterprise technology programs)
-- Board-level governance in Russian regional E-Government sector
+- Led large-scale digital transformation programs for Russian regional government at board level
+- Managed cross-functional teams (IT, legal, compliance); enterprise technology programs
 
 ### Deputy CEO (Business Development)
 **Fundery LLC** (Fintech/Blockchain) | Russia | 2017 – 2018
@@ -181,11 +129,32 @@ Autonomous bilingual (EN/ES) content agent: GEO+SEO content automation, discover
 
 ---
 
+## TECHNICAL SKILLS
+
+*(For those who want the full stack)*
+
+**AI & Agents:** Claude (Opus, Sonnet, Haiku) · OpenAI GPT-4 · Groq (Llama 3.3 70B, Whisper) · LangGraph · LangChain · Semantic RAG (pgvector + OpenAI embeddings) · model routing · tool calling · multi-step orchestration · prompt engineering
+
+**Evaluation:** 4-layer harness · LLM-as-judge · golden-set testing · regression detection
+
+**Languages:** Python · TypeScript · JavaScript · SQL
+
+**Backend:** Node.js · Express · FastAPI · Flask · REST APIs · async workflows · webhooks
+
+**Frontend:** React 18 + TypeScript + Vite · Tailwind CSS · Framer Motion
+
+**Infrastructure:** PostgreSQL (pgvector) · Oracle Autonomous Database (mTLS) · Oracle Cloud (OCI) · AWS Lambda · AWS EventBridge · AWS S3 · Railway · Supabase · Docker · PM2 · Ubuntu
+
+**Integrations:** GitHub API · Telegram Bot API · WhatsApp Business API · PayPal · Twitter/X · Playwright · Resend · Make.com · Buffer
+
+**Web3:** Polygon · Thirdweb · IPFS · Smart Contracts
+
+---
+
 ## EDUCATION AND CERTIFICATIONS
 
-- **Anthropic Academy** — Claude Certification Program | 2026 | In Progress
-- **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025 | Online
-- **How-To-DAO Cohort Graduate** | 2025 | Online
+- **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025
+- **How-To-DAO Cohort Graduate** | 2025
 - **MA Social Psychology** | Penza State University | 2018 | Russia
 - **Blockchain Regulation** | MGIMO | 2017 | Moscow
 - **Presidential Program for Executive Management** | RANEPA | 2015 | Moscow
@@ -201,10 +170,7 @@ Russian (Native) | English (Fluent) | Spanish (Intermediate) | French (Elementar
 
 ## TARGET ROLES
 
-Applied AI Engineer · AI Product Engineer · Founding AI Engineer · Agentic AI Engineer · Internal AI Tools Engineer · Fractional AI Consultant/Builder ($40–70/hr)
-· Agent Systems Engineer (Application Layer) · AI Solutions Engineer · AI Systems Operator · AI Automation Lead · AI Integration Specialist · Internal AI Tools Lead · AI Operations / AI Program Manager
-
-Comfortable working across teams as an internal lead or embedded specialist, designing and delivering AI-driven solutions from concept to production.
+Applied AI Engineer · AI Product Engineer · Founding AI Engineer · Internal AI Tools Builder · Fractional AI Consultant ($40–70/hr)
 
 Open to: Full-time · Part-time · Contract · Remote
 

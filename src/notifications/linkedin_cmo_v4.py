@@ -20,6 +20,7 @@ Created: November 2025
 Updated: December 2025 - PROXY METRICS INTEGRATION!
 """
 
+import asyncio
 import requests
 import random
 import logging
@@ -28,6 +29,17 @@ from typing import Dict, Any, Optional, List
 import os
 import anthropic
 from anthropic import AsyncAnthropic
+
+# ── Blog cross-posting (additive — safe if module unavailable) ────────────────
+try:
+    from src.notifications.blog_publisher import schedule_blog_post as _blog_post
+    _BLOG_PUBLISHER_AVAILABLE = True
+except Exception as _blog_err:
+    _BLOG_PUBLISHER_AVAILABLE = False
+    _blog_post = None
+    logging.getLogger("src.notifications.linkedin_cmo_v4").warning(
+        f"⚠️ [BlogPublisher] Module not available: {_blog_err}"
+    )
 import json
 import re
 from pathlib import Path
@@ -866,10 +878,26 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
                         
                         content = response.content[0].text
                         
-                        # Mark this update as posted (non-critical if fails)
+                        # Mark this update as posted on LinkedIn (non-critical if fails)
                         self._mark_tech_update_posted(latest_update)
-                        
+
                         logger.info(f"✅ [CTO Integration] Generated post about CTO's work: PR#{latest_update.get('pr_number')}")
+
+                        # ── Blog cross-post (fire-and-forget, additive) ───────
+                        if _BLOG_PUBLISHER_AVAILABLE and _blog_post is not None:
+                            try:
+                                asyncio.create_task(
+                                    _blog_post(
+                                        update=latest_update,
+                                        linkedin_content=content,
+                                        language=language,
+                                        api_key=self.anthropic_api_key,
+                                    )
+                                )
+                                logger.info("📝 [BlogPublisher] Blog cross-post task scheduled")
+                            except Exception as _blog_sched_err:
+                                logger.warning(f"⚠️ [BlogPublisher] Could not schedule: {_blog_sched_err}")
+                        # ── end blog ──────────────────────────────────────────
                         
                         # Return content to existing posting pipeline
                         return {
