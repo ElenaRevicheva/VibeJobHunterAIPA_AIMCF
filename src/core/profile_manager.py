@@ -9,6 +9,7 @@ from anthropic import Anthropic
 
 from .models import Profile
 from .config import get_settings
+from ..utils.claude_helper import call_groq_fallback
 
 
 class ProfileManager:
@@ -60,11 +61,18 @@ Resume:
 Return only valid JSON, no other text."""
 
         try:
-            response = self.ai.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}]
-            )
+            messages = [{"role": "user", "content": prompt}]
+            try:
+                response = self.ai.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=4096,
+                    messages=messages,
+                )
+            except Exception as _e:
+                if getattr(_e, 'status_code', None) in {400, 529, 503}:
+                    response = call_groq_fallback(messages, 4096)
+                else:
+                    raise
             
             result_text = response.content[0].text
             # Extract JSON if wrapped in code blocks

@@ -1,11 +1,15 @@
 ﻿"""
 Claude API Helper
 Handles model selection, fallbacks, and retry with backoff for transient errors (529/503/429).
+Credit-exhaustion (400): falls back to Groq llama-3.3-70b-versatile.
 """
 
 import asyncio
+import json
 import logging
+import os
 import time
+import urllib.request
 from typing import Optional, Any, Set
 
 import anthropic
@@ -14,6 +18,43 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
 RETRY_STATUS_CODES: Set[int] = {529, 503, 429}
+
+_GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+_GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
+
+
+class _GroqTextBlock:
+    def __init__(self, text: str):
+        self.text = text
+        self.type = "text"
+
+
+class _GroqResponse:
+    """Minimal shim so callers can use .content[0].text same as Anthropic SDK."""
+    def __init__(self, text: str):
+        self.content = [_GroqTextBlock(text)]
+
+
+def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse":
+    """Call Groq llama-3.3-70b when Claude returns 400 credit exhaustion."""
+    api_key = os.environ.get("GROQ_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("Groq fallback unavailable: GROQ_API_KEY not set")
+    payload = json.dumps({
+        "model": _GROQ_FALLBACK_MODEL,
+        "messages": messages,
+        "max_tokens": min(max_tokens, 4096),
+        "temperature": 0.3,
+    }).encode()
+    req = urllib.request.Request(
+        _GROQ_API_URL, data=payload, method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read())
+    text = data["choices"][0]["message"]["content"]
+    logger.info("[claude_helper] Groq fallback (400 credit exhaustion) succeeded")
+    return _GroqResponse(text)
 
 
 # Model selection priority (tries in order)
@@ -98,11 +139,14 @@ def get_cached_model(client) -> str:
 
 
 def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Synchronous Claude call with retry on 529/503/429."""
+    """Synchronous Claude call with retry on 529/503/429. Groq fallback on 400."""
     for attempt in range(retries):
         try:
             return client.messages.create(**kwargs)
         except anthropic.APIStatusError as e:
+            if e.status_code == 400:
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
+                return call_groq_fallback(kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
@@ -118,11 +162,14 @@ def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
 
 
 async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Async Claude call with retry on 529/503/429 (wraps sync client in thread)."""
+    """Async Claude call with retry on 529/503/429. Groq fallback on 400."""
     for attempt in range(retries):
         try:
             return await asyncio.to_thread(client.messages.create, **kwargs)
         except anthropic.APIStatusError as e:
+            if e.status_code == 400:
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
+                return await asyncio.to_thread(call_groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
@@ -138,11 +185,14 @@ async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> 
 
 
 async def acall_claude(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Native async Claude call with retry on 529/503/429 (for AsyncAnthropic)."""
+    """Native async Claude call with retry on 529/503/429. Groq fallback on 400."""
     for attempt in range(retries):
         try:
             return await client.messages.create(**kwargs)
         except anthropic.APIStatusError as e:
+            if e.status_code == 400:
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
+                return await asyncio.to_thread(call_groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")

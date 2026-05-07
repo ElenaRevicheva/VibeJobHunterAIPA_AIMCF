@@ -8,6 +8,7 @@ from anthropic import Anthropic
 
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
+from ..utils.claude_helper import call_groq_fallback
 
 
 class ContentGenerator:
@@ -22,7 +23,16 @@ class ContentGenerator:
         self.cover_letters_dir = self.settings.base_dir / "cover_letters"
         self.resumes_dir.mkdir(exist_ok=True)
         self.cover_letters_dir.mkdir(exist_ok=True)
-    
+
+    def _call_claude(self, **kwargs):
+        try:
+            return self.ai.messages.create(**kwargs)
+        except Exception as e:
+            status = getattr(e, 'status_code', None)
+            if status in {400, 529, 503}:
+                return call_groq_fallback(kwargs["messages"], kwargs.get("max_tokens", 4096))
+            raise
+
     def tailor_resume(self, profile: Profile, job: JobPosting) -> str:
         """Generate tailored resume for specific job"""
         prompt = f"""Create a tailored resume for this job application. Emphasize relevant skills and achievements that match the job requirements.
@@ -68,7 +78,7 @@ Format: Professional markdown suitable for conversion to PDF.
 """
 
         try:
-            response = self.ai.messages.create(
+            response = self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
@@ -129,7 +139,7 @@ Be specific, avoid generic phrases, and show you understand what the company doe
 """
 
         try:
-            response = self.ai.messages.create(
+            response = self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
@@ -176,7 +186,7 @@ Keep it conversational and human.
 """
 
         try:
-            response = self.ai.messages.create(
+            response = self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=512,
                 messages=[{"role": "user", "content": prompt}]
@@ -245,7 +255,7 @@ Focus on technical questions for AI/ML roles and behavioral questions for cultur
 """
 
         try:
-            response = self.ai.messages.create(
+            response = self._call_claude(
                 model="claude-sonnet-4-20250514",
                 max_tokens=3072,
                 messages=[{"role": "user", "content": prompt}]

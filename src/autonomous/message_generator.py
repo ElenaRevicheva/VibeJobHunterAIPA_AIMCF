@@ -8,8 +8,11 @@ Uses AI to create context-aware, compelling messages.
 """
 
 import asyncio
+import json
 import logging
+import os
 import time as _time
+import urllib.request
 from typing import Dict, Any, List, Optional
 import anthropic
 from datetime import datetime
@@ -23,6 +26,33 @@ logger = setup_logger(__name__)
 
 MAX_RETRIES = 3
 RETRY_CODES = {529, 503, 429}
+
+_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+_GROQ_MODEL = "llama-3.3-70b-versatile"
+
+
+class _GroqTextBlock:
+    def __init__(self, text: str):
+        self.text = text
+        self.type = "text"
+
+
+class _GroqMsg:
+    def __init__(self, text: str):
+        self.content = [_GroqTextBlock(text)]
+
+
+def _groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqMsg":
+    key = os.environ.get("GROQ_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("GROQ_API_KEY not set — no fallback")
+    payload = json.dumps({"model": _GROQ_MODEL, "messages": messages,
+                          "max_tokens": min(max_tokens, 4096), "temperature": 0.3}).encode()
+    req = urllib.request.Request(_GROQ_URL, data=payload, method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read())
+    return _GroqMsg(data["choices"][0]["message"]["content"])
 
 
 class MessageGenerator:
@@ -42,13 +72,18 @@ class MessageGenerator:
         logger.info("✍️ Message Generator initialized")
 
     async def _call_claude(self, **kwargs) -> Optional[Any]:
-        """Call Claude with retry on 529/503/429 (EspaLuz pattern)."""
+        """Call Claude with retry on 529/503/429. Groq fallback on 400."""
         for attempt in range(MAX_RETRIES):
             try:
                 return await asyncio.to_thread(
                     self.client.messages.create, **kwargs
                 )
             except anthropic.APIStatusError as e:
+                if e.status_code == 400:
+                    logger.warning("Claude 400 credit exhaustion — falling back to Groq")
+                    return await asyncio.to_thread(
+                        _groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096)
+                    )
                 if e.status_code in RETRY_CODES and attempt < MAX_RETRIES - 1:
                     wait = 2 * (attempt + 1)
                     logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{MAX_RETRIES}), retrying in {wait}s")
