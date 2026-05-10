@@ -222,7 +222,7 @@ def create_app() -> FastAPI:
         """Return unposted-on-X tech updates for dragontrade-agent to tweet."""
         _check_x_auth(request)
         updates = _load_updates()
-        pending = [u for u in updates if not u.get("posted_x", False)]
+        pending = [u for u in updates if not u.get("posted_x", False) and not u.get("posted", False)]
         return {"ok": True, "pending": pending[:limit], "total": len(pending)}
 
     @app.post("/api/x-updates/mark")
