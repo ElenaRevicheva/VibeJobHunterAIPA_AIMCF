@@ -353,7 +353,7 @@ def discard_node(state: JobState) -> dict:
 # Sends a Telegram message for the job result. Terminal for all active routes.
 # ─────────────────────────────────────────────────────────────────────────────
 async def notify_node(state: JobState) -> dict:
-    """Send Telegram notification for this job's outcome."""
+    """Send Telegram notification and push to HubSpot Hiring Pipeline."""
     try:
         from src.notifications import TelegramNotifier
         telegram = TelegramNotifier()
@@ -400,6 +400,21 @@ async def notify_node(state: JobState) -> dict:
             return {"telegram_sent": False, "status": state.get("status", "completed")}
 
         await telegram.send_message(msg)
+
+        # Push to HubSpot Hiring Pipeline for applied and outreach_sent outcomes
+        if status in ("applied", "outreach_sent"):
+            try:
+                from src.langgraph_pipeline.crm_hub import push_application_to_crm
+                push_application_to_crm(
+                    job_title=title,
+                    company=company,
+                    job_url=url,
+                    recruiter_email=state.get('outreach_email', ''),
+                    stage="applied" if status == "applied" else "applied",
+                )
+            except Exception as crm_err:
+                logger.warning(f"[notify] CRM push non-fatal error: {crm_err}")
+
         return {"telegram_sent": True, "status": "completed"}
 
     except Exception as e:
