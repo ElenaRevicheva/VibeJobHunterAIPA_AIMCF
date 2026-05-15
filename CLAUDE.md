@@ -89,6 +89,11 @@ src/
 │   └── yc_angellist_search.py
 ├── loaders/
 │   └── candidate_loader.py   # Loads Elena's profile from candidate_data.json
+├── langgraph_pipeline/
+│   ├── nodes.py              # LangGraph nodes — gate→score→route→submit/outreach/discard→notify
+│   │                         # MODIFIED: after submit_node, calls crm_hub.py to push to HubSpot
+│   └── crm_hub.py            # NEW — posts to CTO AIPA /api/crm-event after each job application
+│                             # pipeline=hiring; Auth: Bearer OUTREACH_SECRET
 └── utils/
     ├── claude_helper.py      # Anthropic API wrapper
     ├── cache.py              # Seen-jobs dedup cache
@@ -227,6 +232,43 @@ USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
 | **Railway references** | 🟡 LOW | `config.py` checks `RAILWAY_ENVIRONMENT`; `railway.json` still in repo. Stale — all infra is Oracle. |
 | **Playwright not headless-tested on Oracle** | 🟡 MED | ATS form submission requires browser — verify Playwright headless works on Oracle VM. |
 | **No dedup across resume variants** | 🟡 LOW | If the same job is applied twice with a different resume variant, there's no guard. |
+
+---
+
+## HubSpot Integration (live May 14–15, 2026)
+
+After each job application, `src/langgraph_pipeline/crm_hub.py` (NEW) posts the employer company to CTO AIPA's unified CRM hub:
+
+```
+POST https://webhook.aideazz.xyz/cto/api/crm-event
+Authorization: Bearer OUTREACH_SECRET
+{
+  "source": "vjh",
+  "type": "application",
+  "domain": "<company domain>",
+  "context": "<job title> @ <company>"
+}
+```
+
+The hub deduplicates against Oracle `outreach_targets`, creates/updates a HubSpot Contact+Company+Deal in the hiring pipeline (`[HIRING] {jobTitle} @ {company}` naming), and logs to `crm_event_log`.
+
+**Env vars required** (added to VJH `.env`):
+
+| Var | Value |
+|-----|-------|
+| `OUTREACH_SECRET` | shared auth secret (same as CTO AIPA) |
+| `CTO_AIPA_WEBHOOK_URL` | `https://webhook.aideazz.xyz/cto` |
+
+**Hiring pipeline stage map** (HubSpot free tier uses Sales Pipeline with `[HIRING]` prefix):
+
+| Event | HubSpot stage |
+|-------|--------------|
+| applied | Appointment Scheduled |
+| recruiter_responded | Qualified to Buy |
+| interview_scheduled | Presentation Scheduled |
+| offer_received | Decision Maker Bought-In |
+| accepted | Closed Won |
+| declined | Closed Lost |
 
 ---
 

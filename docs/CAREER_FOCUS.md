@@ -364,6 +364,7 @@ Applications:        3–5/day (capped for quality)
 | Telegram Bot | ✅ Live | Real-time notifications + commands |
 | **Claude Resilience** | ✅ **NEW (Apr 10)** | `claude_helper.py` — `call_claude_sync`, `call_claude_async`, `acall_claude` with retry on 529/503/429. Wired into `message_generator.py`, `auto_applicator.py`, `company_researcher.py`, `job_matcher.py`. |
 | **Eval Harness** | ✅ **DONE** | 131 tests, 4 layers, all green. |
+| **HubSpot CRM integration** | ✅ **DONE (May 14–15, 2026)** | After each job application, `src/langgraph_pipeline/crm_hub.py` posts to CTO AIPA `/api/crm-event` (pipeline=hiring). HubSpot tracks every application as a Deal in the hiring pipeline (`[HIRING] {jobTitle} @ {company}`). Stage progression: applied→Appointment Scheduled → recruiter_responded→Qualified to Buy → interview_scheduled→Presentation Scheduled → offer_received→Decision Maker Bought-In → accepted→Closed Won / declined→Closed Lost. Env: `OUTREACH_SECRET`, `CTO_AIPA_WEBHOOK_URL=https://webhook.aideazz.xyz/cto`. |
 
 ### ⚠️ Known Limitations
 | Component | Status | Notes |
