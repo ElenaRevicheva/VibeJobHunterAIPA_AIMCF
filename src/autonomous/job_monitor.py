@@ -1059,12 +1059,9 @@ class JobMonitor:
         """
         LinkedIn Jobs via BrightData Web Unlocker.
 
-        Uses the LinkedIn guest jobs API (SSR HTML, no login required).
-        Fetches search results for Elena\'s target roles, then enriches the
-        top candidates with individual job page data (salary, applicant count,
-        seniority level).
-
-        Cost: ~1-3 BrightData calls per search query + up to 5 enrichment calls.
+        Uses linkedin.com/jobs/search/ (SSR content for SEO bots, works with Web Unlocker).
+        Parses job cards from the SSR HTML, then enriches top 5 gate-passing candidates
+        with individual job page fetches for salary, applicant count, and seniority level.
         """
         import os
         import re
@@ -1073,15 +1070,15 @@ class JobMonitor:
         BD_ZONE  = os.getenv("BRIGHTDATA_ZONE", "web_unlocker1")
 
         if not BD_TOKEN or not BD_ZONE:
-            logger.info("⏭️  BrightData LinkedIn: token not configured, skipping")
+            logger.info("\u23ed\ufe0f  BrightData LinkedIn: token not configured, skipping")
             return []
 
         BD_API = "https://api.brightdata.com/request"
         jobs: List[Dict] = []
 
-        # Target queries — Elena\'s roles only
+        # Target queries: Elena's roles only, worldwide remote
         queries = [
-            "AI+engineer+founding+remote",
+            "founding+AI+engineer",
             "fractional+CTO+remote",
             "AI+automation+engineer+remote",
         ]
@@ -1098,25 +1095,26 @@ class JobMonitor:
                         return ""
                     return await resp.text()
 
-        def parse_job_cards(html: str, source_query: str) -> List[Dict]:
-            """Extract job cards from LinkedIn guest API HTML response."""
+        def parse_job_cards(html: str) -> List[Dict]:
+            """Extract job cards from LinkedIn SSR search HTML."""
             found = []
-            # Each card: <div class="base-card..."> with data attributes
-            card_pattern = re.compile(
-                r'data-entity-urn="urn:li:jobPosting:(?P<id>\d+)".*?'
-                r'<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>\s*(?P<title>[^<]+)\s*</h3>.*?'
-                r'<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>.*?<a[^>]*>\s*(?P<company>[^<]+)\s*</a>.*?'
-                r'<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>\s*(?P<location>[^<]+)\s*</span>',
-                re.DOTALL | re.IGNORECASE,
-            )
-            for m in card_pattern.finditer(html):
-                job_id = m.group("id")
+
+            # Job IDs from data-entity-urn
+            ids = re.findall(r'data-entity-urn="urn:li:jobPosting:(\d+)"', html)
+            # Titles from base-search-card__title h3
+            titles = re.findall(r'class="[^"]*base-search-card__title[^"]*"[^>]*>\s*([^<\n]+?)\s*<', html)
+            # Companies from base-search-card__subtitle
+            companies = re.findall(r'class="[^"]*base-search-card__subtitle[^"]*"[^>]*>[\s\S]*?<a[^>]*>\s*([^<\n]+?)\s*<', html)
+            # Locations from job-search-card__location
+            locations = re.findall(r'class="[^"]*job-search-card__location[^"]*"[^>]*>\s*([^<\n]+?)\s*<', html)
+
+            for i, job_id in enumerate(ids):
                 found.append({
-                    "title":    m.group("title").strip(),
-                    "company":  m.group("company").strip(),
-                    "location": m.group("location").strip(),
+                    "title":    titles[i].strip()    if i < len(titles)    else "",
+                    "company":  companies[i].strip() if i < len(companies) else "",
+                    "location": locations[i].strip() if i < len(locations) else "Remote",
                     "url":      f"https://www.linkedin.com/jobs/view/{job_id}",
-                    "description": "",  # enriched below for gate-passing jobs
+                    "description": "",
                     "source":   "brightdata_linkedin",
                     "remote_allowed": True,
                     "_li_job_id": job_id,
@@ -1124,27 +1122,23 @@ class JobMonitor:
             return found
 
         def enrich_job_page(html: str, job: Dict) -> Dict:
-            """Extract salary, applicant count, seniority, and description from an individual LI job page."""
-            # Applicant count: "350 applicants" or "Over 200 applicants"
-            app_match = re.search(r'(?:Over\s+)?(\d+)\+?\s+applicants?', html, re.IGNORECASE)
+            """Extract salary, applicant count, seniority from an individual LI job page."""
+            app_match = re.search(r'(?:Over\s+)?(\d[\d,]*)\+?\s+applicants?', html, re.IGNORECASE)
             if app_match:
                 job["applicant_count"] = int(app_match.group(1).replace(",", ""))
 
-            # Seniority level: appears in criteria list
-            sen_match = re.search(r'Seniority level</span>\s*<span[^>]*>\s*([^<]+)', html, re.IGNORECASE)
+            sen_match = re.search(r'Seniority level</[^>]+>\s*<[^>]+>\s*([^<]+)', html, re.IGNORECASE)
             if sen_match:
                 job["seniority_level"] = sen_match.group(1).strip()
 
-            # Salary: "$120,000/yr – $160,000/yr"
-            sal_match = re.search(r'\$(\d[\d,]+)\s*(?:/yr|/year|annually)?\s*[–-]\s*\$(\d[\d,]+)', html)
+            sal_match = re.search(r'\$(\d[\d,]+)\s*(?:/yr|/year|annually)?\s*[\u2013-]\s*\$(\d[\d,]+)', html)
             if sal_match:
                 job["salary_min"] = int(sal_match.group(1).replace(",", ""))
                 job["salary_max"] = int(sal_match.group(2).replace(",", ""))
 
-            # Description: grab job-description block, strip tags
             desc_match = re.search(
-                r'<div[^>]*(?:job-description|show-more-less-html)[^>]*>(.*?)</div>',
-                html, re.DOTALL | re.IGNORECASE
+                r'<div[^>]*(?:description__text|show-more-less-html)[^>]*>([\s\S]{100,5000}?)</div>',
+                html, re.IGNORECASE
             )
             if desc_match:
                 raw = desc_match.group(1)
@@ -1152,28 +1146,28 @@ class JobMonitor:
 
             return job
 
-        # Fetch search results for each query
         for query in queries:
             url = (
-                f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-                f"?keywords={query}&f_WT=2&f_JT=F&f_TPR=r86400&start=0"
+                f"https://www.linkedin.com/jobs/search/?keywords={query}"
+                f"&location=Worldwide&f_WT=2&f_JT=F&f_TPR=r86400"
             )
             try:
                 html = await bd_fetch(url)
-                if html:
-                    cards = parse_job_cards(html, query)
+                if html and len(html) > 1000:
+                    cards = parse_job_cards(html)
                     jobs.extend(cards)
                     logger.info(f"   BrightData LI [{query}]: {len(cards)} cards")
+                else:
+                    logger.warning(f"   BrightData LI [{query}]: empty response ({len(html)} chars)")
             except Exception as e:
-                logger.warning(f"   ⚠️  BrightData LI search failed [{query}]: {e}")
+                logger.warning(f"   \u26a0\ufe0f  BrightData LI search failed [{query}]: {e}")
 
-            await asyncio.sleep(2)  # respect rate limit
+            await asyncio.sleep(2)
 
         if not jobs:
             logger.info("   BrightData LinkedIn: 0 results from search")
             return []
 
-        # Deduplicate by job ID before enrichment
         seen_ids: set = set()
         unique_jobs = []
         for j in jobs:
@@ -1183,23 +1177,14 @@ class JobMonitor:
                 unique_jobs.append(j)
         jobs = unique_jobs
 
-        # Quick title-only gate pass to decide which jobs to enrich
-        # (saves BrightData credits — only fetch pages for plausible titles)
-        from src.autonomous.job_gate import JobGate
-        candidate_jobs = []
-        for j in jobs:
-            title = j.get("title", "").lower()
-            # Skip obvious mismatches before paying for a page fetch
-            is_blocked = any(kw in title for kw in [
-                "senior software", "staff engineer", "principal engineer",
-                "director", "vp ", "vice president", "manager",
-            ])
-            if not is_blocked:
-                candidate_jobs.append(j)
+        # Pre-filter on title before paying for page enrichment
+        QUICK_SKIP = [
+            "senior software", "staff engineer", "principal engineer",
+            "director", "vp ", "vice president", "manager",
+        ]
+        candidate_jobs = [j for j in jobs if not any(kw in j.get("title","").lower() for kw in QUICK_SKIP)]
+        logger.info(f"   BrightData LI: {len(jobs)} unique \u2192 {len(candidate_jobs)} for page enrichment")
 
-        logger.info(f"   BrightData LI: {len(jobs)} total → {len(candidate_jobs)} candidates for enrichment")
-
-        # Enrich up to 5 individual job pages
         enriched = 0
         for job in candidate_jobs[:5]:
             jid = job.get("_li_job_id", "")
@@ -1207,14 +1192,14 @@ class JobMonitor:
                 continue
             try:
                 page_html = await bd_fetch(f"https://www.linkedin.com/jobs/view/{jid}")
-                if page_html:
+                if page_html and len(page_html) > 1000:
                     job = enrich_job_page(page_html, job)
                     enriched += 1
             except Exception as e:
-                logger.warning(f"   ⚠️  BrightData LI page enrichment failed [{jid}]: {e}")
+                logger.warning(f"   \u26a0\ufe0f  BrightData LI page [{jid}]: {e}")
             await asyncio.sleep(1)
 
-        logger.info(f"✅ BrightData LinkedIn: {len(jobs)} jobs, {enriched} enriched with salary/applicant data")
+        logger.info(f"\u2705 BrightData LinkedIn: {len(jobs)} jobs, {enriched} enriched")
         return jobs
 
 
