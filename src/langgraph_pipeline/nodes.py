@@ -407,12 +407,9 @@ async def notify_node(state: JobState) -> dict:
                 from src.langgraph_pipeline.crm_hub import push_application_to_crm
                 if status == "human_pending":
                     crm_notes = (
-                        f"⚠️ NEEDS MANUAL APPLY
-"
-                        f"Score: {score:.0f}
-"
-                        f"Apply at: {url}
-"
+                        f"\u26a0\ufe0f NEEDS MANUAL APPLY\n"
+                        f"Score: {score:.0f}\n"
+                        f"Apply at: {url}\n"
                         f"Approve in Telegram: /approve_vjh_{state.get('job_id', '')}"
                     )
                     push_application_to_crm(
