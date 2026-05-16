@@ -401,17 +401,36 @@ async def notify_node(state: JobState) -> dict:
 
         await telegram.send_message(msg)
 
-        # Push to HubSpot Hiring Pipeline for applied and outreach_sent outcomes
-        if status in ("applied", "outreach_sent"):
+        # Push to HubSpot Hiring Pipeline
+        if status in ("applied", "outreach_sent", "human_pending"):
             try:
                 from src.langgraph_pipeline.crm_hub import push_application_to_crm
-                push_application_to_crm(
-                    job_title=title,
-                    company=company,
-                    job_url=url,
-                    recruiter_email=state.get('outreach_email', ''),
-                    stage="applied" if status == "applied" else "applied",
-                )
+                if status == "human_pending":
+                    crm_notes = (
+                        f"⚠️ NEEDS MANUAL APPLY
+"
+                        f"Score: {score:.0f}
+"
+                        f"Apply at: {url}
+"
+                        f"Approve in Telegram: /approve_vjh_{state.get('job_id', '')}"
+                    )
+                    push_application_to_crm(
+                        job_title=title,
+                        company=company,
+                        job_url=url,
+                        stage="applied",
+                        source="vjh_review",
+                        notes=crm_notes,
+                    )
+                else:
+                    push_application_to_crm(
+                        job_title=title,
+                        company=company,
+                        job_url=url,
+                        recruiter_email=state.get('outreach_email', ''),
+                        stage="applied",
+                    )
             except Exception as crm_err:
                 logger.warning(f"[notify] CRM push non-fatal error: {crm_err}")
 

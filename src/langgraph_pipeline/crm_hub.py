@@ -32,6 +32,7 @@ def push_application_to_crm(
     recruiter_name: str = "",
     stage: str = "applied",
     source: str = "vjh",
+    notes: str = "",
 ) -> bool:
     """POST the job application to CTO AIPA CRM hub. Returns True on success."""
     secret = (os.environ.get("OUTREACH_SECRET") or "").strip()
@@ -49,6 +50,8 @@ def push_application_to_crm(
         "jobUrl": job_url,
         "stage": stage,
     }
+    if notes:
+        payload["notes"] = notes
     if recruiter_email:
         payload["recruiterEmail"] = recruiter_email
     if recruiter_name:
