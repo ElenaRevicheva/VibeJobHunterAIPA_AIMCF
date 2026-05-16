@@ -352,6 +352,26 @@ class JobGate:
                 return False
         
         # ─────────────────────────────
+        # 4.1️⃣ APPLICANT COUNT (BrightData LinkedIn enrichment)
+        # >200 applicants = too crowded, cold apply won\'t work
+        # ─────────────────────────────
+        applicant_count = job.get("applicant_count")
+        if applicant_count is not None and isinstance(applicant_count, (int, float)):
+            if applicant_count > 200:
+                logger.debug(f"❌ GATE REJECT (too many applicants {applicant_count}): {title[:50]}")
+                return False
+
+        # ─────────────────────────────
+        # 4.2️⃣ LINKEDIN SENIORITY LEVEL (BrightData enrichment)
+        # Rejects Director/Executive/VP even if title text slipped through
+        # ─────────────────────────────
+        seniority_level = (job.get("seniority_level") or "").lower()
+        BLOCKED_SENIORITY = {"director", "executive", "c-suite", "vp", "not applicable"}
+        if seniority_level and any(b in seniority_level for b in BLOCKED_SENIORITY):
+            logger.debug(f"❌ GATE REJECT (LinkedIn seniority=\'{seniority_level}\'): {title[:50]}")
+            return False
+
+        # ─────────────────────────────
         # 5️⃣ CHECK company size (if data available)
         # ─────────────────────────────
         if not JobGate._check_company_size(job):

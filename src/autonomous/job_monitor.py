@@ -165,7 +165,7 @@ class JobMonitor:
         # Track jobs per source for summary
         source_counts = {
             "ats": 0, "dice_mcp": 0, "hn": 0, "remoteok": 0, "yc": 0,
-            "wellfound": 0, "wwr": 0, "aijobs": 0, "torre": 0, "himalayas": 0,
+            "wellfound": 0, "wwr": 0, "aijobs": 0, "torre": 0, "himalayas": 0, "bd_linkedin": 0,
         }
 
         # ==============================================================
@@ -232,17 +232,19 @@ class JobMonitor:
             safe_fetch("AI-Jobs.net", self._search_aijobs(), 15),
             safe_fetch("Torre.ai (LATAM)", self._search_torre(), 20),
             safe_fetch("Himalayas (global)", self._search_himalayas(), 20),
+            safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
             return_exceptions=True
         )
 
         # Unpack results
-        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs = secondary_results
+        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs = secondary_results
 
         # Handle any exceptions that slipped through
         for name, jobs in [("hn", hn_jobs), ("remoteok", remoteok_jobs),
                            ("yc", yc_jobs), ("wellfound", wellfound_jobs),
                            ("wwr", wwr_jobs), ("aijobs", ai_jobs),
-                           ("torre", torre_jobs), ("himalayas", himalayas_jobs)]:
+                           ("torre", torre_jobs), ("himalayas", himalayas_jobs),
+                           ("bd_linkedin", bd_linkedin_jobs)]:
             if isinstance(jobs, Exception):
                 logger.warning(f"   ⚠️ {name} exception: {jobs}")
                 jobs = []
@@ -265,6 +267,7 @@ class JobMonitor:
         logger.info(f"   AI-Jobs.net:     {source_counts['aijobs']} jobs")
         logger.info(f"   Torre.ai (LATAM):{source_counts['torre']} jobs")
         logger.info(f"   Himalayas (glbl):{source_counts['himalayas']} jobs")
+        logger.info(f"   BrightData LI:   {source_counts['bd_linkedin']} jobs")
         logger.info(f"   TOTAL:           {len(all_jobs)} jobs")
         logger.info("=" * 60)
 
@@ -1051,6 +1054,169 @@ class JobMonitor:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    async def _search_brightdata_linkedin(self) -> List[Dict]:
+        """
+        LinkedIn Jobs via BrightData Web Unlocker.
+
+        Uses the LinkedIn guest jobs API (SSR HTML, no login required).
+        Fetches search results for Elena\'s target roles, then enriches the
+        top candidates with individual job page data (salary, applicant count,
+        seniority level).
+
+        Cost: ~1-3 BrightData calls per search query + up to 5 enrichment calls.
+        """
+        import os
+        import re
+
+        BD_TOKEN = os.getenv("BRIGHTDATA_API_TOKEN", "")
+        BD_ZONE  = os.getenv("BRIGHTDATA_ZONE", "web_unlocker1")
+
+        if not BD_TOKEN or not BD_ZONE:
+            logger.info("⏭️  BrightData LinkedIn: token not configured, skipping")
+            return []
+
+        BD_API = "https://api.brightdata.com/request"
+        jobs: List[Dict] = []
+
+        # Target queries — Elena\'s roles only
+        queries = [
+            "AI+engineer+founding+remote",
+            "fractional+CTO+remote",
+            "AI+automation+engineer+remote",
+        ]
+
+        async def bd_fetch(url: str) -> str:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    BD_API,
+                    json={"zone": BD_ZONE, "url": url, "format": "raw"},
+                    headers={"Authorization": f"Bearer {BD_TOKEN}", "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as resp:
+                    if resp.status != 200:
+                        return ""
+                    return await resp.text()
+
+        def parse_job_cards(html: str, source_query: str) -> List[Dict]:
+            """Extract job cards from LinkedIn guest API HTML response."""
+            found = []
+            # Each card: <div class="base-card..."> with data attributes
+            card_pattern = re.compile(
+                r'data-entity-urn="urn:li:jobPosting:(?P<id>\d+)".*?'
+                r'<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>\s*(?P<title>[^<]+)\s*</h3>.*?'
+                r'<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>.*?<a[^>]*>\s*(?P<company>[^<]+)\s*</a>.*?'
+                r'<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>\s*(?P<location>[^<]+)\s*</span>',
+                re.DOTALL | re.IGNORECASE,
+            )
+            for m in card_pattern.finditer(html):
+                job_id = m.group("id")
+                found.append({
+                    "title":    m.group("title").strip(),
+                    "company":  m.group("company").strip(),
+                    "location": m.group("location").strip(),
+                    "url":      f"https://www.linkedin.com/jobs/view/{job_id}",
+                    "description": "",  # enriched below for gate-passing jobs
+                    "source":   "brightdata_linkedin",
+                    "remote_allowed": True,
+                    "_li_job_id": job_id,
+                })
+            return found
+
+        def enrich_job_page(html: str, job: Dict) -> Dict:
+            """Extract salary, applicant count, seniority, and description from an individual LI job page."""
+            # Applicant count: "350 applicants" or "Over 200 applicants"
+            app_match = re.search(r'(?:Over\s+)?(\d+)\+?\s+applicants?', html, re.IGNORECASE)
+            if app_match:
+                job["applicant_count"] = int(app_match.group(1).replace(",", ""))
+
+            # Seniority level: appears in criteria list
+            sen_match = re.search(r'Seniority level</span>\s*<span[^>]*>\s*([^<]+)', html, re.IGNORECASE)
+            if sen_match:
+                job["seniority_level"] = sen_match.group(1).strip()
+
+            # Salary: "$120,000/yr – $160,000/yr"
+            sal_match = re.search(r'\$(\d[\d,]+)\s*(?:/yr|/year|annually)?\s*[–-]\s*\$(\d[\d,]+)', html)
+            if sal_match:
+                job["salary_min"] = int(sal_match.group(1).replace(",", ""))
+                job["salary_max"] = int(sal_match.group(2).replace(",", ""))
+
+            # Description: grab job-description block, strip tags
+            desc_match = re.search(
+                r'<div[^>]*(?:job-description|show-more-less-html)[^>]*>(.*?)</div>',
+                html, re.DOTALL | re.IGNORECASE
+            )
+            if desc_match:
+                raw = desc_match.group(1)
+                job["description"] = re.sub(r'<[^>]+>', ' ', raw).strip()[:3000]
+
+            return job
+
+        # Fetch search results for each query
+        for query in queries:
+            url = (
+                f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+                f"?keywords={query}&f_WT=2&f_JT=F&f_TPR=r86400&start=0"
+            )
+            try:
+                html = await bd_fetch(url)
+                if html:
+                    cards = parse_job_cards(html, query)
+                    jobs.extend(cards)
+                    logger.info(f"   BrightData LI [{query}]: {len(cards)} cards")
+            except Exception as e:
+                logger.warning(f"   ⚠️  BrightData LI search failed [{query}]: {e}")
+
+            await asyncio.sleep(2)  # respect rate limit
+
+        if not jobs:
+            logger.info("   BrightData LinkedIn: 0 results from search")
+            return []
+
+        # Deduplicate by job ID before enrichment
+        seen_ids: set = set()
+        unique_jobs = []
+        for j in jobs:
+            jid = j.get("_li_job_id", "")
+            if jid and jid not in seen_ids:
+                seen_ids.add(jid)
+                unique_jobs.append(j)
+        jobs = unique_jobs
+
+        # Quick title-only gate pass to decide which jobs to enrich
+        # (saves BrightData credits — only fetch pages for plausible titles)
+        from src.autonomous.job_gate import JobGate
+        candidate_jobs = []
+        for j in jobs:
+            title = j.get("title", "").lower()
+            # Skip obvious mismatches before paying for a page fetch
+            is_blocked = any(kw in title for kw in [
+                "senior software", "staff engineer", "principal engineer",
+                "director", "vp ", "vice president", "manager",
+            ])
+            if not is_blocked:
+                candidate_jobs.append(j)
+
+        logger.info(f"   BrightData LI: {len(jobs)} total → {len(candidate_jobs)} candidates for enrichment")
+
+        # Enrich up to 5 individual job pages
+        enriched = 0
+        for job in candidate_jobs[:5]:
+            jid = job.get("_li_job_id", "")
+            if not jid:
+                continue
+            try:
+                page_html = await bd_fetch(f"https://www.linkedin.com/jobs/view/{jid}")
+                if page_html:
+                    job = enrich_job_page(page_html, job)
+                    enriched += 1
+            except Exception as e:
+                logger.warning(f"   ⚠️  BrightData LI page enrichment failed [{jid}]: {e}")
+            await asyncio.sleep(1)
+
+        logger.info(f"✅ BrightData LinkedIn: {len(jobs)} jobs, {enriched} enriched with salary/applicant data")
+        return jobs
+
 
     def _job_id(self, job: Any) -> str:
         """Generate unique ID for deduplication"""
