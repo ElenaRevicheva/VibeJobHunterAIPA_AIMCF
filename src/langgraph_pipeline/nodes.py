@@ -88,7 +88,7 @@ def score_node(state: JobState) -> dict:
         from src.agents.job_matcher import JobMatcher
         from src.core.profile_manager import ProfileManager
 
-        profile = ProfileManager.load_default()
+        profile = ProfileManager().get_profile()
         matcher = JobMatcher()
 
         job_mock = type('Job', (), {
@@ -189,7 +189,7 @@ async def submit_node(state: JobState) -> dict:
         from src.autonomous.email_service import create_email_service
         from src.core.profile_manager import ProfileManager
 
-        profile = ProfileManager.load_default()
+        profile = ProfileManager().get_profile()
         email_service = create_email_service()
         applicator = AutoApplicator(
             profile=profile,
@@ -268,7 +268,7 @@ async def outreach_node(state: JobState) -> dict:
                 "status": "outreach_capped",
             }
 
-        profile = ProfileManager.load_default()
+        profile = ProfileManager().get_profile()
         job_mock = type('Job', (), state['raw_job'])()
 
         # Find founder email
