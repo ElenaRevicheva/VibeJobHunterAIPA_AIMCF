@@ -4,27 +4,13 @@
     "title": "Founding AI Engineer",
     "company": "Aethon AI",
     "location": "Remote",
-    "description": "We are an early-stage AI startup (seed funding) building LLM-powered developer tools. You will be the founding engineer — the first technical hire — building our core AI product from scratch. Own the full stack: Python, TypeScript, LangChain, LLM APIs, distributed systems. Remote-first, startup culture, equity offered. Ship fast, high autonomy.",
+    "description": "We are an early-stage AI startup (seed funding) building LLM-powered developer tools. You will be the founding engineer \u2014 the first technical hire \u2014 building our core AI product from scratch. Own the full stack: Python, TypeScript, LangChain, LLM APIs, distributed systems. Remote-first, startup culture, equity offered. Ship fast, high autonomy.",
     "source": "other",
     "remote_allowed": true,
     "expected_action": "apply",
     "expected_score_min": 62,
     "expected_score_max": 100,
     "label_reason": "Founding engineer at seed AI startup. Max signals across every dimension: ai_product_ownership (llm, ai engineer), zero_to_one_autonomy (founding engineer, 0-1), fullstack (python, typescript, distributed systems), bilingual (remote), bias (startup, equity, ai tooling).",
-    "edge_case_type": null
-  },
-  {
-    "id": "golden_002",
-    "title": "Staff LLM Engineer",
-    "company": "NeuralDev",
-    "location": "Remote",
-    "description": "Join our Series A AI platform team. Build distributed LLM infrastructure, work with LangChain, RAG systems, vector databases, machine learning pipelines. Staff engineer level, high autonomy, small team (20 people). Remote. Equity package included.",
-    "source": "other",
-    "remote_allowed": true,
-    "expected_action": "apply",
-    "expected_score_min": 62,
-    "expected_score_max": 100,
-    "label_reason": "Staff LLM engineer at Series A. Strong signals: staff engineer (senior bonus), llm engineer (ai high), distributed systems (infra high), series a startup, equity, remote.",
     "edge_case_type": null
   },
   {
@@ -52,22 +38,8 @@
     "expected_action": "apply",
     "expected_score_min": 62,
     "expected_score_max": 100,
-    "label_reason": "EDGE CASE: 'security engineer' is in NOT_MY_LANE_TITLE_KEYWORDS and would normally get -20 penalty. But the description contains 6+ AI signals (llm safety, machine learning, generative ai, language model, ai platform, llm deployment) — the threshold is 2. The exception logic in _wrong_role_penalty saves it and returns (0, None). Tests that this exception works correctly.",
+    "label_reason": "EDGE CASE: 'security engineer' is in NOT_MY_LANE_TITLE_KEYWORDS and would normally get -20 penalty. But the description contains 6+ AI signals (llm safety, machine learning, generative ai, language model, ai platform, llm deployment) \u2014 the threshold is 2. The exception logic in _wrong_role_penalty saves it and returns (0, None). Tests that this exception works correctly.",
     "edge_case_type": "not_my_lane_saved_by_ai_description"
-  },
-  {
-    "id": "golden_005",
-    "title": "Senior Software Engineer",
-    "company": "Anthropic",
-    "location": "San Francisco, CA (Remote OK)",
-    "description": "Join Anthropic's core engineering team. Work on Claude, our large language model. Build LLM tooling, evaluation systems for language models, AI platform infrastructure. Python, TypeScript, distributed systems. Work closely with AI researchers.",
-    "source": "other",
-    "remote_allowed": true,
-    "expected_action": "apply",
-    "expected_score_min": 62,
-    "expected_score_max": 100,
-    "label_reason": "EDGE CASE: Generic 'Senior Software Engineer' title. The Level-3 check in _wrong_role_penalty looks for MY_DOMAIN_TITLE_KEYWORDS in the title. 'software engineer' IS in that list, so has_domain_signal=True and no penalty fires. Also: 'llm', 'language model', 'claude' in description give 2+ AI signals as a secondary check. Senior bonus (+4) and ai_productivity bonus (+5 for llm tooling) both apply.",
-    "edge_case_type": "generic_title_saved_by_domain_keyword"
   },
   {
     "id": "golden_006",
@@ -150,21 +122,7 @@
     "expected_action": "apply",
     "expected_score_min": 85,
     "expected_score_max": 100,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 100. AI infrastructure company (GPU, inference, machine learning workloads). 'staff' in title triggers senior bonus (+4) and zero_to_one_autonomy high match. Strong AI product ownership signals throughout description. Series B $1.1B — company stage triggers founding scorer boost.",
-    "edge_case_type": "real_production_job"
-  },
-  {
-    "id": "real_002",
-    "title": "Senior / Staff Fullstack Engineer",
-    "company": "Linear",
-    "location": "Europe",
-    "description": "At Linear, we're building the product development system for teams and agents. AI is fundamentally changing how software gets built, and we're shaping the tools this new era requires.\n\nFounded in 2019, Linear has become the platform of choice for more than 25,000 companies (including OpenAI, Coinbase, and Ramp) to plan, build, and ship their products. Today, our team is distributed across North America and Europe, and we're continuing to grow internationally. What unites us is relentless focus, fast execution, and a deep care for software craftsmanship.\n\nAs a small team, we're all generalists and constantly picking up new challenges.",
-    "source": "other",
-    "remote_allowed": false,
-    "expected_action": "apply",
-    "expected_score_min": 85,
-    "expected_score_max": 100,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 100. 'fullstack' in title hits fullstack_infra high directly. 'staff' triggers senior bonus. 'agents' + AI content in description triggers ai_productivity bonus. OpenAI/Coinbase as customers add credibility context. 'small team' + 'fast execution' + 'ship' triggers founding scorer value prop boost.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 100. AI infrastructure company (GPU, inference, machine learning workloads). 'staff' in title triggers senior bonus (+4) and zero_to_one_autonomy high match. Strong AI product ownership signals throughout description. Series B $1.1B \u2014 company stage triggers founding scorer boost.",
     "edge_case_type": "real_production_job"
   },
   {
@@ -178,35 +136,7 @@
     "expected_action": "apply",
     "expected_score_min": 70,
     "expected_score_max": 100,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 80.4 (production score was 98.2 — difference = Claude AI contribution). Frontier AI company. 'ai systems' in description hits ai_product_ownership high. 'staff' in title triggers senior bonus (+4). 'agents' in description triggers ai_productivity bonus (+5). 'fast' in 'work hard and move fast' fires founding scorer value prop (+10).",
-    "edge_case_type": "real_production_job"
-  },
-  {
-    "id": "real_004",
-    "title": "Senior Full-Stack Engineer - Product",
-    "company": "Railway",
-    "location": "Remote (United States)",
-    "description": "This is a remote position available anywhere in the world! Linkedin makes us show a country, but we hire the best people wherever they are.\n\nOur core mission at Railway is to make software engineers higher leverage. We believe that people should be given powerful tools so that they can spend less time setting up to do, and more time doing.\n\nAt Railway, we believe that making tooling more accessible for build and deployment is one of the greatest possible productivity unlocks of our generation. We also believe that the major roadblock between us and our goal is strong interfacing paradigms.\n\nIf you're looking to build an operating system for builders, we'd love to talk with yo",
-    "source": "other",
-    "remote_allowed": true,
-    "expected_action": "apply",
-    "expected_score_min": 60,
-    "expected_score_max": 90,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 71.2 (production score was 97.4 — difference = Claude AI contribution). 'full-stack' in title hits fullstack_infra high. 'senior' triggers +4 senior bonus. 'remote' (worldwide) triggers bilingual_global high. No LLM/AI keywords in description — developer tooling focus without AI content means lower deterministic score than production.",
-    "edge_case_type": "real_production_job"
-  },
-  {
-    "id": "real_005",
-    "title": "Senior / Principal Product Manager",
-    "company": "Zip",
-    "location": "San Francisco",
-    "description": "Here at Zip, we're reimagining how modern businesses function in the age of AI. The simple task of buying software, services, or tools at work has become hopelessly complicated at even the most innovative companies in the world. Today, enterprises spend $120T+ per year globally (>30 times larger than annual consumer e-commerce spend) and rely on vendors more than ever before to run their businesses.\n\nOur co-founders started Zip in 2020 to address this seemingly universal problem with a purpose-built procurement platform that provides a simple, consumer-grade user experience. Within the last 5 years, Zip has created a new category and developed the leading solution",
-    "source": "other",
-    "remote_allowed": false,
-    "expected_action": "apply",
-    "expected_score_min": 85,
-    "expected_score_max": 100,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 97.2. 'product manager' is in MY_DOMAIN_TITLE_KEYWORDS (no penalty) AND in zero_to_one_autonomy high. 'principal' triggers +4 senior bonus. 'age of AI' + 'ai' in description triggers AI medium signals. Note: this is an enterprise PM role — whether this is truly aligned for Elena is worth reviewing as the golden set grows.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 80.4 (production score was 98.2 \u2014 difference = Claude AI contribution). Frontier AI company. 'ai systems' in description hits ai_product_ownership high. 'staff' in title triggers senior bonus (+4). 'agents' in description triggers ai_productivity bonus (+5). 'fast' in 'work hard and move fast' fires founding scorer value prop (+10).",
     "edge_case_type": "real_production_job"
   },
   {
@@ -220,7 +150,7 @@
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 52.6. CRITICAL EDGE CASE: BDR role at a top AI company (Dust). Description has strong AI content: 'agents', 'AI operating system'. The description almost saves it via AI signals, but 'business development representative' is in WRONG_ROLE_TITLE_KEYWORDS → -40 penalty. Dimensional + AI bonuses push base to ~92, then -40 → 52. Just barely discard. Demonstrates that title penalty overrides even an excellent AI company description.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 52.6. CRITICAL EDGE CASE: BDR role at a top AI company (Dust). Description has strong AI content: 'agents', 'AI operating system'. The description almost saves it via AI signals, but 'business development representative' is in WRONG_ROLE_TITLE_KEYWORDS \u2192 -40 penalty. Dimensional + AI bonuses push base to ~92, then -40 \u2192 52. Just barely discard. Demonstrates that title penalty overrides even an excellent AI company description.",
     "edge_case_type": "wrong_role_at_great_ai_company"
   },
   {
@@ -228,13 +158,13 @@
     "title": "Engineer Who Can Design, Americas",
     "company": "Ashby",
     "location": "Remote - North to South America",
-    "description": "I'm Abhik, Ashby's Co-Founder and VP of Engineering. As someone who could design and build software, this position is close to my heart. I always felt I had a unique perspective because I could play with design ideas and iterate in code. My ideas could start in Figma but then be grounded (or sometimes more creative) in code. My prototypes used actual logic and data. My changes cascaded throughout the app for comprehensive critique (thanks, React component system!). But, every company made me pick one — I couldn't design and build. At Ashby, you can.\n\nWhile every engineer can design and build, you'll tackle our most challengi",
+    "description": "I'm Abhik, Ashby's Co-Founder and VP of Engineering. As someone who could design and build software, this position is close to my heart. I always felt I had a unique perspective because I could play with design ideas and iterate in code. My ideas could start in Figma but then be grounded (or sometimes more creative) in code. My prototypes used actual logic and data. My changes cascaded throughout the app for comprehensive critique (thanks, React component system!). But, every company made me pick one \u2014 I couldn't design and build. At Ashby, you can.\n\nWhile every engineer can design and build, you'll tackle our most challengi",
     "source": "other",
     "remote_allowed": true,
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 51.6. HR tech (ATS) company. Title 'Engineer Who Can Design' — 'engineer' is in fullstack low, but 'design' gives no domain signal in MY_DOMAIN_TITLE_KEYWORDS. Level 3 penalty fires (no domain signal, no AI in description). 'React', 'code', 'build' give some positive dimensional score but not enough after penalty. Ashby is a legitimate tech company but role is UI/design-focused with zero LLM content.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 51.6. HR tech (ATS) company. Title 'Engineer Who Can Design' \u2014 'engineer' is in fullstack low, but 'design' gives no domain signal in MY_DOMAIN_TITLE_KEYWORDS. Level 3 penalty fires (no domain signal, no AI in description). 'React', 'code', 'build' give some positive dimensional score but not enough after penalty. Ashby is a legitimate tech company but role is UI/design-focused with zero LLM content.",
     "edge_case_type": "no_domain_signal_no_ai"
   },
   {
@@ -248,7 +178,7 @@
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 49.8. Account Executive at Prefect (Python orchestration/MCP). Despite strong technical content (MCP, python, orchestration, automation) and a remote-first AI-adjacent company, 'account executive' in title → -40 wrong-role penalty. Demonstrates that even a technically-worded job description cannot rescue a wrong-role title. MCP content adds some AI bonuses but final score stays in discard.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 49.8. Account Executive at Prefect (Python orchestration/MCP). Despite strong technical content (MCP, python, orchestration, automation) and a remote-first AI-adjacent company, 'account executive' in title \u2192 -40 wrong-role penalty. Demonstrates that even a technically-worded job description cannot rescue a wrong-role title. MCP content adds some AI bonuses but final score stays in discard.",
     "edge_case_type": "wrong_role_at_technical_company"
   },
   {
@@ -262,7 +192,7 @@
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 49.4. Account Executive at Mistral AI (one of the top LLM companies). The description is full of AI keywords: AI platform, language model, AI assistant. BUT 'account executive' → -40 penalty. Even Mistral's name recognition cannot save an AE role. Definitive test: wrong-role penalty overrides company prestige and AI description content completely.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 49.4. Account Executive at Mistral AI (one of the top LLM companies). The description is full of AI keywords: AI platform, language model, AI assistant. BUT 'account executive' \u2192 -40 penalty. Even Mistral's name recognition cannot save an AE role. Definitive test: wrong-role penalty overrides company prestige and AI description content completely.",
     "edge_case_type": "wrong_role_at_top_ai_company"
   },
   {
@@ -276,7 +206,7 @@
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 44.4. Developer productivity tool. 'design engineer' title — 'cad ' is in WRONG_ROLE_TITLE_KEYWORDS but 'design engineer' itself is not. Level 3: 'design' has no match in MY_DOMAIN_TITLE_KEYWORDS → -15 or -10 penalty fires. Description has 'developer' keywords but zero LLM/AI content. React mentioned but no AI framework signals.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 44.4. Developer productivity tool. 'design engineer' title \u2014 'cad ' is in WRONG_ROLE_TITLE_KEYWORDS but 'design engineer' itself is not. Level 3: 'design' has no match in MY_DOMAIN_TITLE_KEYWORDS \u2192 -15 or -10 penalty fires. Description has 'developer' keywords but zero LLM/AI content. React mentioned but no AI framework signals.",
     "edge_case_type": "no_domain_signal_no_ai"
   },
   {
@@ -284,13 +214,13 @@
     "title": "Site Reliability Engineer",
     "company": "Tinybird",
     "location": "Spain",
-    "description": "At Tinybird, we help developers and data teams take flight by unlocking the power of real-time data to quickly build data pipelines and innovative data products. With Tinybird, you can effortlessly ingest multiple data sources at scale, query and shape it using the 100% pure SQL you already know and love, and publish results as low-latency, high-concurrency APIs for your applications to chirp about. Developers can create fast APIs, faster — what used to take hours and days now only takes minutes! Tinybird is the essential tool that data engineers and software developers have been waiting for enabling you to drive innovation with ease.",
+    "description": "At Tinybird, we help developers and data teams take flight by unlocking the power of real-time data to quickly build data pipelines and innovative data products. With Tinybird, you can effortlessly ingest multiple data sources at scale, query and shape it using the 100% pure SQL you already know and love, and publish results as low-latency, high-concurrency APIs for your applications to chirp about. Developers can create fast APIs, faster \u2014 what used to take hours and days now only takes minutes! Tinybird is the essential tool that data engineers and software developers have been waiting for enabling you to drive innovation with ease.",
     "source": "other",
     "remote_allowed": false,
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 41.2. SRE at a data pipeline company. 'site reliability' is in NOT_MY_LANE_TITLE_KEYWORDS → -20 penalty. Description has no AI/LLM signals (ai_in_desc = 0) so the not-my-lane penalty applies without rescue. SQL, APIs, data pipelines give some positive dimensional score but penalty brings final below threshold.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 41.2. SRE at a data pipeline company. 'site reliability' is in NOT_MY_LANE_TITLE_KEYWORDS \u2192 -20 penalty. Description has no AI/LLM signals (ai_in_desc = 0) so the not-my-lane penalty applies without rescue. SQL, APIs, data pipelines give some positive dimensional score but penalty brings final below threshold.",
     "edge_case_type": "not_my_lane_no_ai_content"
   },
   {
@@ -304,7 +234,67 @@
     "expected_action": "discard",
     "expected_score_min": 0,
     "expected_score_max": 54,
-    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 36.8. Account Executive at Vanta (security compliance). 'account executive' → -40 penalty. Description is about sales, trust, and compliance — no engineering or AI content to generate bonuses. Lowest score in this golden set for a named-company role. Clean discard.",
+    "label_reason": "REAL PRODUCTION JOB. Deterministic score: 36.8. Account Executive at Vanta (security compliance). 'account executive' \u2192 -40 penalty. Description is about sales, trust, and compliance \u2014 no engineering or AI content to generate bonuses. Lowest score in this golden set for a named-company role. Clean discard.",
     "edge_case_type": "wrong_role_title"
+  },
+  {
+    "id": "v4_001",
+    "title": "Fractional CTO",
+    "company": "AI Startup",
+    "location": "Remote LATAM",
+    "description": "Fractional CTO for early-stage AI SaaS startup. Lead architecture, hire first engineers, build 0-to-1 product. Remote-friendly, LATAM welcome.",
+    "expected_action": "apply",
+    "expected_score_min": 70,
+    "expected_score_max": 100,
+    "label_reason": "Fractional CTO \u2014 Elena's primary target role. LATAM remote, early stage, AI product.",
+    "edge_case_type": "target_role"
+  },
+  {
+    "id": "v4_002",
+    "title": "VP Engineering",
+    "company": "ScaleUp",
+    "location": "Remote",
+    "description": "VP Engineering to lead 30-person engineering org. Manage directors, own roadmap, drive OKRs.",
+    "expected_action": "discard",
+    "expected_score_min": 0,
+    "expected_score_max": 54,
+    "label_reason": "VP Engineering \u2014 blocked by gate (vice president keyword). Wrong seniority level per CAREER_FOCUS v4.",
+    "edge_case_type": "gate_blocks_before_scoring"
+  },
+  {
+    "id": "v4_003",
+    "title": "AI Automation Engineer",
+    "company": "Seed AI Co",
+    "location": "Global remote",
+    "description": "Build LLM-powered automation pipelines. Python, LangChain, multi-agent systems. Seed stage, 5-person team.",
+    "expected_action": "apply",
+    "expected_score_min": 65,
+    "expected_score_max": 100,
+    "label_reason": "AI Automation Engineer at seed stage \u2014 perfect fit. Small team, global remote, core skill match.",
+    "edge_case_type": "target_role"
+  },
+  {
+    "id": "v4_004",
+    "title": "Director of Engineering",
+    "company": "Startup",
+    "location": "Remote",
+    "description": "Director of Engineering to own technical roadmap and manage team leads.",
+    "expected_action": "discard",
+    "expected_score_min": 0,
+    "expected_score_max": 54,
+    "label_reason": "Director of Engineering \u2014 blocked by gate. Wrong seniority per CAREER_FOCUS v4.",
+    "edge_case_type": "gate_blocks_before_scoring"
+  },
+  {
+    "id": "v4_005",
+    "title": "AI Program Manager",
+    "company": "AI SaaS",
+    "location": "Remote Americas",
+    "description": "AI Program Manager \u2014 coordinate AI product delivery, work with engineers and founders. No coding assessment.",
+    "expected_action": "apply",
+    "expected_score_min": 60,
+    "expected_score_max": 100,
+    "label_reason": "AI Program Manager \u2014 target role from CAREER_FOCUS v4. Remote Americas, no assessment requirement.",
+    "edge_case_type": "target_role"
   }
 ]

@@ -414,7 +414,7 @@ def _ask_judge(client, title: str, company: str, description: str) -> Optional[s
     """
     try:
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=150,
             system=JUDGE_SYSTEM_PROMPT,
             messages=[{
