@@ -57,6 +57,14 @@ ROLE_EXCLUDE_KEYWORDS = {
     "customer success", "account manager", "account executive",
     "phd required", "doctorate required",
     "director of sales", "vp sales",
+    # C-level / VP / Director — wrong seniority for Elena's profile
+    "vice president", "vp engineering", "vp of engineering",
+    "vp software", "vp technology", "vp, engineering", "vp product",
+    "svp", "senior vice president",
+    "chief technology", "chief ai", "chief product", "chief operating",
+    "director of engineering", "director of technology", "director of ai",
+    "head of product", "head of ai", "head of technology",
+    "engineering manager", "engineering director",
     "legal counsel", "general counsel",
     "executive assistant", "administrative",
     "microsoft 365", "power platform", "sharepoint",
@@ -91,6 +99,13 @@ LARGE_COMPANY_BLOCKLIST = {
     "siro clinpharm", "nagarro", "codeforce360",
     "akaasa", "xforia", "verito", "argyll",
     "sr partners",
+    # Job aggregators — not real employers, pollute HubSpot
+    "jobgether", "wfhforgeon", "performacentric", "useshiny",
+    "remotive", "flexjobs",
+    # Large companies slipping through other filters
+    "bristol myers", "airbnb", "adyen", "scribd", "ebay",
+    "wealthfront", "skydio", "neuralink", "iomed", "curai",
+    "holmusk", "oscaro", "amex", "american express",
 }
 
 LOCATION_INCLUDE_KEYWORDS = {

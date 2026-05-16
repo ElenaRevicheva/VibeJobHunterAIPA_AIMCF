@@ -430,6 +430,7 @@ async def notify_node(state: JobState) -> dict:
                         job_url=url,
                         recruiter_email=state.get('outreach_email', ''),
                         stage="applied",
+                        score=score,
                     )
             except Exception as crm_err:
                 logger.warning(f"[notify] CRM push non-fatal error: {crm_err}")

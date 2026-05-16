@@ -33,12 +33,25 @@ def push_application_to_crm(
     stage: str = "applied",
     source: str = "vjh",
     notes: str = "",
+    score: float = 0.0,
 ) -> bool:
     """POST the job application to CTO AIPA CRM hub. Returns True on success."""
     secret = (os.environ.get("OUTREACH_SECRET") or "").strip()
     if not secret:
         logger.debug("[crm_hub] OUTREACH_SECRET not set — skipping CRM push")
         return False
+
+    # Build rich notes so every HubSpot card is actionable
+    if not notes:
+        notes_parts = []
+        if score:
+            notes_parts.append(f"Score: {score:.0f}/100")
+        if job_url:
+            notes_parts.append(f"Apply: {job_url}")
+        if stage == "applied":
+            notes_parts.append("VJH auto-applied — verify confirmation")
+        notes = "
+".join(notes_parts)
 
     payload = {
         "source": source,
