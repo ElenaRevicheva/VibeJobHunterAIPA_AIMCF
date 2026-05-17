@@ -107,8 +107,9 @@ class ResponseDetector:
         self.imap_connection = None
         self.anthropic_client = None
         
-        # Track processed emails to avoid duplicates
-        self.processed_email_ids = set()
+        # Track processed emails to avoid duplicates (persisted to disk across cycles)
+        self._processed_ids_path = "autonomous_data/processed_email_ids.txt"
+        self.processed_email_ids = self._load_processed_ids()
         
         # Load Anthropic for AI classification
         try:
@@ -126,6 +127,31 @@ class ResponseDetector:
         logger.info(f"📧 Monitoring: {self.email_address}")
         logger.info(f"👀 Watching for responses from {len(WATCHED_COMPANIES)} target companies")
     
+    def _load_processed_ids(self) -> set:
+        """Load persisted processed email IDs from disk."""
+        import os
+        try:
+            if os.path.exists(self._processed_ids_path):
+                with open(self._processed_ids_path, 'r') as f:
+                    ids = set(line.strip().encode() for line in f if line.strip())
+                    logger.info(f"[ResponseDetector] Loaded {len(ids)} processed email IDs from disk")
+                    return ids
+        except Exception as e:
+            logger.warning(f"[ResponseDetector] Could not load processed IDs: {e}")
+        return set()
+
+    def _save_processed_ids(self):
+        """Persist processed email IDs to disk."""
+        try:
+            import os
+            os.makedirs("autonomous_data", exist_ok=True)
+            with open(self._processed_ids_path, 'w') as f:
+                for eid in self.processed_email_ids:
+                    line = eid.decode() if isinstance(eid, bytes) else str(eid)
+                    f.write(line + '\n')
+        except Exception as e:
+            logger.warning(f"[ResponseDetector] Could not save processed IDs: {e}")
+
     def connect(self) -> bool:
         """Connect to Zoho Mail via IMAP"""
         if not self.email_password:
@@ -379,6 +405,21 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                         if "security code" in subject.lower():
                             self.processed_email_ids.add(email_id)
                             continue
+
+                    # Skip calendar reminders and automated notifications
+                    subject_lower = subject.lower()
+                    from_lower = from_email.lower()
+                    CALENDAR_SKIP = [
+                        "reminder:", "calendar invite", "meeting reminder",
+                        "event reminder", "you have been invited",
+                    ]
+                    CALENDAR_SENDERS = ["zohocalendar", "calendar-notification", "noreply@"]
+                    if (any(subject_lower.startswith(s) for s in CALENDAR_SKIP) or
+                            any(s in from_lower for s in CALENDAR_SENDERS)):
+                        self.processed_email_ids.add(email_id)
+                        self._save_processed_ids()
+                        logger.debug(f"[ResponseDetector] Skipping calendar/auto email: {subject[:60]}")
+                        continue
                     
                     # Skip if too old
                     if received_at < datetime.now(received_at.tzinfo) - timedelta(hours=hours_back):

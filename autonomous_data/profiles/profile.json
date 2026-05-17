@@ -1,0 +1,56 @@
+{
+  "name": "Elena Revicheva",
+  "email": "aipa@aideazz.xyz",
+  "phone": null,
+  "location": "Panama Remote",
+  "linkedin_url": "https://www.linkedin.com/in/elena-revicheva/",
+  "github_url": null,
+  "portfolio_url": "https://aideazz.xyz",
+  "website_url": "https://aideazz.xyz",
+  "skills": [
+    "AI/ML Engineering", "LangGraph", "LangChain", "Python", "TypeScript",
+    "Node.js", "FastAPI", "Flask", "RAG", "Claude API", "OpenAI API",
+    "PostgreSQL", "Oracle Cloud", "Docker", "systemd",
+    "BrightData", "HubSpot API", "Telegram Bot API", "WhatsApp Cloud API",
+    "Multi-agent systems", "Prompt engineering", "AI automation",
+    "Fractional CTO", "Product strategy", "B2B SaaS"
+  ],
+  "languages": ["English", "Spanish", "Russian"],
+  "experience_years": 10,
+  "resume_path": "autonomous_data/resume.pdf",
+  "resume_text": "Elena Revicheva - AI Engineer and Fractional CTO. Built and deployed 10 autonomous AI agents including VJH (LangGraph autonomous job hunter), EspaLuz (WhatsApp + Telegram Spanish tutor with PayPal subscriptions), AIdeazz CTO AIPA (TypeScript webhook hub), and EspaLuz Influencer (automated content pipeline). Expert in multi-agent orchestration, RAG, BrightData scraping, and production AI systems on Oracle Cloud.",
+  "key_achievements": [
+    "Built VJH: LangGraph autonomous job hunter processing 2000+ jobs/cycle with 4-layer eval harness, 129/129 passing",
+    "Deployed EspaLuz: live WhatsApp + Telegram Spanish tutor with real paying subscribers",
+    "Built /api/crm-event webhook hub: 5 agents feeding HubSpot pipeline in real-time",
+    "Integrated BrightData Web Unlocker: 120 LinkedIn jobs/cycle plus company enrichment",
+    "10 autonomous AI agents running 24/7 on Oracle Cloud"
+  ],
+  "work_history": [
+    {
+      "company": "AIdeazz",
+      "title": "Founder and CTO",
+      "start": "2024-01",
+      "end": null,
+      "description": "Built 10 autonomous AI agents from scratch. Fractional CTO services for AI startups."
+    }
+  ],
+  "education": [],
+  "target_roles": [
+    "Founding AI Engineer",
+    "Fractional CTO",
+    "AI Automation Engineer",
+    "AI Solutions Engineer",
+    "Head of AI"
+  ],
+  "target_locations": ["Remote", "Worldwide", "Panama"],
+  "min_salary": 3500,
+  "max_salary": null,
+  "remote_only": true,
+  "candidate_data": {
+    "seniority": "senior",
+    "specialization": "AI/ML engineering and autonomous agent systems",
+    "open_to_contract": true,
+    "open_to_fractional": true
+  }
+}
