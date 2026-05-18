@@ -68,6 +68,15 @@ ROLE_EXCLUDE_KEYWORDS = {
     "legal counsel", "general counsel",
     "executive assistant", "administrative",
     "microsoft 365", "power platform", "sharepoint",
+    # Wrong domain — CAREER_FOCUS hard discard: DevOps, QA, DBA, UI specialist
+    "devsecops", "devops", "dev ops", "dev secops",
+    "site reliability", "sre ", " sre",
+    "database engineer", "database administrator", "database admin", "db administrator",
+    "ui developer", "ui engineer",          # non-fullstack UI roles
+    "power bi", "power bi developer",
+    "cloud engineer", "cloud developer",    # infra-only; "platform engineer" is OK
+    "data engineer", "data pipeline",
+    "qa engineer", "qa automation", "test engineer", "quality engineer",
 }
 
 # ─────────────────────────────
@@ -99,6 +108,11 @@ LARGE_COMPANY_BLOCKLIST = {
     "siro clinpharm", "nagarro", "codeforce360",
     "akaasa", "xforia", "verito", "argyll",
     "sr partners",
+    # HR / payroll / large established companies — wrong domain or too big
+    "deel",                 # 5 000+ employees, HR/payroll platform
+    "outlier ai",           # data labeling platform, not a product startup
+    "scale ai",             # data labeling, large
+    "labelbox",             # data labeling
     # Job aggregators — not real employers, pollute HubSpot
     "jobgether", "wfhforgeon", "performacentric", "useshiny",
     "remotive", "flexjobs",

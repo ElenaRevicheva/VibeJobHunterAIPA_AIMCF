@@ -85,8 +85,13 @@ class VJHLangGraphRunner:
             "is_yc":        bool(job_dict.get('is_yc_company', False)),
             "is_priority":  bool(job_dict.get('priority_flag', False)),
             "score_boost":  int(job_dict.get('score_boost', 0) or 0),
-            "raw_job":      {k: str(v)[:500] for k, v in job_dict.items()
-                             if v is not None and k != 'description'},
+            "raw_job":      {
+                # Keep dicts/lists as-is so process_job can call .get() on founder_info etc.
+                # Only stringify primitives (avoids 'str' object has no attribute 'get' crash).
+                k: (v if isinstance(v, (dict, list, bool, int, float)) else str(v)[:500])
+                for k, v in job_dict.items()
+                if v is not None and k != 'description'
+            },
 
             # Gate / score (will be filled by nodes)
             "gate_passed":  False,
