@@ -198,17 +198,21 @@ async def submit_node(state: JobState) -> dict:
             telegram=None,
         )
 
-        # Build job object for the applicator
-        job_mock = type('Job', (), state['raw_job'])()
-        job_mock.match_score = state['score']
-        job_mock.match_reasons = state['score_reasons']
+        # Build a proper dict for process_job (expects Dict, not object)
+        job_dict = dict(state['raw_job'])
+        job_dict['description'] = state.get('description', '')
+        job_dict['match_score'] = state.get('score', 0)
+        job_dict['match_reasons'] = state.get('score_reasons', [])
 
-        result = await applicator.apply_to_job(job_mock)
+        result = await applicator.process_job(job_dict)
 
-        # Capture real result — not just "generated"
-        applied = result.get('success', False)
-        method = result.get('method', 'unknown')
-        confirmation = result.get('confirmation_id')
+        # Map process_job result fields
+        applied = result.get('application_delivered', False) or result.get('email_sent', False)
+        method = ('ats' if result.get('ats_submitted') or result.get('ats_live_submitted')
+                  else 'email' if result.get('email_sent')
+                  else 'generated' if result.get('materials_generated')
+                  else 'unknown')
+        confirmation = result.get('cover_letter_path') or result.get('ats_confirmation_id')
         error = result.get('error') if not applied else None
 
         logger.info(
@@ -269,7 +273,10 @@ async def outreach_node(state: JobState) -> dict:
             }
 
         profile = ProfileManager().get_profile()
-        job_mock = type('Job', (), state['raw_job'])()
+        # Build dict for message_generator (expects Dict not object)
+        job_dict = dict(state['raw_job'])
+        job_dict['description'] = state.get('description', '')
+        job_dict['match_score'] = state.get('score', 0)
 
         # Find founder email
         finder = FounderFinderV2()
@@ -295,7 +302,7 @@ async def outreach_node(state: JobState) -> dict:
         gen = MessageGenerator(profile)
         message = await gen.generate_outreach_message(
             profile=profile,
-            job=job_mock,
+            job=job_dict,
             company_info=founder_info,
         )
 

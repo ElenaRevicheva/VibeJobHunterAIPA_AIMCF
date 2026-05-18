@@ -50,8 +50,7 @@ def push_application_to_crm(
             notes_parts.append(f"Apply: {job_url}")
         if stage == "applied":
             notes_parts.append("VJH auto-applied — verify confirmation")
-        notes = "
-".join(notes_parts)
+        notes = "\n".join(notes_parts)
 
     payload = {
         "source": source,
@@ -84,7 +83,7 @@ def push_application_to_crm(
         with urlopen(req, timeout=8) as resp:
             ok = 200 <= resp.status < 300
             if ok:
-                logger.info(f"[crm_hub] ✅ HubSpot hiring deal posted: {job_title} @ {company}")
+                logger.info(f"[crm_hub] HubSpot hiring deal posted: {job_title} @ {company}")
             else:
                 logger.warning(f"[crm_hub] CRM push returned {resp.status}")
             return ok
