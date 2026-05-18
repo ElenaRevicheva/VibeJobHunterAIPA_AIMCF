@@ -69,6 +69,7 @@ ROLE_EXCLUDE_KEYWORDS = {
     # C-level / VP / Director — wrong seniority for Elena's profile
     "vice president", "vp engineering", "vp of engineering",
     "vp software", "vp technology", "vp, engineering", "vp product",
+    "vp ", "vp,", "vp-", "vp/",        # broad catch — any "VP <something>" title
     "svp", "senior vice president",
     "chief technology", "chief ai", "chief product", "chief operating",
     "director of engineering", "director of technology", "director of ai",
