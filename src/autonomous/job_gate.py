@@ -50,7 +50,16 @@ ROLE_EXCLUDE_KEYWORDS = {
     "sr engineer", "sr software", "sr ai", "sr ml",
     "sr developer", "sr dev", "sr gen ai",
     "staff engineer", "staff software",
-    "principal engineer", "principal software",
+    # Principal — broaden to catch all variants (was missing "principal ai *", "principal platform", etc.)
+    "principal engineer", "principal software", "principal ai", "principal ml",
+    "principal platform", "principal solutions", "principal architect",
+    "principal data", "principal product", "principal developer", "principal dev",
+    "principal prompt", "principal scientist",
+    ", principal",   # catches "Director, Principal AI Engineer"
+    # Director (any flavour) — wrong seniority across the board
+    "director,", "director ", "director-", "directeur",
+    # Trainee / graduate / apprentice — wrong level
+    "trainee", "graduate engineer", "graduate program", "apprentice",
     "ml engineer", "machine learning engineer",
     "data scientist",
     "sales", "recruiter", "recruiting", "hr ",
