@@ -122,6 +122,13 @@ LARGE_COMPANY_BLOCKLIST = {
     "outlier ai",           # data labeling platform, not a product startup
     "scale ai",             # data labeling, large
     "labelbox",             # data labeling
+    # Fortune-500 / 1000+ employees that slipped through previously
+    "miro",                 # 1 800+ employees
+    "expedia",              # 16 000+
+    "pepsico", "general motors", "bristol myers", "bausch + lomb",
+    "saic", "rocket lawyer", "liberty mutual", "medium.com", "medium ",
+    "ai 2030",              # accelerator running fractional director gigs (wrong shape)
+    "intalex",              # enterprise sales staffing
     # Job aggregators — not real employers, pollute HubSpot
     "jobgether", "wfhforgeon", "performacentric", "useshiny",
     "remotive", "flexjobs",
