@@ -400,12 +400,16 @@ Write the cover letter now:"""
                 f.write(f"Resume Variant: {resume_type}\n")
                 f.write(f"URL: {job.get('url', 'N/A')}\n")
                 
-                # Include founder info if available
+                # Include founder info if available — DEFENSIVE: source scrapers
+                # (Dice, AI-Jobs.net) sometimes serialize founder_info as a string,
+                # which crashed every apply with 'str' object has no attribute 'get'.
                 founder_info = job.get('founder_info')
-                if founder_info:
+                if isinstance(founder_info, dict):
                     f.write(f"\n--- FOUNDER INFO ---\n")
                     f.write(f"LinkedIn: {founder_info.get('linkedin_company', 'N/A')}\n")
-                    f.write(f"Email patterns: {founder_info.get('email_patterns', [])[:3]}\n")
+                    email_patterns = founder_info.get('email_patterns', [])
+                    if isinstance(email_patterns, list):
+                        f.write(f"Email patterns: {email_patterns[:3]}\n")
                 
                 f.write(f"\n{'═'*80}\n")
                 f.write(f"COVER LETTER\n")

@@ -12,6 +12,7 @@ PM2: managed under cto-aipa ecosystem or standalone cron.
 """
 
 import os
+import sys
 import time
 import json
 import logging
@@ -20,6 +21,17 @@ import requests
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import dotenv_values
+
+# ─── Gate import: this script is standalone, so add repo root to sys.path ───
+_REPO_ROOT = Path(__file__).parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+try:
+    from src.autonomous.job_gate import JobGate  # type: ignore
+    _GATE_AVAILABLE = True
+except Exception:
+    JobGate = None  # type: ignore
+    _GATE_AVAILABLE = False
 
 # dotenv_values reads directly from file, unaffected by PM2 env inheritance
 _env = dotenv_values(Path(__file__).parents[2] / '.env')
@@ -33,11 +45,13 @@ OUTREACH_SECRET = _env.get('OUTREACH_SECRET') or os.environ.get('OUTREACH_SECRET
 STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
 
 JOBS_QUERIES = [
+    # Aligned with CAREER_FOCUS: only founding/fractional/AI-builder shapes.
+    # NO 'principal', 'VP', 'staff', 'head of X' — those map to Elena's hard-discard filter.
     'fractional CTO remote',
-    'head of AI startup remote',
-    'VP Engineering AI remote',
     'AI engineer founding team remote',
-    'principal AI engineer startup',
+    'founding engineer AI remote',
+    'AI automation lead remote startup',
+    'solutions architect AI startup remote',
 ]
 
 # Jobs where company is also a fractional-CTO prospect
@@ -134,6 +148,24 @@ def ingest_once() -> None:
             related    = job.get('related_links', [])
             if related:
                 job_url = related[0].get('link', '')
+
+            # ─── HARD GATE: apply Elena's CAREER_FOCUS filter BEFORE HubSpot push ───
+            # Was missing — this script bypassed JobGate and polluted HubSpot
+            # with Principal/Director/DevOps/big-co deals every run.
+            if _GATE_AVAILABLE:
+                gate_dict = {
+                    'title':       title,
+                    'company':     company,
+                    'location':    location,
+                    'description': desc,
+                    'url':         job_url,
+                }
+                try:
+                    if not JobGate.passes(gate_dict):
+                        log.info(f'  ✗ GATE REJECT: {title} @ {company}')
+                        continue
+                except Exception as e:
+                    log.warning(f'  ⚠ gate error (allow-through): {e}')
 
             log.info(f'  + {title} @ {company} ({location})')
 
