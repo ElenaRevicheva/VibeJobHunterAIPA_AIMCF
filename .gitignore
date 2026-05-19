@@ -97,3 +97,4 @@ railway-db-export.json
 railway-db-export*.json
 *.env.local
 .env.*.local
+.claude/worktrees/
