@@ -174,6 +174,7 @@ def ingest_once() -> None:
                 'source':   'serpapi_jobs',
                 'type':     'application',
                 'pipeline': 'hiring',
+                'sourcePrefix': 'HIRING-VJH-SERP',
                 'jobTitle': title,
                 'company':  company,
                 'jobUrl':   job_url,
