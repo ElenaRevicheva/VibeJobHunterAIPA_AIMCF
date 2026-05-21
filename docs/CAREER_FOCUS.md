@@ -550,3 +550,43 @@ When presenting Elena's background in any context:
 > v4.1 changes: AWS deployment done (Priority 9 closed), Sprint Briefing Agent added to portfolio, AWS skill row updated  
 > v4 changes: hard gate recalibration deployed, founder outreach email fixes, Claude retry resilience, salary floor correction  
 > This document is the single source of truth for VibeJobHunter targeting decisions.
+
+---
+
+## 🆕 May 21 2026 update — Hard-reject filters (auto-discard regardless of score)
+
+These four filter categories were added to `src/autonomous/job_gate.py` to prevent VJH from surfacing jobs Elena will never actually pursue. Any single match in the description triggers immediate discard.
+
+### 1. Coding-assessment block
+Elena's resume explicitly states proctored coding tests are not her workflow. Auto-reject keywords:
+`live coding`, `whiteboard interview`, `whiteboard test`, `whiteboarding`, `leetcode`, `hackerrank`, `codility`, `coderpad`, `codewars`, `codesignal`, `coding assessment`, `coding challenge`, `proctored test`, `pair programming interview`, `live code review`, `coding bootcamp test`, `technical screening test`, `online coding test`, `timed coding`
+
+### 2. Pedigree block
+Elena doesn't have a formal CS degree (she has MA Social Psychology). Auto-reject:
+`BS in CS required`, `bachelor's in CS required`, `MS in CS required`, `master's required`, `PhD required`, `doctorate required`, `formal CS background required`, `CS degree mandatory`, `must have CS degree`
+
+### 3. Location hard-reject
+Elena is UTC-5 Panama, fully remote only, no relocation. Auto-reject:
+`must be onsite`, `must be on-site`, `must be in office`, `hybrid required`, `hybrid X days`, `in-office X days`, `relocation required`, `must relocate`, `US-based only`, `US authorization required`, `US citizens only`, `must be EU-based`, `EU-based only`, `EMEA hours only`, `European timezone only`, `UK-based only`, `APAC only`, `Sydney time`, `Japan timezone`
+
+### 4. AI-augmented bonus (+10 score)
+Jobs explicitly welcoming AI-augmented workflow get +10 points (Elena's wheelhouse). Trigger keywords:
+`Cursor`, `Claude Code`, `GitHub Copilot`, `AI-assisted`, `AI-augmented`, `vibe coding`, `vibe-coding`, `AI tools welcome`, `AI pair programming`, `AI-first workflow`, `solo builder`, `LangGraph`, `RAG`, `pgvector`, `agentic`, `AI agent`, `prompt engineer`, `LLM engineer`, `Claude Opus`, `Claude Sonnet`
+
+### Tightened ROLE_INCLUDE_KEYWORDS
+Removed over-broad keywords that were pulling in wrong roles: `software engineer`, `backend engineer`, `automation`, `infrastructure`, `infra`. Added AI-augmented signal keywords: `vibe coding`, `vibe-coding`, `ai-augmented`, `ai-assisted`, `cursor friendly`, `claude code`, `copilot welcome`, `langgraph`, `agentic`, `ai builder`.
+
+## 🆕 May 21 2026 — VJH now in honest LEAD mode (not auto-apply)
+
+After audit on May 21 2026: VJH has been generating cover letters and recording job records for ~6 months, but has **never actually submitted an application** (0 emails sent, 0 ATS form submissions delivered, 0 recruiter responses). The "auto-apply" was simulated.
+
+**New honest workflow:**
+1. VJH finds + scores + filters jobs (same as before)
+2. VJH generates tailored cover letter saved as `.txt` file (same as before)
+3. VJH pushes a deal to HubSpot with prefix `[HIRING-VJH-LEAD]` (NEW) or `[HIRING-VJH-SERP-LEAD]` (NEW)
+4. Deal lands in `🔥 YOU act TODAY` column with notes: "⚠️ MANUAL APPLY REQUIRED"
+5. Elena manually clicks Apply on top 3–5/day, pastes the pre-generated cover letter
+
+`ATS_SUBMISSION_ENABLED=false` (the fake-submission attempts that produced cycle errors are now disabled).
+
+This is the workflow that actually gets people hired — VJH compresses the research + materials-generation time (80% of the work), Elena does the final manual click (the 20% that requires human judgment for each company).

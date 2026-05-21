@@ -32,8 +32,8 @@ ROLE_INCLUDE_KEYWORDS = {
     "full stack", "fullstack", "full-stack",
     "solutions architect", "ai architect",
     # Secondary — only early-stage / founder-led
-    "software engineer", "backend engineer",
-    "automation", "infrastructure", "infra",
+    # REMOVED May 21 2026 (too generic): "software engineer", "backend engineer",
+    # REMOVED May 21 2026 (too generic): "automation", "infrastructure", "infra",
     "llm", "nlp",
     "product manager", "growth engineer",
     "fractional", "consultant",
@@ -137,6 +137,65 @@ LARGE_COMPANY_BLOCKLIST = {
     "bristol myers", "airbnb", "adyen", "scribd", "ebay",
     "wealthfront", "skydio", "neuralink", "iomed", "curai",
     "holmusk", "oscaro", "amex", "american express",
+}
+
+
+# ─────────────────────────────
+# CODING ASSESSMENT BLOCK (May 21 2026)
+# Reject jobs whose description requires proctored/live coding tests.
+# Elena's resume explicitly states this is incompatible with her workflow.
+# ─────────────────────────────
+CODING_ASSESSMENT_BLOCK_KEYWORDS = {
+    "live coding", "whiteboard interview", "whiteboard test", "whiteboarding",
+    "leetcode", "hackerrank", "codility", "coderpad", "codewars", "codesignal",
+    "coding assessment", "coding challenge", "proctored test", "proctored assessment",
+    "pair programming interview", "live code review", "coding bootcamp test",
+    "technical screening test", "online coding test", "timed coding",
+}
+
+# ─────────────────────────────
+# PEDIGREE BLOCK (May 21 2026)
+# Reject jobs that require formal CS degrees Elena doesn't have.
+# ─────────────────────────────
+PEDIGREE_BLOCK_KEYWORDS = {
+    "bs in computer science required", "bs in cs required",
+    "bachelor's in computer science required", "bachelor degree in cs required",
+    "ms in computer science required", "master's in computer science required",
+    "ms required in", "phd required", "doctorate required",
+    "formal cs background required", "computer science degree required",
+    "cs degree mandatory", "must have cs degree",
+    "must have bachelor's in cs", "must have master's in cs",
+}
+
+# ─────────────────────────────
+# LOCATION HARD REJECT (May 21 2026)
+# Reject jobs that aren't fully remote or aren't LATAM/Americas-friendly.
+# Elena is UTC-5 Panama, no relocation, fully remote only.
+# ─────────────────────────────
+LOCATION_HARD_REJECT_KEYWORDS = {
+    "must be onsite", "must be on-site", "must be in office", "must be in-office",
+    "hybrid required", "hybrid 3 days", "hybrid 2 days", "hybrid 4 days",
+    "in-office x days", "x days in office", "in office required",
+    "relocation required", "relocation expected", "must relocate",
+    "us-based only", "us authorization required", "us citizens only",
+    "must be us citizen", "us work authorization required",
+    "must be eu-based", "eu-based only", "emea hours only", "european timezone only",
+    "uk-based only", "must be uk-based",
+    "apac only", "asia-pacific only", "sydney time", "japan timezone",
+    "must be in {city}",  # placeholder pattern
+}
+
+# ─────────────────────────────
+# AI-AUGMENTED BONUS (May 21 2026)
+# Jobs explicitly welcoming AI-augmented workflow get +10 score bonus.
+# These are perfect-fit signals for Elena's Cursor/Claude Code methodology.
+# ─────────────────────────────
+AI_AUGMENTED_BONUS_KEYWORDS = {
+    "cursor", "claude code", "github copilot", "ai-assisted",
+    "ai-augmented", "vibe coding", "vibe-coding", "ai tools welcome",
+    "ai pair programming", "ai-first workflow", "solo builder",
+    "langgraph", "rag", "pgvector", "agentic", "ai agent",
+    "prompt engineer", "llm engineer", "claude opus", "claude sonnet",
 }
 
 LOCATION_INCLUDE_KEYWORDS = {
