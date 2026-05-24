@@ -34,6 +34,41 @@ logger = logging.getLogger(__name__)
 
 RESPONSE_DETECTOR_VERSION = "1.0_GENIUS_RESPONSE_DETECTION"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SENDER BLOCKLIST (May 24 2026 - additive noise filter)
+# Senders matching these domain patterns are platform notifications, calendar
+# reminders, or newsletters - NOT real recruiter responses. They get skipped
+# in Telegram alerts and HubSpot stage updates (but ARE still saved to SQLite
+# for review).
+# ═══════════════════════════════════════════════════════════════════════════════
+BLOCKED_SENDER_DOMAINS = (
+    "torre.ai",              # 17 of 71 false positives - platform notifications
+    "substack.com",          # 11 - newsletter delivery
+    "outlier.ai",            # 10 - data-labeling platform notifications
+    "zohocalendar.com",      # 7  - calendar reminders for already-scheduled meetings
+    "notify.mindrift.ai",    # 3
+    "mindrift.ai",
+    "hireflix.com",          # 2  - automated video-interview platform
+    "onhires.com",           # 3
+    "noreply",
+    "no-reply",
+    "newsletter",
+    "@mailer.zohocliq.com",  # Cliq chat notifications
+    "@zohostore.com",
+    "automated@",
+    "notifications@",
+    "support@scalearmycareers.com",
+)
+
+
+def _sender_is_blocked(from_email):
+    """Return True if sender matches the blocklist (platform/newsletter noise)."""
+    if not from_email:
+        return False
+    s = from_email.lower()
+    return any(pattern in s for pattern in BLOCKED_SENDER_DOMAINS)
+
+
 class ResponseType(Enum):
     """Classification of email responses"""
     POSITIVE = "positive"          # Interview request, interest expressed
@@ -532,8 +567,23 @@ async def check_for_responses_and_alert(telegram_notifier=None) -> List[Detected
     try:
         hot_leads = await detector.get_hot_leads(hours_back=24)
         
+        # NEW (May 24 2026): always push hot leads to HubSpot, even if telegram_notifier missing.
+        # Skip platform notifications / newsletters via _sender_is_blocked() check.
+        if hot_leads:
+            for lead in hot_leads:
+                if _sender_is_blocked(lead.from_email):
+                    logger.info(f"[ResponseDetector] Skipping blocked sender: {lead.from_email}")
+                    continue
+                try:
+                    push_response_to_hubspot(lead)
+                except Exception as e:
+                    logger.warning(f"[ResponseDetector] HubSpot push exception (non-fatal): {e}")
+
         if hot_leads and telegram_notifier:
             for lead in hot_leads:
+                # Skip blocked senders (newsletters / platform notifications) — May 24 2026
+                if _sender_is_blocked(lead.from_email):
+                    continue
                 if lead.response_type == ResponseType.POSITIVE:
                     # HIGH PRIORITY - Interview request!
                     message = f"""🔥🔥🔥 **INTERVIEW REQUEST DETECTED!**
@@ -558,6 +608,61 @@ async def check_for_responses_and_alert(telegram_notifier=None) -> List[Detected
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE INTEGRATION (for success prediction)
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def push_response_to_hubspot(response):
+    """
+    Update HubSpot deal stage to 'recruiter_responded' for this response.
+    Silent failure (logged warning) so a HubSpot blip never breaks detection.
+    Added May 24 2026 - closes the inbox-to-CRM loop.
+    """
+    try:
+        import urllib.request
+        import urllib.error
+        import json as _json
+        secret = os.getenv("OUTREACH_SECRET", "").strip()
+        if not secret:
+            logger.debug("[ResponseDetector->HubSpot] OUTREACH_SECRET not set - skipping HubSpot push")
+            return
+        base = os.getenv("CTO_AIPA_WEBHOOK_URL", "https://webhook.aideazz.xyz/cto").rstrip("/")
+        payload = {
+            "source": "response_detector",
+            "type": "application",
+            "pipeline": "hiring",
+            "sourcePrefix": "HIRING-VJH-LEAD",
+            "stage": "recruiter_responded",
+            "jobTitle": (response.subject or "Recruiter response")[:120],
+            "company": response.company_name or "Unknown",
+            "recruiterEmail": response.from_email or "",
+            "recruiterName": response.from_name or "",
+            "notes": (
+                "RECRUITER RESPONSE DETECTED - " + response.response_type.value + "\n"
+                "Confidence: " + str(round(response.confidence, 2)) + "\n"
+                "Subject: " + (response.subject or "") + "\n"
+                "AI summary: " + (response.ai_analysis or "")[:300]
+            ),
+            "urgency": 5 if response.response_type.value == "positive" else 3,
+        }
+        req = urllib.request.Request(
+            base + "/api/crm-event",
+            data=_json.dumps(payload).encode(),
+            headers={
+                "Authorization": "Bearer " + secret,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=15) as r:
+            body = r.read().decode()[:200]
+            logger.info("[ResponseDetector->HubSpot] stage->recruiter_responded for " + str(response.company_name) + ": " + body)
+    except urllib.error.HTTPError as e:
+        try:
+            errbody = e.read().decode()[:200]
+        except Exception:
+            errbody = ""
+        logger.warning("[ResponseDetector->HubSpot] HTTP " + str(e.code) + ": " + errbody)
+    except Exception as e:
+        logger.warning("[ResponseDetector->HubSpot] push failed (non-fatal): " + str(e))
+
 
 def save_response_to_db(response: DetectedResponse, db_path: str = "autonomous_data/vibejobhunter.db"):
     """Save detected response to database for success prediction model"""
