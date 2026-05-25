@@ -363,3 +363,41 @@ Zoho IMAP → response_detector.py → Claude classification → SQLite save
 - The freshness bucket (🆕 NEW / 🔥 ACTIVE / ⏰ AGING) is computed at render time in AIPA_AITCF using `hs_lastmodifieddate` — VJH can influence "freshness" by updating the deal stage when something new happens (e.g., interview scheduled).
 
 **Iron rule from the dual-architecture audit (May 18):** fresh-leads-ingest in AIPA_AITCF is NOT gated; VJH IS gated by CAREER_FOCUS. The Lead Brief shows the OUTPUT of both paths after CAREER_FOCUS / OUTREACH_SECRET gating — anything in the brief has already passed the upstream filter.
+
+
+---
+
+## May 25 2026 evening (post-final) — /research_employer command consumes the same hiring stages VJH writes
+
+CTO AIPA shipped an autonomous research-agent loop in commit `67383b2`
+(public repo `ElenaRevicheva/AIPA_AITCF`). One of the 3 modes —
+`/research_employer <name>` in Telegram — is specifically for researching
+a hiring target before applying. This is relevant to VJH because:
+
+- The hiring stages it researches (`applied`, `recruiter_responded`,
+  `interview_scheduled`, `offer_received`) are the SAME stages VJH writes
+  into via `response_detector.push_response_to_hubspot()` (commit `a65216c`
+  in this repo, May 24).
+- When VJH detects a recruiter response and pushes the deal to
+  `recruiter_responded` stage, the cto-aipa Lead Brief surfaces it in the
+  next morning's brief. If the operator wants deeper intel BEFORE drafting
+  a reply, they can fire `/research_employer <company>` in Telegram and
+  get autonomous research output (recent funding, hiring patterns, tech
+  stack, comp signals, application angle) in ~90 seconds.
+
+**End-to-end signal path for hiring (full version):**
+
+```
+Zoho IMAP → response_detector.py (VJH)
+  → Claude classification
+  → Telegram alert
+  → HubSpot stage update (a65216c — VJH)        ← writes here
+  → hubspot-to-trello bridge (b2b795b — AIPA)
+  → Lead Brief (4c40349 + bb1782d — AIPA)        ← reads here, surfaces in 🆕/🔥/⏰ buckets
+  → optional: /research_employer (67383b2 — AIPA) ← operator-driven deeper intel
+```
+
+No code changes needed in this repo — VJH continues to write into the
+hiring stages exactly as before. CTO AIPA reads them and the operator
+gets richer interaction options. Cross-repo coordination via the HubSpot
+stage IDs that have been stable since May 14-15.
