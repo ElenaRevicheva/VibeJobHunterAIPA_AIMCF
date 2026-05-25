@@ -338,3 +338,28 @@ The backend (`cto-aipa.ts` `/api/crm-event` endpoint) wraps the dealname as `[HI
 **Adding a new VJH writer that pushes to HubSpot?** Pick a prefix from `cto-aipa/docs/HUBSPOT_NAMING.md` — or reserve a new one and add it to that doc. Always include `sourcePrefix` in the payload; omitting it falls back to legacy `[HIRING]` (still works but loses scannability).
 
 Backwards compatibility: this is purely cosmetic on Elena's dashboard. No behavior change in gating, scoring, dedup, or eval harness. Eval harness still passes 129/129 (last verified May 18 2026).
+
+
+---
+
+## May 25 2026 — Cross-link: CTO AIPA now consumes VJH response_detector signals via HubSpot
+
+VJH's `response_detector` (commit `a65216c` in this repo, May 24) classifies recruiter responses and pushes them to HubSpot as `[HIRING-VJH-LEAD]` deals in the `recruiter_responded` stage. Those deals now flow into the daily CTO AIPA Lead Brief at 8 AM Panama via the new `getActionableHubSpotDeals()` helper in `AIPA_AITCF` (commit `4c40349` + `bb1782d`).
+
+**End-to-end signal path going forward:**
+
+```
+Zoho IMAP → response_detector.py → Claude classification → SQLite save
+  → Telegram alert
+  → HubSpot stage update (a65216c — VJH)
+  → hubspot-to-trello bridge (b2b795b — AIPA_AITCF) — current-month Trello card
+  → Lead Brief (4c40349 + bb1782d — AIPA_AITCF) — daily 8 AM Panama, bucketed by freshness
+```
+
+**What this means when debugging VJH:**
+
+- If a recruiter response is detected by VJH but doesn't appear in the next morning's Lead Brief, the gap is either in `response_detector.push_response_to_hubspot()` (VJH side) or in the HubSpot deal's `dealstage` field (AIPA_AITCF reads `recruiter_responded` / `interview_scheduled` / `offer_received` stages).
+- The 48h dedup happens at the response_detector level (SQLite) — already-classified senders are skipped.
+- The freshness bucket (🆕 NEW / 🔥 ACTIVE / ⏰ AGING) is computed at render time in AIPA_AITCF using `hs_lastmodifieddate` — VJH can influence "freshness" by updating the deal stage when something new happens (e.g., interview scheduled).
+
+**Iron rule from the dual-architecture audit (May 18):** fresh-leads-ingest in AIPA_AITCF is NOT gated; VJH IS gated by CAREER_FOCUS. The Lead Brief shows the OUTPUT of both paths after CAREER_FOCUS / OUTREACH_SECRET gating — anything in the brief has already passed the upstream filter.

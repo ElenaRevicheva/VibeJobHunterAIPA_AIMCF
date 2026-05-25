@@ -590,3 +590,41 @@ After audit on May 21 2026: VJH has been generating cover letters and recording 
 `ATS_SUBMISSION_ENABLED=false` (the fake-submission attempts that produced cycle errors are now disabled).
 
 This is the workflow that actually gets people hired — VJH compresses the research + materials-generation time (80% of the work), Elena does the final manual click (the 20% that requires human judgment for each company).
+
+
+---
+
+## May 25 2026 — Daily intake now via CTO AIPA Lead Brief (HubSpot-enriched, freshness-bucketed)
+
+### Where hiring leads now surface
+
+Until May 24 the Lead Brief at 8 AM Panama read from the Oracle `lead_triage` table (all archived) and reported "No real signals yet" every day. As of today (commit `4c40349` + `bb1782d` in `AIPA_AITCF`) it queries HubSpot directly for actionable hiring deals across three pipeline stages:
+
+| HubSpot stage | Emoji | What it means for the filter |
+|---|---|---|
+| `recruiter_responded` | 🎯 | Inbound — recruiter wrote back. Apply CAREER_FOCUS filter to the role they're pitching. |
+| `interview_scheduled` | 📅 | Already past the filter — prep using SKILL.md proof points. |
+| `offer_received` | 🏆 | Negotiation phase. Use the salary floor + 4 interview answers from §0. |
+
+### Freshness buckets — same filter, different urgency
+
+Each daily brief groups hiring deals into:
+
+- 🆕 NEW today (≤24h): apply the CAREER_FOCUS filter and decide today
+- 🔥 ACTIVE (1-7d): if you haven't decided yet, decide now (the filter exists so you don't spend more time)
+- ⏰ AGING (>7d): apply the discard rule — if you haven't acted on it, archive it. Don't let it sit.
+
+### What this changes for the apply/skip decision
+
+Before: zero daily inbound signal → CAREER_FOCUS was applied only when you manually checked job sources.
+
+After: daily brief surfaces real recruiter responses + interview invitations + SERP-discovered job listings from the dragontrade SerpAPI prospects feed. Each row in the brief is one CAREER_FOCUS decision: does the role pass the filter (salary floor, role title, hard discards)? If yes — act. If no — close in HubSpot so it leaves the brief.
+
+### Verified today (real data from HubSpot at 15:40 UTC)
+
+- `[HIRING-VJH-SERP-LEAD] Founding Engineer – AI & Compute @ decircle — 2d` ← run through filter
+- `[HIRING-VJH-SERP-LEAD] Manager, AI Agents and Platform @ Jerry.ai — 2d` ← run through filter
+- `[HIRING-VJH-SERP-LEAD] Remote AI Accounting Automation Lead @ Norwest Venture — 2d` ← run through filter
+- `[HIRING-VJH-SERP-LEAD] Founding Solutions Engineer @ Ensitech — 2d` ← run through filter
+
+The brief is now a daily action-list filtered by the rules in this document. Skip / apply / close — but never "no real signals yet".
