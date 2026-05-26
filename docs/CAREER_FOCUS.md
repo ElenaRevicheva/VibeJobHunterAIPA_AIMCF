@@ -1,9 +1,42 @@
 # 🎯 CAREER FOCUS — VibeJobHunter (Honest Roadmap v4)
 
 > **Aligned with:** `elena_career_analysis_v2.html` — Honest Edition, March 2026  
-> **Updated:** April 26, 2026 — §14 dream workflow (encoded vs roadmap): unified daily CTO briefing narrative aligned with portfolio; Sprint Briefing / Telegram voice paths documented. *(Earlier Apr 10: Phase 4 outreach, hard gate recalibration, Claude retry resilience.)*  
+> **Updated:** May 26, 2026 — Bright Data "Web Data UNLOCKED" hackathon SUBMITTED to lablab.ai. New top-of-interview proof point added (§Interview proof — Bright Data hackathon). *(Earlier Apr 26: §14 dream workflow; Apr 10: Phase 4 outreach, hard gate recalibration, Claude retry resilience.)*  
 > **Previous version corrected:** salary floors, role targeting, and positioning were miscalibrated against the actual profile.  
 > **This document supersedes all prior CAREER_FOCUS versions.**
+
+---
+
+## 🆕 Interview proof — Bright Data hackathon (added May 26 2026)
+
+**When asked "can you ship under real constraints?" — this is the new lead answer.**
+
+| Constraint | What Elena did |
+|---|---|
+| 5-day window (May 25–30, submitted May 26) | Wrote autonomous Claude tool-use loop, integrated 3 more Bright Data products, wired 3 Telegram commands, adapted 14-slide pitch deck to 15 slides + amber BD branding, generated 1.91 MB PDF, iteratively honesty-patched submission kit through 7 versions. |
+| Cannot break production | Non-destructive change audit passed. Same `cto-aipa` Node process that runs 9 paying / live agents (incl. EspaLuz WhatsApp users since 2025) hosts the new research agent. `dragontrade-main` uptime stayed at 24h+, restart count steady at 1251. |
+| Must demonstrate to judges without a localhost demo | Live Telegram bot URL `https://t.me/aitcf_aideazz_bot` — judges type `/research_company decircle.io` and watch Claude autonomously fire 7 BD calls in 86 seconds and return a sendable LinkedIn DM pitch angle. Plus a 15-page PDF with verifiable anchors (`pm2 list` + `systemctl is-active`). |
+| Must be honest about scope | Submission kit distinguishes pre-hackathon work (Web Unlocker integration + 9-agent system + pitch deck) from hackathon-week net-new (3 more BD products + autonomous loop + 3 commands). Agent Inventory transparency block lists each agent → its PM2/systemd process name. |
+
+**Interview hook (founder / engineering call):**
+> "I shipped a competitive AI hackathon submission — an autonomous Claude tool-use loop over 4 Bright Data products — without breaking a single existing agent in my 9-agent production system. The same Node process that serves my paying WhatsApp users hosts the new research loop. Demo is on Telegram, not a localhost Flask page."
+
+**Honesty hook (recruiter / investor call):**
+> "I refuse to overstate. The submission text was rewritten 7 times to remove every '10-agent' claim and unified on '9 production + AILA blueprint' with verification anchors anyone can SSH and check. That's the brand."
+
+**Artifacts (link these in resume / portfolio / LinkedIn pinned post):**
+- Public deck PDF: `https://github.com/ElenaRevicheva/aideazz/blob/main/pitch-pdf/aideazz-pitch-brightdata-hackathon-2026-05-26.pdf`
+- Primary code repo: `https://github.com/ElenaRevicheva/AIPA_AITCF` (`src/research-agent.ts`, `src/brightdata-enrich.ts`, `.mcp.json`)
+- Live demo: Telegram `@aitcf_aideazz_bot` → `/research_company <name>`
+- lablab.ai submission profile: search "AIdeazz" in `Web Data UNLOCKED` track
+
+**Why this beats earlier proof points for the first-line resume bullet:**
+- More recent (May 26 vs April work).
+- More verifiable (live bot anyone tries in 60 seconds).
+- More differentiating (autonomous tool-use loop > CRUD wiring).
+- Externally validated (competitive hackathon judged by Bright Data).
+
+---
 
 This document is the **single source of truth** for:
 - Who Elena is (honest, not aspirational)
