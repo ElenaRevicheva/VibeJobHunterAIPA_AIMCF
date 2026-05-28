@@ -36,22 +36,41 @@ class _GroqResponse:
 
 
 def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse":
-    """Call Groq llama-3.3-70b when Claude returns 400 credit exhaustion."""
+    """Call Groq llama-3.3-70b when Claude returns 400 credit exhaustion.
+
+    2026-05-27 CRITICAL FIX (Cloudflare 1010 bug):
+    Previous implementation used urllib.request with no User-Agent. Cloudflare
+    (which fronts api.groq.com) blocks the default `Python-urllib/x.x` UA with
+    "error code: 1010", surfaced to Python as HTTP 403. This fallback was
+    therefore broken on EVERY call since it shipped — resume + cover-letter
+    generation in content_generator.py silently failed whenever Claude credits
+    ran out. Switched to `requests` (sends a Cloudflare-permitted UA) plus an
+    explicit User-Agent so it never regresses, and we log the response body on
+    non-200 so provider-side blocks are debuggable from logs alone.
+    """
+    import requests
     api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("Groq fallback unavailable: GROQ_API_KEY not set")
-    payload = json.dumps({
-        "model": _GROQ_FALLBACK_MODEL,
-        "messages": messages,
-        "max_tokens": min(max_tokens, 4096),
-        "temperature": 0.3,
-    }).encode()
-    req = urllib.request.Request(
-        _GROQ_API_URL, data=payload, method="POST",
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+    resp = requests.post(
+        _GROQ_API_URL,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "VibeJobHunter/1.0 (+https://aideazz.xyz)",
+        },
+        json={
+            "model": _GROQ_FALLBACK_MODEL,
+            "messages": messages,
+            "max_tokens": min(max_tokens, 4096),
+            "temperature": 0.3,
+        },
+        timeout=60,
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read())
+    if resp.status_code != 200:
+        logger.error(f"[claude_helper] Groq fallback HTTP {resp.status_code}: {resp.text[:300]}")
+        resp.raise_for_status()
+    data = resp.json()
     text = data["choices"][0]["message"]["content"]
     logger.info("[claude_helper] Groq fallback (400 credit exhaustion) succeeded")
     return _GroqResponse(text)
