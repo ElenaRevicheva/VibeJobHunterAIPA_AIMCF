@@ -17,6 +17,8 @@ import time
 import json
 import logging
 import hashlib
+import re
+import urllib.parse as up
 import requests
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,6 +42,16 @@ logging.basicConfig(level=logging.INFO, format='[SerpJobs] %(message)s')
 log = logging.getLogger(__name__)
 
 SERPAPI_KEY  = _env.get('SERPAPI_KEY') or os.environ.get('SERPAPI_KEY', '')
+# BrightData SERP (May 31 2026): SerpAPI google_jobs quota is exhausted (HTTP 429,
+# no top-up). BrightData is now the engine — reuses the same token/zone as cto-aipa's
+# brightdata-enrich.ts. brd_json does NOT parse the Google Jobs vertical, so we use
+# organic Google search restricted to ATS/job-board domains (returns real postings
+# with direct apply links).
+BRIGHTDATA_API_TOKEN = _env.get('BRIGHTDATA_API_TOKEN') or os.environ.get('BRIGHTDATA_API_TOKEN', '')
+BRIGHTDATA_ZONE      = _env.get('BRIGHTDATA_ZONE') or os.environ.get('BRIGHTDATA_ZONE', '')
+BD_API = 'https://api.brightdata.com/request'
+JOB_BOARD_SITES = ('(site:wellfound.com OR site:lever.co OR site:greenhouse.io '
+                   'OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:ashbyhq.com)')
 OUTREACH_URL = (_env.get('CTO_AIPA_WEBHOOK_URL') or os.environ.get('CTO_AIPA_WEBHOOK_URL') or 'https://webhook.aideazz.xyz/cto').rstrip('/')
 OUTREACH_SECRET = _env.get('OUTREACH_SECRET') or os.environ.get('OUTREACH_SECRET', '')
 STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
@@ -82,22 +94,72 @@ def job_id(result: dict) -> str:
     return hashlib.md5(key.encode()).hexdigest()
 
 
-def fetch_google_jobs(query: str) -> list:
-    if not SERPAPI_KEY:
-        log.warning('SERPAPI_KEY not set — skipping')
-        return []
+def _extract_company(title: str, link: str) -> str:
+    """Best-effort company name from a job-post title or ATS URL slug."""
+    t = title or ''
+    # "Role at Company • Location" / "Role at Company" / "Role @ Company"
+    m = re.search(r'\b(?:at|@)\s+([A-Z0-9][\w&.\-’\' ]{1,40})', t)
+    if m:
+        return re.split(r'[•|\-—]', m.group(1))[0].strip(" -—|·")
+    # ATS URL slug: job-boards.greenhouse.io/<company>/... , <company>.lever.co , jobs.ashbyhq.com/<company>
     try:
-        resp = requests.get('https://serpapi.com/search', params={
-            'engine':   'google_jobs',
-            'q':        query,
-            'hl':       'en',
-            'chips':    'date_posted:week',
-            'api_key':  SERPAPI_KEY,
-        }, timeout=20)
-        resp.raise_for_status()
-        return resp.json().get('jobs_results', [])
+        u = up.urlparse(link)
+        host, path = u.netloc.lower(), [p for p in u.path.split('/') if p]
+        if 'lever.co' in host:
+            sub = host.split('.lever.co')[0].split('.')[-1]
+            if sub and sub != 'jobs':
+                return sub.replace('-', ' ').title()
+        if 'greenhouse.io' in host and path:
+            return path[0].replace('-', ' ').title()
+        if 'ashbyhq.com' in host and path:
+            return path[0].replace('-', ' ').title()
+    except Exception:
+        pass
+    return ''
+
+
+def fetch_google_jobs(query: str) -> list:
+    """BrightData organic Google search restricted to ATS/job boards.
+
+    Replaces the dead SerpAPI google_jobs feed. Normalizes results to the same
+    dict shape the rest of this module expects (title, company_name, location,
+    description, related_links)."""
+    if not (BRIGHTDATA_API_TOKEN and BRIGHTDATA_ZONE):
+        log.warning('BrightData not configured (BRIGHTDATA_API_TOKEN/ZONE) — skipping')
+        return []
+    q = f'{query} {JOB_BOARD_SITES}'
+    url = 'https://www.google.com/search?' + up.urlencode({
+        'q': q, 'hl': 'en', 'gl': 'us', 'num': '20', 'tbs': 'qdr:m', 'brd_json': '1',
+    })
+    try:
+        resp = requests.post(
+            BD_API,
+            json={'zone': BRIGHTDATA_ZONE, 'url': url, 'format': 'raw'},
+            headers={'Authorization': 'Bearer ' + BRIGHTDATA_API_TOKEN},
+            timeout=45,
+        )
+        if not resp.ok:
+            log.warning(f'BrightData error ({query}): {resp.status_code} {resp.text[:120]}')
+            return []
+        data = resp.json()
+        organic = data.get('organic') or data.get('organic_results') or []
+        jobs = []
+        for it in organic:
+            title = (it.get('title') or '').strip()
+            link  = (it.get('link') or it.get('url') or '').strip()
+            snippet = (it.get('description') or it.get('snippet') or '').strip()
+            if not title or not link:
+                continue
+            jobs.append({
+                'title':         title,
+                'company_name':  _extract_company(title, link),
+                'location':      '',
+                'description':   snippet,
+                'related_links': [{'link': link}],
+            })
+        return jobs
     except Exception as e:
-        log.warning(f'SerpAPI error ({query}): {e}')
+        log.warning(f'BrightData error ({query}): {e}')
         return []
 
 
