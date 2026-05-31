@@ -24,6 +24,7 @@ Human approval (from Telegram bot command handler):
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 from datetime import datetime, timezone
@@ -74,9 +75,23 @@ class VJHLangGraphRunner:
         else:
             job_dict = job.__dict__
 
+        # Stable job identifier. Some sources omit 'id'/'job_id' entirely, which
+        # previously left job_id="" → "[runner] Job missing ID, skipping" → EVERY
+        # accepted job dropped as an error (PATH A pushed 0 deals since May 21 2026).
+        # Fall back to a deterministic content hash so the job is processable AND
+        # dedup-stable across cycles.
+        _jid = str(job_dict.get('id') or job_dict.get('job_id') or '').strip()
+        if not _jid:
+            _key = '|'.join([
+                str(job_dict.get('company', '')),
+                str(job_dict.get('title', '')),
+                str(job_dict.get('url', '') or job_dict.get('location', '')),
+            ]).lower()
+            _jid = 'h' + hashlib.md5(_key.encode('utf-8')).hexdigest()[:16]
+
         return {
             # Input
-            "job_id":       str(job_dict.get('id') or job_dict.get('job_id', '')),
+            "job_id":       _jid,
             "company":      str(job_dict.get('company', '')),
             "title":        str(job_dict.get('title', '')),
             "url":          str(job_dict.get('url', '')),
