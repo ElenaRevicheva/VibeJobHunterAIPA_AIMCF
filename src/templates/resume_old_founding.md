@@ -1,222 +1,115 @@
 # ELENA REVICHEVA
 
-**AI-First Engineer & Startup Founder | Building Emotionally Intelligent AI**
+**Founder & Applied AI Engineer | 12+ Production AI Systems Built Solo | Agentic Systems · AI Automation**
 
-📍 Panama City, Panama (Remote / On-site / Full-time / Part-time) | 🌎 EN/ES
+Juan Diaz, Panama City, Panama | Remote Worldwide | UTC-5 | 🌎 EN/ES
 
-📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)  
-🔗 [Portfolio](https://aideazz.xyz/card) | [GitHub](https://github.com/ElenaRevicheva) | [LinkedIn](https://linkedin.com/in/elenarevicheva) | 🌐 ENS: aideazz.eth
-
----
-
-## 💡 SUMMARY
-
-> "Turning team-sized dreams into solo builds — powered by AI-first development."
-
-Founder of AIdeazz.xyz, building emotionally intelligent AI Personal Assistants (AIPAs) — conscious AI companions for education, cultural adaptation, professional and personal growth.
-
-Ex-CEO and CLO in E-Government (Russia). Relocated to Panama in 2022 to rebuild from zero and launch **12+ live AI products and agents** using AI-augmented development (Cursor + Claude Code) — not traditional coding.
-
-Now seeking to join an AI startup or company focused on AI as **AI Engineer** | **Product Builder** | **Founding Engineer** | **Technical Lead**.
+📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp)
+🔗 [Portfolio](https://aideazz.xyz/portfolio) | [GitHub](https://github.com/ElenaRevicheva) | [LinkedIn](https://linkedin.com/in/elenarevicheva)
 
 ---
 
-## 📊 KEY ACHIEVEMENTS
+## SUMMARY (FOUNDER ENERGY)
 
-- **12+ live AI products and agents** — solo-built using AI-augmented development (Cursor + Claude Code), not traditional coding
-- **Deployed AI Co-Founders:** CTO AIPA (autonomous code reviewer across 8 GitHub repositories, Oracle Cloud) + CMO AIPA (LinkedIn content automation, Railway) — **$0/month operational cost**
-- **99%+ cost reduction** vs. team-based development ($900K → <$15K)
-- **Users in 19 Spanish-speaking countries** — dual-sided market with bilingual (EN/ES) architecture
-- **Integrated 10+ AI services:** Claude, GPT, Groq, Whisper, TTS, OCR, ElizaOS, HeyGen, MCP
-- **PayPal Subscriptions LIVE**, crypto payments in testing
-- **0→1 builder:** Vision → Design → Build → Deploy → Growth
+Founder who ships. I built and operate an AI-first ecosystem of 12+ production AI systems solo — agents, automation pipelines, CRM revenue operations, a bilingual AI tutor with paying users in 19 countries, and a voice-driven content engine — from zero, on a near-zero budget, running 24/7 on Oracle Cloud.
+
+Executive-turned-AI-builder: 7+ years of board-level leadership in large-scale digital transformation (Deputy CEO & CLO), now a full-time hands-on builder. I work in an AI-augmented engineering workflow (Cursor + Claude Code) — modern tooling compresses implementation time while I own architecture, debugging, deployment, and production outcomes. I speak founder and engineer in the same conversation, because I am both.
+
+Perfect fit for founding/0-1 roles: ambiguity is my default environment, I take a problem from idea to deployed system without hand-holding, and I have receipts for everything I claim.
 
 ---
 
-## ⚙️ HOW I BUILD
+## CORE TECHNICAL SKILLS
 
-**I build exclusively with AI-augmented development — Cursor IDE and Claude Code as primary tools.** This is the deliberate methodology behind 12+ production systems. I own every architecture decision, every system design choice, every production outcome — the AI dramatically accelerates execution, the judgment is mine. One thing worth saying upfront: if your process includes a proctored coding test or live syntax assessment, that is not my workflow and I will tell you so directly rather than waste either of our time. Founders who care about shipped systems find this refreshing.
+### AI-Augmented Development
+Cursor IDE · Claude Code · AI-assisted implementation, refactoring, and rapid iteration from prototype to production
 
----
+### AI & Agents
+Claude · OpenAI · LangGraph · LangChain · RAG · evaluation frameworks · tool calling · multi-step orchestration
 
-## ⚙️ TECHNICAL STACK
+### AI-Augmented Engineering
+Python · TypeScript · FastAPI · REST APIs · PostgreSQL · Docker
 
-**AI/ML:** GPT · Claude · Groq (Llama 3.3 70B) · Whisper · TTS · MCP · LangChain · LangGraph · Semantic RAG (pgvector + OpenAI embeddings) · ElizaOS
+### Cloud & Operations
+Oracle Cloud (OCI) · AWS Lambda · Railway · Supabase · monitoring · automation
 
-**Languages:** Python · TypeScript · JavaScript · Node.js · SQL
+### AI Discoverability (GEO / AEO / Technical SEO)
+Structured data (JSON-LD), AI crawler governance, llms.txt, static rendering, automated sitemap/canonical/hreflang — visibility across search and AI platforms (AEO 4/10 → 9/10).
 
-**Frameworks:** React · Flask · FastAPI · Express.js · Node.js · Vite
+### Data Automation & Market Intelligence
+Bright Data (Web Unlocker, SERP, Scraping Browser), browser automation, and autonomous AI research agents for lead intelligence, competitor analysis, and CRM enrichment.
 
-**Infrastructure:** PostgreSQL (pgvector) · Oracle Autonomous Database 26ai · AWS Lambda · AWS EventBridge · AWS S3 · Supabase · Docker · Railway · Oracle Cloud Infrastructure (OCI)
+### CRM & Revenue Operations (HubSpot)
+AI-assisted CRM workflows: qualification (LLM buying-intent gate), enrichment, attribution, routing, deduplication, sales process automation.
 
-**Frontend:** Tailwind CSS · shadcn/ui · Framer Motion · i18next
+### Integrations
+GitHub API · Telegram Bot API · WhatsApp Business API · PayPal · X/Twitter API · Make · Buffer · Resend · Playwright
 
-**APIs:** WhatsApp · Telegram · PayPal · Twitter · CCXT · GitHub API (@octokit/rest) · Make.com · Buffer
-
-**Web3:** Polygon · Thirdweb · MetaMask · IPFS · DAO Design
-
-**DevOps:** PM2 · Oracle Cloud VM · Ubuntu · mTLS encryption
-
----
-
-## 🚀 AIDEAZZ ECOSYSTEM — SOLO-BUILT PRODUCTS
-
-### 🧠 Founder & AI Engineer — AIdeazz.xyz | Panama | 2025–Present
-**Member of Innovation Smart District (ISD), Panama**
-
-Building emotionally intelligent AI Personal Assistants (AIPAs) + AI Co-Founders for startup automation.
+### Web3
+Polygon · Thirdweb · IPFS · NFT infrastructure · smart contract integrations
 
 ---
 
-### 🤖 AI CO-FOUNDERS (December 2025)
+## WHAT I BUILT (ALL IN PRODUCTION, ALL SOLO)
 
-#### CTO AIPA — AI Technical Co-Founder (LIVE)
-🔗 [GitHub](https://github.com/ElenaRevicheva) | Live Endpoint
+### Applied AI Engineer & Founder | AIdeazz.xyz | Panama / Remote | 2025 – Present
 
-Autonomous code review automation across entire GitHub ecosystem — **eliminates need for technical co-founder**.
+#### VibeJobHunter AIPA — AI-Assisted Job Discovery & Qualification Pipeline
+1,900+ opportunities processed, 250+ tailored applications, 140+ personalized outreach messages — LangGraph agentic pipeline (collect → filter → score → route), deterministic + LLM-as-judge quality controls, human-controlled final decisions.
+*Tech: Python, LangGraph, LangChain, Claude, Playwright, SQLite, Resend, Telegram Bot API*
 
-**Tech Stack:** TypeScript, Node.js, Express.js, Groq (Llama 3.3 70B), Claude 3.5 Sonnet, Oracle Autonomous Database 26ai (mTLS), Oracle Cloud Infrastructure, GitHub API, PM2
+#### EspaLuz — Conversational AI Learning Platform
+Subscription bilingual (EN/ES) AI tutor on WhatsApp + Telegram: 2-layer memory (conversation history + RAG/pgvector), multimodal (text, OCR, voice, AI speech), paying users across 19 Spanish-speaking markets, PayPal monetization live.
+*Tech: Python, GPT-4, LangChain, pgvector, OpenAI embeddings, Whisper, WhatsApp Business API, Railway*
 
-**Capabilities:**
-- Automated PR reviews across 8 GitHub repositories (24/7, sub-30-second response)
-- Security vulnerability scanning (hardcoded credentials, SQL injection, unsafe code)
-- Code complexity analysis (McCabe scoring, architecture pattern detection)
-- Performance optimization (N+1 queries, inefficient loops)
-- Intelligent AI model selection (Groq for speed, Claude for critical analysis)
-- Integration with CMO AIPA for automated tech announcements
+#### CTO AIPA — AI Engineering Operations & Decision Support
+Code review, technical decision support, and daily operational visibility across 12 GitHub repos, 24/7. Cost-aware model routing (Groq for speed, Claude for critical/security). Voice-to-action pipeline (voice notes → tasks/knowledge in Oracle). Sprint Briefing agent: overnight repo activity + voice notes → narrated audio briefing at 8 AM — ~$2/month.
+*Tech: TypeScript, Node.js, Claude, Groq, OpenAI TTS, Oracle Cloud (mTLS), AWS Lambda, EventBridge, GitHub API, PM2*
 
-**Business Impact:**
-- Cost: **$0/month** (vs $120K/year senior developer)
-- Speed: Sub-30-second reviews (vs hours/days for human review)
-- Quality: 100% PR security scanning, zero missed reviews
-- Scalability: Architecture supports 100+ repos with no code changes
+#### CMO AIPA — AI Marketing & RevOps Agent
+GEO/AEO content + lead capture + qualification + follow-up, integrated with HubSpot: multi-source ingest → LLM buying-intent gate → enriched deduped HubSpot deals → stage routing → Trello action board. Bright Data enrichment on every lead. Resilient daily blog with Anthropic→Groq fallback.
+*Tech: Python, FastAPI, Claude, Groq, HubSpot API, Bright Data, Make.com, Buffer*
 
-**Deployment:** Oracle Cloud (startup credits), 99.9% uptime, PM2 process manager
+#### Voice Growth Engine & "Building in Public" Podcast
+One voice note → bilingual blogs + social atoms + published podcast episode, UTM-attributed into HubSpot. Live on Spotify, YouTube, Listen Notes, Podcast Index.
+*Tech: Speechmatics, Claude, OpenAI TTS, 4everland/IPFS, RSS, HubSpot, Buffer*
 
-**Sprint Briefing Agent** (AWS Lambda, Apr 2026): daily autonomous audio briefing — EventBridge wakes Lambda at 8AM Panama, reads 12 repos + owner's Oracle diary/tasks (S3 wallet, thin-mode Oracle), passes to Groq + Claude, delivers male-voice MP3 to Telegram. Full two-way loop: voice notes in → briefing out. ~$2/month AWS cost.
+#### Also shipped
+**ALGOM Alpha** (AI web3 education bot on X) · **Creative AI** (atuona.xyz — LLM → image → video → NFT publishing)
 
----
+#### Key Metrics
+12+ production systems · 12 active repos · AEO 4/10 → 9/10 · 131-test eval harness (~$0.03/run) · 76%/24% cost-optimized model routing · 24/7 Oracle uptime · Anthropic→Groq fallback (production never stops)
 
-#### CMO AIPA — AI Marketing Co-Founder (LIVE)
-📱 Multi-platform: LinkedIn | Instagram
+### Operational Co-Founder | OmniBazaar | Remote | 2024 – 2025
+Structured DAO LLC (Marshall Islands): governance, tokenomics, DAO operating agreements aligned with smart contracts.
 
-Autonomous LinkedIn and Instagram content generation — **NOT templates, but strategic AI-powered marketing with business intelligence**.
+### Deputy CEO & Chief Legal Officer | JSC "E-GOV OPERATOR" | Russia | 2011 – 2018
+Board-level leadership of large-scale public-sector digital transformation; cross-functional teams (IT, legal, compliance).
 
-**Tech Stack:** Python, AsyncAnthropic (Claude API), FastAPI, Make.com, Buffer, Railway
-
-**Capabilities:**
-- Daily fresh AI content generation using Claude (learns what works)
-- Strategic decision-making (hiring vs fundraising focus based on business goals)
-- Bilingual content strategy (EN/ES with image rotation)
-- Tech update announcements (receives notifications from CTO AIPA when features ship)
-- Fully autonomous daily posting
-
-**Integration:** CTO completes code review → Notifies CMO via REST API → CMO generates LinkedIn post → Auto-posts next day (synchronized technical + marketing workflow, zero human intervention)
-
-**Business Impact:** $0/month cost, 100% daily posting consistency, AI-tailored content strategy
+### Deputy CEO (Business Development) | Fundery LLC (Fintech/Blockchain) | Russia | 2017 – 2018
+ICO compliance, investor relations, regulatory documentation, blockchain launch strategy.
 
 ---
 
-### ✅ ESPALUZ — Emotionally Intelligent WhatsApp Spanish Tutor (LIVE)
-💬 WhatsApp | Telegram | Web App
+## EDUCATION AND CERTIFICATIONS
 
-Bilingual AI tutor bridging expats to Spanish speaking countries and locals (EN↔ES). 2-layer persistent memory, semantic RAG, OCR, TTS, voice synthesis.
-
-→ Live in WhatsApp & Telegram; 19 countries; PayPal subscriptions active.
-
-**2-layer memory:** LangChain `PostgresChatMessageHistory` (exact history) + pgvector semantic RAG (`espaluz_embeddings`, OpenAI `text-embedding-3-small`, cosine > 0.75, top_k=3) — injected into Claude system prompt every reply. Separate session namespaces per platform.
-
-**Tech:** Python, GPT-4, LangChain, pgvector (PostgreSQL), OpenAI embeddings, WhatsApp API, MCP, OCR, TTS, Railway
+- **Anthropic Academy** — Claude Certification Program | 2026 | In Progress
+- **Polkadot Blockchain Academy** (PBA-X Wave #3) | 2025 | Online
+- **How-To-DAO Cohort Graduate** | 2025 | Online
+- **MA Social Psychology** | Penza State University | 2018 | Russia
+- **Blockchain Regulation** | MGIMO | 2017 | Moscow
+- **Presidential Program for Executive Management** | RANEPA | 2015 | Moscow
 
 ---
 
-### ✅ VIBEJOBHUNTER AIPA — Autonomous AI Job Search System (LIVE)
+## LANGUAGES
 
-Full-stack AI pipeline that scrapes, scores, filters, and applies to jobs autonomously — with human-in-the-loop for edge cases.
-
-- **LangGraph pipeline** (7 nodes, StateGraph): scrape → gate → score → route → apply/outreach/discard. Human-approval interrupt via Telegram commands. SQLite checkpoint persistence.
-- **4-layer eval harness** (131 tests): deterministic scoring, bias compensation, 22-job golden set, Claude Haiku as independent judge (≥75% agreement). ~$0.03/run.
-- Multi-ATS Playwright automation (Greenhouse, Lever, Ashby) + founder email outreach via Resend
-- Hard gate excludes Senior/Staff/Principal/ML roles; daily cap 5 applications + 2 founder outreach
-
-**Tech:** Python, LangGraph, Claude (Haiku + Sonnet), Playwright, SQLite, Resend, Telegram Bot API
+Russian (Native) | English (Fluent) | Spanish (Intermediate) | French (Elementary)
 
 ---
 
-### ✅ ALGOM ALPHA — Post-Scam Era AI Crypto Mentor (LIVE)
-🐦 X/Twitter
+## TARGET ROLES
 
-AI crypto mentor teaching basics of safe trading for beginners via autonomous paper trading | 180+ followers
+Founding AI Engineer · Applied AI Engineer · AI Product Engineer · AI Automation Engineer · Agent Systems Engineer · AI Solutions Engineer
 
-**Tech:** Node.js, ElizaOS, CCXT, Twitter API, Technical indicators (MA, RSI)
-
----
-
-### ✅ ADDITIONAL PRODUCTS (LIVE)
-
-**AIdeazz Ecosystem Platform** — aideazz.xyz  
-Bilingual (EN/ES) responsive UX | Built with React, Tailwind, Framer Motion
-
-**Atuona NFT Gallery** — atuona.xyz  
-Mindfulness-driven NFT poetry drops on Polygon | Stack: Thirdweb SDK, React, IPFS
-
----
-
-## 🧩 EARLIER ROLES
-
-### Operational Co-Founder — OmniBazaar Marketplace Startup | Remote | 2024–2025
-Structured DAO LLC (Marshall Islands), tokenomics, governance model for decentralized marketplace.
-
-### Deputy CEO & CLO — JSC "E-GOV OPERATOR" | Russia | 2011–2018
-Led regional digital transformation for public services. Managed IT, HR, compliance, and board-level governance.
-
-### Deputy CEO (BizDev) — Fundery LLC | Russia | 2017–2018
-ICO compliance & investor relations during blockchain boom.
-
----
-
-## 🎓 EDUCATION & CERTIFICATIONS
-
-- **Polkadot Blockchain Academy**, PBA-X Wave #3 (online course, 2025)
-- **How-To-DAO Cohort Graduate** (online course, 2025)
-- **M.A. in Social Psychology**, Penza State University (Russia, 2018)
-- **Blockchain Regulation**, MGIMO (Moscow, 2017)
-- **Presidential Program for Executive Management**, RANEPA (Moscow, 2015)
-- **Internship:** Nyskapingsparken Innovation Park, Bergen, Norway, 2015
-
----
-
-## 🌍 LANGUAGES
-
-🇷🇺 Russian (Native) | 🇬🇧 English (Fluent) | 🇪🇸 Spanish (Intermediate) | 🇫🇷 French (Elementary)
-
----
-
-## 💼 OPEN TO FULL-TIME/PART-TIME ROLES
-
-- AI Product Manager
-- Full-Stack AI Engineer
-- **Founding Engineer**
-- LLM Engineer
-- AI Solutions Architect
-- AI Growth Engineer
-- Technical Lead
-
-**Hybrid Approach:** Role + Pre-seed Investment for AIdeazz (parallel execution)
-
----
-
-## 🌟 WHY HIRE / COLLAB WITH ME?
-
-> Founder-level execution meets emotionally intelligent AI vision — from concept to GTM.
-
-✅ **Proven 0→1 AI-First Builder:** 12+ live AI products and agents, 10x faster shipping with 99%+ cost reduction — built with AI-augmented development (Cursor + Claude Code), not traditional manual coding
-
-✅ **Full-Stack Capability:** End-to-end ownership from vision to deployment to growth
-
-Web3 native and bilingual, I craft next-gen AI that grows with humans and evolves through their journey.
-
----
-
-📧 aipa@aideazz.xyz | 💬 +507 616 66 716 (WhatsApp/Telegram)
-
+Open to: Full-time · Contract · Fully Remote (remote-first teams)
