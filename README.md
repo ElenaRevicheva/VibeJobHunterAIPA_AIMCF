@@ -1,6 +1,6 @@
-# VibeJobHunter — Autonomous AI Job Hunting Engine
+# VibeJobHunter — AI Job Discovery & Qualification Engine
 
-**An AI system that discovers, scores, and applies to jobs autonomously — while an AI Marketing Co-Founder builds your personal brand on LinkedIn.**
+**An agentic LangGraph pipeline that discovers, scores, and qualifies jobs 24/7 — delivering ready-to-send applications with the final decision always human-controlled — while an AI Marketing Co-Founder builds your personal brand on LinkedIn.**
 
 Built solo by [Elena Revicheva](https://linkedin.com/in/elenarevicheva) using human-AI collaborative development.
 
@@ -19,13 +19,13 @@ Applying to AI/engineering roles manually means 100+ hours of repetitive work: s
 
 VibeJobHunter runs autonomously 24/7 on Oracle Cloud:
 
-- **Discovers** jobs from 8 sources every hour (218+ company APIs + Dice MCP + YC + RemoteOK + more)
-- **Scores** each job against your profile using Claude AI (100-point system with domain-match filtering)
-- **Auto-applies** to high-scoring roles via ATS form submission (Greenhouse, Lever, Ashby, Workable)
-- **Generates personalized outreach** to founders at borderline companies
-- **Follows up** automatically after 5 days of no response
+- **Discovers** jobs from 11 sources every hour (218+ company ATS APIs + YC + Bright Data SERP job-board search + more)
+- **Gates and scores** each job through a hard career filter + Claude AI scoring (100-point system, domain-match filtering)
+- **Routes** through a LangGraph state machine (gate → score → route → notify) with SQLite checkpointing and a human-approval interrupt
+- **Qualifies leads, not fake submissions** — every accepted job lands as a ready-to-act lead (tailored resume + AI cover letter) in Telegram and HubSpot; the human sends it. By design: an audit found "auto-apply" theater produces zero real outcomes, so the system was rebuilt around honest human-controlled applications
+- **Generates personalized outreach** to founders at borderline companies, with follow-up reminders
+- **Detects recruiter responses** in the inbox and promotes them across HubSpot (deal stage) + Trello (action card) + Telegram (alert) — three surfaces, one truth
 - **Posts daily LinkedIn content** via an AI Marketing Co-Founder (bilingual EN/ES)
-- **Reports everything** to you via Telegram bot with full interactive controls
 
 ---
 
@@ -38,34 +38,37 @@ Oracle Cloud (24/7 systemd service)
 │   │
 │   ├── 1. DISCOVER ──────────────────────────────────
 │   │   ├── ATS APIs: 218 companies (Greenhouse, Lever, Ashby, Workable)
-│   │   ├── Dice MCP: 8 keyword queries via Model Context Protocol
+│   │   ├── Bright Data SERP: job-board search (Wellfound/Lever/
+│   │   │   Greenhouse/Ashby) — replaced exhausted SerpAPI
 │   │   ├── YC Work at a Startup (Algolia search)
-│   │   ├── RemoteOK, Wellfound, WWR, AI Jobs, HN
-│   │   └── ~50-80 new jobs per cycle
+│   │   ├── RemoteOK, WWR, AI Jobs, HN + more (11 sources)
+│   │   └── ~2,000 jobs evaluated per cycle
 │   │
-│   ├── 2. FILTER & SCORE ────────────────────────────
-│   │   ├── Domain-match filter (drops DevOps, QA, DBA, etc.)
+│   ├── 2. GATE & SCORE ──────────────────────────────
+│   │   ├── Hard career gate (~4-6% pass): wrong-role/big-co/
+│   │   │   coding-assessment/pedigree/location hard-rejects
 │   │   ├── Claude AI scoring (100 pts: AI Product 25, Autonomy 25,
 │   │   │   Full-Stack 20, Business 15, Bilingual 5, Web3 10)
 │   │   ├── YC company bonus: +15 pts
-│   │   └── Deduplication via seen-jobs cache
+│   │   └── Deduplication: seen-jobs cache + per-job SQLite checkpoint
 │   │
-│   ├── 3. ROUTE ─────────────────────────────────────
-│   │   ├── Score ≥ 60 → AUTO-APPLY (ATS form submission)
-│   │   ├── Score 50-59 → FOUNDER OUTREACH (AI message generation)
-│   │   ├── Score 40-49 → REVIEW QUEUE
-│   │   └── Score < 40 → DISCARD
+│   ├── 3. LANGGRAPH PIPELINE (7-node StateGraph) ────
+│   │   ├── gate → score → route → notify, SQLite checkpointer
+│   │   ├── Human-approval interrupt for borderline scores
+│   │   │   (/approve_vjh_{id} | /reject_vjh_{id} via Telegram)
+│   │   └── Content-hash job IDs for sources that omit IDs
 │   │
-│   ├── 4. APPLY ─────────────────────────────────────
-│   │   ├── Smart resume selection (6 role-specific variants)
+│   ├── 4. DELIVER LEADS (human-controlled by design) ─
+│   │   ├── Smart 3-way resume selection (EN default / founder /
+│   │   │   Spanish-LATAM) — synced to latest resume
 │   │   ├── AI cover letter generation (Claude)
-│   │   ├── ATS form filling + PDF upload
-│   │   └── Email verification handling (Zoho IMAP)
+│   │   ├── [HIRING-VJH-LEAD] deal → HubSpot "I Act TODAY" stage
+│   │   └── Human reviews + submits — no fake auto-apply
 │   │
-│   └── 5. FOLLOW UP ─────────────────────────────────
-│       ├── Track all outreach in JSONL log
-│       ├── Auto-remind after 5 days, escalate at 8 days
-│       └── Daily outreach cap: 2 messages/day
+│   └── 5. RESPONSES & FOLLOW UP ─────────────────────
+│       ├── Inbox response detector (noise-domain blocklist)
+│       ├── Real replies → HubSpot stage + Trello card + Telegram
+│       └── Outreach reminders day 5 / day 8, daily caps
 │
 ├── LinkedIn CMO (AI Marketing Co-Founder)
 │   ├── Daily post at 10:10 AM Panama time
@@ -88,32 +91,47 @@ Oracle Cloud (24/7 systemd service)
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
-| **AI/LLM** | Claude Sonnet 4 (Anthropic) | Job scoring, cover letters, content generation, company research |
-| **Backend** | Python 3.11, FastAPI, asyncio | Async job fetching from 8+ sources in parallel |
-| **Job Sources** | Dice MCP, Greenhouse/Lever/Ashby/Workable APIs, YC Algolia | Structured API access, no scraping needed |
-| **Email** | Resend API, Zoho IMAP, Hunter.io | Sending, verification code reading, email discovery |
-| **Database** | SQLite | Application tracking, deduplication, scoring history |
+| **AI/LLM** | Claude (Haiku + Sonnet), Anthropic API | Job scoring, cover letters, content generation, company research |
+| **Agent Pipeline** | LangGraph (7-node StateGraph, AsyncSqliteSaver) | Checkpointed per-job state, dedup, human-in-the-loop interrupt |
+| **Evaluation** | pytest eval harness — 131 tests, 4 layers, LLM-as-judge (~$0.03/run) | Catches gate/scoring regressions before every deploy |
+| **Backend** | Python 3.11, FastAPI, asyncio | Async job fetching from 11 sources in parallel |
+| **Job Sources** | Greenhouse/Lever/Ashby/Workable APIs, YC Algolia, Bright Data SERP | Structured API access + resilient SERP when paid APIs die |
+| **CRM** | HubSpot API (via CTO AIPA `/api/crm-event` hub) + Trello bridge | Every lead and recruiter reply lands where action happens |
+| **Email** | Resend API, Zoho IMAP, Hunter.io | Sending, response detection, email discovery |
+| **Database** | SQLite | Application tracking, LangGraph checkpoints, scoring history |
 | **Infrastructure** | Oracle Cloud, systemd | Always-on, auto-restart, zero monthly cost |
 | **Marketing** | Make.com webhooks, Claude | Automated LinkedIn content pipeline |
 | **Notifications** | Telegram Bot API | Real-time interactive control panel |
 
 ---
 
-## What's Working (February 2026)
+## What's Working (June 2026)
 
 | Feature | Status | Details |
 |---------|--------|---------|
-| ATS Job Discovery | **LIVE** | 218 companies across 4 ATS platforms |
-| Dice MCP Integration | **LIVE** | 8 targeted keyword queries, ~55 jobs/cycle |
+| ATS Job Discovery | **LIVE** | 218 companies across 4 ATS platforms, ~2,000 jobs/cycle |
+| Bright Data SERP Job Search | **LIVE** | Job-board search (Wellfound/Lever/Greenhouse/Ashby) — shipped same day SerpAPI quota died |
+| Career Gate | **LIVE** | Hard rejects: wrong roles, big-co, coding-assessment & pedigree walls, location mismatches (~4-6% pass) |
+| LangGraph Pipeline | **LIVE** | 7-node StateGraph, SQLite checkpointer, human-approval interrupt |
 | AI Job Scoring | **LIVE** | Claude-powered 100-point scoring + domain filter |
-| Auto-Apply (Greenhouse) | **LIVE** | Form filling, resume upload, email verification |
-| Founder Outreach | **LIVE** | AI-generated personalized LinkedIn messages |
-| Follow-Up Engine | **LIVE** | Automatic reminders at day 5 and day 8 |
-| Smart Resume Selection | **LIVE** | 6 role-specific resume variants |
+| Honest LEAD Mode | **LIVE** | Ready-to-send applications delivered to Telegram + HubSpot; human submits — by design |
+| HubSpot Integration | **LIVE** | `[HIRING-VJH-LEAD]` / `[HIRING-VJH-SERP-LEAD]` deals → "I Act TODAY" stage |
+| Response Detector | **LIVE** | Inbox replies → HubSpot stage + Trello action card + Telegram alert |
+| Smart Resume Selection | **LIVE** | 3-way (EN default / founder voice / Spanish-LATAM), synced to June 2026 resumes |
+| Eval Harness | **LIVE** | 131 tests, 4 layers, Claude-as-judge — run before every deploy |
 | LinkedIn CMO | **LIVE** | Daily bilingual posts at 10:10 AM Panama |
-| Telegram Bot | **LIVE** | Interactive menu with real-time stats |
-| Outreach Daily Cap | **LIVE** | Max 2 outreach messages per day |
-| Seen Jobs Dedup | **LIVE** | 30-day TTL cache prevents re-processing |
+| Telegram Bot | **LIVE** | Interactive menu, approvals, real-time stats |
+
+---
+
+## Recent Engineering Highlights (May–June 2026)
+
+- **The honesty pivot.** An internal audit revealed the "auto-apply" path had logged ~700 "applications" while actually submitting **zero** — it recorded intent, not outcomes. Rebuilt the system around honest **LEAD mode** in hours: the agent finds, gates, scores, and prepares; the human sends. Rule earned: *measure the side-effect, not the intent — verify from logs and the database, never from counters.*
+- **131-test eval harness with LLM-as-judge.** Layers 1–3 deterministic (keyword scoring, bias compensation, 22-job golden set); Layer 4 is Claude Haiku as an independent judge at ≥75% agreement, ~$0.03/run. Catches scoring regressions before every deploy.
+- **Same-day provider migration.** SerpAPI's quota died silently (every query 429 → zero job leads for days). Diagnosed from logs, migrated job search to Bright Data organic SERP restricted to ATS domains, normalized to the existing job shape — leads flowing again the same day, downstream untouched.
+- **Missing-ID resilience.** Several job sources return postings without IDs; the pipeline silently dropped every one as an error. Fixed with deterministic content-hash IDs (`company|title|url`) — processable *and* dedup-stable across cycles.
+- **Three-surface response loop.** Recruiter replies detected in the inbox (with a platform-noise blocklist) now promote the deal in HubSpot, create a Trello card on the current-month board, and alert via Telegram — three surfaces, one truth.
+- **Resume system sync.** All resume slots (PDFs + the markdown mirrors that feed cover-letter generation) carry the same June 2026 content — applications are consistent end-to-end, with automatic Spanish selection for LATAM companies.
 
 ---
 
@@ -166,7 +184,7 @@ See [`.env.example`](.env.example) for all configuration options.
 
 **Role:** Solo architect, engineer, and product designer.
 
-I built VibeJobHunter over 3 months as part of [AIdeazz](https://aideazz.xyz) — an ecosystem of 8 AI products I shipped solo in 10 months after relocating to Panama in 2022 with zero technical background.
+I built VibeJobHunter as part of [AIdeazz](https://aideazz.xyz) — an ecosystem of 12+ production AI systems I shipped solo after relocating to Panama with zero technical background.
 
 **My approach:** Human-AI collaborative development using Cursor + Claude + GPT to design, generate, and iterate production code. I combine 7 years of executive product judgment (Deputy CEO, Chief Legal Officer) with hands-on engineering execution.
 
@@ -181,14 +199,15 @@ I built VibeJobHunter over 3 months as part of [AIdeazz](https://aideazz.xyz) �
 
 ## Other Products in the AIdeazz Ecosystem
 
-| Product | What It Does | Users |
-|---------|-------------|-------|
+| Product | What It Does | Status |
+|---------|-------------|--------|
 | [EspaLuz](https://espaluz-ai-language-tutor.lovable.app) | Bilingual AI tutor with emotional memory (WhatsApp/Telegram) | Live subscriptions, 19 countries |
-| CTO AIPA | Autonomous AI Co-Founder for technical decisions | Internal tool |
-| CMO AIPA | AI Marketing Co-Founder (LinkedIn + Instagram) | Runs daily in this repo |
-| [ATUONA](https://atuona.xyz) | NFT Poetry Gallery | Live |
+| CTO AIPA | AI engineering ops: PR review, voice-to-action, daily audio Sprint Briefing (~$2/mo AWS) | Live 24/7 |
+| CMO AIPA | AI Marketing & RevOps: GEO/AEO content, LLM buying-intent lead gate, Bright Data enrichment → HubSpot | Live 24/7 |
+| [Building in Public Podcast](https://podcast.aideazz.xyz) | Voice note → blog + social + published episode (Spotify, YouTube, Listen Notes, Podcast Index) | Live |
+| [ATUONA](https://atuona.xyz) | Multimodal creative AI → NFT publishing | Live |
 
-**Portfolio:** [aideazz.xyz](https://aideazz.xyz)
+**Portfolio:** [aideazz.xyz](https://aideazz.xyz) · 12+ production systems, 12 active repos
 
 ---
 
@@ -217,4 +236,4 @@ MIT — Use freely. If you build your own job hunting engine, I'd love to hear a
 
 ---
 
-*Last updated: February 9, 2026*
+*Last updated: June 10, 2026*
