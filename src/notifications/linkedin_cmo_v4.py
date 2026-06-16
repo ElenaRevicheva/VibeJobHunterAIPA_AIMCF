@@ -802,7 +802,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
         for attempt in range(1, 3):
             try:
                 response = await client.messages.create(
-                    model="claude-sonnet-4-20250514",
+                    model="claude-sonnet-4-5-20250929",
                     max_tokens=max_tokens,
                     temperature=0.78,
                     messages=[{"role": "user", "content": prompt}],
@@ -867,7 +867,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
                     try:
                         client = AsyncAnthropic(api_key=self.anthropic_api_key)
                         response = await client.messages.create(
-                            model="claude-sonnet-4-20250514",
+                            model="claude-sonnet-4-5-20250929",
                             max_tokens=600,
                             temperature=0.8,
                             messages=[{
@@ -1298,7 +1298,7 @@ Second line: one sentence WHY (grounded in CAREER_FOCUS).
 """
 
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",  # Current production model
+                model="claude-sonnet-4-5-20250929",  # Current production model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -1354,7 +1354,7 @@ List 3 trends, each on new line, format:
 Be specific and actionable."""
 
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",  # Current production model
+                model="claude-sonnet-4-5-20250929",  # Current production model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )

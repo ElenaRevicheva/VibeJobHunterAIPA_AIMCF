@@ -64,7 +64,7 @@ Return only valid JSON, no other text."""
             messages = [{"role": "user", "content": prompt}]
             try:
                 response = self.ai.messages.create(
-                    model="claude-sonnet-4-20250514",
+                    model="claude-sonnet-4-5-20250929",
                     max_tokens=4096,
                     messages=messages,
                 )

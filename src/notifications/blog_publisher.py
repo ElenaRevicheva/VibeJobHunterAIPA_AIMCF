@@ -120,7 +120,7 @@ Write the article now:"""
     try:
         client = AsyncAnthropic(api_key=api_key or ANTHROPIC_API_KEY)
         resp = await client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=1200,
             temperature=0.7,
             messages=[{"role": "user", "content": prompt}],

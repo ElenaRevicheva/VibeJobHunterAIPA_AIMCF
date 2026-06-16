@@ -78,10 +78,10 @@ def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse
 
 # Model selection priority (tries in order)
 CLAUDE_MODELS = [
-    "claude-sonnet-4-20250514",  # Latest
-    "claude-sonnet-4-20250514",  # Fallback 1
-    "claude-sonnet-4-20250514",    # Fallback 2
-    "claude-sonnet-4-20250514",      # Fallback 3 (most reliable)
+    "claude-sonnet-4-5-20250929",   # Latest Sonnet (current, verified live)
+    "claude-sonnet-4-6",            # Newer Sonnet
+    "claude-opus-4-8",              # Opus (highest quality)
+    "claude-haiku-4-5-20251001",    # Haiku (fast/cheap, most reliable fallback)
 ]
 
 
@@ -139,8 +139,8 @@ def get_best_available_model(client, preferred_model: Optional[str] = None) -> s
     
     # If all else fails, return the most reliable one
     # (Anthropic will error if it's not available, which is fine)
-    logger.warning("⚠️ Could not verify model availability, using claude-sonnet-4-20250514")
-    return "claude-sonnet-4-20250514"
+    logger.warning("⚠️ Could not verify model availability, using claude-sonnet-4-5-20250929")
+    return "claude-sonnet-4-5-20250929"
 
 
 # Cached model (determined once per session)

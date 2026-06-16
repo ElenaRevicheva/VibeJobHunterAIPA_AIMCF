@@ -39,7 +39,7 @@ class ContentGeneratorV2:
         prompt = self._build_resume_prompt(profile, job)
         
         # Check cache first
-        cached = self.cache.get(prompt, "claude-sonnet-4-20250514")
+        cached = self.cache.get(prompt, "claude-sonnet-4-5-20250929")
         if cached:
             self.logger.info("Using cached resume")
             return cached
@@ -49,7 +49,7 @@ class ContentGeneratorV2:
         
         try:
             response = self.ai.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5-20250929",
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -63,7 +63,7 @@ class ContentGeneratorV2:
             tailored_resume = response.content[0].text
             
             # Cache response
-            self.cache.set(prompt, "claude-sonnet-4-20250514", tailored_resume)
+            self.cache.set(prompt, "claude-sonnet-4-5-20250929", tailored_resume)
             
             # Save to file
             self._save_resume(tailored_resume, job)
@@ -83,7 +83,7 @@ class ContentGeneratorV2:
         prompt = self._build_cover_letter_prompt(profile, job)
         
         # Check cache
-        cached = self.cache.get(prompt, "claude-sonnet-4-20250514")
+        cached = self.cache.get(prompt, "claude-sonnet-4-5-20250929")
         if cached:
             self.logger.info("Using cached cover letter")
             return cached
@@ -93,7 +93,7 @@ class ContentGeneratorV2:
         
         try:
             response = self.ai.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5-20250929",
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -107,7 +107,7 @@ class ContentGeneratorV2:
             cover_letter = response.content[0].text
             
             # Cache response
-            self.cache.set(prompt, "claude-sonnet-4-20250514", cover_letter)
+            self.cache.set(prompt, "claude-sonnet-4-5-20250929", cover_letter)
             
             # Save to file
             self._save_cover_letter(cover_letter, job)
