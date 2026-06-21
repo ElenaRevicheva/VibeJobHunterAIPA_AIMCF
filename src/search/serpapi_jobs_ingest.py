@@ -183,6 +183,37 @@ def push_crm_event(payload: dict) -> bool:
         return False
 
 
+def iron_clad_fit(title: str, location: str, desc: str) -> bool:
+    """Promote a SERP job to Elena's actionable 'I Act TODAY' ONLY if the snippet
+    shows an iron-clad fit: fully remote + LATAM/global-friendly + AI-augmented
+    builder (no heavy hand-coding / CS-degree gate) + NOT US-only. Everything else
+    is parked in 'ignore' so the scraped firehose never pollutes her actionable view.
+    Bias is intentionally strict — better to park a good one than promote a bad one."""
+    blob = f"{title} {location} {desc}".lower()
+    remote = any(k in blob for k in (
+        'remote', 'work from anywhere', 'work from home', 'distributed team', 'fully remote'))
+    us_only = any(k in blob for k in (
+        'us only', 'u.s. only', 'united states only', 'us-based only', 'usa only',
+        'must be based in the us', 'must be located in the united states',
+        'authorized to work in the us', 'eligible to work in the us',
+        'us-remote', 'us remote', 'remote - united states', 'remote, united states',
+        'remote (us', 'remote, us'))
+    glb_latam = any(k in blob for k in (
+        'worldwide', 'globally', 'global team', 'anywhere in the world', 'latam',
+        'latin america', 'americas', 'any time zone', 'any timezone', 'international',
+        'work from anywhere'))
+    ai_aug = any(k in blob for k in (
+        'no-code', 'no code', 'low-code', 'low code', 'prompt', 'ai-augment', 'ai augment',
+        'ai tools', 'ai agent', 'automation', 'claude', 'cursor', 'copilot', 'gpt', 'llm',
+        'non-technical'))
+    heavy = any(k in blob for k in (
+        'computer science degree', 'cs degree', 'leetcode', 'system design interview',
+        'strong coding', 'strong programming', 'algorithms and data structures',
+        'years of software engineering', 'years of professional software',
+        'years writing production code'))
+    return remote and glb_latam and ai_aug and not us_only and not heavy
+
+
 def ingest_once() -> None:
     seen = load_seen()
     new_jobs = 0
@@ -231,6 +262,16 @@ def ingest_once() -> None:
 
             log.info(f'  + {title} @ {company} ({location})')
 
+            # ── IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented
+            # roles reach Elena's actionable "I Act TODAY"; the rest are parked in
+            # "ignore" so the scraped firehose never floods her view again. ──
+            fit = iron_clad_fit(title, location, desc)
+            hiring_stage = 'applied' if fit else 'lead_parked'
+            if fit:
+                log.info(f'  IRON-CLAD FIT -> I Act TODAY: {title} @ {company}')
+            else:
+                log.info(f'  parked (not iron-clad fit): {title} @ {company}')
+
             # 1. Hiring pipeline (VJH track)
             push_crm_event({
                 'source':   'serpapi_jobs',
@@ -242,7 +283,7 @@ def ingest_once() -> None:
                 'notes': '\u26a0\ufe0f MANUAL APPLY REQUIRED \u2014 VJH SerpAPI found this job. Click the job URL + apply manually. No cover letter pre-generated for SerpAPI path.',
                 'jobUrl':   job_url,
                 'context':  f'[Google Jobs] {title} @ {company} — {location}\n{desc}',
-                'stage':    'applied',
+                'stage':    hiring_stage,
             })
 
             # 2. Client prospect — company hiring a CTO/AI lead = needs fractional help now
