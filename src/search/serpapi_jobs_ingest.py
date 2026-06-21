@@ -206,7 +206,16 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'no-code', 'no code', 'low-code', 'low code', 'prompt', 'ai-augment', 'ai augment',
         'ai tools', 'ai agent', 'automation', 'claude', 'cursor', 'copilot', 'gpt', 'llm',
         'non-technical'))
-    heavy = any(k in blob for k in (
+    # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
+    # don't falsely trip the heavy-coding exclusion — those phrases are actually
+    # a STRONG positive sign for an AI-augmented builder.
+    heavy_blob = blob
+    for neg in ('no cs degree', 'no computer science degree', 'without a cs degree',
+                'without cs degree', 'no degree required', 'degree not required',
+                'no leetcode', 'without leetcode', 'no coding required',
+                'no prior coding', 'no engineering degree'):
+        heavy_blob = heavy_blob.replace(neg, ' ')
+    heavy = any(k in heavy_blob for k in (
         'computer science degree', 'cs degree', 'leetcode', 'system design interview',
         'strong coding', 'strong programming', 'algorithms and data structures',
         'years of software engineering', 'years of professional software',
