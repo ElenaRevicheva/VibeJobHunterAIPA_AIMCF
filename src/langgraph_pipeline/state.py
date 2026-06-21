@@ -48,6 +48,9 @@ class JobState(TypedDict):
     outreach_sent: bool
     outreach_email: Optional[str]
     outreach_error: Optional[str]
+    # Mode A (human-send): the found contact + draft are surfaced to Elena instead of auto-sent.
+    outreach_draft_subject: Optional[str]
+    outreach_draft_body: Optional[str]
 
     # ── Notification ──────────────────────────────────────────────────────────
     telegram_sent: bool

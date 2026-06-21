@@ -282,7 +282,7 @@ async def outreach_node(state: JobState) -> dict:
         finder = FounderFinderV2()
         founder_info = await finder.find_founder(state['company'], state['url'])
 
-        if not founder_info or not founder_info.get('email'):
+        if not isinstance(founder_info, dict) or not founder_info.get('email'):
             logger.info(f"[outreach] No founder found for {state['company']}")
             return {
                 "outreach_sent": False,
@@ -306,7 +306,21 @@ async def outreach_node(state: JobState) -> dict:
             company_info=founder_info,
         )
 
-        # Send
+        # Mode A (default): do NOT auto-send. Surface the found contact + draft to Elena
+        # for a personal, reviewed send (warm + reputation-safe). Auto-send only when
+        # VJH_OUTREACH_AUTOSEND=true is explicitly set.
+        import os as _os
+        if _os.getenv('VJH_OUTREACH_AUTOSEND', 'false').strip().lower() != 'true':
+            logger.info(f"[outreach] DRAFTED (Mode A — human-send) → {founder_email} ({state['company']})")
+            return {
+                "outreach_sent": False,
+                "outreach_email": founder_email,
+                "outreach_draft_subject": message.get('subject', ''),
+                "outreach_draft_body": message.get('body', ''),
+                "status": "outreach_drafted",
+            }
+
+        # Send (auto-send mode only)
         email_service = create_email_service()
         sent = await email_service.send_outreach(
             to_email=founder_email,
@@ -388,6 +402,20 @@ async def notify_node(state: JobState) -> dict:
                 f"Role: {title} | Score: {score:.0f}\n"
                 f"Sent to: {email}"
             )
+        elif status == "outreach_drafted":
+            # Mode A: contact found (Hunter) + draft generated — Elena sends it personally.
+            email = state.get('outreach_email', '')
+            subj = state.get('outreach_draft_subject') or ''
+            body = state.get('outreach_draft_body') or ''
+            msg = (
+                f"<b>📨 Draft ready — your send</b>: {company}\n"
+                f"Role: {title} | Score: {score:.0f}\n"
+                f"<b>To:</b> {email}\n"
+                f"<b>Subject:</b> {subj}\n\n"
+                f"{body[:1500]}\n\n"
+                f"<i>Review, personalize, and send from aipa@aideazz.xyz.</i>\n"
+                f"<a href='{url}'>View posting</a>"
+            )
         elif status == "human_pending":
             msg = (
                 f"<b>Human review needed</b>: {company}\n"
@@ -409,7 +437,7 @@ async def notify_node(state: JobState) -> dict:
         await telegram.send_message(msg)
 
         # Push to HubSpot Hiring Pipeline
-        if status in ("applied", "outreach_sent", "human_pending"):
+        if status in ("applied", "outreach_sent", "human_pending", "outreach_drafted"):
             try:
                 from src.langgraph_pipeline.crm_hub import push_application_to_crm
                 if status == "human_pending":

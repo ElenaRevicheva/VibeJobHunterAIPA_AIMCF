@@ -299,7 +299,9 @@ class FounderFinderV2:
         # ─────────────────────────────────────────────────────────
         try:
             cached = self.cache.get_data(cache_key)
-            if cached:
+            # Only trust dict cache entries — a stray str under a founder:: key would
+            # crash callers that do founder_info.get('email') ('str' object has no attribute 'get').
+            if isinstance(cached, dict):
                 logger.debug(f"📦 Cache hit for founder: {company_name}")
                 return cached
         except Exception as e:
