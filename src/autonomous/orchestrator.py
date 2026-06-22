@@ -1039,12 +1039,18 @@ class AutonomousOrchestrator:
                     # the AI classifier fell back to low-confidence keyword guessing — that path
                     # misreads mass auto-replies (e.g. Foundever "Complete Your Application") as
                     # interview requests. Still saved above for learning, just not alerted.
-                    analysis = (getattr(lead, 'ai_analysis', '') or '')
                     if not is_new:
-                        logger.info(f"   ↩ already alerted, skipping: {str(lead.subject)[:45]}")
+                        logger.info(f"   already alerted, skipping: {str(lead.subject)[:45]}")
                         continue
-                    if analysis.startswith('Fallback to keyword') or float(getattr(lead, 'confidence', 0) or 0) < 0.7:
-                        logger.info(f"   ⚠ low-confidence/keyword-fallback — saved, NOT alerting: {str(lead.subject)[:45]}")
+                    # Content filter (belt-and-suspenders to the classifier fix): application
+                    # auto-replies ("Complete Your Application", "thank you for applying") are
+                    # NOT interviews, even when keyword classification misreads them as positive.
+                    _txt = (str(lead.subject) + ' ' + str(getattr(lead, 'body_preview', '') or '')).lower()
+                    if any(p in _txt for p in (
+                        'complete your application', 'thank you for applying', 'thank you for your interest',
+                        'thanks for your interest', 'application received', 'we received your application',
+                        'received your resume', 'your application has been received', 'application has been received')):
+                        logger.info(f"   auto-reply (not an interview), NOT alerting: {str(lead.subject)[:45]}")
                         continue
 
                     # Send Telegram alert for interview requests

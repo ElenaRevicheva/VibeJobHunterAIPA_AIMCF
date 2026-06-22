@@ -114,7 +114,11 @@ REJECTION_KEYWORDS = [
 ACKNOWLEDGMENT_KEYWORDS = [
     "received your application", "thank you for applying",
     "application has been received", "we'll review", "review your application",
-    "received your resume", "under review", "reviewing applications"
+    "received your resume", "under review", "reviewing applications",
+    # application auto-replies / prompts — NOT interviews (e.g. Foundever BPO mass mail)
+    "complete your application", "complete your profile", "finish your application",
+    "thank you for your interest", "thanks for your interest", "application received",
+    "we received your application", "your application has been received"
 ]
 
 # Companies to watch for (from ATS scraper)
@@ -243,20 +247,22 @@ class ResponseDetector:
         """Quick classification using keywords (before Claude)"""
         text = f"{subject} {body}".lower()
         
-        # Check for positive signals
-        positive_count = sum(1 for kw in POSITIVE_KEYWORDS if kw in text)
-        if positive_count >= 2:
-            return ResponseType.POSITIVE, 0.7
-        
+        # Check acknowledgment / application auto-replies FIRST — "complete your
+        # application" / "thank you for applying" are NOT interviews, even if they
+        # incidentally contain positive words like "schedule" or "next steps".
+        ack_count = sum(1 for kw in ACKNOWLEDGMENT_KEYWORDS if kw in text)
+        if ack_count >= 1:
+            return ResponseType.ACKNOWLEDGMENT, 0.9
+
         # Check for rejection signals
         rejection_count = sum(1 for kw in REJECTION_KEYWORDS if kw in text)
         if rejection_count >= 1:
             return ResponseType.REJECTION, 0.8
-        
-        # Check for acknowledgment
-        ack_count = sum(1 for kw in ACKNOWLEDGMENT_KEYWORDS if kw in text)
-        if ack_count >= 1:
-            return ResponseType.ACKNOWLEDGMENT, 0.9
+
+        # Check for positive signals (only after ruling out auto-reply + rejection)
+        positive_count = sum(1 for kw in POSITIVE_KEYWORDS if kw in text)
+        if positive_count >= 2:
+            return ResponseType.POSITIVE, 0.7
         
         # Check if it's from Greenhouse (verification email, not response)
         if "security code" in text or "verification" in text:
