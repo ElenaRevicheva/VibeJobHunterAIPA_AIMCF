@@ -44,7 +44,22 @@ def gate_node(state: JobState) -> dict:
         }
 
         passed = JobGate.passes(job_dict)
-        reason = "passed all filters" if passed else "filtered by career gate"
+        reason = "filtered by career gate"
+        if passed:
+            # IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented roles
+            # (no heavy-coding/US-only) reach Elena — the SAME filter the HubSpot ingest
+            # uses. This is what makes the bot chase RIGHT positions, not random AI jobs.
+            try:
+                from src.search.serpapi_jobs_ingest import iron_clad_fit
+                _loc = state.get('location') or (state.get('raw_job') or {}).get('location') or ''
+                if iron_clad_fit(state.get('title', ''), _loc, state.get('description', '')):
+                    reason = "passed career + iron-clad fit"
+                else:
+                    passed = False
+                    reason = "career-ok but NOT iron-clad fit (remote/LATAM/AI-augmented)"
+            except Exception as _e:
+                logger.warning(f"[gate] iron_clad_fit unavailable ({_e}); career gate only")
+                reason = "passed career (fit filter unavailable)"
 
         if passed:
             logger.info(f"[gate] PASS  {state['company']} — {state['title']}")
