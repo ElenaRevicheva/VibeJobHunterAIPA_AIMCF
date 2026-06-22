@@ -314,7 +314,8 @@ def ingest_once() -> None:
             title    = job.get('title', '')
             company  = job.get('company_name', '')
             location = job.get('location', '')
-            desc     = job.get('description', '')[:800]
+            desc_full = job.get('description', '') or ''
+            desc     = desc_full[:800]   # truncated copy for HubSpot storage only
             job_url  = ''
             # SerpAPI nests apply links under extensions
             extensions = job.get('extensions', [])
@@ -345,7 +346,7 @@ def ingest_once() -> None:
             # ── IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented
             # roles reach Elena's actionable "I Act TODAY"; the rest are parked in
             # "ignore" so the scraped firehose never floods her view again. ──
-            fit = iron_clad_fit(title, location, desc)
+            fit = iron_clad_fit(title, location, desc_full)   # gate on FULL desc (keywords can sit past 800 chars)
             hiring_stage = 'applied' if fit else 'lead_parked'
             if fit:
                 log.info(f'  IRON-CLAD FIT -> I Act TODAY: {title} @ {company}')
