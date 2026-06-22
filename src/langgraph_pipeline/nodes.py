@@ -184,6 +184,25 @@ async def submit_node(state: JobState) -> dict:
             "status": "discarded",
         }
 
+    # ── Honest-LEAD mode: VJH does NOT auto-submit (AUTO_APPLY_ENABLED=false). It used
+    # to call the disabled auto-apply path, get a non-dict back, and crash with
+    # "'str' object has no attribute 'get'". Instead, surface ONLY iron-clad fits
+    # (remote + LATAM + AI-augmented) to Elena's "I Act TODAY" for her to apply; drop
+    # the rest so Path A can't re-pollute the actionable view. ──
+    import os as _os
+    if _os.getenv('AUTO_APPLY_ENABLED', 'false').strip().lower() != 'true':
+        try:
+            from src.core.fit_gate import iron_clad_fit
+            fit = iron_clad_fit(state.get('title', ''), state.get('location', ''), state.get('description', ''))
+        except Exception as _fe:
+            logger.warning(f"[submit] fit_gate import failed ({_fe}); surfacing by default")
+            fit = True
+        if not fit:
+            logger.info(f"[submit] LEAD mode, not iron-clad → discard: {state['company']} ({state['title']})")
+            return {"applied": False, "apply_method": "skipped", "status": "discarded"}
+        logger.info(f"[submit] LEAD mode → surface for manual apply: {state['company']} ({state['title']})")
+        return {"applied": False, "apply_method": "manual", "status": "human_pending"}
+
     try:
         from src.autonomous.auto_applicator import AutoApplicator
         from src.autonomous.email_service import create_email_service
@@ -205,6 +224,9 @@ async def submit_node(state: JobState) -> dict:
         job_dict['match_reasons'] = state.get('score_reasons', [])
 
         result = await applicator.process_job(job_dict)
+        if not isinstance(result, dict):
+            logger.error(f"[submit] process_job returned {type(result).__name__}, not dict, for {state['company']}")
+            result = {"application_delivered": False, "error": f"apply path returned {type(result).__name__}"}
 
         # Map process_job result fields
         applied = result.get('application_delivered', False) or result.get('email_sent', False)
@@ -418,10 +440,11 @@ async def notify_node(state: JobState) -> dict:
             )
         elif status == "human_pending":
             msg = (
-                f"<b>Human review needed</b>: {company}\n"
+                f"<b>📋 Apply yourself</b>: {company}\n"
                 f"Role: {title} | Score: {score:.0f}\n"
-                f"Reply /approve_vjh_{state['job_id']} or /reject_vjh_{state['job_id']}\n"
-                f"<a href='{url}'>View posting</a>"
+                f"Fits your filter (remote · LATAM · AI-augmented). Open it and apply.\n"
+                f"<a href='{url}'>Open posting</a>\n"
+                f"<i>Now in your HubSpot “I Act TODAY”.</i>"
             )
         elif status in ("apply_failed", "error"):
             err = state.get('apply_error') or state.get('error', '')
