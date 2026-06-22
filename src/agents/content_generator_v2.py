@@ -10,6 +10,7 @@ import asyncio
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
 from ..utils import retry_sync, ResponseCache, RateLimiter, get_logger, APICallTracker
+from ..utils.claude_helper import call_claude_sync  # Groq fallback on credit exhaustion
 
 
 class ContentGeneratorV2:
@@ -48,18 +49,20 @@ class ContentGeneratorV2:
         self.rate_limiter.sync_acquire()
         
         try:
-            response = self.ai.messages.create(
+            response = call_claude_sync(
+                self.ai,
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
-            
-            # Track usage
-            self.tracker.record_call(
-                response.usage.input_tokens,
-                response.usage.output_tokens
-            )
-            
+
+            # Track usage (Groq fallback shim has no .usage)
+            if getattr(response, "usage", None):
+                self.tracker.record_call(
+                    response.usage.input_tokens,
+                    response.usage.output_tokens
+                )
+
             tailored_resume = response.content[0].text
             
             # Cache response
@@ -92,18 +95,20 @@ class ContentGeneratorV2:
         self.rate_limiter.sync_acquire()
         
         try:
-            response = self.ai.messages.create(
+            response = call_claude_sync(
+                self.ai,
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
             )
-            
-            # Track usage
-            self.tracker.record_call(
-                response.usage.input_tokens,
-                response.usage.output_tokens
-            )
-            
+
+            # Track usage (Groq fallback shim has no .usage)
+            if getattr(response, "usage", None):
+                self.tracker.record_call(
+                    response.usage.input_tokens,
+                    response.usage.output_tokens
+                )
+
             cover_letter = response.content[0].text
             
             # Cache response
