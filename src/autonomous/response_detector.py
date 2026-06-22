@@ -364,7 +364,8 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             }).encode()
             req = urllib.request.Request(
                 "https://api.groq.com/openai/v1/chat/completions", data=payload, method="POST",
-                headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
+                headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
+                         "User-Agent": "Mozilla/5.0 (VJH classifier)"})  # Cloudflare 403s default urllib UA
             raw = urllib.request.urlopen(req, timeout=25).read().decode()
             text = json.loads(raw)["choices"][0]["message"]["content"]
             m = re.search(r'\{[^{}]*\}', text, re.DOTALL)

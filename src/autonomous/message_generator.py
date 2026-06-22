@@ -49,7 +49,8 @@ def _groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqMsg":
     payload = json.dumps({"model": _GROQ_MODEL, "messages": messages,
                           "max_tokens": min(max_tokens, 4096), "temperature": 0.3}).encode()
     req = urllib.request.Request(_GROQ_URL, data=payload, method="POST",
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                 "User-Agent": "Mozilla/5.0 (VJH msggen)"})  # Cloudflare 403s default urllib UA
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read())
     return _GroqMsg(data["choices"][0]["message"]["content"])
