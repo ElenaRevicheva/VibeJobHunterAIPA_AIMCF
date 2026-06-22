@@ -66,6 +66,19 @@ JOBS_QUERIES = [
     'solutions architect AI startup remote',
 ]
 
+# ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its
+# `candidate_required_location` field ("Worldwide" / "Americas" / "LATAM" /
+# "USA" / "Brazil") lets the iron-clad gate read a REAL region instead of
+# guessing from snippets. This is the retargeted well: remote + LATAM-friendly
+# + AI-builder, not US-centric Google Jobs. Queries match Elena's profile. ───
+REMOTIVE_QUERIES = [
+    'AI automation',
+    'no-code',
+    'prompt',
+    'AI agent',
+    'AI solutions',
+]
+
 # Jobs where company is also a fractional-CTO prospect
 CLIENT_INTENT_TITLES = [
     'fractional', 'interim', 'head of ai', 'vp ai', 'vp engineering',
@@ -116,6 +129,38 @@ def _extract_company(title: str, link: str) -> str:
     except Exception:
         pass
     return ''
+
+
+def fetch_remotive(query: str) -> list:
+    """Remote-first job board with explicit region tags (free, no key).
+    Maps `candidate_required_location` → our `location` field so iron_clad_fit
+    reads a real region. All Remotive jobs are remote, so we prefix 'Remote —'
+    to guarantee the remote signal while preserving the region tag."""
+    try:
+        r = requests.get(
+            'https://remotive.com/api/remote-jobs',
+            params={'search': query, 'limit': 50},
+            headers={'User-Agent': 'Mozilla/5.0 (VJH job ingest)'},
+            timeout=20,
+        )
+        r.raise_for_status()
+        jobs = r.json().get('jobs', [])
+    except Exception as e:
+        log.warning(f'Remotive fetch error ({query!r}): {e}')
+        return []
+    out = []
+    for j in jobs:
+        region = (j.get('candidate_required_location') or 'Worldwide').strip()
+        desc = re.sub(r'<[^>]+>', ' ', j.get('description', '') or '')
+        desc = re.sub(r'\s+', ' ', desc).strip()
+        out.append({
+            'title':         j.get('title', ''),
+            'company_name':  j.get('company_name', ''),
+            'location':      f'Remote — {region}',  # guarantees 'remote' + real region tag
+            'description':   desc,
+            'related_links': [{'link': j.get('url', '')}],
+        })
+    return out
 
 
 def fetch_google_jobs(query: str) -> list:
@@ -228,9 +273,14 @@ def ingest_once() -> None:
     new_jobs = 0
     client_prospects = 0
 
-    for query in JOBS_QUERIES:
-        log.info(f'Querying Google Jobs: {query!r}')
-        results = fetch_google_jobs(query)
+    # Retargeted: Remotive (region-tagged remote board) FIRST, then the legacy
+    # Google-Jobs feed. Both flow through the same gate + iron_clad_fit, so the
+    # well changed without touching the routing.
+    sources = [('Remotive', q, fetch_remotive) for q in REMOTIVE_QUERIES] \
+            + [('Google Jobs', q, fetch_google_jobs) for q in JOBS_QUERIES]
+    for label, query, fetch_fn in sources:
+        log.info(f'Querying {label}: {query!r}')
+        results = fetch_fn(query)
         log.info(f'  → {len(results)} results')
 
         for job in results:
