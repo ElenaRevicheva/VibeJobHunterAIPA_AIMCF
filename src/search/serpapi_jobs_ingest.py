@@ -230,7 +230,19 @@ def push_crm_event(payload: dict) -> bool:
 
 # iron_clad_fit now lives in the shared src/core/fit_gate.py (single source of truth,
 # also used by the LangGraph submit path in nodes.py). Re-exported for callers/tests.
-from src.core.fit_gate import iron_clad_fit  # noqa: E402,F401
+# NOTE: serpapi-jobs runs under SYSTEM python (no pydantic / src.core deps), so a plain
+# `from src.core.fit_gate import ...` crashes via src/core/__init__.py → config → pydantic.
+# fit_gate.py is stdlib-free, so on that path we load it directly by file (bypassing the
+# src.core package __init__). In the venv (bot, submit path) the normal import just works.
+try:
+    from src.core.fit_gate import iron_clad_fit  # noqa: E402,F401
+except Exception:
+    import importlib.util as _ilu
+    from pathlib import Path as _P
+    _spec = _ilu.spec_from_file_location("fit_gate", _P(__file__).parents[1] / "core" / "fit_gate.py")
+    _fg = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_fg)  # type: ignore[union-attr]
+    iron_clad_fit = _fg.iron_clad_fit  # noqa: F401
 
 
 def ingest_once() -> None:
