@@ -1031,9 +1031,22 @@ class AutonomousOrchestrator:
                 logger.info(f"🔥 Found {len(hot_leads)} hot leads!")
                 
                 for lead in hot_leads:
-                    # Save to database for success prediction model
-                    save_response_to_db(lead)
-                    
+                    # Save to DB. Return value is our dedup signal: True ONLY the first
+                    # time this email is seen (INSERT OR IGNORE on a UNIQUE email_id).
+                    is_new = save_response_to_db(lead)
+
+                    # Suppress the 🔥 alert if we already alerted on this email (dedup), or if
+                    # the AI classifier fell back to low-confidence keyword guessing — that path
+                    # misreads mass auto-replies (e.g. Foundever "Complete Your Application") as
+                    # interview requests. Still saved above for learning, just not alerted.
+                    analysis = (getattr(lead, 'ai_analysis', '') or '')
+                    if not is_new:
+                        logger.info(f"   ↩ already alerted, skipping: {str(lead.subject)[:45]}")
+                        continue
+                    if analysis.startswith('Fallback to keyword') or float(getattr(lead, 'confidence', 0) or 0) < 0.7:
+                        logger.info(f"   ⚠ low-confidence/keyword-fallback — saved, NOT alerting: {str(lead.subject)[:45]}")
+                        continue
+
                     # Send Telegram alert for interview requests
                     if self.telegram and lead.response_type == ResponseType.POSITIVE:
                         alert = f"""🔥🔥🔥 <b>INTERVIEW REQUEST DETECTED!</b>

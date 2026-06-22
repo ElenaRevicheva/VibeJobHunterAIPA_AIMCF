@@ -711,13 +711,17 @@ def save_response_to_db(response: DetectedResponse, db_path: str = "autonomous_d
             response.suggested_action
         ))
         
+        was_new = cursor.rowcount > 0   # INSERT OR IGNORE → 0 when email_id already seen
         conn.commit()
         conn.close()
-        
-        logger.info(f"✅ Saved response to database: {response.company_name} - {response.response_type.value}")
-        
+
+        if was_new:
+            logger.info(f"✅ Saved response to database: {response.company_name} - {response.response_type.value}")
+        return was_new
+
     except Exception as e:
         logger.error(f"❌ Failed to save response to DB: {e}")
+        return False
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
