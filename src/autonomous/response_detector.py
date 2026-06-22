@@ -337,12 +337,53 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                 return type_map.get(classification, ResponseType.UNKNOWN), confidence, analysis, action
             
         except Exception as e:
-            logger.error(f"❌ AI classification failed: {e}")
-        
-        # Fallback to keyword classification
+            logger.warning(f"⚠️ Anthropic classify failed ({str(e)[:70]}); trying free Groq fallback")
+
+        # FREE fallback: Groq (Llama 3.3 70B) before dumb keyword matching. Anthropic
+        # credits can run dry; Groq has a working free tier. Keyword is the LAST resort.
+        groq = self._groq_classify(prompt)
+        if groq:
+            return groq
+
+        # Last resort: keyword classification
         rtype, conf = self._keyword_classify(subject, body)
         return rtype, conf, "Fallback to keyword classification", "Review manually"
-    
+
+    def _groq_classify(self, prompt: str):
+        """Classify via Groq (free tier) using the same prompt as Anthropic.
+        Returns (response_type, confidence, analysis, suggested_action) or None."""
+        import os, urllib.request
+        key = os.environ.get("GROQ_API_KEY", "").strip()
+        if not key:
+            return None
+        try:
+            payload = json.dumps({
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500, "temperature": 0,
+            }).encode()
+            req = urllib.request.Request(
+                "https://api.groq.com/openai/v1/chat/completions", data=payload, method="POST",
+                headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
+            raw = urllib.request.urlopen(req, timeout=25).read().decode()
+            text = json.loads(raw)["choices"][0]["message"]["content"]
+            m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+            if not m:
+                return None
+            result = json.loads(m.group())
+            type_map = {
+                "POSITIVE": ResponseType.POSITIVE, "REJECTION": ResponseType.REJECTION,
+                "QUESTION": ResponseType.QUESTION, "ACKNOWLEDGMENT": ResponseType.ACKNOWLEDGMENT,
+                "SPAM": ResponseType.SPAM, "UNKNOWN": ResponseType.UNKNOWN,
+            }
+            rtype = type_map.get(result.get("classification", "UNKNOWN").upper(), ResponseType.UNKNOWN)
+            logger.info("🟢 Groq (free) classification used (Anthropic unavailable)")
+            return (rtype, float(result.get("confidence", 0.5)),
+                    "Groq: " + result.get("analysis", ""), result.get("suggested_action", "Review manually"))
+        except Exception as e:
+            logger.warning(f"⚠️ Groq fallback failed: {str(e)[:70]}")
+            return None
+
     def _parse_email(self, msg) -> Tuple[str, str, str, datetime]:
         """Extract email components"""
         # Get subject
