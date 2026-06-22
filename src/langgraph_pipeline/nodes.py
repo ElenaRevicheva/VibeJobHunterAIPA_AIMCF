@@ -69,7 +69,7 @@ def gate_node(state: JobState) -> dict:
                 "status": "gate_passed",
             }
         else:
-            logger.info(f"[gate] FAIL  {state['company']} — {state['title']}")
+            logger.info(f"[gate] FAIL  {state['company']} — {state['title']} ({reason})")
             return {
                 "gate_passed": False,
                 "gate_reason": reason,
