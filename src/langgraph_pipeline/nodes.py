@@ -215,7 +215,19 @@ async def submit_node(state: JobState) -> dict:
         if not fit:
             logger.info(f"[submit] LEAD mode, not iron-clad → discard: {state['company']} ({state['title']})")
             return {"applied": False, "apply_method": "skipped", "status": "discarded"}
-        logger.info(f"[submit] LEAD mode → surface for manual apply: {state['company']} ({state['title']})")
+        # LLM JUDGE (Groq) — the PRECISION veto against Elena's exact criteria (fully remote +
+        # LATAM-open + AI-augmented/no-coding-required + a role she'd want). Keyword gate is
+        # generous on purpose; this is what stops "Senior Counsel @ AI-company" from surfacing.
+        try:
+            from src.core.llm_judge import judge_fit
+            _jfit, _jreason = judge_fit(state.get('title', ''), state.get('company', ''),
+                                        state.get('location', ''), state.get('description', ''))
+        except Exception as _je:
+            _jfit, _jreason = True, f"judge import failed ({_je})"
+        if not _jfit:
+            logger.info(f"[submit] judge VETO ({_jreason}) → discard: {state['company']} ({state['title']})")
+            return {"applied": False, "apply_method": "skipped", "status": "discarded", "gate_reason": "judge veto: " + _jreason}
+        logger.info(f"[submit] LEAD mode → surface (judge OK: {_jreason}): {state['company']} ({state['title']})")
         return {"applied": False, "apply_method": "manual", "status": "human_pending"}
 
     try:
