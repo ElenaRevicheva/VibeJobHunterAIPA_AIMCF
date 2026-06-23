@@ -28,6 +28,12 @@ ROLE_INCLUDE_KEYWORDS = {
     "internal tools", "ai tools",
     "ai integration", "integration engineer",
     "ai ops", "ai program", "applied ai", "ai builder",
+    # AI-engineer family — was MISSING, so plain "AI Engineer" (Elena's #1 target role)
+    # got rejected as "no relevant keywords". These are specific (won't over-match like
+    # bare "engineer" would). This was THE reason the whole funnel surfaced 0 right-fit jobs.
+    "ai engineer", "ai/ml", "ml engineer", "machine learning engineer", "ai developer",
+    "ai agent", "ai solutions", "ai systems", "ai technical", "prompt engineer",
+    "generative ai", "genai", "forward deployed", "solutions engineer",
     "product engineer", "platform engineer",
     "full stack", "fullstack", "full-stack",
     "solutions architect", "ai architect",
