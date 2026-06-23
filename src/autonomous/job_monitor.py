@@ -386,34 +386,48 @@ class JobMonitor:
         """RemoteOK JSON API"""
         logger.info("🔍 Checking RemoteOK...")
         jobs = []
-
+        seen = set()
+        # The generic /api feed is mostly VA/admin/marketing; pull the DEV + AI tag feeds.
+        feeds = [
+            "https://remoteok.com/remote-dev-jobs.json",
+            "https://remoteok.com/api?tags=ai",
+            "https://remoteok.com/api?tags=machine-learning",
+        ]
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"User-Agent": "VibeJobHunter/1.0"}
-                async with session.get("https://remoteok.com/api", headers=headers, timeout=15) as resp:
-                    if resp.status != 200:
-                        return jobs
-                    data = await resp.json()
-
-                for item in data[1:50]:  # Skip header, take 50
-                    title = (item.get("position") or "").lower()
-
-                    # Filter for relevant roles
-                    if any(k in title for k in ["ai", "ml", "engineer", "developer", "founding"]):
+                headers = {"User-Agent": "Mozilla/5.0 (VibeJobHunter)"}
+                for url in feeds:
+                    try:
+                        async with session.get(url, headers=headers, timeout=15) as resp:
+                            if resp.status != 200:
+                                continue
+                            data = await resp.json()
+                    except Exception:
+                        continue
+                    for item in (data or []):
+                        if not isinstance(item, dict):
+                            continue
+                        title = item.get("position") or ""
+                        tl = title.lower()
+                        if not any(k in tl for k in ["ai", "ml", "engineer", "developer", "data",
+                                                     "founding", "software", "machine learning", "automation"]):
+                            continue
+                        jid = item.get("id") or item.get("slug") or title
+                        if jid in seen:
+                            continue
+                        seen.add(jid)
+                        loc = (item.get("location") or "").strip()
                         jobs.append({
-                            "title": item.get("position", ""),
-                            "company": item.get("company", ""),
-                            "location": "Remote",
-                            "description": item.get("description", "")[:2000],
-                            "source": "remoteok",
-                            "url": item.get("url", ""),
+                            "title":       title,
+                            "company":     item.get("company", ""),
+                            "location":    "Remote — " + (loc if loc else "Worldwide"),  # no loc = worldwide (LATAM-ok)
+                            "description": (item.get("description") or "")[:2000],
+                            "source":      "remoteok",
+                            "url":         item.get("url", "") or ("https://remoteok.com" + (item.get("slug", "") or "")),
                         })
-
             logger.info(f"✅ RemoteOK: {len(jobs)} relevant jobs found")
-
         except Exception as e:
             logger.warning(f"⚠️ RemoteOK failed: {e}")
-
         return jobs
 
     async def _search_remotive(self) -> List[Dict]:
@@ -875,9 +889,12 @@ class JobMonitor:
                 headers = {"User-Agent": "VibeJobHunter/1.0"}
                 
                 # WWR has category-based RSS feeds we can parse
+                # Real WWR category slugs (the old "programming"/"devops-sysadmin" 404 now)
                 categories = [
-                    "programming",
-                    "devops-sysadmin",
+                    "remote-programming-jobs",
+                    "remote-full-stack-programming-jobs",
+                    "remote-back-end-programming-jobs",
+                    "remote-devops-sysadmin-jobs",
                 ]
                 
                 for category in categories:
@@ -900,7 +917,9 @@ class JobMonitor:
                                     title = title_match.group(1) if title_match else ""
                                     link = link_match.group(1) if link_match else ""
                                     desc = desc_match.group(1) if desc_match else ""
-                                    
+                                    region_match = re.search(r'<region>(.*?)</region>', item)
+                                    wwr_region = region_match.group(1).strip() if region_match else "Worldwide"
+
                                     # Filter for relevant roles
                                     title_lower = title.lower()
                                     if any(kw in title_lower for kw in ["ai", "ml", "engineer", "founding", "senior", "staff", "full stack", "fullstack"]):
@@ -913,7 +932,7 @@ class JobMonitor:
                                             "id": f"wwr_{hash(link) % 10000000}",
                                             "title": job_title,
                                             "company": company,
-                                            "location": "Remote",
+                                            "location": "Remote — " + wwr_region,
                                             "description": desc[:2000],
                                             "source": "weworkremotely",
                                             "url": link,
@@ -1018,43 +1037,43 @@ class JobMonitor:
         """
         logger.info("🔍 Checking Torre.ai (LATAM)...")
         jobs = []
+        seen = set()
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {
-                    "User-Agent": "VibeJobHunter/1.0",
-                    "Content-Type": "application/json",
-                }
-                payload = {
-                    "and": [{"skill": {"term": kw, "experience": "potential-to-develop"}}
-                             for kw in ["python", "ai"]],
-                    "remote": True,
-                    "size": 40,
-                }
-                url = "https://torre.ai/api/opportunities/_search"
-                async with session.post(url, json=payload, headers=headers, timeout=15) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
+                headers = {"User-Agent": "Mozilla/5.0 (VibeJobHunter)", "Content-Type": "application/json"}
+                # Endpoint moved: torre.ai/api 404s now → search.torre.co. Query AI/dev
+                # skills; Torre is a LATAM-first remote platform, so results are LATAM-friendly.
+                for kw in ["ai engineer", "machine learning", "python developer", "automation engineer", "react developer"]:
+                    payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
+                    url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
+                    try:
+                        async with session.post(url, json=payload, headers=headers, timeout=15) as resp:
+                            if resp.status != 200:
+                                continue
+                            data = await resp.json()
                         results = data.get("results", []) if isinstance(data, dict) else data
-                        for item in results[:40]:
-                            opp = item.get("opportunity", item)
-                            title = opp.get("objective", "") or opp.get("title", "")
-                            org = opp.get("organizations", [{}])
-                            company = org[0].get("name", "Remote Co") if org else "Remote Co"
-                            desc = opp.get("details", "") or opp.get("description", "")
-                            slug = opp.get("id", "") or opp.get("slug", "")
-                            url_job = f"https://torre.ai/opportunities/{slug}" if slug else "https://torre.ai"
-                            if title:
-                                jobs.append({
-                                    "id": f"torre_{hash(url_job) % 10000000}",
-                                    "title": title,
-                                    "company": company,
-                                    "location": "Remote / LATAM",
-                                    "description": f"{desc[:1500]} [LATAM-friendly remote role via Torre.ai]",
-                                    "source": "torre",
-                                    "url": url_job,
-                                    "remote": True,
-                                    "remote_allowed": True,
-                                })
+                        for opp in (results or []):
+                            if not opp.get("remote"):   # remote-only (honest — don't mislabel on-site as remote)
+                                continue
+                            title = opp.get("objective", "") or opp.get("tagline", "")
+                            slug = opp.get("slug") or opp.get("id", "")
+                            if not title or slug in seen:
+                                continue
+                            seen.add(slug)
+                            orgs = opp.get("organizations", []) or []
+                            company = orgs[0].get("name", "Torre Co") if orgs else "Torre Co"
+                            jobs.append({
+                                "id": f"torre_{hash(slug) % 10000000}",
+                                "title": title,
+                                "company": company,
+                                "location": "Remote — LATAM / Americas",  # Torre = LATAM-first platform
+                                "description": (opp.get("tagline", "") or "") + " [Remote role via Torre.ai — LATAM-friendly]",
+                                "source": "torre",
+                                "url": f"https://torre.ai/jobs/{slug}" if slug else "https://torre.ai",
+                                "remote": True,
+                            })
+                    except Exception:
+                        continue
         except Exception as e:
             logger.warning(f"⚠️ Torre.ai failed: {e}")
         logger.info(f"✅ Torre.ai: {len(jobs)} jobs found")
