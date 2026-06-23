@@ -45,7 +45,12 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     ai_aug = any(k in blob for k in (
         'no-code', 'no code', 'low-code', 'low code', 'prompt', 'ai-augment', 'ai augment',
         'ai tools', 'ai agent', 'automation', 'claude', 'cursor', 'copilot', 'gpt', 'llm',
-        'non-technical'))
+        'non-technical',
+        # AI-role titles ARE AI-augmented work — bare "AI Engineer" matched NONE of the above
+        # and failed iron-clad despite being Elena's #1 target. (Same class of bug as the gate.)
+        'ai engineer', 'ai developer', 'ai architect', 'ai/ml', 'ai solution', 'ai system',
+        'ai lead', 'ai specialist', 'ai product', 'ai ops', 'machine learning', 'ml engineer',
+        'artificial intelligence', 'generative ai', 'genai', 'agentic', 'rag', 'nlp', 'deep learning'))
 
     # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
     # don't falsely trip the heavy-coding exclusion — those are a GOOD sign.
