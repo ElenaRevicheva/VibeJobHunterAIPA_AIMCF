@@ -1,13 +1,13 @@
 """
-LLM judge (Groq, free) — the PRECISION layer of the VJH pipeline.
+LLM judge — the PRECISION layer of the VJH pipeline.
 
 The keyword gate + iron_clad_fit are generous (high RECALL: catch every AI candidate).
 This judge evaluates each candidate against Elena's EXACT criteria right before it would
 surface to her Telegram/HubSpot (high PRECISION: veto "Senior Counsel @ AI-company" etc.).
 
-Runs only on the handful of jobs about to surface (post-gate, post-score), so Groq calls
-are few. FAIL-OPEN: if Groq is unavailable, returns fit=True so the pipeline still fires
-(better to surface an unjudged job than to silently drop everything).
+Runs only on the handful of jobs about to surface (post-gate, post-score), so cost is tiny.
+Provider order: OpenAI gpt-4o-mini (reliable, ~fractions of a cent) → Groq llama-3.3-70b (free).
+FAIL-OPEN: if both are unavailable, returns fit=True so the pipeline still fires.
 """
 
 import os
@@ -17,6 +17,8 @@ import urllib.request
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 _GROQ_MODEL = "llama-3.3-70b-versatile"
+_OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+_OPENAI_MODEL = "gpt-4o-mini"
 
 _PROMPT = """You are screening ONE job for Elena, an AI-AUGMENTED BUILDER who ships products
 using AI tools (Claude Code, Cursor, GPT). She has NO formal computer-science degree and does
@@ -45,44 +47,50 @@ Description: {desc}
 Respond with ONLY JSON, nothing else: {{"fit": true or false, "reason": "<one short sentence>"}}"""
 
 
+def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> str:
+    payload = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 120, "temperature": 0,
+    }).encode()
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
+    headers.update(extra_headers or {})
+    req = urllib.request.Request(url, data=payload, method="POST", headers=headers)
+    raw = urllib.request.urlopen(req, timeout=25).read().decode()
+    return json.loads(raw)["choices"][0]["message"]["content"]
+
+
+def _call_llm(prompt: str) -> str:
+    """OpenAI (reliable) → Groq (free). Returns model text, or '' if both fail."""
+    ok = os.environ.get("OPENAI_API_KEY", "").strip()
+    if ok:
+        try:
+            return _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {})
+        except Exception:
+            pass
+    gk = os.environ.get("GROQ_API_KEY", "").strip()
+    if gk:
+        try:
+            return _post(_GROQ_URL, gk, _GROQ_MODEL, prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
+        except Exception:
+            pass
+    return ""
+
+
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
-    FAIL-OPEN: returns (True, ...) if Groq is unavailable or errors."""
-    key = os.environ.get("GROQ_API_KEY", "").strip()
-    if not key:
-        return True, "judge unavailable (no GROQ_API_KEY) — fail-open"
+    FAIL-OPEN: returns (True, ...) if no provider is available."""
     prompt = _PROMPT.format(
         title=(title or "")[:160], company=(company or "")[:80],
         location=(location or "")[:80], desc=(desc or "")[:1500])
+    text = _call_llm(prompt)
+    if not text:
+        return True, "judge unavailable (no LLM) — fail-open"
+    m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+    if not m:
+        return True, "judge parse-fail — fail-open"
     try:
-        payload = json.dumps({
-            "model": _GROQ_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 120, "temperature": 0,
-        }).encode()
-        req = urllib.request.Request(
-            _GROQ_URL, data=payload, method="POST",
-            headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
-                     "User-Agent": "Mozilla/5.0 (VJH judge)"})  # Cloudflare 403s default urllib UA
-        import time as _t
-        import urllib.error as _ue
-        raw = None
-        for _attempt in range(3):
-            try:
-                raw = urllib.request.urlopen(req, timeout=25).read().decode()
-                break
-            except _ue.HTTPError as _he:
-                if _he.code == 429 and _attempt < 2:
-                    _t.sleep(2 * (_attempt + 1))
-                    continue
-                raise
-        if raw is None:
-            return True, "judge rate-limited — fail-open"
-        text = json.loads(raw)["choices"][0]["message"]["content"]
-        m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
-        if not m:
-            return True, "judge parse-fail — fail-open"
         result = json.loads(m.group())
-        return bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
-    except Exception as e:
-        return True, f"judge error ({str(e)[:40]}) — fail-open"
+    except Exception:
+        return True, "judge json-fail — fail-open"
+    return bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
