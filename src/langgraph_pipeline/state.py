@@ -14,6 +14,9 @@ class JobState(TypedDict):
     title: str
     url: str
     description: str
+    location: str         # region/remote tag (e.g. "Remote — LATAM / Americas") — REQUIRED by
+                          # iron_clad_fit in gate_node. LangGraph STRIPS any state key not declared
+                          # in this TypedDict, so without this field every job failed iron-clad.
     source: str           # e.g. "greenhouse", "lever", "ashby", "yc"
     is_yc: bool
     is_priority: bool
