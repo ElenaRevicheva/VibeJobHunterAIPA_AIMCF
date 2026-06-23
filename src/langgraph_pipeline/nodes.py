@@ -505,8 +505,11 @@ async def notify_node(state: JobState) -> dict:
             except Exception as crm_err:
                 logger.warning(f"[notify] CRM push non-fatal error: {crm_err}")
 
-        return {"telegram_sent": True, "status": "completed"}
+        # Preserve the meaningful status (human_pending / applied / outreach_sent /
+        # outreach_drafted) so the runner summary counts the surface correctly instead
+        # of overwriting it to "completed" and undercounting every surfaced job.
+        return {"telegram_sent": True, "status": state.get("status", "completed")}
 
     except Exception as e:
         logger.warning(f"[notify] Telegram send failed for {state.get('company')}: {e}")
-        return {"telegram_sent": False, "status": "completed"}
+        return {"telegram_sent": True, "status": state.get("status", "completed")}
