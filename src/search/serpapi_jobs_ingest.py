@@ -253,8 +253,10 @@ def ingest_once() -> None:
     # Retargeted: Remotive (region-tagged remote board) FIRST, then the legacy
     # Google-Jobs feed. Both flow through the same gate + iron_clad_fit, so the
     # well changed without touching the routing.
-    sources = [('Remotive', q, fetch_remotive) for q in REMOTIVE_QUERIES] \
-            + [('Google Jobs', q, fetch_google_jobs) for q in JOBS_QUERIES]
+    # Remotive is now owned by the BOT's JobMonitor (_search_remotive) so it also
+    # surfaces to Telegram (Mode A). Path C keeps only the Google-Jobs feed here, to
+    # avoid creating duplicate HubSpot cards for the same Remotive job.
+    sources = [('Google Jobs', q, fetch_google_jobs) for q in JOBS_QUERIES]
     for label, query, fetch_fn in sources:
         log.info(f'Querying {label}: {query!r}')
         results = fetch_fn(query)

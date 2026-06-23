@@ -233,18 +233,19 @@ class JobMonitor:
             safe_fetch("Torre.ai (LATAM)", self._search_torre(), 20),
             safe_fetch("Himalayas (global)", self._search_himalayas(), 20),
             safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
+            safe_fetch("Remotive", self._search_remotive(), 20),
             return_exceptions=True
         )
 
         # Unpack results
-        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs = secondary_results
+        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs, remotive_jobs = secondary_results
 
         # Handle any exceptions that slipped through
         for name, jobs in [("hn", hn_jobs), ("remoteok", remoteok_jobs),
                            ("yc", yc_jobs), ("wellfound", wellfound_jobs),
                            ("wwr", wwr_jobs), ("aijobs", ai_jobs),
                            ("torre", torre_jobs), ("himalayas", himalayas_jobs),
-                           ("bd_linkedin", bd_linkedin_jobs)]:
+                           ("bd_linkedin", bd_linkedin_jobs), ("remotive", remotive_jobs)]:
             if isinstance(jobs, Exception):
                 logger.warning(f"   ⚠️ {name} exception: {jobs}")
                 jobs = []
@@ -268,6 +269,7 @@ class JobMonitor:
         logger.info(f"   Torre.ai (LATAM):{source_counts['torre']} jobs")
         logger.info(f"   Himalayas (glbl):{source_counts['himalayas']} jobs")
         logger.info(f"   BrightData LI:   {source_counts['bd_linkedin']} jobs")
+        logger.info(f"   Remotive:        {source_counts.get('remotive', 0)} jobs")
         logger.info(f"   TOTAL:           {len(all_jobs)} jobs")
         logger.info("=" * 60)
 
@@ -414,6 +416,49 @@ class JobMonitor:
 
         return jobs
 
+    async def _search_remotive(self) -> List[Dict]:
+        """Remotive — remote-first, REGION-TAGGED board (free, no key). Its
+        candidate_required_location field ('Worldwide' / 'Americas' / 'LATAM' /
+        'USA' / 'Brazil') feeds the iron-clad gate a REAL region instead of a guess,
+        so remote + LATAM-friendly + AI-augmented roles surface reliably. This is the
+        source that found Elena's first real targets (A.Team / EverAI / Miris)."""
+        import re as _re
+        logger.info("🔍 Checking Remotive...")
+        jobs: List[Dict] = []
+        seen_ids = set()
+        queries = ["AI automation", "no-code", "AI agent", "AI solutions", "prompt"]
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {"User-Agent": "VibeJobHunter/1.0"}
+                for q in queries:
+                    try:
+                        url = "https://remotive.com/api/remote-jobs?limit=50&search=" + q.replace(" ", "%20")
+                        async with session.get(url, headers=headers, timeout=15) as resp:
+                            if resp.status != 200:
+                                continue
+                            data = await resp.json()
+                        for item in data.get("jobs", []):
+                            jid = item.get("id")
+                            if jid in seen_ids:
+                                continue
+                            seen_ids.add(jid)
+                            region = (item.get("candidate_required_location") or "Worldwide").strip()
+                            desc = _re.sub(r"<[^>]+>", " ", item.get("description", "") or "")
+                            jobs.append({
+                                "title":       item.get("title", ""),
+                                "company":     item.get("company_name", ""),
+                                "location":    "Remote — " + region,  # guarantees remote + real region tag
+                                "description": desc[:2000],
+                                "source":      "remotive",
+                                "url":         item.get("url", ""),
+                            })
+                    except Exception:
+                        continue
+            logger.info(f"✅ Remotive: {len(jobs)} jobs found")
+        except Exception as e:
+            logger.warning(f"⚠️ Remotive failed: {e}")
+        return jobs
+
     async def _search_yc_workatastartup(self) -> List[Dict]:
         """
         YC Work At A Startup - FIXED API
@@ -425,7 +470,11 @@ class JobMonitor:
         
         FIXED: December 2025 - More reliable API access
         """
-        logger.info("🔍 Checking YC Work At A Startup...")
+        # DISABLED June 2026: YC WAAS is login-gated now — all 3 public methods return
+        # 0 and waste a 20s timeout + warn every cycle. Re-enable if a free API returns.
+        logger.info("⏭️  YC WAAS: disabled (login-gated, no free API)")
+        return []
+
         jobs = []
 
         try:
