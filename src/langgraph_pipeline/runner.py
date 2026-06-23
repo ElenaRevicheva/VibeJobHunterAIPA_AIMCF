@@ -48,6 +48,12 @@ TERMINAL_STATUSES = {
 # How long before we re-try a failed job (days)
 RETRY_FAILED_AFTER_DAYS = 3
 
+# Max jobs to SURFACE (Telegram "Apply yourself" + HubSpot) per cycle — prevents a
+# message-by-message flood when the backlog is large (e.g. after a dedup reset). Excess
+# right-fit jobs simply surface on later cycles. Override with VJH_SURFACE_CAP.
+import os as _os_cap
+_SURFACE_CAP = int(_os_cap.getenv("VJH_SURFACE_CAP", "6"))
+
 CHECKPOINT_DB_PATH = "autonomous_data/vjh_checkpoint.db"
 
 
@@ -233,6 +239,9 @@ class VJHLangGraphRunner:
                     # approval ask. In LEAD mode there's NO interrupt — submit_node already
                     # surfaced via notify_node (status=human_pending) — so skip the extra ask.
                     if route == "human_review" and status not in TERMINAL_STATUSES and status != "human_pending":
+                        if summary["human_pending"] >= _SURFACE_CAP:
+                            summary["discarded"] += 1  # per-cycle surface cap reached — defer to a later cycle (no flood)
+                            continue
                         # LLM JUDGE precision veto on the human-review surface path (the path jobs
                         # actually take in LEAD mode) — so wrong-fit jobs never reach Telegram/HubSpot.
                         try:
