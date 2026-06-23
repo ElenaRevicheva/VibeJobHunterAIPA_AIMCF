@@ -83,7 +83,14 @@ def build_graph(checkpointer: AsyncSqliteSaver) -> any:
     builder.add_edge("discard_node",  "notify_node")
     builder.add_edge("notify_node",   END)
 
+    # interrupt_before pauses jobs before submit_node to wait for human approval — only
+    # needed when VJH actually AUTO-APPLIES. In honest-LEAD mode (AUTO_APPLY_ENABLED=false)
+    # submit_node just SURFACES the job ("Apply yourself"), so pausing here would strand every
+    # right-fit job (interrupted before submit_node, never surfaced, never counted). Disable
+    # the interrupt in LEAD mode so submit_node runs → notify_node surfaces to Telegram+HubSpot.
+    import os as _os
+    _interrupts = ["submit_node"] if _os.getenv("AUTO_APPLY_ENABLED", "false").strip().lower() == "true" else []
     return builder.compile(
         checkpointer=checkpointer,
-        interrupt_before=["submit_node"],  # Pause here for human_review route
+        interrupt_before=_interrupts,
     )

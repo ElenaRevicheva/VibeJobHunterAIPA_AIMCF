@@ -228,8 +228,10 @@ class VJHLangGraphRunner:
                     status = final_state.get("status", "unknown")
                     route = final_state.get("route", "")
 
-                    # If interrupted (human_review), send Telegram ask
-                    if route == "human_review" and status not in TERMINAL_STATUSES:
+                    # If interrupted before submit_node (auto-apply mode only), send the
+                    # approval ask. In LEAD mode there's NO interrupt — submit_node already
+                    # surfaced via notify_node (status=human_pending) — so skip the extra ask.
+                    if route == "human_review" and status not in TERMINAL_STATUSES and status != "human_pending":
                         await self._send_human_review_request(final_state, config, checkpointer)
                         summary["human_pending"] += 1
                         continue
@@ -241,6 +243,8 @@ class VJHLangGraphRunner:
                         summary["apply_failed"] += 1
                     elif status in ("outreach_sent",):
                         summary["outreach_sent"] += 1
+                    elif status == "human_pending":          # LEAD-mode surface ("Apply yourself")
+                        summary["human_pending"] += 1
                     elif status == "gated_out":
                         summary["gated_out"] += 1
                     elif status == "discarded":
