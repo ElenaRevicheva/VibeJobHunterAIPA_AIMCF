@@ -96,6 +96,7 @@ class VJHLangGraphRunner:
             "title":        str(job_dict.get('title', '')),
             "url":          str(job_dict.get('url', '')),
             "description":  str(job_dict.get('description', '') or '')[:4000],
+            "location":     str(job_dict.get('location', '')),   # WAS MISSING → iron_clad saw empty region → discarded every job
             "source":       str(job_dict.get('source', '')),
             "is_yc":        bool(job_dict.get('is_yc_company', False)),
             "is_priority":  bool(job_dict.get('priority_flag', False)),
