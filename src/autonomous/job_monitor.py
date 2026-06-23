@@ -910,9 +910,10 @@ class JobMonitor:
                                 items = re.findall(r'<item>(.*?)</item>', xml_text, re.DOTALL)
                                 
                                 for item in items[:20]:
-                                    title_match = re.search(r'<title><!\[CDATA\[(.*?)\]\]></title>', item)
+                                    # WWR RSS titles/descriptions are NOT CDATA-wrapped anymore — match both forms
+                                    title_match = re.search(r'<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</title>', item, re.DOTALL)
                                     link_match = re.search(r'<link>(.*?)</link>', item)
-                                    desc_match = re.search(r'<description><!\[CDATA\[(.*?)\]\]></description>', item, re.DOTALL)
+                                    desc_match = re.search(r'<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</description>', item, re.DOTALL)
                                     
                                     title = title_match.group(1) if title_match else ""
                                     link = link_match.group(1) if link_match else ""
@@ -922,7 +923,7 @@ class JobMonitor:
 
                                     # Filter for relevant roles
                                     title_lower = title.lower()
-                                    if any(kw in title_lower for kw in ["ai", "ml", "engineer", "founding", "senior", "staff", "full stack", "fullstack"]):
+                                    if any(kw in title_lower for kw in ["ai", "ml", "engineer", "developer", "programmer", "software", "founding", "senior", "staff", "full stack", "fullstack", "automation"]):
                                         # Extract company from title (format: "Company: Job Title")
                                         parts = title.split(":", 1)
                                         company = parts[0].strip() if len(parts) > 1 else "Remote Company"
