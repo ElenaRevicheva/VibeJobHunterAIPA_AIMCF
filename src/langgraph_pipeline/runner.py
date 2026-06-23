@@ -233,6 +233,19 @@ class VJHLangGraphRunner:
                     # approval ask. In LEAD mode there's NO interrupt — submit_node already
                     # surfaced via notify_node (status=human_pending) — so skip the extra ask.
                     if route == "human_review" and status not in TERMINAL_STATUSES and status != "human_pending":
+                        # LLM JUDGE precision veto on the human-review surface path (the path jobs
+                        # actually take in LEAD mode) — so wrong-fit jobs never reach Telegram/HubSpot.
+                        try:
+                            from src.core.llm_judge import judge_fit
+                            _jf, _jr = judge_fit(final_state.get('title', ''), final_state.get('company', ''),
+                                                 final_state.get('location', ''), final_state.get('description', ''))
+                        except Exception as _je:
+                            _jf, _jr = True, f"judge import failed ({_je})"
+                        if not _jf:
+                            logger.info(f"[runner] judge VETO ({_jr}) → discard: {final_state.get('company')} | {final_state.get('title')}")
+                            summary["discarded"] += 1
+                            continue
+                        logger.info(f"[runner] judge OK ({_jr}) → surface: {final_state.get('company')} | {final_state.get('title')}")
                         await self._send_human_review_request(final_state, config, checkpointer)
                         summary["human_pending"] += 1
                         continue
