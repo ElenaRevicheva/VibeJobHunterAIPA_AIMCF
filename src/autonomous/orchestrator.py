@@ -417,7 +417,7 @@ class AutonomousOrchestrator:
             
             new_jobs = await self.job_monitor.find_new_jobs(
                 target_roles=self.profile.target_roles,
-                max_results=50
+                max_results=120   # was 50 — too small; generic ATS jobs filled it before right-fit jobs reached LangGraph
             )
             
             cycle_stats.jobs_found = len(new_jobs)

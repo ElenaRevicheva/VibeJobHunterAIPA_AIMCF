@@ -330,6 +330,12 @@ class JobMonitor:
         logger.info(f"🎯 {len(new_jobs)} NEW jobs accepted (not seen before)")
         logger.info("=" * 60)
 
+        # Prioritize the region-tagged remote-first sources (where Elena's LATAM/remote AI
+        # jobs live) BEFORE the max_results cap — otherwise the ~1700 generic ATS jobs fill
+        # the cap and crowd the right-fit jobs out before they ever reach the LangGraph gate.
+        PRIORITY_SOURCES = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs", "wellfound")
+        new_jobs.sort(key=lambda j: 0 if any(p in (getattr(j, "source", "") or "").lower() for p in PRIORITY_SOURCES) else 1)
+
         return new_jobs[:max_results]
 
     # ------------------------------------------------------------------
