@@ -60,15 +60,29 @@ def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> s
     return json.loads(raw)["choices"][0]["message"]["content"]
 
 
+def _key(name: str) -> str:
+    """Read an API key from os.environ, falling back to the repo .env file — the bot does
+    not always load .env into os.environ, which would otherwise fail-open the judge."""
+    v = os.environ.get(name, "").strip()
+    if v:
+        return v
+    try:
+        from dotenv import dotenv_values
+        from pathlib import Path
+        return (dotenv_values(Path(__file__).resolve().parents[2] / ".env").get(name) or "").strip()
+    except Exception:
+        return ""
+
+
 def _call_llm(prompt: str) -> str:
     """OpenAI (reliable) → Groq (free). Returns model text, or '' if both fail."""
-    ok = os.environ.get("OPENAI_API_KEY", "").strip()
+    ok = _key("OPENAI_API_KEY")
     if ok:
         try:
             return _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {})
         except Exception:
             pass
-    gk = os.environ.get("GROQ_API_KEY", "").strip()
+    gk = _key("GROQ_API_KEY")
     if gk:
         try:
             return _post(_GROQ_URL, gk, _GROQ_MODEL, prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
