@@ -12,6 +12,36 @@
 
 ---
 
+## 🟢 CURRENT PIPELINE (June 23 2026 — READ THIS FIRST; supersedes the March scan below)
+
+VJH is in **honest-LEAD mode** (`AUTO_APPLY_ENABLED=false`, `ATS_SUBMISSION_ENABLED=false`): it does NOT auto-apply. It **finds + filters right-fit jobs and surfaces them to Elena** (Telegram "Apply yourself" + HubSpot `[HIRING-VJH-LEAD]` in the "🔥 I Act TODAY" stage) — she applies herself.
+
+**Live surfacing chain (per cycle, hourly):**
+```
+discover (JobMonitor, ~2300 jobs, region-tagged sources prioritized FIRST)
+  → career gate (job_gate.py: AI-role detector = ai/ml-term × builder-term in TITLE, + includes/excludes)
+  → iron_clad_fit (src/core/fit_gate.py: fully-remote ∧ LATAM/worldwide ∧ AI-augmented ∧ ¬US-only ∧ ¬heavy-coding)
+  → score (job_matcher keyword dimensional; ≥55 surfaces)
+  → LLM JUDGE (src/core/llm_judge.py: OpenAI gpt-4o-mini → Groq fallback; vetoes wrong-fit vs Elena's exact criteria)
+  → surface (runner.py human_review path → Telegram + HubSpot), CAPPED at VJH_SURFACE_CAP=6/cycle
+```
+
+**Elena's criteria (codified in iron_clad_fit + the judge — = CAREER_FOCUS.md):** fully remote/worldwide · LATAM/Panama-open · AI-augmented BUILDER (AI Engineer/ML/agents/automation roles ARE a fit; veto only if it requires years-of-SWE / CS-degree / leetcode) · a role she'd want (veto legal/sales/recruiter/devrel/marketing/exec/data-entry).
+
+**Sources (job_monitor.py):** ATS (~1700, mostly US → filtered out), Dice, BrightData LI, HN, + the region-tagged remote boards that carry her jobs: **Torre.ai (LATAM), RemoteOK, WeWorkRemotely, Remotive, Himalayas, AI-Jobs**. These are prioritized before the cap so US-centric ATS doesn't crowd them out.
+
+**LLM resilience (June 22-23):** all paths fall back free/cheap — `claude_helper` → Groq; `response_detector` classify → Groq; the **judge → OpenAI gpt-4o-mini (primary) → Groq**. Keys read from `.env` directly (the bot does not export them to `os.environ`). Anthropic + Gemini keys are out of credits; OpenAI + Groq work.
+
+**⚠️ Hard-won gotchas (the "0 surfacing for weeks" bug chain — see memory `project_vjh_iron_rules.md`):**
+- Any field a node reads MUST be declared in the `JobState` TypedDict (`state.py`) — **LangGraph silently strips undeclared keys** (this is what dropped `location` → iron_clad discarded everything).
+- `_dict_to_job_posting` hardcodes `source=JobSource.OTHER` (enum has no torre/remotive) → prioritize on the RAW dicts, not JobPosting.
+- Debug surfacing with the REAL graph (`VJHLangGraphRunner().process_jobs([...])`), not manual `gate_node()` calls — only the graph reproduces TypedDict-stripping + the `interrupt_before` divert (LEAD-mode jobs surface via the runner's `human_review` branch, not `submit_node`).
+- After a `seen_jobs` reset, EVERYTHING is "new" → without the surface cap it FLOODS Telegram (happened June 23). The cap fixes it; dedup stores = `autonomous_data/seen_jobs.json` (`seen_jobs_v2`) + `vjh_checkpoint.db`.
+
+**Commits (June 21-23):** `f0ffe49`→`21b0d05` (Mode-A, Remotive retarget, source revival, gate fix, iron_clad fix, location/TypedDict fixes, prioritization, LLM judge, surface cap). Eval harness 115 pass / 14 skip (judge tests need Anthropic credits).
+
+---
+
 ## What This Repo Is
 
 VibeJobHunter is an autonomous AI job-hunting engine built in Python. It runs 24/7 on Oracle Cloud and performs the full hiring pipeline without human input:

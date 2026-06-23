@@ -7,6 +7,17 @@
 
 ---
 
+## 🤖 This filter is now CODIFIED in the pipeline (June 23 2026)
+
+As of June 23 2026 the filter below is enforced automatically in VibeJobHunter, so only passing roles reach Elena's Telegram + HubSpot "🔥 I Act TODAY":
+- **`src/core/fit_gate.py` `iron_clad_fit`** — fully remote/worldwide ∧ LATAM/Panama-open ∧ AI-augmented ∧ NOT US-only ∧ NOT heavy hand-coding (CS-degree / years-of-SWE / leetcode).
+- **`src/core/llm_judge.py`** (OpenAI gpt-4o-mini → Groq fallback) — a precision veto against the EXACT criteria: AI Engineer / ML / AI-agents / automation / AI-solutions roles ARE a fit; vetoes legal/counsel, sales, recruiter, devrel, marketing, finance, exec/VP/director, data-entry, and anything requiring traditional-SWE credentials.
+- Surfaces capped at 6/cycle (`VJH_SURFACE_CAP`).
+
+**The four hard criteria (the filter, in one line):** *fully remote/worldwide · LATAM-friendly · AI-augmented builder (no coding-degree / no leetcode) · a role she'd actually want.* If a role fails any one, the pipeline drops it — and so should you. Technical chain: see `CLAUDE.md` → "CURRENT PIPELINE".
+
+---
+
 ## 🆕 Interview proof — Bright Data hackathon (added May 26 2026)
 
 **When asked "can you ship under real constraints?" — this is the new lead answer.**
