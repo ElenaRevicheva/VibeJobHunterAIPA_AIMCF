@@ -27,9 +27,12 @@ APPROVE the job ONLY IF ALL of these are true:
 1. FULLY REMOTE (work from anywhere / worldwide) — NOT hybrid, NOT onsite.
 2. OPEN TO LATIN AMERICA / PANAMA (worldwide, Americas, LATAM, or no country restriction) —
    NOT US-only, NOT restricted to a single other country/region.
-3. An AI / AI-augmented / automation / AI-solutions / builder role doable by BUILDING WITH AI
-   TOOLS — NOT one that requires years of professional software engineering, a CS degree, or
-   heavy algorithms / data-structures.
+3. An AI-BUILDING role. Titles like "AI Engineer", "AI Agents Engineer", "AI Automation
+   Engineer", "AI Solutions Engineer", "Founding AI Engineer", "Forward-Deployed Engineer",
+   "Solutions Architect (AI)" ARE a great fit — Elena builds AI systems USING AI tools, so the
+   word "Engineer" is NOT a disqualifier. DISQUALIFY for this criterion ONLY if the job
+   explicitly requires years of professional software engineering, a computer-science degree,
+   leetcode / competitive programming, or deep low-level/systems/infra coding.
 4. A role Elena would actually want — NOT legal/counsel, sales, recruiter, developer-relations
    (devrel), developer-advocate, marketing, finance, HR, executive/VP/director, or data-entry.
 
@@ -61,7 +64,20 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
             _GROQ_URL, data=payload, method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
                      "User-Agent": "Mozilla/5.0 (VJH judge)"})  # Cloudflare 403s default urllib UA
-        raw = urllib.request.urlopen(req, timeout=25).read().decode()
+        import time as _t
+        import urllib.error as _ue
+        raw = None
+        for _attempt in range(3):
+            try:
+                raw = urllib.request.urlopen(req, timeout=25).read().decode()
+                break
+            except _ue.HTTPError as _he:
+                if _he.code == 429 and _attempt < 2:
+                    _t.sleep(2 * (_attempt + 1))
+                    continue
+                raise
+        if raw is None:
+            return True, "judge rate-limited — fail-open"
         text = json.loads(raw)["choices"][0]["message"]["content"]
         m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
         if not m:
