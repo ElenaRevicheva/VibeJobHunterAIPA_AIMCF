@@ -48,13 +48,14 @@ ROLE_INCLUDE_KEYWORDS = {
 ROLE_EXCLUDE_KEYWORDS = {
     # Never apply (CAREER_FOCUS Section 3 — red roles + Section 5 hard gates)
     "junior", "intern", "internship", "entry level", "entry-level",
-    "senior engineer", "senior software", "senior ai engineer",
-    "senior ml", "senior machine learning", "senior backend",
+    # NOTE: "senior ai/ml/gen-ai engineer" REMOVED from exclude June 23 2026 — those are
+    # Elena's TARGET roles; the gate was rejecting them. Generic senior-SWE stays blocked.
+    "senior engineer", "senior software", "senior backend",
     "senior developer", "senior dev",
-    "sr. engineer", "sr. software", "sr. ai", "sr. ml",
-    "sr. developer", "sr. dev", "sr. gen ai",
-    "sr engineer", "sr software", "sr ai", "sr ml",
-    "sr developer", "sr dev", "sr gen ai",
+    "sr. engineer", "sr. software",
+    "sr. developer", "sr. dev",
+    "sr engineer", "sr software",
+    "sr developer", "sr dev",
     "staff engineer", "staff software",
     # Principal — broaden to catch all variants (was missing "principal ai *", "principal platform", etc.)
     "principal engineer", "principal software", "principal ai", "principal ml",
@@ -66,7 +67,7 @@ ROLE_EXCLUDE_KEYWORDS = {
     "director,", "director ", "director-", "directeur",
     # Trainee / graduate / apprentice — wrong level
     "trainee", "graduate engineer", "graduate program", "apprentice",
-    "ml engineer", "machine learning engineer",
+    # "ml engineer"/"machine learning engineer" REMOVED June 23 2026 — Elena's target roles.
     "data scientist",
     "sales", "recruiter", "recruiting", "hr ",
     "customer success", "account manager", "account executive",
@@ -416,8 +417,14 @@ class JobGate:
         # ─────────────────────────────
         # 2️⃣ REQUIRE at least one relevant keyword
         # ─────────────────────────────
-        has_relevant_keyword = any(kw in combined_text for kw in ROLE_INCLUDE_KEYWORDS)
-        
+        # An "AI role" = an AI/ML term paired with a builder term in the TITLE. This
+        # catches the many "AI X Engineer" / "AI/ML Engineer" / "ML Engineer" variants
+        # that no single exact include-phrase covers — without over-matching bare "engineer".
+        ai_term = re.search(r"\bai\b|ai[-/]|[-/]ai|\bml\b|ml[-/]|[-/]ml|machine learning|\bllm\b|agentic|genai|generative ai|\bnlp\b", title)
+        builder_term = re.search(r"engineer|developer|architect|builder|scientist|\blead\b|specialist", title)
+        has_relevant_keyword = (bool(ai_term) and bool(builder_term)) or \
+            any(kw in combined_text for kw in ROLE_INCLUDE_KEYWORDS)
+
         if not has_relevant_keyword:
             logger.debug(f"❌ GATE REJECT (no relevant keywords): {title[:50]}")
             return False
