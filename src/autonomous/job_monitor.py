@@ -1085,7 +1085,10 @@ class JobMonitor:
                                 "location": "Remote — LATAM / Americas",  # Torre = LATAM-first platform
                                 "description": (opp.get("tagline", "") or "") + " [Remote role via Torre.ai — LATAM-friendly]",
                                 "source": "torre",
-                                "url": f"https://torre.ai/jobs/{slug}" if slug else "https://torre.ai",
+                                # Torre's public job page resolves on the opaque `id`, NOT the `slug` —
+                                # torre.ai/jobs/{slug} alone 404s to /en/404; torre.ai/jobs/{id} redirects
+                                # to the real {id}-{slug} page. Verified live 2026-07-08.
+                                "url": f"https://torre.ai/jobs/{opp.get('id', '')}" if opp.get("id") else "https://torre.ai",
                                 "remote": True,
                             })
                     except Exception:
