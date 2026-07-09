@@ -1045,6 +1045,29 @@ class JobMonitor:
 
         return jobs
 
+    # Torre's `locations` array (e.g. ["Argentina","United States","Brazil"]) is a
+    # real OR-list of countries the employer accepts candidates from — unlike the
+    # single-tag `location` string other sources give. Trust it: if it explicitly
+    # names a LATAM country (or Panama), the posting is genuinely open; if it's a
+    # non-empty list with NO LATAM country, it's honestly narrow and should be let
+    # through to iron_clad_fit's COUNTRY_LOCK check instead of blanket-labeled
+    # "LATAM / Americas" regardless of the real data. Empty list = no data from
+    # Torre = keep the prior generous default (never worse than before this fix).
+    _TORRE_LATAM_COUNTRIES = {
+        "panama", "argentina", "brazil", "mexico", "colombia", "chile", "peru",
+        "uruguay", "costa rica", "ecuador", "guatemala", "bolivia", "paraguay",
+        "venezuela", "dominican republic", "el salvador", "honduras", "nicaragua",
+        "belize",
+    }
+
+    @classmethod
+    def _torre_location_string(cls, locations: List[str]) -> str:
+        if not locations:
+            return "Remote — LATAM / Americas"
+        if any(loc.lower() in cls._TORRE_LATAM_COUNTRIES for loc in locations):
+            return f"Remote — Worldwide / LATAM ({', '.join(locations)})"
+        return f"Remote — {', '.join(locations)}"
+
     async def _search_torre(self) -> List[Dict]:
         """
         Torre.ai — LATAM-focused tech job platform.
@@ -1078,12 +1101,13 @@ class JobMonitor:
                             seen.add(slug)
                             orgs = opp.get("organizations", []) or []
                             company = orgs[0].get("name", "Torre Co") if orgs else "Torre Co"
+                            location = self._torre_location_string(opp.get("locations") or [])
                             jobs.append({
                                 "id": f"torre_{hash(slug) % 10000000}",
                                 "title": title,
                                 "company": company,
-                                "location": "Remote — LATAM / Americas",  # Torre = LATAM-first platform
-                                "description": (opp.get("tagline", "") or "") + " [Remote role via Torre.ai — LATAM-friendly]",
+                                "location": location,
+                                "description": (opp.get("tagline", "") or "") + " [Remote role via Torre.ai]",
                                 "source": "torre",
                                 # Torre's public job page resolves on the opaque `id`, NOT the `slug` —
                                 # torre.ai/jobs/{slug} alone 404s to /en/404; torre.ai/jobs/{id} redirects

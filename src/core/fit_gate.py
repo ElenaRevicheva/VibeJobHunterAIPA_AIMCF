@@ -10,11 +10,25 @@ A role only reaches Elena's actionable "I Act TODAY" if it is:
 Bias is intentionally strict: better to park/drop a good one than promote a bad one.
 """
 
+import re
+
 LATAM_OK = ('worldwide', 'anywhere', 'global', 'americas', 'latam',
             'latin america', 'central america')
 COUNTRY_LOCK = ('brazil', 'usa', 'united states', 'canada', 'germany',
                 'united kingdom', 'india', 'australia', 'israel', 'philippines',
                 'mexico', 'argentina', 'europe', 'emea', 'apac')
+
+# Panama is UTC-5 year-round, overlapping US Eastern (UTC-5 EST/UTC-4 EDT) and
+# Central (UTC-6 CST/UTC-5 CDT) time. A job stating these hours without ever
+# saying "LATAM"/"worldwide" was invisible to the LATAM_OK fallback below.
+# Word-boundary regex only — bare substrings like "et"/"ct" match too many
+# unrelated words ("market", "internet", "select") if checked without \b.
+_TZ_COMPATIBLE_PATTERNS = tuple(re.compile(p) for p in (
+    r'eastern time', r'eastern standard time', r'eastern daylight time',
+    r'central time', r'central standard time', r'central daylight time',
+    r'utc-5', r'utc-4', r'gmt-5', r'gmt-4',
+    r'\bet\b', r'\bct\b', r'\best\b', r'\bedt\b', r'\bcst\b', r'\bcdt\b',
+))
 
 
 def iron_clad_fit(title: str, location: str, desc: str) -> bool:
@@ -33,7 +47,10 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     elif any(t in loc for t in COUNTRY_LOCK):
         latam = False
     else:
-        latam = any(t in desc_l for t in LATAM_OK + ('any time zone', 'any timezone', 'international'))
+        latam = (
+            any(t in desc_l for t in LATAM_OK + ('any time zone', 'any timezone', 'international'))
+            or any(p.search(blob) for p in _TZ_COMPATIBLE_PATTERNS)
+        )
 
     us_only = any(k in blob for k in (
         'us only', 'u.s. only', 'united states only', 'us-based only', 'usa only',
