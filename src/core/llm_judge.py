@@ -47,13 +47,37 @@ APPROVE the job ONLY IF ALL of these are true:
    (devrel), developer-advocate, marketing, finance, HR, executive/VP/director, or data-entry.
    She is a hands-on BUILDER and ARCHITECT, not a researcher.
 
-JOB:
+{feedback}JOB:
 Title: {title}
 Company: {company}
 Location: {location}
 Description: {desc}
 
 Respond with ONLY JSON, nothing else: {{"fit": true or false, "reason": "<one short sentence>"}}"""
+
+
+def _feedback_block() -> str:
+    """Few-shot taste calibration from Elena's REAL deal outcomes, written weekly by
+    scripts/judge_feedback_sync.py into autonomous_data/judge_feedback.json.
+    FAIL-SAFE: any problem (file absent, invalid JSON, empty lists) returns '' and the
+    prompt is byte-identical to the pre-feature version."""
+    try:
+        from pathlib import Path
+        p = Path(__file__).resolve().parents[2] / "autonomous_data" / "judge_feedback.json"
+        data = json.loads(p.read_text(encoding="utf-8"))
+        pos = [t for t in data.get("positives", []) if isinstance(t, str) and t.strip()][:6]
+        neg = [t for t in data.get("negatives", []) if isinstance(t, str) and t.strip()][:6]
+        if not pos and not neg:
+            return ""
+        lines = ["REAL RECENT OUTCOMES from Elena's own pipeline (weekly-updated taste calibration —",
+                 "these refine your judgment but do NOT override criteria 1-4 above):"]
+        if pos:
+            lines.append("She ACTED ON (fit): " + " | ".join(pos))
+        if neg:
+            lines.append("She REJECTED (not fit): " + " | ".join(neg))
+        return "\n".join(lines) + "\n\n"
+    except Exception:
+        return ""
 
 
 def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> str:
@@ -104,6 +128,7 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
     FAIL-OPEN: returns (True, ...) if no provider is available."""
     prompt = _PROMPT.format(
+        feedback=_feedback_block(),
         title=(title or "")[:160], company=(company or "")[:80],
         location=(location or "")[:80], desc=(desc or "")[:1500])
     text = _call_llm(prompt)
