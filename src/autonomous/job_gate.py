@@ -35,6 +35,14 @@ ROLE_INCLUDE_KEYWORDS = {
     "ai agent", "ai solutions", "ai systems", "ai technical", "prompt engineer",
     "generative ai", "genai", "forward deployed", "solutions engineer",
     "product engineer", "platform engineer",
+    # GEO/AEO/Tech-SEO + product-builder lane (July 9 2026 — Elena's explicit targets,
+    # previously invisible: "Technical SEO Lead" / "AEO Specialist" had no AI term so
+    # the ai_term×builder_term detector never fired and no include phrase matched).
+    "technical seo", "tech seo", "seo specialist", "seo lead", "seo engineer",
+    "seo manager", "seo strategist", "search engine optimization",
+    "answer engine optimization", "generative engine optimization",
+    "search everywhere optimization", "ai visibility", "ai search optimization",
+    "product owner", "product builder", "ai product",
     "full stack", "fullstack", "full-stack",
     "solutions architect", "ai architect",
     # Secondary — only early-stage / founder-led
@@ -422,7 +430,14 @@ class JobGate:
         # that no single exact include-phrase covers — without over-matching bare "engineer".
         ai_term = re.search(r"\bai\b|ai[-/]|[-/]ai|\bml\b|ml[-/]|[-/]ml|machine learning|\bllm\b|agentic|genai|generative ai|\bnlp\b", title)
         builder_term = re.search(r"engineer|developer|architect|builder|scientist|\blead\b|specialist", title)
-        has_relevant_keyword = (bool(ai_term) and bool(builder_term)) or \
+        # GEO/AEO/Tech-SEO titles are a standalone target lane (no AI term needed in the
+        # title — "Technical SEO Lead" is a fit on its own). \b-bounded so "archaeology"
+        # (contains "aeo") and similar can't substring-match. Judge still vetoes misfits.
+        seo_term = re.search(
+            r"\bseo\b|\baeo\b|\bgeo\b|search engine optimization|"
+            r"answer engine optimization|generative engine optimization|"
+            r"search everywhere optimization", title)
+        has_relevant_keyword = (bool(ai_term) and bool(builder_term)) or bool(seo_term) or \
             any(kw in combined_text for kw in ROLE_INCLUDE_KEYWORDS)
 
         if not has_relevant_keyword:

@@ -30,6 +30,16 @@ _TZ_COMPATIBLE_PATTERNS = tuple(re.compile(p) for p in (
     r'\bet\b', r'\bct\b', r'\best\b', r'\bedt\b', r'\bcst\b', r'\bcdt\b',
 ))
 
+# GEO/AEO/Tech-SEO is one of Elena's explicit target lanes (July 9 2026) — it IS
+# AI-augmented work (AI-crawler visibility, generative/answer-engine optimization)
+# but shares no keyword with the ai_aug tuple below. \b-bounded so "seoul" /
+# "archaeology" can't substring-match.
+_SEO_AEO_PATTERNS = tuple(re.compile(p) for p in (
+    r'\bseo\b', r'\baeo\b', r'\bgeo\b',
+    r'search engine optimization', r'answer engine optimization',
+    r'generative engine optimization', r'search everywhere optimization',
+))
+
 
 def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     title_l, loc, desc_l = (title or '').lower(), (location or '').lower(), (desc or '').lower()
@@ -67,7 +77,8 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         # and failed iron-clad despite being Elena's #1 target. (Same class of bug as the gate.)
         'ai engineer', 'ai developer', 'ai architect', 'ai/ml', 'ai solution', 'ai system',
         'ai lead', 'ai specialist', 'ai product', 'ai ops', 'machine learning', 'ml engineer',
-        'artificial intelligence', 'generative ai', 'genai', 'agentic', 'rag', 'nlp', 'deep learning'))
+        'artificial intelligence', 'generative ai', 'genai', 'agentic', 'rag', 'nlp', 'deep learning',
+        'product builder')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
 
     # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
     # don't falsely trip the heavy-coding exclusion — those are a GOOD sign.

@@ -29,14 +29,23 @@ APPROVE the job ONLY IF ALL of these are true:
 1. FULLY REMOTE (work from anywhere / worldwide) — NOT hybrid, NOT onsite.
 2. OPEN TO LATIN AMERICA / PANAMA (worldwide, Americas, LATAM, or no country restriction) —
    NOT US-only, NOT restricted to a single other country/region.
-3. An AI-BUILDING role. Titles like "AI Engineer", "AI Agents Engineer", "AI Automation
-   Engineer", "AI Solutions Engineer", "Founding AI Engineer", "Forward-Deployed Engineer",
-   "Solutions Architect (AI)" ARE a great fit — Elena builds AI systems USING AI tools, so the
-   word "Engineer" is NOT a disqualifier. DISQUALIFY for this criterion ONLY if the job
-   explicitly requires years of professional software engineering, a computer-science degree,
-   leetcode / competitive programming, or deep low-level/systems/infra coding.
-4. A role Elena would actually want — NOT legal/counsel, sales, recruiter, developer-relations
+3. The role is in one of Elena's THREE target lanes:
+   a) AI-AUGMENTED PRODUCTS / AGENTS / SYSTEMS BUILDER — e.g. "AI Engineer", "AI Agents
+      Engineer", "AI Automation Engineer", "AI Solutions Engineer", "Founding AI Engineer",
+      "Forward-Deployed Engineer", "AI Product Owner/Builder". Elena builds AI systems USING
+      AI tools, so the word "Engineer" is NOT a disqualifier.
+   b) GEO / AEO / TECHNICAL SEO — generative-engine & answer-engine optimization, AI-crawler
+      visibility, structured data, AI search visibility. She built a full production
+      AEO/GEO/tech-SEO stack.
+   c) AI AUTOMATION or other AI-AUGMENTED ENGINEERING SOLUTIONS ARCHITECT — designing and
+      wiring AI/automation solutions for clients or products.
+   DISQUALIFY for this criterion if the job explicitly requires years of professional
+   software engineering, a computer-science degree, leetcode / competitive programming,
+   or deep low-level/systems/infra coding.
+4. A role Elena would actually want — NOT pure ML/AI RESEARCH (research scientist, research
+   engineer, academic/lab research), NOT legal/counsel, sales, recruiter, developer-relations
    (devrel), developer-advocate, marketing, finance, HR, executive/VP/director, or data-entry.
+   She is a hands-on BUILDER and ARCHITECT, not a researcher.
 
 JOB:
 Title: {title}
