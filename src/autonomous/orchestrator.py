@@ -1017,19 +1017,19 @@ class AutonomousOrchestrator:
         This runs AFTER each cycle completes (safe, won't break main flow).
         """
         try:
-            from .response_detector import ResponseDetector, ResponseType, save_response_to_db
-            
+            from .response_detector import ResponseDetector, ResponseType, save_response_to_db, _sender_is_blocked, push_response_to_hubspot
+
             logger.info("🧠 Step 5: Checking for responses (AI-powered)...")
-            
+
             detector = ResponseDetector()
             responses = await detector.scan_for_responses(hours_back=24)
-            
+
             # Process hot leads (positive responses and questions)
             hot_leads = [r for r in responses if r.response_type in [ResponseType.POSITIVE, ResponseType.QUESTION]]
-            
+
             if hot_leads:
                 logger.info(f"🔥 Found {len(hot_leads)} hot leads!")
-                
+
                 for lead in hot_leads:
                     # Save to DB. Return value is our dedup signal: True ONLY the first
                     # time this email is seen (INSERT OR IGNORE on a UNIQUE email_id).
@@ -1052,6 +1052,22 @@ class AutonomousOrchestrator:
                         'received your resume', 'your application has been received', 'application has been received')):
                         logger.info(f"   auto-reply (not an interview), NOT alerting: {str(lead.subject)[:45]}")
                         continue
+                    # Platform/newsletter noise (Torre.ai bot, calendar reminders, etc.) — never a
+                    # real recruiter. Was already excluded from check_for_responses_and_alert() but
+                    # this orchestrator path (the one actually wired to the live cycle) had no such
+                    # guard, so bot noise drowned out real signal in Telegram. Found July 16 2026.
+                    if _sender_is_blocked(lead.from_email):
+                        logger.info(f"   blocked sender, NOT alerting/pushing: {lead.from_email}")
+                        continue
+
+                    # Durable CRM trail — this orchestrator path alerted Telegram but never wrote
+                    # to HubSpot, so once the Telegram message scrolled away there was no record.
+                    # push_response_to_hubspot() moves the matching [HIRING-VJH] deal to
+                    # recruiter_responded ("💬 They replied — I act"). Non-fatal on failure.
+                    try:
+                        push_response_to_hubspot(lead)
+                    except Exception as e:
+                        logger.warning(f"   HubSpot push failed (non-fatal): {e}")
 
                     # Send Telegram alert for interview requests
                     if self.telegram and lead.response_type == ResponseType.POSITIVE:
