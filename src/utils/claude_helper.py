@@ -1,7 +1,7 @@
 ﻿"""
 Claude API Helper
 Handles model selection, fallbacks, and retry with backoff for transient errors (529/503/429).
-Credit-exhaustion (400): falls back to Groq llama-3.3-70b-versatile.
+Credit-exhaustion (400): falls back to Groq (model id via model_config.groq_model()).
 """
 
 import asyncio
@@ -10,6 +10,8 @@ import logging
 import os
 import time
 import urllib.request
+
+from .model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
 from typing import Optional, Any, Set
 
 import anthropic
@@ -20,7 +22,6 @@ MAX_RETRIES = 3
 RETRY_STATUS_CODES: Set[int] = {529, 503, 429}
 
 _GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-_GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
 
 
 class _GroqTextBlock:
@@ -60,7 +61,7 @@ def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse
             "User-Agent": "VibeJobHunter/1.0 (+https://aideazz.xyz)",
         },
         json={
-            "model": _GROQ_FALLBACK_MODEL,
+            "model": groq_model(),
             "messages": messages,
             "max_tokens": min(max_tokens, 4096),
             "temperature": 0.3,

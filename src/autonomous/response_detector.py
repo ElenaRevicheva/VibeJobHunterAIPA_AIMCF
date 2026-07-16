@@ -21,6 +21,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple
 from enum import Enum
+
+from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
 from dataclasses import dataclass
 import imaplib
 import email
@@ -358,7 +360,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             return None
         try:
             payload = json.dumps({
-                "model": "llama-3.3-70b-versatile",
+                "model": groq_model(),
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 500, "temperature": 0,
             }).encode()

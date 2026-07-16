@@ -28,7 +28,7 @@ MAX_RETRIES = 3
 RETRY_CODES = {529, 503, 429}
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-_GROQ_MODEL = "llama-3.3-70b-versatile"
+from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
 
 
 class _GroqTextBlock:
@@ -46,7 +46,7 @@ def _groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqMsg":
     key = os.environ.get("GROQ_API_KEY", "").strip()
     if not key:
         raise RuntimeError("GROQ_API_KEY not set — no fallback")
-    payload = json.dumps({"model": _GROQ_MODEL, "messages": messages,
+    payload = json.dumps({"model": groq_model(), "messages": messages,
                           "max_tokens": min(max_tokens, 4096), "temperature": 0.3}).encode()
     req = urllib.request.Request(_GROQ_URL, data=payload, method="POST",
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",

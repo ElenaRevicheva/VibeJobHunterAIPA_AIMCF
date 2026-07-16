@@ -6,7 +6,8 @@ This judge evaluates each candidate against Elena's EXACT criteria right before 
 surface to her Telegram/HubSpot (high PRECISION: veto "Senior Counsel @ AI-company" etc.).
 
 Runs only on the handful of jobs about to surface (post-gate, post-score), so cost is tiny.
-Provider order: OpenAI gpt-4o-mini (reliable, ~fractions of a cent) → Groq llama-3.3-70b (free).
+Provider order: OpenAI gpt-4o-mini (reliable, ~fractions of a cent) → Groq (free; model id
+via model_config.groq_model(), switched fleet-wide with the GROQ_MODEL env var).
 FAIL-OPEN: if both are unavailable, returns fit=True so the pipeline still fires.
 """
 
@@ -16,7 +17,7 @@ import re
 import urllib.request
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-_GROQ_MODEL = "llama-3.3-70b-versatile"
+from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
 _OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 _OPENAI_MODEL = "gpt-4o-mini"
 
@@ -118,7 +119,7 @@ def _call_llm(prompt: str) -> str:
     gk = _key("GROQ_API_KEY")
     if gk:
         try:
-            return _post(_GROQ_URL, gk, _GROQ_MODEL, prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
+            return _post(_GROQ_URL, gk, groq_model(), prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
         except Exception:
             pass
     return ""
