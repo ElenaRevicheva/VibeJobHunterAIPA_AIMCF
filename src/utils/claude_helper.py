@@ -37,7 +37,7 @@ class _GroqResponse:
 
 
 def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse":
-    """Call Groq llama-3.3-70b when Claude returns 400 credit exhaustion.
+    """Call Groq (model id via model_config.groq_model()) when Claude returns 400 credit exhaustion.
 
     2026-05-27 CRITICAL FIX (Cloudflare 1010 bug):
     Previous implementation used urllib.request with no User-Agent. Cloudflare
