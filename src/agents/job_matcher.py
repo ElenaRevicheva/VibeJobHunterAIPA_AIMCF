@@ -20,6 +20,7 @@ Total: 100 points base → bias compensation → final routing
 import logging
 import json
 import os
+import re
 from typing import List, Tuple, Dict, Optional
 from anthropic import Anthropic
 from ..utils.claude_helper import call_claude_sync
@@ -32,6 +33,118 @@ logger = logging.getLogger(__name__)
 
 # Feature flag for deep AI analysis (costs API tokens)
 USE_AI_DEEP_ANALYSIS = os.getenv("USE_AI_JOB_ANALYSIS", "true").lower() == "true"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI-TRUST GUARDS (added 2026-07-29 — the Appspring incident)
+#
+# Real Oracle log evidence, "Appspring — Senior Python Developer" (torre.ai),
+# surfaced to Elena THREE times with a fresh HubSpot deal each time:
+#
+#  Jul 28: Claude ran and scored it 45/100. Its stated reason was correct —
+#          "description is incomplete with no specific requirements listed,
+#          making it impossible to assess true role seniority or scope".
+#          Then max(ai_score, 50) rewrote 45 → 50, the 65/35 blend gave 58,
+#          bias compensation added +9 → 67 → human_review. Elena was pinged.
+#  Jun 23 + Jul 8: Claude 400 (credit exhausted) → Groq 429 (TPD limit,
+#          99.4K/100K used) → NO AI signal at all. Keyword bonuses alone
+#          produced 81 → the *submit* band. A total AI outage behaved exactly
+#          like "no objection".
+#
+# Guards below: (1) no floor under the AI score — a low score is a signal, not
+# noise; (2) a low AI score VETOES the actionable bands; (3) an AI outage BLOCKS
+# instead of failing open — "no opinion" is not "good fit".
+#
+# Caps are set below every actionable threshold in the fleet:
+#   langgraph nodes.py  OUTREACH_THRESHOLD = 55
+#   orchestrator.py     OUTREACH_THRESHOLD = 58
+# ─────────────────────────────────────────────────────────────────────────────
+AI_SCORE_FLOOR      = float(os.getenv("VJH_AI_SCORE_FLOOR", "0"))       # was hard-coded 50
+AI_LOW_FIT_VETO     = float(os.getenv("VJH_AI_LOW_FIT_VETO", "50"))     # AI score below this = poor fit
+AI_VETO_SCORE_CAP   = float(os.getenv("VJH_AI_VETO_SCORE_CAP", "54"))   # < 55 → discard band
+AI_OUTAGE_SCORE_CAP = float(os.getenv("VJH_AI_OUTAGE_SCORE_CAP", "54"))
+# Rate limit for the "AI is down, VJH is holding leads back" Telegram alert.
+# Without this the fix trades noisy false positives for a SILENT zero-lead day.
+AI_OUTAGE_ALERT_EVERY_HOURS = float(os.getenv("VJH_AI_OUTAGE_ALERT_HOURS", "6"))
+_AI_OUTAGE_ALERT_STATE = "autonomous_data/ai_outage_alert.json"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Word-boundary keyword matching.
+#
+# Bias compensation used plain `kw in description` substring tests. That is how
+# bare "agents" awarded +5_ai_productivity — it hits "insurance agents",
+# "support agents", "field agents", and any employer blurb that merely mentions
+# agents. Two-letter tokens like "dx" are the same landmine class.
+# ─────────────────────────────────────────────────────────────────────────────
+_KW_RE_CACHE: Dict[str, "re.Pattern"] = {}
+
+
+def _kw_hit(keyword: str, text: str) -> bool:
+    """True if `keyword` appears in `text` as a whole word (plural-tolerant)."""
+    pat = _KW_RE_CACHE.get(keyword)
+    if pat is None:
+        pat = re.compile(r"\b" + re.escape(keyword) + r"(?:s|es)?\b", re.I)
+        _KW_RE_CACHE[keyword] = pat
+    return bool(pat.search(text or ""))
+
+
+def _alert_ai_outage(company: str, title: str) -> None:
+    """
+    Tell Elena on Telegram that VJH is holding leads back because the deep-analysis
+    LLMs are down. Rate-limited, best-effort, never raises: a scoring path must not
+    die because Telegram is unreachable.
+
+    Sync urllib on purpose — calculate_match_score runs inside LangGraph's sync
+    node executor, where there is no event loop to await TelegramNotifier on.
+    """
+    try:
+        from datetime import datetime, timezone, timedelta
+        from pathlib import Path
+        import urllib.request
+        import urllib.parse
+
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID")
+        if not token or not chat_id:
+            return
+
+        state_path = Path(_AI_OUTAGE_ALERT_STATE)
+        now = datetime.now(timezone.utc)
+        if state_path.exists():
+            try:
+                last = datetime.fromisoformat(
+                    json.loads(state_path.read_text()).get("last_alert", "").replace("Z", "+00:00")
+                )
+                if now - last < timedelta(hours=AI_OUTAGE_ALERT_EVERY_HOURS):
+                    return
+            except Exception:
+                pass  # unreadable state → alert anyway
+
+        msg = (
+            "⛔ <b>VJH: AI deep analysis is DOWN</b>\n\n"
+            "Claude + the Groq fallback both failed, so jobs are being held back "
+            f"(capped at {AI_OUTAGE_SCORE_CAP:.0f}) instead of surfacing on keyword "
+            "score alone.\n\n"
+            f"First blocked this window: <b>{company}</b> — {title[:70]}\n\n"
+            "Lead flow stays paused until an AI opinion is available again — "
+            "top up Anthropic credit or reset the Groq TPD quota."
+        )
+        data = urllib.parse.urlencode({
+            "chat_id": chat_id, "text": msg, "parse_mode": "HTML",
+            "disable_web_page_preview": "true",
+        }).encode()
+        urllib.request.urlopen(
+            urllib.request.Request(
+                f"https://api.telegram.org/bot{token}/sendMessage", data=data
+            ),
+            timeout=10,
+        ).read()
+
+        state_path.parent.mkdir(exist_ok=True)
+        state_path.write_text(json.dumps({"last_alert": now.isoformat()}))
+        logger.info("📣 AI-outage alert sent to Telegram")
+    except Exception as e:
+        logger.warning(f"AI-outage alert failed (non-fatal): {e}")
 
 
 class JobMatcher:
@@ -470,6 +583,11 @@ class JobMatcher:
         # 2. AI DEVELOPER PRODUCTIVITY BONUS (+5)
         # Rationale: Elena's core expertise (5 AIPAs, dev tools)
         # ──────────────────────────────────────────────────────
+        # 2026-07-29: bare "agents" REMOVED. As a substring it hit "insurance
+        # agents", "support agents", "field agents", and every employer blurb that
+        # merely mentioned agents — handing +5 to roles where Elena would write
+        # manual backend Python all day. Replaced with phrases that only appear
+        # when agent work is actually the subject.
         productivity_keywords = [
             "ai developer productivity",
             "developer productivity",
@@ -478,13 +596,19 @@ class JobMatcher:
             "developer experience",
             "llm tooling",
             "ai tooling",
-            "agents",
+            "ai agent",             # "AI agent(s)" — specific, not any old "agents"
+            "agentic",
+            "multi-agent",
+            "agent framework",
+            "agent orchestration",
+            "llm agent",
             "automation platform",
             "developer tools",
             "ai platform",
             "internal tools"
         ]
-        if any(kw in description for kw in productivity_keywords):
+        # Word-boundary matching (see _kw_hit) — "dx" no longer matches inside words.
+        if any(_kw_hit(kw, description) for kw in productivity_keywords):
             score += 5
             adjustments.append("+5_ai_productivity")
         
@@ -650,7 +774,9 @@ class JobMatcher:
         # ══════════════════════════════════════════════════════
         ai_score = None
         ai_reasons = []
-        
+        ai_attempted = False      # did we actually try to get an AI opinion?
+        ai_unavailable = False    # tried and got nothing back (outage / quota / parse fail)
+
         # ── AI GATE: skip deep analysis if wrong-role penalty is strong ──
         # A -20 or worse penalty means _wrong_role_penalty() already fired for
         # wrong lane / wrong stack / US-only. Claude would just add 25-45 pts
@@ -660,6 +786,7 @@ class JobMatcher:
         ai_gate_open = early_penalty > -20  # True only for clean or mild-penalty jobs
 
         if USE_AI_DEEP_ANALYSIS and self.ai and preliminary_score >= 50 and ai_gate_open:
+            ai_attempted = True
             try:
                 ai_result = self._ai_deep_analysis(profile, job)
                 if ai_result:
@@ -670,6 +797,16 @@ class JobMatcher:
                     logger.info(f"🧠 AI Analysis for {company}: {ai_score}/100")
             except Exception as e:
                 logger.warning(f"AI analysis failed for {company}: {e}")
+
+            # _ai_deep_analysis swallows its own errors and returns None (Claude 400 →
+            # Groq 429 → "AI analysis error: ..."), so a None here IS the outage signal.
+            if ai_score is None:
+                ai_unavailable = True
+                logger.warning(
+                    f"⛔ [{company}] AI deep analysis returned NO score "
+                    f"(provider outage / quota) — this job will be held back, not "
+                    f"scored on keywords alone"
+                )
         elif not ai_gate_open:
             logger.info(f"🚧 [{company}] AI gate closed (wrong-role penalty {early_penalty}) — skipping Claude analysis")
         
@@ -677,9 +814,12 @@ class JobMatcher:
         # PHASE 3: Combine scores - CALIBRATED FOR REAL RESULTS
         # ══════════════════════════════════════════════════════
         if ai_score is not None:
-            # AI floor: Prevent AI from completely tanking a good keyword match
-            ai_score_adjusted = max(ai_score, 50)  # Raised floor from 35 to 50
-            
+            # NO FLOOR by default (AI_SCORE_FLOOR=0). The old max(ai_score, 50) existed
+            # to "prevent AI from completely tanking a good keyword match" — but a low AI
+            # score is the most informed signal in the pipeline, and rewriting Claude's
+            # 45 → 50 is exactly how Appspring reached human_review on Jul 28 2026.
+            ai_score_adjusted = max(ai_score, AI_SCORE_FLOOR)
+
             # Trust keyword matching more for strong preliminary scores
             if preliminary_score >= 65:
                 # 75% keyword, 25% AI for strong keyword matches
@@ -699,12 +839,37 @@ class JobMatcher:
         # PHASE 4: BIAS COMPENSATION (NEW - PRODUCTION v3.0)
         # ══════════════════════════════════════════════════════
         final_score, adjustments = self.apply_bias_compensation(combined_score, job)
-        
+
+        # ══════════════════════════════════════════════════════
+        # PHASE 4b: AI-TRUST CLAMPS (added 2026-07-29)
+        # Must run AFTER bias compensation — those bonuses are precisely what used
+        # to push AI-vetoed and AI-blind jobs up into the actionable bands.
+        # ══════════════════════════════════════════════════════
+        if ai_unavailable:
+            if final_score > AI_OUTAGE_SCORE_CAP:
+                logger.warning(
+                    f"⛔ [{company}] AI-OUTAGE-BLOCK: no AI opinion available — "
+                    f"keyword+bonus score {final_score:.0f} capped to "
+                    f"{AI_OUTAGE_SCORE_CAP:.0f}. 'No opinion' is not 'good fit'. "
+                    f"| {title[:50]}"
+                )
+                final_score = AI_OUTAGE_SCORE_CAP
+                all_reasons.insert(0, "⛔ Held back: AI deep analysis unavailable (provider outage)")
+            _alert_ai_outage(company, title)
+        elif ai_score is not None and ai_score < AI_LOW_FIT_VETO and final_score > AI_VETO_SCORE_CAP:
+            logger.info(
+                f"🚫 [{company}] AI-LOW-FIT VETO: deep analysis scored {ai_score:.0f} "
+                f"(< {AI_LOW_FIT_VETO:.0f}) — capping {final_score:.0f} → "
+                f"{AI_VETO_SCORE_CAP:.0f} | {title[:50]}"
+            )
+            final_score = AI_VETO_SCORE_CAP
+            all_reasons.insert(0, f"🚫 AI deep analysis says poor fit ({ai_score:.0f}/100)")
+
         # Add adjustment notes to reasons if significant
-        if adjustments and final_score >= 60:
+        if adjustments and final_score >= 60 and (final_score - combined_score) > 0:
             bonus = final_score - combined_score
             all_reasons.insert(0, f"🎯 Adjusted +{bonus:.0f} pts for Elena's profile fit")
-        
+
         # ══════════════════════════════════════════════════════
         # PHASE 5: Priority flagging
         # ══════════════════════════════════════════════════════
@@ -720,9 +885,17 @@ class JobMatcher:
             all_reasons.insert(0, "📋 REVIEW QUEUE - Human decision")
         
         # Final comprehensive log
+        # ai=... makes the AI's contribution auditable straight from journalctl:
+        # a number, OUTAGE (tried, got nothing), or skipped (never attempted).
+        _ai_state = (
+            f"{ai_score:.0f}" if ai_score is not None
+            else "OUTAGE" if ai_unavailable
+            else "skipped" if not ai_attempted
+            else "none"
+        )
         logger.info(
             f"📊 [{company}] FINAL SCORE: {final_score:.0f} "
-            f"(base: {combined_score:.0f}, prelim: {preliminary_score:.0f}) "
+            f"(base: {combined_score:.0f}, prelim: {preliminary_score:.0f}, ai: {_ai_state}) "
             f"| {title[:50]}"
         )
         

@@ -27,7 +27,9 @@ import asyncio
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+import os
+import re
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Optional
 
@@ -43,10 +45,34 @@ TERMINAL_STATUSES = {
     "applied", "apply_failed", "discarded", "gated_out",
     "outreach_sent", "outreach_capped", "outreach_no_contact",
     "outreach_invalid_email", "outreach_failed", "completed",
+    # human_pending IS terminal in LEAD mode (added 2026-07-29): submit_node has
+    # already surfaced the job to Telegram + HubSpot, so re-running the thread
+    # can only produce a duplicate ping. resume() does not consult this set, so
+    # /approve_vjh_<id> and /reject_vjh_<id> still work.
+    "human_pending",
 }
 
 # How long before we re-try a failed job (days)
 RETRY_FAILED_AFTER_DAYS = 3
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONTENT-FINGERPRINT DEDUP (added 2026-07-29)
+#
+# thread_id dedup is keyed on the SOURCE's job id, so a board that re-posts a
+# listing under a new id defeats it completely. Real case:
+# "Appspring — Senior Python Developer" arrived as torre_7628333 (Jun 23,
+# Jul 8) and then torre_8156916 (Jul 28) — three separate HubSpot deals and
+# Telegram pings for ONE listing. The fingerprint is normalised company+title,
+# so it survives new ids, changed URLs, and cross-source duplicates.
+#
+# Marked ONLY when a job actually surfaces to Elena. A job dropped by the judge
+# or by an AI outage is deliberately left unmarked so a later, better-informed
+# cycle can still pick it up.
+# ─────────────────────────────────────────────────────────────────────────────
+FINGERPRINT_DB_PATH = "autonomous_data/surfaced_fingerprints.json"
+# Same company+title will not be surfaced again within this window.
+FP_TTL_DAYS = int(os.getenv("VJH_FP_TTL_DAYS", "60"))
+FP_MAX_ENTRIES = 3000
 
 # Max jobs to SURFACE (Telegram "Apply yourself" + HubSpot) per cycle — prevents a
 # message-by-message flood when the backlog is large (e.g. after a dedup reset). Excess
@@ -68,6 +94,66 @@ class VJHLangGraphRunner:
 
     def _thread_id(self, job_id: str) -> str:
         return f"vjh_{job_id}"
+
+    # ------------------------------------------------------------------
+    # Content-fingerprint dedup (survives job-id churn across re-posts)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fingerprint(company: str, title: str) -> str:
+        """Stable id for a LISTING (not a posting): normalised company + title."""
+        def norm(s: str) -> str:
+            return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+        return hashlib.md5(f"{norm(company)}|{norm(title)}".encode("utf-8")).hexdigest()[:16]
+
+    def _load_fingerprints(self) -> dict:
+        path = Path(FINGERPRINT_DB_PATH)
+        if not path.exists():
+            return {}
+        try:
+            raw = json.loads(path.read_text())
+            db = raw.get("surfaced_v1", {})
+            return db if isinstance(db, dict) else {}
+        except Exception as e:
+            logger.warning(f"[runner] Fingerprint DB unreadable ({e}) — treating as empty")
+            return {}
+
+    def _save_fingerprints(self, db: dict) -> None:
+        try:
+            if len(db) > FP_MAX_ENTRIES:
+                newest = sorted(db, key=lambda k: db[k].get("last_surfaced", ""), reverse=True)
+                db = {k: db[k] for k in newest[:FP_MAX_ENTRIES]}
+            path = Path(FINGERPRINT_DB_PATH)
+            path.parent.mkdir(exist_ok=True)
+            path.write_text(json.dumps({"surfaced_v1": db}))
+        except Exception as e:
+            logger.warning(f"[runner] Could not persist fingerprint DB: {e}")
+
+    def _fp_recently_surfaced(self, db: dict, fp: str) -> Optional[str]:
+        """Return the ISO timestamp of the last surface inside the TTL, else None."""
+        rec = db.get(fp)
+        if not rec:
+            return None
+        last = rec.get("last_surfaced") or rec.get("first_surfaced", "")
+        try:
+            when = datetime.fromisoformat(str(last).replace("Z", "+00:00"))
+        except Exception:
+            return None  # unparseable → let it through rather than suppress forever
+        if datetime.now(timezone.utc) - when < timedelta(days=FP_TTL_DAYS):
+            return last
+        return None
+
+    def _mark_surfaced(self, db: dict, fp: str, company: str, title: str, job_id: str) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        rec = db.get(fp) or {"first_surfaced": now, "company": company, "title": title, "job_ids": []}
+        rec["last_surfaced"] = now
+        rec["count"] = int(rec.get("count", 0)) + 1
+        ids = rec.get("job_ids") or []
+        if job_id not in ids:
+            ids.append(job_id)
+        rec["job_ids"] = ids[-10:]
+        db[fp] = rec
+        self._save_fingerprints(db)
 
     def _initial_state(self, job: any, cycle_id: str) -> JobState:
         """Convert a JobPosting (or dict) to initial JobState."""
@@ -199,6 +285,7 @@ class VJHLangGraphRunner:
         summary = {
             "total": len(jobs),
             "skipped_dedup": 0,
+            "skipped_fingerprint": 0,
             "applied": 0,
             "apply_failed": 0,
             "outreach_sent": 0,
@@ -207,6 +294,8 @@ class VJHLangGraphRunner:
             "gated_out": 0,
             "errors": 0,
         }
+
+        fp_db = self._load_fingerprints()
 
         async with AsyncSqliteSaver.from_conn_string(CHECKPOINT_DB_PATH) as checkpointer:
             graph = build_graph(checkpointer)
@@ -223,9 +312,21 @@ class VJHLangGraphRunner:
                     thread_id = self._thread_id(job_id)
                     config = {"configurable": {"thread_id": thread_id}}
 
-                    # ── DEDUPLICATION CHECK ──────────────────────────────────
+                    # ── DEDUPLICATION CHECK 1: same posting id ───────────────
                     if await self._is_already_processed(checkpointer, thread_id):
                         summary["skipped_dedup"] += 1
+                        continue
+
+                    # ── DEDUPLICATION CHECK 2: same listing, new posting id ──
+                    fp = self._fingerprint(initial["company"], initial["title"])
+                    prior = self._fp_recently_surfaced(fp_db, fp)
+                    if prior:
+                        logger.info(
+                            f"[runner] Skipping {initial['company']} | {initial['title']} — "
+                            f"already surfaced {prior[:10]} (fingerprint dedup; "
+                            f"new posting id {job_id})"
+                        )
+                        summary["skipped_fingerprint"] += 1
                         continue
 
                     # ── RUN GRAPH ────────────────────────────────────────────
@@ -256,8 +357,15 @@ class VJHLangGraphRunner:
                             continue
                         logger.info(f"[runner] judge OK ({_jr}) → surface: {final_state.get('company')} | {final_state.get('title')}")
                         await self._send_human_review_request(final_state, config, checkpointer)
+                        self._mark_surfaced(fp_db, fp, initial["company"], initial["title"], job_id)
                         summary["human_pending"] += 1
                         continue
+
+                    # Anything that reached Elena (Telegram ping / HubSpot deal / ATS
+                    # submission) gets fingerprinted so a re-post under a new id can't
+                    # duplicate it. Discards and gate-outs stay unmarked on purpose.
+                    if status in ("applied", "human_pending", "outreach_sent"):
+                        self._mark_surfaced(fp_db, fp, initial["company"], initial["title"], job_id)
 
                     # Tally
                     if status == "applied":
