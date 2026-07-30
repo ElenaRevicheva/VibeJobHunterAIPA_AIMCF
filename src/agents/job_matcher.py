@@ -932,7 +932,19 @@ ELENA'S PROFILE:
 - 19 countries reach, PayPal subscriptions LIVE
 - 99%+ cost reduction ($900K → <$15K)
 - AI Co-Founders: CTO AIPA (code reviews) + CMO AIPA (LinkedIn)
-- Target: Founding Engineer, AI Product Manager, Staff/Principal Engineer
+- Based in Panama (LATAM, UTC-5); needs FULLY REMOTE, LATAM-open, >= $3,000 USD/month
+
+ELENA'S THREE TARGET LANES (corrected 2026-07-09, same lanes the LLM judge uses):
+  a) AI-AUGMENTED PRODUCTS / AGENTS / SYSTEMS BUILDER — "AI Engineer", "AI Agents
+     Engineer", "AI Solutions Engineer", "Founding AI Engineer", "Forward-Deployed
+     Engineer", "AI Product Owner". She builds WITH AI tools, so "Engineer" in a
+     title is NOT a negative.
+  b) GEO / AEO / TECHNICAL SEO — generative- and answer-engine optimization, AI
+     crawler visibility, structured data. She shipped a full production stack.
+  c) AI AUTOMATION / SOLUTIONS ARCHITECT — agent builders, n8n / Make / Zapier,
+     workflow automation, AI integration for clients or products.
+  NOT a fit: pure ML/AI research, legal, sales, recruiting, devrel, marketing,
+  finance, HR, exec/VP/director, data entry.
 
 JOB:
 Title: {title}
@@ -949,6 +961,11 @@ BASE: 60 (for AI/ML roles) or 50 (for other engineering)
 POSITIVE (add points):
 +25: Founding Engineer / First Engineer / 0-1 role
 +20: AI/ML Product Engineer role
++20: Squarely in one of the THREE target lanes above — AI automation / agent
+     building / n8n-Make-Zapier workflow automation, AI solutions architecture,
+     or GEO/AEO/technical SEO. These are her strongest lanes, not side quests.
++10: Fully remote AND open to LATAM / worldwide (she can actually hold the job)
++10: States pay at or above $3,000 USD/month
 +15: YC / Seed / Series A startup
 +15: Staff/Principal/Lead engineer role  
 +10: Equity mentioned
