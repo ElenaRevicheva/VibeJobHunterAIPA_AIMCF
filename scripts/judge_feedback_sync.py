@@ -68,13 +68,39 @@ ROLE_NOUN = re.compile(
 )
 
 
-def _is_usable_title(title: str) -> bool:
-    """A few-shot example is only useful if it reads like a real job title."""
+# A POSITIVE example must not contradict the hard filter. The response detector
+# names deals after email subjects, so surviving titles included "1st Interview –
+# Full Stack Python Developer" and "Event Confirmation For Senior Full-Stack
+# Engineer" — both are titles fit_gate EXCLUDES as heavy hand-coding. Feeding them
+# to the judge as "roles she wants" would actively erode the filter it enforces.
+# Mirrors src/core/fit_gate.py (kept as a literal list because this script is
+# stdlib-only and must run under system python3 with no repo imports).
+OFF_LANE_TITLE = re.compile(
+    r"full[- ]?stack|backend engineer|front[- ]?end engineer|senior software engineer|"
+    r"staff engineer|staff software|principal engineer|"
+    r"qa automation|automation qa|test automation|sdet|quality assurance|"
+    r"it automation|infrastructure automation|network automation|"
+    r"industrial automation|rpa developer|marketing automation|sales automation",
+    re.IGNORECASE,
+)
+
+
+def _is_usable_title(title: str, positive: bool = False) -> bool:
+    """A few-shot example is only useful if it reads like a real job title.
+
+    `positive=True` additionally requires the title to be on-lane — a bad positive
+    is far more damaging than a missing one, since it teaches the judge to approve
+    what the gate is built to reject.
+    """
     if not title or NOISE.search(title):
         return False
     if EMAIL_SUBJECT.search(title):
         return False
-    return bool(ROLE_NOUN.search(title))
+    if not ROLE_NOUN.search(title):
+        return False
+    if positive and OFF_LANE_TITLE.search(title):
+        return False
+    return True
 
 
 def _read_env_file(path: Path, name: str) -> str:
@@ -140,7 +166,8 @@ def main() -> int:
         name, stage = p.get("dealname", ""), p.get("dealstage", "")
         title = _clean_title(name)
         # _is_usable_title also covers the old NOISE check (see its definition).
-        if not _is_usable_title(title) or title.lower() in seen:
+        # Positives are held to the stricter on-lane bar.
+        if not _is_usable_title(title, positive=(stage in POSITIVE_STAGES)) or title.lower() in seen:
             continue
         if stage in POSITIVE_STAGES and len(positives) < MAX_EXAMPLES:
             positives.append(title)
