@@ -16,7 +16,25 @@ LATAM_OK = ('worldwide', 'anywhere', 'global', 'americas', 'latam',
             'latin america', 'central america')
 COUNTRY_LOCK = ('brazil', 'usa', 'united states', 'canada', 'germany',
                 'united kingdom', 'india', 'australia', 'israel', 'philippines',
-                'mexico', 'argentina', 'europe', 'emea', 'apac')
+                'mexico', 'argentina', 'europe', 'emea', 'apac',
+                # 2026-07-30: three jobs reached Elena's "I Act TODAY" with
+                # locations she cannot hold — "Remote — Ukraine" (ELVTR),
+                # "Remote-UK&I" (Remote.com) and "Berlin (Remote)" (Moss).
+                # "united kingdom" never matched "UK&I", and city names were not
+                # checked at all, so the LATAM fallback read the description and
+                # let them through. Countries + the major hiring cities that
+                # imply a country lock:
+                # (substring matching — no regex here, so no bare "uk" token:
+                #  it would match "Ukraine" and unrelated words alike)
+                'ukraine', 'uk&i', 'uk & i', 'uk and ireland', 'ireland',
+                'poland', 'portugal', 'spain', 'france', 'netherlands', 'romania',
+                'serbia', 'turkey', 'egypt', 'nigeria', 'kenya', 'south africa',
+                'pakistan', 'bangladesh', 'indonesia', 'vietnam', 'singapore',
+                'japan', 'china', 'korea', 'new zealand',
+                'berlin', 'london', 'dublin', 'amsterdam', 'paris', 'madrid',
+                'barcelona', 'lisbon', 'warsaw', 'kyiv', 'kiev', 'tel aviv',
+                'bengaluru', 'bangalore', 'gurugram', 'mumbai', 'manila',
+                'toronto', 'vancouver', 'sydney', 'melbourne', 'tokyo')
 
 # Panama is UTC-5 year-round, overlapping US Eastern (UTC-5 EST/UTC-4 EDT) and
 # Central (UTC-6 CST/UTC-5 CDT) time. A job stating these hours without ever
