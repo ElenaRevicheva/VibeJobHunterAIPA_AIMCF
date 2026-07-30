@@ -479,6 +479,7 @@ class AutonomousOrchestrator:
                 )
                 cycle_stats.errors         = lg_summary.get("errors", 0)
                 skipped = lg_summary.get("skipped_dedup", 0)
+                skipped_fp = lg_summary.get("skipped_fingerprint", 0)  # same listing, new posting id
 
                 self.stats["applications_sent"] += cycle_stats.auto_applied
                 self.stats["founder_outreach"]  += cycle_stats.outreach_sent
@@ -489,6 +490,7 @@ class AutonomousOrchestrator:
                     f"human_pending={cycle_stats.review_queued} "
                     f"discarded={cycle_stats.discarded} "
                     f"skipped_dedup={skipped} "
+                    f"skipped_fingerprint={skipped_fp} "
                     f"errors={cycle_stats.errors}"
                 )
 
