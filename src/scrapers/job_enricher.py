@@ -40,6 +40,50 @@ MAX_ENRICHED_CHARS = 8000
 
 _UA = "Mozilla/5.0 (VibeJobHunter/1.0; +https://aideazz.xyz)"
 
+# ── FALSE-ENRICHMENT GUARDS (added 2026-07-30, from a live test) ──────────────
+# Fetching https://weworkremotely.com/remote-jobs (a LISTING page, not a posting)
+# returned 8KB of navigation — "Find Jobs / Top 100 Remote Companies / Programming
+# / Full-Stack / DevOps / Design..." — which is dense with exactly the keywords the
+# scorer and the AI reward. Injecting that into a description would manufacture
+# false positives. So: only fetch URLs shaped like a single posting, and only
+# accept text that reads like one.
+_BOARD_ROOT_PATHS = {
+    "", "/", "/jobs", "/remote-jobs", "/careers", "/openings", "/positions",
+    "/search", "/browse", "/companies", "/board",
+}
+# A real posting almost always contains some of this prose; a nav index does not.
+_POSTING_MARKERS = (
+    "you will", "you'll", "responsibilit", "requirement", "qualificat",
+    "we are looking", "we're looking", "about the role", "what you", "your role",
+    "experience with", "nice to have", "benefits", "compensation", "salary",
+    "apply for this", "job description",
+)
+_MIN_POSTING_MARKERS = 2
+
+
+def _looks_like_posting_url(url: str) -> bool:
+    """True only for URLs that identify ONE posting, not a board index."""
+    try:
+        from urllib.parse import urlparse
+        path = (urlparse(str(url)).path or "").rstrip("/")
+        if path.lower() in _BOARD_ROOT_PATHS:
+            return False
+        segments = [s for s in path.split("/") if s]
+        # A single segment is a board or COMPANY root — jobs.ashbyhq.com/truelogic,
+        # example.com/careers — never one posting.
+        if len(segments) < 2:
+            return False
+        last = segments[-1]
+        # A posting id/slug: has a digit, is a multi-word slug, or is a long token.
+        return any(ch.isdigit() for ch in last) or "-" in last or len(last) >= 6
+    except Exception:
+        return False
+
+
+def _looks_like_posting_text(text: str) -> bool:
+    low = (text or "").lower()
+    return sum(1 for m in _POSTING_MARKERS if m in low) >= _MIN_POSTING_MARKERS
+
 _DROP_BLOCKS = re.compile(r"<(script|style|noscript|svg|head)[^>]*>.*?</\1>", re.I | re.S)
 _BREAKS = re.compile(r"</(p|div|li|tr|h[1-6]|br)\s*/?>", re.I)
 _TAGS = re.compile(r"<[^>]+>")
@@ -114,6 +158,9 @@ def enrich_description(url: str, description: str, force: bool = False) -> str:
         return original
     if not force and len(original) >= THIN_DESCRIPTION_CHARS:
         return original
+    if not _looks_like_posting_url(url):
+        logger.debug(f"[enrich] not a single-posting URL, refusing to fetch: {str(url)[:70]}")
+        return original
 
     try:
         import requests
@@ -135,6 +182,12 @@ def enrich_description(url: str, description: str, force: bool = False) -> str:
         # Never trade down: a nav-only page can render shorter than the stub we had.
         if len(text) <= max(len(original), THIN_DESCRIPTION_CHARS // 2):
             logger.debug(f"[enrich] fetched text too thin ({len(text)}c) — keeping original")
+            return original
+
+        # Reject board navigation masquerading as a posting (see the guards above).
+        if not _looks_like_posting_text(text):
+            logger.info(f"[enrich] fetched page does not read like a posting "
+                        f"(likely a board index) — keeping original: {str(url)[:60]}")
             return original
 
         enriched = text[:MAX_ENRICHED_CHARS]

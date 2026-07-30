@@ -61,6 +61,21 @@ def gate_node(state: JobState) -> dict:
             except Exception as _ee:
                 logger.debug(f"[gate] enrichment unavailable ({_ee}); using original text")
 
+        # ── THIN-DATA GUARD (added 2026-07-30) ──────────────────────────────
+        # If a posting is STILL unjudgeable after enrichment, drop it instead of
+        # guessing. This is the class the Appspring lead belonged to: 96 chars,
+        # requirements: [], no salary — the scorer, the fit gate and the AI were
+        # all reading a headline, and Claude said so ("impossible to assess true
+        # role seniority or scope"). Verified that Torre postings DO enrich
+        # (96c → 1,905c via torre.ai/jobs/{id}), so this rejects unfetchable
+        # stubs, not the whole LATAM source. Env: VJH_MIN_JUDGEABLE_CHARS.
+        if passed:
+            _min_judgeable = int(os.getenv('VJH_MIN_JUDGEABLE_CHARS', '250'))
+            if len(description or '') < _min_judgeable:
+                passed = False
+                reason = (f"insufficient data to judge ({len(description or '')} chars "
+                          f"after enrichment, need {_min_judgeable})")
+
         if passed:
             # IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented roles
             # (no heavy-coding/US-only) reach Elena — the SAME filter the HubSpot ingest
