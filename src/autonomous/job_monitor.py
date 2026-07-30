@@ -166,6 +166,7 @@ class JobMonitor:
         source_counts = {
             "ats": 0, "dice_mcp": 0, "hn": 0, "remoteok": 0, "yc": 0,
             "wellfound": 0, "wwr": 0, "aijobs": 0, "torre": 0, "himalayas": 0, "bd_linkedin": 0,
+            "yc_oss": 0,   # added 2026-07-30
         }
 
         # ==============================================================
@@ -202,6 +203,26 @@ class JobMonitor:
 
         except Exception as e:
             logger.warning(f"⚠️ Dice MCP integration failed: {e}")
+
+        # ==============================================================
+        # 1.6️⃣ YC OSS → REAL OPENINGS (NEW SOURCE, added 2026-07-30)
+        # Additive: does NOT replace anything above. Turns the free yc-oss
+        # company API into actual applyable postings by fetching each hiring
+        # company's public ATS board. This is what openclaw-vibejob-shortlist
+        # never did — it exported companies, which cannot be applied to.
+        # No auth, no cookies; workatastartup (login-gated) is NOT touched.
+        # ==============================================================
+        try:
+            from src.scrapers.yc_oss_jobs import fetch_yc_oss_jobs
+
+            yc_oss_jobs = await fetch_yc_oss_jobs(timeout_seconds=120)
+
+            logger.info(f"✅ YC OSS returned {len(yc_oss_jobs)} jobs")
+            all_jobs.extend(yc_oss_jobs)
+            source_counts["yc_oss"] = len(yc_oss_jobs)
+
+        except Exception as e:
+            logger.warning(f"⚠️ YC OSS source failed: {e}")
 
         # ==============================================================
         # 2️⃣-7️⃣ SECONDARY SOURCES (run in parallel with timeout)
@@ -260,6 +281,7 @@ class JobMonitor:
         logger.info("📊 SOURCE SUMMARY:")
         logger.info(f"   ATS APIs:        {source_counts['ats']} jobs")
         logger.info(f"   Dice MCP:        {source_counts['dice_mcp']} jobs")
+        logger.info(f"   YC OSS (openings):{source_counts['yc_oss']} jobs")
         logger.info(f"   Hacker News:     {source_counts['hn']} jobs")
         logger.info(f"   RemoteOK:        {source_counts['remoteok']} jobs")
         logger.info(f"   YC WAAS:         {source_counts['yc']} jobs")
@@ -277,7 +299,11 @@ class JobMonitor:
         # BEFORE the gate + max_results cap, so Elena's LATAM/remote AI jobs are not crowded out
         # by the ~1700 generic ATS jobs. (JobPosting.source is lost to OTHER on conversion, so we
         # read the raw dict's "source" here while it still exists.)
-        _PRIO_SRC = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs", "wellfound")
+        # 2026-07-30: added "yc_oss" — the new YC-companies→real-openings source. Without it
+        # here, its ~130 postings sit behind ~1700 generic ATS jobs and get cut by max_results,
+        # which is exactly how the region-tagged sources were starved in June.
+        _PRIO_SRC = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs",
+                     "wellfound", "yc_oss")
         def _job_src(j):
             if isinstance(j, dict):
                 return (j.get("source") or "").lower()
@@ -407,6 +433,9 @@ class JobMonitor:
             "https://remoteok.com/remote-dev-jobs.json",
             "https://remoteok.com/api?tags=ai",
             "https://remoteok.com/api?tags=machine-learning",
+            # 2026-07-30: AI-automation category tags (additive).
+            "https://remoteok.com/api?tags=automation",
+            "https://remoteok.com/api?tags=no-code",
         ]
         try:
             async with aiohttp.ClientSession() as session:
@@ -455,7 +484,14 @@ class JobMonitor:
         logger.info("🔍 Checking Remotive...")
         jobs: List[Dict] = []
         seen_ids = set()
-        queries = ["AI automation", "no-code", "AI agent", "AI solutions", "prompt"]
+        # 2026-07-30: APPENDED the AI-automation category (agent builders, n8n/Make/Zapier
+        # shops, AI integration). This is Elena's demonstrated, shipped skill set — 10 live
+        # agents, the Make+Fable 5 concierge, WHITESPACE — and it pays $3-6K/mo remote, yet
+        # it was almost absent from what VJH searched. Original 5 terms kept untouched.
+        queries = ["AI automation", "no-code", "AI agent", "AI solutions", "prompt",
+                   "AI automation engineer", "AI agent developer", "automation engineer",
+                   "n8n", "make.com", "Zapier", "workflow automation",
+                   "AI integration engineer", "AI implementation", "forward deployed engineer"]
         try:
             async with aiohttp.ClientSession() as session:
                 headers = {"User-Agent": "VibeJobHunter/1.0"}
@@ -1082,7 +1118,11 @@ class JobMonitor:
                 headers = {"User-Agent": "Mozilla/5.0 (VibeJobHunter)", "Content-Type": "application/json"}
                 # Endpoint moved: torre.ai/api 404s now → search.torre.co. Query AI/dev
                 # skills; Torre is a LATAM-first remote platform, so results are LATAM-friendly.
-                for kw in ["ai engineer", "machine learning", "python developer", "automation engineer", "react developer"]:
+                # 2026-07-30: appended AI-automation skills (Torre is the LATAM-first source,
+                # so these terms matter most here). Original 5 kept.
+                for kw in ["ai engineer", "machine learning", "python developer", "automation engineer", "react developer",
+                           "ai automation", "ai agents", "workflow automation", "n8n", "zapier",
+                           "prompt engineering", "ai integration", "no-code"]:
                     payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
                     url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
                     try:

@@ -45,6 +45,22 @@ def gate_node(state: JobState) -> dict:
 
         passed = JobGate.passes(job_dict)
         reason = "filtered by career gate"
+        description = state.get('description', '')
+
+        # ── ENRICHMENT (added 2026-07-30) ───────────────────────────────────
+        # Torre and several other list APIs hand us a one-line tagline (the
+        # Appspring lead was 96 chars with requirements: []), so every filter
+        # below — iron-clad, salary, scorer, Claude — was judging a headline.
+        # Fetch the real posting ONCE, only for jobs that already passed the
+        # career gate (a handful per cycle). Falls back to the original text on
+        # any failure, so nothing that works today changes.
+        if passed:
+            try:
+                from src.scrapers.job_enricher import enrich_description
+                description = enrich_description(state.get('url', ''), description)
+            except Exception as _ee:
+                logger.debug(f"[gate] enrichment unavailable ({_ee}); using original text")
+
         if passed:
             # IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented roles
             # (no heavy-coding/US-only) reach Elena — the SAME filter the HubSpot ingest
@@ -52,7 +68,7 @@ def gate_node(state: JobState) -> dict:
             try:
                 from src.search.serpapi_jobs_ingest import iron_clad_fit
                 _loc = state.get('location') or (state.get('raw_job') or {}).get('location') or ''
-                if iron_clad_fit(state.get('title', ''), _loc, state.get('description', '')):
+                if iron_clad_fit(state.get('title', ''), _loc, description):
                     reason = "passed career + iron-clad fit"
                 else:
                     passed = False
@@ -61,12 +77,37 @@ def gate_node(state: JobState) -> dict:
                 logger.warning(f"[gate] iron_clad_fit unavailable ({_e}); career gate only")
                 reason = "passed career (fit filter unavailable)"
 
+        # ── SALARY FLOOR (added 2026-07-30) ─────────────────────────────────
+        # Elena's hard floor is $3,000 USD/mo and nothing in VJH checked pay before
+        # today. REJECT-ONLY by design: a posting is dropped only when it STATES pay
+        # and even the top of its range is under the floor. No stated salary → passes
+        # (most postings omit it; requiring it would zero out lead flow).
         if passed:
-            logger.info(f"[gate] PASS  {state['company']} — {state['title']}")
+            try:
+                from src.core.salary_gate import salary_verdict, MIN_MONTHLY_USD
+                _verdict, _monthly, _evidence = salary_verdict(
+                    state.get('title', ''), description,
+                    str((state.get('raw_job') or {}).get('salary', '') or ''),
+                )
+                if _verdict == "below_floor":
+                    passed = False
+                    reason = (f"below salary floor: ~${_monthly:,.0f}/mo < "
+                              f"${MIN_MONTHLY_USD:,.0f}/mo ({_evidence})")
+                elif _verdict == "ok":
+                    reason += f" + pay ~${_monthly:,.0f}/mo"
+            except Exception as _se:
+                logger.debug(f"[gate] salary gate unavailable ({_se}); pay not checked")
+
+        if passed:
+            logger.info(f"[gate] PASS  {state['company']} — {state['title']} ({reason})")
             return {
                 "gate_passed": True,
                 "gate_reason": reason,
                 "status": "gate_passed",
+                # Hand the enriched text downstream so score_node and the AI analysis
+                # judge the REAL posting, not the tagline. JobState declares
+                # `description`, so returning it here updates the state.
+                "description": description,
             }
         else:
             logger.info(f"[gate] FAIL  {state['company']} — {state['title']} ({reason})")

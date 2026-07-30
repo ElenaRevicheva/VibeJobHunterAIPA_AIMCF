@@ -32,9 +32,30 @@ RUN_ID = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 
 GREENHOUSE_COMPANIES = [
     # ═══════════════════════════════════════════════════════════════
+    # 🌎 LATAM-NEARSHORE + REMOTE-FIRST (added 2026-07-30) — PRIORITY 0
+    #
+    # WHY THESE COME FIRST: _fetch_from_all_sources slices every list with
+    # [:max_companies] (job_monitor passes 40). Appending at the end would put
+    # them outside the slice and they'd never be fetched — the same crowding bug
+    # that starved the region-tagged sources in June. Nothing below is removed.
+    #
+    # Every slug below was VERIFIED LIVE 2026-07-30 against
+    # boards-api.greenhouse.io and returned real open jobs (count at probe time).
+    # These firms hire remote / LATAM by design and pay in Elena's $3K+ band.
+    # ═══════════════════════════════════════════════════════════════
+    "remotecom",      # Remote.com — 212 jobs, global-remote employer of record
+    "gitlab",         # 183 jobs, all-remote company
+    "wizeline",       # 33 jobs, LATAM nearshore (Mexico)
+    "turing",         # 28 jobs, remote talent marketplace
+    "arionkoder",     # 19 jobs, LATAM nearshore (Argentina)
+    "make",           # 17 jobs, Make.com — THE automation platform, Elena's lane
+    "moduscreate",    # 11 jobs, nearshore/remote
+    "teravision",     # 4 jobs, LATAM nearshore (Venezuela/Colombia)
+
+    # ═══════════════════════════════════════════════════════════════
     # 🎯 TOP AI COMPANIES - January 2026 (PRIORITY 1)
     # ═══════════════════════════════════════════════════════════════
-    
+
     # Frontier AI Labs (HIGHEST PRIORITY)
     "anthropic",      # Claude - TOP PRIORITY! ~300 jobs
     "openai",         # GPT/ChatGPT
@@ -172,6 +193,11 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # ═══════════════════════════════════════════════════════════════
+    # 🌎 REMOTE-FIRST (added 2026-07-30) — PRIORITY 0, verified live on api.lever.co
+    # ═══════════════════════════════════════════════════════════════
+    "toptal",         # 22 jobs — remote talent marketplace, LATAM-friendly
+
+    # ═══════════════════════════════════════════════════════════════
     # AI/ML Companies on Lever (January 2026)
     # ═══════════════════════════════════════════════════════════════
     "huggingface",    # ML model hub - PRIORITY!
@@ -247,6 +273,21 @@ WORKABLE_COMPANIES = [
 # Ashby is used by many YC companies for modern hiring
 # API: https://jobs.ashbyhq.com/{company}/api/jobs
 ASHBY_COMPANIES = [
+    # ═══════════════════════════════════════════════════════════════
+    # 🌎 LATAM-NEARSHORE + REMOTE-FIRST (added 2026-07-30) — PRIORITY 0
+    # Prepended for the same [:max_companies] slicing reason as Greenhouse.
+    # All VERIFIED LIVE 2026-07-30 against api.ashbyhq.com/posting-api/job-board.
+    # ═══════════════════════════════════════════════════════════════
+    "truelogic",      # 182 jobs — LATAM nearshore, AND THEY ALREADY REPLIED TO ELENA
+    "n8n",            # 40 jobs — workflow-automation platform, exactly Elena's lane
+    "oyster",         # 21 jobs — global-remote employer of record
+    "andela",         # 19 jobs — global remote talent network (strong LATAM presence)
+    "zapier",         # 14 jobs — automation platform, fully remote worldwide
+    "modus",          # 12 jobs — Modus Create, nearshore/remote
+    "relevanceai",    # 9 jobs — AI agent platform
+    "close",          # 7 jobs — Close CRM, fully remote
+    "buffer",         # 2 jobs — fully remote, and Elena already uses their API
+
     # ═══════════════════════════════════════════════════════════════
     # AI/ML Companies (HIGHEST PRIORITY)
     # ═══════════════════════════════════════════════════════════════

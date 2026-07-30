@@ -156,10 +156,28 @@ class TestBonusRules:
         assert "+5_ai_productivity" in adjustments
 
     def test_agents_keyword_triggers_ai_productivity(self, matcher, make_job):
-        """'agents' in description must trigger +5_ai_productivity."""
-        job = make_job(title="Engineer", description="build autonomous agents for customers")
-        _, adjustments = matcher.apply_bias_compensation(60.0, job)
-        assert "+5_ai_productivity" in adjustments
+        """Agent WORK triggers +5_ai_productivity — but the bare word 'agents' must not.
+
+        UPDATED 2026-07-30. This test previously asserted that bare "agents" anywhere in
+        a description earned the bonus. That was the defect, not the contract: as a plain
+        substring it matched "insurance agents", "support agents", and any employer blurb
+        that merely mentioned agents — handing +5 to roles where Elena writes manual
+        backend Python all day (the Appspring lead, surfaced 3x in Jun-Jul 2026).
+        """
+        # Real agent work still earns it.
+        for desc in ("build autonomous AI agents for customers",
+                     "agentic workflows with LangGraph",
+                     "multi-agent orchestration platform"):
+            job = make_job(title="Engineer", description=desc)
+            _, adjustments = matcher.apply_bias_compensation(60.0, job)
+            assert "+5_ai_productivity" in adjustments, f"should reward agent work: {desc}"
+
+        # Unrelated uses of the word must NOT.
+        for desc in ("support our insurance agents and their customers",
+                     "manage a team of customer support agents"):
+            job = make_job(title="Engineer", description=desc)
+            _, adjustments = matcher.apply_bias_compensation(60.0, job)
+            assert "+5_ai_productivity" not in adjustments, f"false positive on: {desc}"
 
     def test_startup_stage_bonus_for_seed(self, matcher, make_job):
         """'seed' in description (no company_size) must add +3_startup_stage."""

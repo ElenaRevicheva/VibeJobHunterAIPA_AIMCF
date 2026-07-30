@@ -1,7 +1,8 @@
 ﻿"""
 Claude API Helper
 Handles model selection, fallbacks, and retry with backoff for transient errors (529/503/429).
-Credit-exhaustion (400): falls back to Groq (model id via model_config.groq_model()).
+Credit-exhaustion (400): falls back to Groq (model id via model_config.groq_model()),
+then to OpenAI gpt-4o-mini (added 2026-07-30 — see call_llm_fallback).
 """
 
 import asyncio
@@ -75,6 +76,88 @@ def call_groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse
     text = data["choices"][0]["message"]["content"]
     logger.info("[claude_helper] Groq fallback (400 credit exhaustion) succeeded")
     return _GroqResponse(text)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPENAI LAST-RESORT FALLBACK (added 2026-07-30)
+#
+# ADDITIVE ONLY. Claude and Groq behaviour is unchanged: OpenAI is tried solely
+# when Groq itself raises (429 TPD / 403 / no key). Nothing that works today
+# starts taking a different path.
+#
+# Why: Anthropic is credit-dead (400) and Groq's free tier hits its daily token
+# limit mid-cycle ("TPD: Limit 100000, Used 99427"), so `job_matcher`'s deep
+# analysis returned None all through June and July. As of 2026-07-30 that means
+# every job is capped at 54 and nothing surfaces at all. `llm_judge` already
+# uses OpenAI gpt-4o-mini successfully and has credits — this borrows the same
+# proven provider for the shared helper.
+#
+# Cost: gpt-4o-mini at ~$0.15/1M input tokens; the job-analysis prompt is ~700
+# tokens, so a full cycle of 100 jobs costs about one US cent.
+# ─────────────────────────────────────────────────────────────────────────────
+_OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+_OPENAI_FALLBACK_MODEL = os.getenv("VJH_OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+
+
+def _resolve_key(name: str) -> str:
+    """os.environ first, then the repo .env — the bot does not always export .env
+    into the process environment (same reason llm_judge._key exists)."""
+    v = os.environ.get(name, "").strip()
+    if v:
+        return v
+    try:
+        from dotenv import dotenv_values
+        from pathlib import Path
+        return (dotenv_values(Path(__file__).resolve().parents[2] / ".env").get(name) or "").strip()
+    except Exception:
+        return ""
+
+
+def call_openai_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse":
+    """Call OpenAI when BOTH Claude (400) and Groq (429/403) are unavailable.
+
+    Returns the same `.content[0].text` shim as the Groq fallback, so every
+    existing caller keeps working without a change.
+    """
+    import requests
+    api_key = _resolve_key("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OpenAI fallback unavailable: OPENAI_API_KEY not set")
+    resp = requests.post(
+        _OPENAI_API_URL,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "VibeJobHunter/1.0 (+https://aideazz.xyz)",
+        },
+        json={
+            "model": _OPENAI_FALLBACK_MODEL,
+            "messages": messages,
+            "max_tokens": min(max_tokens, 4096),
+            "temperature": 0.3,
+        },
+        timeout=60,
+    )
+    if resp.status_code != 200:
+        logger.error(f"[claude_helper] OpenAI fallback HTTP {resp.status_code}: {resp.text[:300]}")
+        resp.raise_for_status()
+    text = resp.json()["choices"][0]["message"]["content"]
+    logger.info(f"[claude_helper] OpenAI fallback ({_OPENAI_FALLBACK_MODEL}) succeeded")
+    return _GroqResponse(text)
+
+
+def call_llm_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse":
+    """Groq (free) → OpenAI (cheap). Raises only if BOTH providers fail.
+
+    This replaces bare `call_groq_fallback(...)` at the three Claude-400 sites
+    below. Groq stays FIRST so the free path is always preferred and today's
+    working behaviour is preserved exactly.
+    """
+    try:
+        return call_groq_fallback(messages, max_tokens)
+    except Exception as groq_err:
+        logger.warning(f"[claude_helper] Groq fallback failed ({groq_err}) — trying OpenAI")
+        return call_openai_fallback(messages, max_tokens)
 
 
 # Model selection priority (tries in order)
@@ -159,14 +242,14 @@ def get_cached_model(client) -> str:
 
 
 def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Synchronous Claude call with retry on 529/503/429. Groq fallback on 400."""
+    """Synchronous Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
     for attempt in range(retries):
         try:
             return client.messages.create(**kwargs)
         except anthropic.APIStatusError as e:
             if e.status_code == 400:
-                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
-                return call_groq_fallback(kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq→OpenAI")
+                return call_llm_fallback(kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
@@ -182,14 +265,14 @@ def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
 
 
 async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Async Claude call with retry on 529/503/429. Groq fallback on 400."""
+    """Async Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
     for attempt in range(retries):
         try:
             return await asyncio.to_thread(client.messages.create, **kwargs)
         except anthropic.APIStatusError as e:
             if e.status_code == 400:
-                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
-                return await asyncio.to_thread(call_groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq→OpenAI")
+                return await asyncio.to_thread(call_llm_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")
@@ -205,14 +288,14 @@ async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> 
 
 
 async def acall_claude(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
-    """Native async Claude call with retry on 529/503/429. Groq fallback on 400."""
+    """Native async Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
     for attempt in range(retries):
         try:
             return await client.messages.create(**kwargs)
         except anthropic.APIStatusError as e:
             if e.status_code == 400:
-                logger.warning("Claude 400 credit exhaustion — falling back to Groq")
-                return await asyncio.to_thread(call_groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
+                logger.warning("Claude 400 credit exhaustion — falling back to Groq→OpenAI")
+                return await asyncio.to_thread(call_llm_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
             if e.status_code in RETRY_STATUS_CODES and attempt < retries - 1:
                 wait = 2 * (attempt + 1)
                 logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{retries}), retrying in {wait}s")

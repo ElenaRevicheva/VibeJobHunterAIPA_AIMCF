@@ -64,6 +64,12 @@ JOBS_QUERIES = [
     'founding engineer AI remote',
     'AI automation lead remote startup',
     'solutions architect AI startup remote',
+    # 2026-07-30 APPENDED — the AI-automation category (Elena's shipped skill set,
+    # $3-6K/mo remote band). Original 5 queries above untouched.
+    'AI automation engineer remote latin america',
+    'AI agent developer remote worldwide',
+    'n8n automation engineer remote',
+    'AI integration engineer remote contract',
 ]
 
 # ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its
@@ -77,6 +83,10 @@ REMOTIVE_QUERIES = [
     'prompt',
     'AI agent',
     'AI solutions',
+    # 2026-07-30 APPENDED (AI-automation category).
+    'AI automation engineer',
+    'workflow automation',
+    'AI integration engineer',
 ]
 
 # Jobs where company is also a fractional-CTO prospect
@@ -244,6 +254,23 @@ except Exception:
     _spec.loader.exec_module(_fg)  # type: ignore[union-attr]
     iron_clad_fit = _fg.iron_clad_fit  # noqa: F401
 
+# Salary floor (added 2026-07-30). salary_gate.py is deliberately stdlib-only for the
+# same reason fit_gate.py is: this process runs under SYSTEM python3 with no pydantic.
+try:
+    from src.core.salary_gate import salary_verdict as _salary_verdict  # noqa: E402,F401
+except Exception:
+    try:
+        import importlib.util as _ilu2
+        from pathlib import Path as _P2
+        _spec2 = _ilu2.spec_from_file_location(
+            "salary_gate", _P2(__file__).parents[1] / "core" / "salary_gate.py")
+        _sg = _ilu2.module_from_spec(_spec2)
+        _spec2.loader.exec_module(_sg)  # type: ignore[union-attr]
+        _salary_verdict = _sg.salary_verdict  # noqa: F401
+    except Exception:
+        def _salary_verdict(*_a, **_k):          # pay simply not checked
+            return "unknown", None, "salary_gate unavailable"
+
 
 def ingest_once() -> None:
     seen = load_seen()
@@ -305,11 +332,25 @@ def ingest_once() -> None:
             # roles reach Elena's actionable "I Act TODAY"; the rest are parked in
             # "ignore" so the scraped firehose never floods her view again. ──
             fit = iron_clad_fit(title, location, desc_full)   # gate on FULL desc (keywords can sit past 800 chars)
+
+            # ── SALARY FLOOR (added 2026-07-30) — REJECT-ONLY ──
+            # Park anything that STATES pay below Elena's $3,000/mo floor. A posting
+            # with no stated salary is untouched (verdict "unknown" never parks), so
+            # this cannot shrink the actionable view on its own.
+            if fit:
+                try:
+                    _v, _m, _ev = _salary_verdict(title, desc_full)
+                    if _v == 'below_floor':
+                        fit = False
+                        log.info(f'  parked (pay ~${_m:,.0f}/mo below floor, {_ev}): {title} @ {company}')
+                except Exception as _se:
+                    log.debug(f'  salary gate unavailable ({_se}); pay not checked')
+
             hiring_stage = 'applied' if fit else 'lead_parked'
             if fit:
                 log.info(f'  IRON-CLAD FIT -> I Act TODAY: {title} @ {company}')
-            else:
-                log.info(f'  parked (not iron-clad fit): {title} @ {company}')
+            elif not fit:
+                log.info(f'  parked (not iron-clad fit or below pay floor): {title} @ {company}')
 
             # 1. Hiring pipeline (VJH track)
             push_crm_event({
