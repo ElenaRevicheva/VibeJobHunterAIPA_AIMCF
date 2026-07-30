@@ -178,7 +178,12 @@ class JobMonitor:
             ats_jobs = await get_ats_jobs_safely(
                 target_roles=target_roles,
                 max_companies=40,
-                timeout_seconds=90
+                # 2026-07-30: was 90s. A full ATS sweep measured 77s on Oracle for
+                # 1,761 jobs (Truelogic alone: 186), so it sat right on the limit and
+                # tipped over under cycle load — and asyncio.wait_for DISCARDS
+                # everything on timeout, so the whole sweep returned 0. The log said
+                # "returning partial results"; there are no partial results.
+                timeout_seconds=240
             )
 
             logger.info(f"✅ ATS APIs returned {len(ats_jobs)} jobs")

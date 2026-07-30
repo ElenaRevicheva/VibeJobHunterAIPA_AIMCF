@@ -104,7 +104,13 @@ async def get_ats_jobs_safely(
             return jobs
             
         except asyncio.TimeoutError:
-            logger.warning(f"⚠️ [ATS Integration] Timeout after {timeout_seconds}s - returning partial results")
+            # Honest wording (2026-07-30): asyncio.wait_for cancels the coroutine, so
+            # NOTHING survives — every company already fetched is thrown away. This
+            # silently zeroed the ATS source whenever the sweep ran long.
+            logger.warning(
+                f"⚠️ [ATS Integration] Timeout after {timeout_seconds}s — ALL results "
+                f"discarded (0 jobs). Raise timeout_seconds if this repeats."
+            )
             return []
         
     except ImportError as e:
