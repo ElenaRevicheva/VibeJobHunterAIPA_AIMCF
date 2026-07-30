@@ -18,6 +18,53 @@ As of June 23 2026 the filter below is enforced automatically in VibeJobHunter, 
 
 ---
 
+## 💵 THE FIFTH CRITERION — PAY (added July 30 2026)
+
+**≥ $3,000 USD / month.** Until July 30 2026 **nothing in VJH filtered on pay at all** — not the career gate, not `iron_clad_fit`, not the scorer, not the judge. Every "🔥 I Act TODAY" card could have been a $1,200/mo role and the system had no idea.
+
+Now enforced by **`src/core/salary_gate.py`** in both paths (`gate_node` for the bot, `serpapi_jobs_ingest` for the HubSpot ingest). Env: `VJH_MIN_MONTHLY_USD` (default `3000`).
+
+**It is REJECT-ONLY, on purpose:**
+
+| verdict | meaning | action |
+|---|---|---|
+| `below_floor` | pay is stated and even the **top** of the range is under the floor | drop / park |
+| `unknown` | no parseable USD figure | **never blocks** — most postings omit salary |
+| `ok` | stated pay clears the floor | pass, and the amount is logged on the gate line |
+
+Conservatism is deliberate: a range is judged on its **maximum** (`$2,000–$4,000` survives), non-USD amounts return `unknown` rather than a guessed conversion, and the **best** figure in a posting wins so a "$200 laptop stipend" cannot sink an $8,000 salary.
+
+---
+
+## 🎯 THE THREE TARGET LANES — now in EVERY judgment layer (July 30 2026)
+
+The lanes were corrected on **July 9 2026** (`dc54b6c`) and encoded in the gate, `fit_gate` and `llm_judge` — but **not** in `job_matcher._ai_deep_analysis`, which still targeted the old "Founding Engineer / AI PM / Staff-Principal". That was invisible until the AI-score floor was removed; then a misaligned rubric started **vetoing good jobs**. A textbook-perfect role — *AI Automation Engineer, fully remote, LATAM-open, $5–7K/mo* — scored **45/100 and was discarded**. After alignment the same job scores **96 → submit**.
+
+  a) **AI-augmented products / agents / systems builder** — "AI Engineer", "AI Agents Engineer", "AI Solutions Engineer", "Founding AI Engineer", "Forward-Deployed Engineer". *"Engineer" in a title is NOT a disqualifier.*
+  b) **GEO / AEO / technical SEO** — generative- and answer-engine optimization, AI-crawler visibility, structured data.
+  c) **AI automation / solutions architect** — agent builders, n8n / Make / Zapier, workflow automation, AI integration.
+
+**NOT a fit:** pure ML/AI research, legal, sales, recruiting, devrel, marketing, finance, HR, exec/VP/director, data entry.
+
+⚠️ **The wrong kind of "automation"** (added the same day, after a real leak into "I Act TODAY"): **QA/test automation, SDET, IT/infrastructure/network automation, industrial automation/PLC/RPA, and marketing/sales automation are vetoed at title level.** Broadening the search terms to lane (c) pulled these in, and the SerpAPI path has no LLM judge behind it.
+
+---
+
+## 🌎 WHERE THE JOBS COME FROM (retargeted July 30 2026)
+
+The filters were never the bottleneck — **the well was**. `ats_scraper.py` was fetching 40 AI labs (anthropic, openai, cohere, scale) that rarely hire LATAM-remote and that the big-co blocklist rejects downstream.
+
+- **18 LATAM-nearshore / remote-first employers**, each verified live before being added: **Truelogic** (182 openings — *the firm that already replied to Elena*), n8n, Zapier, Oyster, Andela, Remote.com, GitLab, Wizeline, Turing, Toptal, Arionkoder, Make, Modus Create, Teravision, RelevanceAI, Close, Buffer. Prepended to their provider lists, because each list is sliced `[:max_companies]`.
+- **`src/scrapers/yc_oss_jobs.py`** — free `yc-oss` company API → filter active+hiring+remote/LATAM → fetch each company's **public** Ashby/Greenhouse/Lever board. ~128 real openings/cycle. No auth, no cookies; `workatastartup` is login-gated and deliberately not scraped. Honest limit: only ~13% of hiring YC companies expose a public board.
+- **AI-automation search terms** added to Torre, Remotive, RemoteOK and SerpAPI (**Torre went 95 → 221 jobs/cycle**).
+- **`src/scrapers/job_enricher.py`** — Torre and similar list APIs return a one-line tagline; the enricher fetches the real posting (**96 → 1,905–8,000 chars**) so every filter judges the actual job. Anything still under 250 chars after enrichment is dropped as *"insufficient data to judge"* rather than guessed at.
+
+⚠️ **Marketplaces are Elena's job, not the bot's:** Turing, Toptal, Braintrust and A.Team match you to work after **one profile**; there is nothing to scrape. Create the profile once.
+
+**First cycle after this shipped:** `human_pending` went from **0 → 6** (the per-cycle surface cap), all in lane (c), two with pay stated at ~$5,000 and ~$3,360/mo.
+
+---
+
 ## 🆕 Interview proof — Bright Data hackathon (added May 26 2026)
 
 **When asked "can you ship under real constraints?" — this is the new lead answer.**

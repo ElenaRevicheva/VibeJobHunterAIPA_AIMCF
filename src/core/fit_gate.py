@@ -98,4 +98,20 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'senior software engineer', 'backend engineer', 'frontend engineer',
         'full stack', 'full-stack', 'fullstack'))
 
-    return remote and latam and ai_aug and not us_only and not heavy
+    # ── WRONG KIND OF "AUTOMATION" (added 2026-07-30) ────────────────────────
+    # Broadening the search terms to Elena's AI-automation lane also pulled in
+    # QA/test automation, IT/infrastructure automation and industrial automation —
+    # all of which contain "automation engineer" and none of which she wants. Real
+    # leak, seen the same day: "Senior QA Automation Engineer @ Coderoad" and
+    # "(1515) QA Automation Engineer" landed in HubSpot "🔥 I Act TODAY" via the
+    # SerpAPI path, which has no LLM judge behind it. Title-level check only, so a
+    # genuine AI-automation role that merely mentions testing is unaffected.
+    title_l = (title or '').lower()
+    wrong_automation = any(k in title_l for k in (
+        'qa automation', 'automation qa', 'test automation', 'automation test',
+        'sdet', 'quality assurance', 'quality engineer',
+        'it automation', 'infrastructure automation', 'network automation',
+        'industrial automation', 'plc', 'robotics automation', 'rpa developer',
+        'marketing automation', 'sales automation'))
+
+    return remote and latam and ai_aug and not us_only and not heavy and not wrong_automation

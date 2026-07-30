@@ -42,6 +42,40 @@ NEGATIVE_STAGES = {"closedlost"}
 MAX_EXAMPLES = 6
 NOISE = re.compile(r"smoke|delete me|\btest\b", re.IGNORECASE)
 
+# ── TITLE QUALITY FILTERS (added 2026-07-30) ─────────────────────────────────
+# Verified defect: the "contractsent" (They replied) stage is fed by the response
+# detector, whose deal names are EMAIL SUBJECTS, not job titles. So the judge was
+# being taught that these are roles Elena wants:
+#     "Invitación actualizada: Meeting mar 20 de ene de 2026 10am"
+#     "Action Required: Step 2 of your 10x Application @ 10x-hire"
+#     "[AIdeazz] Inquiry — Velena Adam @ Aideazz"
+# Few-shot examples like that are pure noise. Two filters now apply to BOTH lists:
+#   1. drop anything shaped like an email subject / calendar invite
+#   2. keep only titles containing an actual ROLE noun
+EMAIL_SUBJECT = re.compile(
+    r"^(re|fwd|fw)\b|invitation|invitaci|updated invite|meeting|calendar|"
+    r"next steps?|step \d|action required|additional info|your application|"
+    r"application (for|received|update)|you'?re invited|thank you for|"
+    r"complete your|reminder|follow[- ]?up|zoom|interview with|inquiry",
+    re.IGNORECASE,
+)
+ROLE_NOUN = re.compile(
+    r"\b(engineer|developer|architect|specialist|scientist|analyst|designer|"
+    r"manager|lead|head|director|consultant|builder|strategist|marketer|"
+    r"operations|ops|automation|技術|programmer|administrator|coordinator|"
+    r"technician|advisor|officer|founder|cto|pm|product owner)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_usable_title(title: str) -> bool:
+    """A few-shot example is only useful if it reads like a real job title."""
+    if not title or NOISE.search(title):
+        return False
+    if EMAIL_SUBJECT.search(title):
+        return False
+    return bool(ROLE_NOUN.search(title))
+
 
 def _read_env_file(path: Path, name: str) -> str:
     try:
@@ -105,7 +139,8 @@ def main() -> int:
         p = d.get("properties", {})
         name, stage = p.get("dealname", ""), p.get("dealstage", "")
         title = _clean_title(name)
-        if not title or NOISE.search(title) or title.lower() in seen:
+        # _is_usable_title also covers the old NOISE check (see its definition).
+        if not _is_usable_title(title) or title.lower() in seen:
             continue
         if stage in POSITIVE_STAGES and len(positives) < MAX_EXAMPLES:
             positives.append(title)
