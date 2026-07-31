@@ -156,7 +156,17 @@ def enrich_description(url: str, description: str, force: bool = False) -> str:
     original = description or ""
     if not ENRICH_ENABLED or not url or not str(url).startswith(("http://", "https://")):
         return original
-    if not force and len(original) >= THIN_DESCRIPTION_CHARS:
+    # LENGTH ALONE IS THE WRONG TEST (fixed 2026-07-31). A Dice listing for
+    # "AI Engineer @ StatusNeo" arrived as 562 chars — over the 400-char bar, so
+    # enrichment was skipped — but it was pure company marketing, truncated
+    # mid-sentence at "design, dev...". The disqualifiers ("Bachelor's or Master's
+    # degree in Computer Science", "5+ years of software engineering experience")
+    # were in the sections that never arrived, so the fit gate and the LLM judge
+    # both passed a job Elena is explicitly filtering out. They were not wrong —
+    # they were blind. Now: fetch when the text is thin OR when it carries no
+    # posting prose (requirements / qualifications / responsibilities), because a
+    # blurb without those sections cannot disqualify anything.
+    if not force and len(original) >= THIN_DESCRIPTION_CHARS and _looks_like_posting_text(original):
         return original
     if not _looks_like_posting_url(url):
         logger.debug(f"[enrich] not a single-posting URL, refusing to fetch: {str(url)[:70]}")

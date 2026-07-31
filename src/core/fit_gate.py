@@ -75,8 +75,22 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     elif any(t in loc for t in COUNTRY_LOCK):
         latam = False
     else:
+        # The DESCRIPTION fallback must be stricter than the LOCATION test.
+        # "Global" in a location field means the hiring region. In prose it almost
+        # always describes the EMPLOYER: StatusNeo's blurb — "a global digital
+        # transformation and product engineering company" — matched bare 'global'
+        # and its India-centric AI Engineer role was read as LATAM-open (2026-07-31).
+        # Same failure class as bare "agents": a word about the company scoring as
+        # a fact about the job. Here the phrase must be about WHERE YOU MAY LIVE.
         latam = (
-            any(t in desc_l for t in LATAM_OK + ('any time zone', 'any timezone', 'international'))
+            any(t in desc_l for t in (
+                'latam', 'latin america', 'central america', 'south america',
+                'work from anywhere', 'from anywhere in the world', 'anywhere in the world',
+                'globally distributed', 'hire globally', 'hiring globally',
+                'remote worldwide', 'worldwide remote', 'fully remote worldwide',
+                'any country', 'any time zone', 'any timezone', 'location independent',
+                'open to candidates anywhere', 'candidates from any',
+            ))
             or any(p.search(blob) for p in _TZ_COMPATIBLE_PATTERNS)
         )
 
@@ -108,6 +122,14 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         heavy_blob = heavy_blob.replace(neg, ' ')
     heavy = any(k in heavy_blob for k in (
         'computer science degree', 'cs degree', 'leetcode', 'system design interview',
+        # 2026-07-31: the StatusNeo posting demanded "Bachelor's or Master's degree
+        # in Computer Science" and "5+ years of software engineering experience" —
+        # neither phrasing matched. The list only knew the words in the OTHER order.
+        'degree in computer science', 'degree in engineering', 'bachelor’s or master',
+        "bachelor's or master", 'bachelor degree', "bachelor's degree", 'bachelors degree',
+        "master's degree", 'masters degree', 'b.tech', 'b.e./b.tech',
+        'years of software engineering experience', 'years of professional experience in software',
+        'years of hands-on software', 'years of backend', 'years of full-stack',
         'strong coding', 'strong programming', 'algorithms and data structures',
         'years of software engineering', 'years of professional software',
         'years writing production code',
