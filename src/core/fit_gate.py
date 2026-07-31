@@ -10,7 +10,57 @@ A role only reaches Elena's actionable "I Act TODAY" if it is:
 Bias is intentionally strict: better to park/drop a good one than promote a bad one.
 """
 
+import os
 import re
+
+# ── RESIDENCY ROSTER BEATS THE REGION LABEL (added 2026-07-31) ────────────────
+# Elena applied to "AI-Native Agentic Operations Specialist @ Singular Agency"
+# and Torre's pre-screening rejected her at step 2 of 3:
+#   "This position requires you to be a resident of any of these countries:
+#    Guatemala, México, República Dominicana, Salvador, Nicaragua, Puerto Rico,
+#    Costa Rica, Honduras, Venezuela, Bolivia, Argentina, Chile, Colombia,
+#    Ecuador, Paraguay, Uruguay, Perú, Aruba"
+# PANAMA IS NOT ON IT. VJH had that roster all along — it was sitting inside the
+# location string it stored — but the string reads
+#   "Remote — Worldwide / LATAM (Colombia, Ecuador, Puerto Rico, ...)"
+# and the gate matched the "Worldwide / LATAM" LABEL while ignoring the
+# parenthesised list. The label is marketing; the roster is the rule. When a
+# posting enumerates the countries it hires from, Elena's must be among them.
+HOME_COUNTRY = os.getenv("VJH_HOME_COUNTRY", "panama").strip().lower()
+_COUNTRY_ROSTER = re.compile(r"\(([^)]{6,})\)")
+# If the roster itself says "anywhere", it is a region label, not a restriction.
+_OPEN_REGION_TOKENS = ('worldwide', 'anywhere', 'global', 'any country',
+                       'latam', 'latin america', 'americas')
+
+
+def _deaccent(s: str) -> str:
+    """Fold diacritics so 'Panamá' == 'panama' and 'México' == 'mexico'."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", s or "")
+                   if not unicodedata.combining(c))
+
+
+def roster_excludes_home(location: str) -> bool:
+    """
+    True when the location enumerates eligible countries and HOME_COUNTRY is
+    absent — i.e. Elena is not allowed to hold this job however "LATAM" it looks.
+
+    Conservative: only a comma-separated list of two or more entries counts as a
+    roster, so "Berlin (Remote)" and "Remote (anywhere)" are never treated as one.
+    """
+    m = _COUNTRY_ROSTER.search(location or "")
+    if not m:
+        return False
+    # Torre writes rosters in Spanish — "México", "Perú", "Panamá". Comparing
+    # raw would miss Elena's OWN country on any accented listing and reject a job
+    # she is in fact eligible for, so fold diacritics on both sides.
+    inner = _deaccent(m.group(1).lower())
+    if len([x for x in inner.split(",") if x.strip()]) < 2:
+        return False
+    if any(tok in inner for tok in _OPEN_REGION_TOKENS):
+        return False
+    return _deaccent(HOME_COUNTRY) not in inner
+
 
 LATAM_OK = ('worldwide', 'anywhere', 'global', 'americas', 'latam',
             'latin america', 'central america')
@@ -70,7 +120,11 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     # specific non-Panama country tag (Brazil-only, USA-only) is authoritative and
     # parks the job even if the description name-drops "Americas". Only fall back to
     # description keywords when there is no clean region tag (e.g. Google Jobs).
-    if any(t in loc for t in LATAM_OK):
+    # An explicit residency roster OUTRANKS the region label in front of it —
+    # "Worldwide / LATAM (Colombia, Ecuador, ...)" means those countries, not LATAM.
+    if roster_excludes_home(loc):
+        latam = False
+    elif any(t in loc for t in LATAM_OK):
         latam = True
     elif any(t in loc for t in COUNTRY_LOCK):
         latam = False
