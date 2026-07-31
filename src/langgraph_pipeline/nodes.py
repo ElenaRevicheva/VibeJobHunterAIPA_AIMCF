@@ -56,8 +56,19 @@ def gate_node(state: JobState) -> dict:
         # any failure, so nothing that works today changes.
         if passed:
             try:
-                from src.scrapers.job_enricher import enrich_description
-                description = enrich_description(state.get('url', ''), description)
+                from src.scrapers.job_enricher import enrich_with_state
+                description, _closed = enrich_with_state(state.get('url', ''), description)
+                # CLOSED POSTING (added 2026-07-31): two Torre jobs reached
+                # "I Act TODAY" and were already closed when Elena opened them.
+                # Only fires when the page positively says so — never on a failed
+                # fetch — so nothing is dropped for lack of evidence.
+                if _closed:
+                    logger.info(f"[gate] FAIL  {state['company']} — {state['title']} (posting is CLOSED)")
+                    return {
+                        "gate_passed": False,
+                        "gate_reason": "posting is closed / no longer accepting applications",
+                        "status": "gated_out",
+                    }
             except Exception as _ee:
                 logger.debug(f"[gate] enrichment unavailable ({_ee}); using original text")
 

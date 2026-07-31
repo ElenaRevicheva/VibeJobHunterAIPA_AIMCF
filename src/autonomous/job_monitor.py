@@ -1139,6 +1139,23 @@ class JobMonitor:
                         for opp in (results or []):
                             if not opp.get("remote"):   # remote-only (honest — don't mislabel on-site as remote)
                                 continue
+                            # CLOSED / EXPIRED (added 2026-07-31). Torre's own API
+                            # carries `status` ("open") and `deadline`, and we were
+                            # ignoring both — so two already-closed openings reached
+                            # Elena's "I Act TODAY" and wasted her clicks. Cheapest
+                            # possible place to catch it: before the job even exists.
+                            _status = str(opp.get("status", "") or "").lower()
+                            if _status and _status != "open":
+                                continue
+                            _deadline = str(opp.get("deadline", "") or "")
+                            if _deadline:
+                                try:
+                                    _dl = datetime.fromisoformat(_deadline.replace("Z", "+00:00"))
+                                    if _dl < datetime.now(timezone.utc):
+                                        continue
+                                except Exception:
+                                    pass  # unparseable deadline → keep the job
+
                             title = opp.get("objective", "") or opp.get("tagline", "")
                             slug = opp.get("slug") or opp.get("id", "")
                             if not title or slug in seen:

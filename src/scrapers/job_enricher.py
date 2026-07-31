@@ -60,6 +60,37 @@ _POSTING_MARKERS = (
 )
 _MIN_POSTING_MARKERS = 2
 
+# ── CLOSED-POSTING DETECTION (added 2026-07-31) ───────────────────────────────
+# Two Torre jobs sat in "I Act TODAY" that had already closed — Elena opened them
+# and got "This job opening is closed. SET AN ALERT". A dead posting is worse than
+# a wrong one: it costs her a click and there is nothing at the end of it.
+# Verified on the live pages: both closed postings carry these phrases in raw HTML
+# while a still-open Torre posting carries NONE, so the signal discriminates.
+# Deliberately precise phrases — never a bare "closed", which appears in ordinary
+# prose ("closed-loop systems") and in unrelated JSON keys.
+_CLOSED_MARKERS = (
+    "this job opening is closed",
+    "opening is closed",
+    "this job is closed",
+    "position is closed",
+    "applications are closed",
+    "no longer accepting applications",
+    "no longer accepting candidates",
+    "this position has been filled",
+    "this role has been filled",
+    "this job has expired",
+    "this posting has expired",
+    "job posting is no longer available",
+    "this job is no longer available",
+    "we are no longer hiring for this",
+)
+
+
+def looks_closed(html_or_text: str) -> bool:
+    """True if the fetched page says the opening is no longer open."""
+    low = (html_or_text or "").lower()
+    return any(m in low for m in _CLOSED_MARKERS)
+
 
 def _looks_like_posting_url(url: str) -> bool:
     """True only for URLs that identify ONE posting, not a board index."""
@@ -147,15 +178,22 @@ def _from_jsonld(html: str) -> Optional[str]:
 
 
 def enrich_description(url: str, description: str, force: bool = False) -> str:
-    """
-    Return a fuller description for `url`, or `description` unchanged.
+    """Backward-compatible wrapper: returns only the text (see enrich_with_state)."""
+    return enrich_with_state(url, description, force)[0]
 
-    Only fetches when the current text is thinner than THIN_DESCRIPTION_CHARS
-    (unless force=True).
+
+def enrich_with_state(url: str, description: str, force: bool = False):
+    """
+    Return (description, is_closed) for `url`.
+
+    `description` is a fuller version when one could be fetched, otherwise the
+    original unchanged. `is_closed` is True only when the fetched page positively
+    states the opening is closed — never a guess, and False whenever we did not
+    fetch, so a job is never dropped on absence of evidence.
     """
     original = description or ""
     if not ENRICH_ENABLED or not url or not str(url).startswith(("http://", "https://")):
-        return original
+        return original, False
     # LENGTH ALONE IS THE WRONG TEST (fixed 2026-07-31). A Dice listing for
     # "AI Engineer @ StatusNeo" arrived as 562 chars — over the 400-char bar, so
     # enrichment was skipped — but it was pure company marketing, truncated
@@ -167,10 +205,10 @@ def enrich_description(url: str, description: str, force: bool = False) -> str:
     # posting prose (requirements / qualifications / responsibilities), because a
     # blurb without those sections cannot disqualify anything.
     if not force and len(original) >= THIN_DESCRIPTION_CHARS and _looks_like_posting_text(original):
-        return original
+        return original, False
     if not _looks_like_posting_url(url):
         logger.debug(f"[enrich] not a single-posting URL, refusing to fetch: {str(url)[:70]}")
-        return original
+        return original, False
 
     try:
         import requests
@@ -182,30 +220,39 @@ def enrich_description(url: str, description: str, force: bool = False) -> str:
         )
         if resp.status_code != 200:
             logger.debug(f"[enrich] HTTP {resp.status_code} for {url}")
-            return original
+            return original, False
         if "html" not in resp.headers.get("Content-Type", "").lower():
-            return original
+            return original, False
 
         html = resp.text
+
+        # DEAD POSTING — decided on the fetched page, before any text work. A job
+        # that has closed is worth less than a wrong one: it costs a click and
+        # there is nothing at the end of it. Returns the ORIGINAL text alongside
+        # the flag so callers that only want text are unaffected.
+        if looks_closed(html):
+            logger.info(f"[enrich] posting is CLOSED — {str(url)[:70]}")
+            return original, True
+
         text = _from_jsonld(html) or _html_to_text(html)
 
         # Never trade down: a nav-only page can render shorter than the stub we had.
         if len(text) <= max(len(original), THIN_DESCRIPTION_CHARS // 2):
             logger.debug(f"[enrich] fetched text too thin ({len(text)}c) — keeping original")
-            return original
+            return original, False
 
         # Reject board navigation masquerading as a posting (see the guards above).
         if not _looks_like_posting_text(text):
             logger.info(f"[enrich] fetched page does not read like a posting "
                         f"(likely a board index) — keeping original: {str(url)[:60]}")
-            return original
+            return original, False
 
         enriched = text[:MAX_ENRICHED_CHARS]
         logger.info(f"[enrich] {len(original)}c → {len(enriched)}c from {str(url)[:70]}")
         # Keep the original line: it sometimes carries the region tag ("[Remote role
         # via Torre.ai]") that iron_clad_fit reads.
-        return f"{original}\n\n{enriched}" if original else enriched
+        return (f"{original}\n\n{enriched}" if original else enriched), False
 
     except Exception as e:
         logger.debug(f"[enrich] failed for {str(url)[:70]}: {e}")
-        return original
+        return original, False
