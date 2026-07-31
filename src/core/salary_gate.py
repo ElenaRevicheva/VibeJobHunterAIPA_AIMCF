@@ -33,6 +33,9 @@ from typing import List, Optional, Tuple
 # Her floor. Env-overridable: she said $3,000 on 2026-07-30; an older note said
 # $3,500. Change the env var, not this file, to raise it.
 MIN_MONTHLY_USD = float(os.getenv("VJH_MIN_MONTHLY_USD", "3000"))
+# Below this, a "salary" is a mis-parse (a footnote, a price, a version number),
+# never an offer. Such a figure yields "unknown" instead of "below_floor".
+IMPLAUSIBLE_MONTHLY_USD = float(os.getenv("VJH_IMPLAUSIBLE_MONTHLY_USD", "200"))
 
 # Full-time assumptions for normalising non-monthly pay.
 _HOURS_PER_MONTH = 160.0   # 40h/week × 4 weeks
@@ -161,6 +164,17 @@ def salary_verdict(
     # Judge on the BEST stated figure: a posting mentioning both a $2,000 stipend
     # and a $6,000 salary should not be rejected.
     best, evidence = max(hits, key=lambda h: h[0])
+
+    # IMPLAUSIBLY SMALL FIGURES ARE NOISE, NOT PAY (added 2026-07-31).
+    # A live sweep produced "UNDERPAID (~$1/mo)" for an Applied AI Engineer role —
+    # some stray "$1" in the page (a footnote, a price, a version) parsed as a
+    # salary and would have rejected a genuine job. Nobody advertises a role at
+    # under $200/month, so treat that as a failed parse and fall back to
+    # "unknown", which never blocks. Rejecting on a bad parse is the one outcome
+    # this gate must never produce.
+    if best < IMPLAUSIBLE_MONTHLY_USD:
+        return "unknown", None, f"implausible parse ({evidence}) — treated as no data"
+
     if best < limit:
         return "below_floor", best, evidence
     return "ok", best, evidence
