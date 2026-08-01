@@ -61,6 +61,28 @@ The filters were never the bottleneck — **the well was**. `ats_scraper.py` was
 
 ⚠️ **Marketplaces are Elena's job, not the bot's:** Turing, Toptal, Braintrust and A.Team match you to work after **one profile**; there is nothing to scrape. Create the profile once.
 
+---
+
+## 🧹 IS THE JOB REAL, AND CAN SHE ACTUALLY HOLD IT? (added July 31 2026)
+
+Three defects found by Elena opening real cards in "🔥 I Act TODAY" — every one of them a case of the pipeline **already having the fact and not reading it**.
+
+**1. The posting was already closed.** Two Torre cards opened to *"This job opening is closed."* A dead posting is worse than a wrong one: it costs a click and there is nothing at the end of it. Both available signals were being ignored — Torre's API carries `status` and `deadline` (now filtered at ingest, the cheapest possible place), and the posting page says so in plain text (now read during enrichment, `gate_node` fails it with *"posting is closed"*). Only **positive** evidence counts: a failed fetch never drops a job.
+
+**2. The residency roster beat the region label.** Elena applied to *AI-Native Agentic Operations Specialist @ Singular Agency* and Torre's pre-screening rejected her at step 2 of 3 — the role hires from 18 named LATAM countries and **Panama is not among them**. VJH had that roster the whole time, inside the location string it stored:
+
+> `Remote — Worldwide / LATAM (Colombia, Ecuador, Puerto Rico, …)`
+
+The gate matched the **"Worldwide / LATAM" label** and ignored the parenthesised list. *The label is marketing; the roster is the rule.* When a posting enumerates the countries it hires from, Panama must be among them — checked **before** the region-label test, with diacritics folded so a Spanish roster spelling it *Panamá* still counts. This was not one bad lead: **all three surfaced jobs carrying a roster excluded Panama, including both that stated pay above the floor.**
+
+**3. A `$1` parsed as a salary.** A stray figure in a page produced *"UNDERPAID (~$1/mo)"* and would have thrown away a genuine Applied AI Engineer role. Anything under `VJH_IMPLAUSIBLE_MONTHLY_USD` (200) is now a failed parse → `unknown` → never blocks. **Rejecting on a bad parse is the one outcome a reject-only gate must never produce.**
+
+### Re-auditing the queue: `scripts/sweep_i_act_today.py`
+
+Re-runs every deal sitting in "I Act TODAY" against the *current* gate and moves the failures to ❌ No fit, writing an undo file with every previous stage. Dry-run by default; `--apply` to move.
+
+First run cleared **36 of 53**: 22 off-lane (ML-engineer / researcher / SDE titles — *"AI Engineer" is a fit, "Machine Learning Engineer" is not, and they are one word apart*), 11 ineligible, 3 dead. **17 genuine AI-engineering / AI-automation roles remain.** Never rejects on absence of evidence: a card whose posting cannot be fetched and whose title looks fine is kept.
+
 **First cycle after this shipped:** `human_pending` went from **0 → 6** (the per-cycle surface cap), all in lane (c), two with pay stated at ~$5,000 and ~$3,360/mo.
 
 ---
