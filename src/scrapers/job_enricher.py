@@ -111,9 +111,28 @@ def _looks_like_posting_url(url: str) -> bool:
         return False
 
 
-def _looks_like_posting_text(text: str) -> bool:
+# A board INDEX is short-ish and marker-poor. A long body fetched from a URL that
+# already identifies ONE posting is a posting, even if it phrases itself unusually
+# (2026-08-04): ai-jobs.net renders "Tasks / Requirements" as bare headed lists and
+# hit only one marker, so 112 valid postings in 48h were discarded as "board index"
+# — and 37 of those were roles in Elena's lanes, including a Forward Deployed
+# Engineer opening. The URL check upstream is what actually keeps indexes out.
+_LONG_BODY_IS_POSTING_CHARS = int(os.getenv("VJH_LONG_BODY_POSTING_CHARS", "1500"))
+
+
+def _looks_like_posting_text(text: str, url: str = "") -> bool:
     low = (text or "").lower()
-    return sum(1 for m in _POSTING_MARKERS if m in low) >= _MIN_POSTING_MARKERS
+    hits = sum(1 for m in _POSTING_MARKERS if m in low)
+    if hits >= _MIN_POSTING_MARKERS:
+        return True
+    # Relaxed path: one marker is enough when the body is substantial AND the URL
+    # already identified a single posting. Never relax on zero markers.
+    return (
+        hits >= 1
+        and len(text or "") >= _LONG_BODY_IS_POSTING_CHARS
+        and bool(url)
+        and _looks_like_posting_url(url)
+    )
 
 _DROP_BLOCKS = re.compile(r"<(script|style|noscript|svg|head)[^>]*>.*?</\1>", re.I | re.S)
 _BREAKS = re.compile(r"</(p|div|li|tr|h[1-6]|br)\s*/?>", re.I)
@@ -242,7 +261,7 @@ def enrich_with_state(url: str, description: str, force: bool = False):
             return original, False
 
         # Reject board navigation masquerading as a posting (see the guards above).
-        if not _looks_like_posting_text(text):
+        if not _looks_like_posting_text(text, url):
             logger.info(f"[enrich] fetched page does not read like a posting "
                         f"(likely a board index) — keeping original: {str(url)[:60]}")
             return original, False

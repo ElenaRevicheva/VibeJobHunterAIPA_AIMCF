@@ -204,6 +204,7 @@ class VJHLangGraphRunner:
             # Gate / score (will be filled by nodes)
             "gate_passed":  False,
             "gate_reason":  "",
+            "unverified":   False,
             "score":        0.0,
             "score_reasons": [],
 
@@ -346,9 +347,14 @@ class VJHLangGraphRunner:
                         # LLM JUDGE precision veto on the human-review surface path (the path jobs
                         # actually take in LEAD mode) — so wrong-fit jobs never reach Telegram/HubSpot.
                         try:
-                            from src.core.llm_judge import judge_fit
-                            _jf, _jr = judge_fit(final_state.get('title', ''), final_state.get('company', ''),
-                                                 final_state.get('location', ''), final_state.get('description', ''))
+                            if final_state.get('unverified'):
+                                # Same rule as the gate and submit_node: don't ask an
+                                # LLM to rule on text we already know is incomplete.
+                                _jf, _jr = True, "unverified — judge skipped, surfaced for human review"
+                            else:
+                                from src.core.llm_judge import judge_fit
+                                _jf, _jr = judge_fit(final_state.get('title', ''), final_state.get('company', ''),
+                                                     final_state.get('location', ''), final_state.get('description', ''))
                         except Exception as _je:
                             _jf, _jr = True, f"judge import failed ({_je})"
                         if not _jf:

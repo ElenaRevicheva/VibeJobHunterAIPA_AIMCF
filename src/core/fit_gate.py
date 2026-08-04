@@ -33,6 +33,44 @@ _OPEN_REGION_TOKENS = ('worldwide', 'anywhere', 'global', 'any country',
                        'latam', 'latin america', 'americas')
 
 
+# ── TITLE-ONLY LANE CHECK (added 2026-08-04) ─────────────────────────────────
+# Used ONLY to decide whether an unjudgeable posting is worth Elena's own 30
+# seconds. In 48h the thin-data guard discarded 107 postings and 37 were in her
+# lanes — including "Forward Deployed Engineer - AI Solutions Engineering", the
+# exact title she applied to elsewhere that week. Silence was the wrong answer;
+# the right one is to surface it clearly marked as unverified.
+# This is NOT a fit gate. It never promotes anything on its own.
+_ON_LANE_TITLE = re.compile(
+    r"\bai\b.*\b(engineer|developer|architect|specialist|builder|lead|consultant)|"
+    r"\b(engineer|developer|architect|specialist|builder|lead)\b.*\bai\b|"
+    r"agentic|ai agent|llm|generative ai|genai|"
+    r"automation (engineer|specialist|architect|consultant)|"
+    r"forward.deployed|solutions (engineer|architect|consultant)|"
+    r"\bn8n\b|make\.com|zapier|workflow automation|prompt engineer|"
+    r"\b(geo|aeo)\b|technical seo",
+    re.IGNORECASE,
+)
+_OFF_LANE_TITLE = re.compile(
+    r"machine learning (engineer|scientist|researcher)|\bml (engineer|scientist)\b|"
+    r"research (engineer|scientist)|researcher|data (scientist|analyst)|"
+    r"qa automation|test automation|sdet|quality assurance|"
+    r"it automation|infrastructure automation|industrial automation|rpa|"
+    r"marketing automation|sales automation|"
+    r"full[- ]?stack|backend engineer|front[- ]?end engineer|"
+    r"senior software engineer|staff (engineer|software)|principal engineer|"
+    r"embedded|firmware|business analyst|account executive|recruiter",
+    re.IGNORECASE,
+)
+
+
+def title_on_lane(title: str) -> bool:
+    """True if the TITLE alone puts this role in one of Elena's three lanes."""
+    t = title or ""
+    if _OFF_LANE_TITLE.search(t):
+        return False
+    return bool(_ON_LANE_TITLE.search(t))
+
+
 def _deaccent(s: str) -> str:
     """Fold diacritics so 'Panamá' == 'panama' and 'México' == 'mexico'."""
     import unicodedata

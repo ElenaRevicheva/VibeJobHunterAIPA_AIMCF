@@ -26,6 +26,11 @@ class JobState(TypedDict):
     # ── Gate result ──────────────────────────────────────────────────────────
     gate_passed: bool
     gate_reason: str      # Why it passed or failed
+    # True when the posting could not be READ (too thin after enrichment) but the
+    # title is on-lane, so it is surfaced for Elena's own judgement instead of
+    # being discarded silently. MUST stay declared here — LangGraph silently drops
+    # any state key missing from this TypedDict.
+    unverified: bool
 
     # ── Score result ─────────────────────────────────────────────────────────
     score: float          # Final score after boosts

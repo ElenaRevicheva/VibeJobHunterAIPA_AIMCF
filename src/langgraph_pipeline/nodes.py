@@ -80,28 +80,56 @@ def gate_node(state: JobState) -> dict:
         # role seniority or scope"). Verified that Torre postings DO enrich
         # (96c → 1,905c via torre.ai/jobs/{id}), so this rejects unfetchable
         # stubs, not the whole LATAM source. Env: VJH_MIN_JUDGEABLE_CHARS.
+        unverified = False
         if passed:
             _min_judgeable = int(os.getenv('VJH_MIN_JUDGEABLE_CHARS', '250'))
             if len(description or '') < _min_judgeable:
-                passed = False
-                reason = (f"insufficient data to judge ({len(description or '')} chars "
-                          f"after enrichment, need {_min_judgeable})")
+                # UNVERIFIED PASS (added 2026-08-04). Dropping every unjudgeable
+                # posting cost real opportunities: in one 48h window this guard
+                # discarded 107 jobs, 37 of them in Elena's lanes — including a
+                # "Forward Deployed Engineer - AI Solutions Engineering" role.
+                # The bot failing to READ a page is not evidence the job is wrong.
+                # So: if the TITLE is clearly on-lane, surface it flagged instead
+                # of discarding it silently. Everything else still drops.
+                try:
+                    from src.core.fit_gate import title_on_lane
+                    _on_lane = title_on_lane(state.get('title', ''))
+                except Exception:
+                    _on_lane = False
+                if _on_lane:
+                    unverified = True
+                    logger.info(
+                        f"[gate] UNVERIFIED PASS  {state['company']} — {state['title']} "
+                        f"(only {len(description or '')} chars; on-lane title → "
+                        f"surfacing for a human look)"
+                    )
+                else:
+                    passed = False
+                    reason = (f"insufficient data to judge ({len(description or '')} chars "
+                              f"after enrichment, need {_min_judgeable})")
 
         if passed:
             # IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented roles
             # (no heavy-coding/US-only) reach Elena — the SAME filter the HubSpot ingest
             # uses. This is what makes the bot chase RIGHT positions, not random AI jobs.
-            try:
-                from src.search.serpapi_jobs_ingest import iron_clad_fit
-                _loc = state.get('location') or (state.get('raw_job') or {}).get('location') or ''
-                if iron_clad_fit(state.get('title', ''), _loc, description):
-                    reason = "passed career + iron-clad fit"
-                else:
-                    passed = False
-                    reason = "career-ok but NOT iron-clad fit (remote/LATAM/AI-augmented)"
-            except Exception as _e:
-                logger.warning(f"[gate] iron_clad_fit unavailable ({_e}); career gate only")
-                reason = "passed career (fit filter unavailable)"
+            if unverified:
+                # Deliberately SKIPPED for unverified jobs: iron_clad_fit reads the
+                # description, and running it on 130 chars we already know is
+                # incomplete would just manufacture a confident "no". The whole
+                # point of this path is that judgement is deferred to Elena.
+                reason = "UNVERIFIED — posting unreadable, on-lane title, needs a human look"
+            else:
+                try:
+                    from src.search.serpapi_jobs_ingest import iron_clad_fit
+                    _loc = state.get('location') or (state.get('raw_job') or {}).get('location') or ''
+                    if iron_clad_fit(state.get('title', ''), _loc, description):
+                        reason = "passed career + iron-clad fit"
+                    else:
+                        passed = False
+                        reason = "career-ok but NOT iron-clad fit (remote/LATAM/AI-augmented)"
+                except Exception as _e:
+                    logger.warning(f"[gate] iron_clad_fit unavailable ({_e}); career gate only")
+                    reason = "passed career (fit filter unavailable)"
 
         # ── SALARY FLOOR (added 2026-07-30) ─────────────────────────────────
         # Elena's hard floor is $3,000 USD/mo and nothing in VJH checked pay before
@@ -130,6 +158,7 @@ def gate_node(state: JobState) -> dict:
                 "gate_passed": True,
                 "gate_reason": reason,
                 "status": "gate_passed",
+                "unverified": unverified,
                 # Hand the enriched text downstream so score_node and the AI analysis
                 # judge the REAL posting, not the tagline. JobState declares
                 # `description`, so returning it here updates the state.
@@ -273,6 +302,15 @@ async def submit_node(state: JobState) -> dict:
     # the rest so Path A can't re-pollute the actionable view. ──
     import os as _os
     if _os.getenv('AUTO_APPLY_ENABLED', 'false').strip().lower() != 'true':
+        # UNVERIFIED jobs bypass both filters below for the same reason the gate
+        # skipped iron_clad: judging 130 chars we KNOW are incomplete produces a
+        # confident answer from no evidence. gate_node already confirmed the title
+        # is on-lane; notify_node labels it clearly so it can't be mistaken for a
+        # vetted match.
+        if state.get('unverified'):
+            logger.info(f"[submit] UNVERIFIED surface (filters skipped, title on-lane): "
+                        f"{state['company']} ({state['title']})")
+            return {"applied": False, "apply_method": "manual", "status": "human_pending"}
         try:
             from src.core.fit_gate import iron_clad_fit
             fit = iron_clad_fit(state.get('title', ''), state.get('location', ''), state.get('description', ''))
@@ -533,13 +571,26 @@ async def notify_node(state: JobState) -> dict:
                 f"<a href='{url}'>View posting</a>"
             )
         elif status == "human_pending":
-            msg = (
-                f"<b>📋 Apply yourself</b>: {company}\n"
-                f"Role: {title} | Score: {score:.0f}\n"
-                f"Fits your filter (remote · LATAM · AI-augmented). Open it and apply.\n"
-                f"<a href='{url}'>Open posting</a>\n"
-                f"<i>Now in your HubSpot “I Act TODAY”.</i>"
-            )
+            if state.get('unverified'):
+                # Never let an unverified job wear the "fits your filter" badge —
+                # that badge is the reason Elena trusts the surface at all.
+                msg = (
+                    f"<b>⚠️ UNVERIFIED — worth 30 seconds</b>: {company}\n"
+                    f"Role: {title}\n"
+                    f"I could NOT read this posting (the page returned too little text), "
+                    f"so remote/LATAM/pay are UNCHECKED. The title is in your lane, "
+                    f"so you decide.\n"
+                    f"<a href='{url}'>Open posting</a>\n"
+                    f"<i>In HubSpot “I Act TODAY”, flagged unverified.</i>"
+                )
+            else:
+                msg = (
+                    f"<b>📋 Apply yourself</b>: {company}\n"
+                    f"Role: {title} | Score: {score:.0f}\n"
+                    f"Fits your filter (remote · LATAM · AI-augmented). Open it and apply.\n"
+                    f"<a href='{url}'>Open posting</a>\n"
+                    f"<i>Now in your HubSpot “I Act TODAY”.</i>"
+                )
         elif status in ("apply_failed", "error"):
             err = state.get('apply_error') or state.get('error', '')
             msg = (
