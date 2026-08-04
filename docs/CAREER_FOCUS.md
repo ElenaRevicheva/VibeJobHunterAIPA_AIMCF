@@ -77,6 +77,36 @@ The gate matched the **"Worldwide / LATAM" label** and ignored the parenthesised
 
 **3. A `$1` parsed as a salary.** A stray figure in a page produced *"UNDERPAID (~$1/mo)"* and would have thrown away a genuine Applied AI Engineer role. Anything under `VJH_IMPLAUSIBLE_MONTHLY_USD` (200) is now a failed parse → `unknown` → never blocks. **Rejecting on a bad parse is the one outcome a reject-only gate must never produce.**
 
+## 📉 THE DRY SPELL, AND WHAT IT ACTUALLY WAS (August 4 2026)
+
+Elena reported no fresh positions for days. VJH was **mechanically perfect** — 144 cycles in 48h, 2,300+ jobs/cycle, ~490 through the career gate, enrichment running, zero AI outages, zero errors — and `human_pending=0` on every single cycle. Two causes, only one of them a bug.
+
+**1. A guard of ours was eating on-lane jobs (`97f5d70`).** The thin-data guard discarded **107 postings in 48h and 37 were in her lanes**, including *"Forward Deployed Engineer – AI Solutions Engineering"* — the exact title she applied to elsewhere that week. Root cause: ai-jobs.net renders "Tasks / Requirements" as bare headed lists, hitting only ONE of the two prose markers the enricher required, so **112 valid postings were rejected as "board index"** and kept their 130-char stub. Now one marker suffices when the body is long (≥1500 chars) **and** the URL already identifies a single posting. Result: `insufficient data` rejections went **107 → 0**, board-index false rejects **112 → 1**.
+
+**2. Unreadable ≠ unsuitable.** The bot failing to READ a page is not evidence the job is wrong. New `title_on_lane()` decides whether an unjudgeable posting is worth Elena's own 30 seconds; if so it now surfaces flagged **UNVERIFIED** (*"remote/LATAM/pay are UNCHECKED — you decide"*) instead of vanishing. Those jobs deliberately skip `iron_clad_fit` **and** the LLM judge — asking either to rule on 130 chars we know are incomplete manufactures a confident answer from no evidence. `unverified` is **declared in the JobState TypedDict**; LangGraph silently drops undeclared keys, a bug that already cost this project a week.
+
+**The other cause was not a bug: supply.** Once readable, those ai-jobs.net roles are overwhelmingly US-based or off-lane, and Torre was mostly returning already-seen jobs. Honest expectation for this filter: **one to three genuine jobs per week**, not per day. Across 7,087 jobs ever processed, 116 surfaced — and 36 of those were later moved to "No fit" on re-audit.
+
+### Source conversion — one source was carrying everything
+
+| source | processed | ever surfaced | conversion |
+|---|---|---|---|
+| **torre.ai** | 283 | **102** | **36%** |
+| dice.com | 601 | 4 | 0.7% |
+| ashby + greenhouse + lever | 314 | 2 | 0.6% |
+| ai-jobs.net | 2,163 | 1 | 0.05% |
+| **linkedin.com** | 3,565 | **0** | **0%** |
+
+Torre converts because it is **LATAM-first** — remote-from-Panama is the default there, not an exception. So the fix for low volume is *more Torre-shaped sources*, never looser filters.
+
+**Get on Board added (`e72f0eb`).** Same shape, public API, no auth. Its payload carries **monthly USD salary** (so the floor can actually be applied instead of returning "unknown") and a **~2,500-char description** (so the thin-data guard never fires). Panama eligibility is enforced at the source. Verified before wiring: 111 remote LATAM-eligible jobs, 56 through `iron_clad_fit`.
+
+**First live cycle: 2,297 → 2,841 jobs, career gate 481 → 622, `human_pending` 0 → 5.** All five reached HubSpot "I Act TODAY": Applied AI Engineer — Agentic Systems @ Rozeta Labs · AI Automation Architect & Ops Director @ CG Real Estate Group · Applied AI Developer APIs & BI @ PaperStreet ($5,600/mo) · Líder de GenAI @ Coderslab.io · Product Execution Partner @ Force Of Nature.
+
+⚠️ **Two things deliberately NOT done, with reasons:**
+- **Raising the ATS company cap (40 → higher).** The data killed the idea: positions 1-8 of the Greenhouse list *are already* the nearshore employers (remotecom, gitlab, wizeline, turing, arionkoder, make, moduscreate, teravision). Positions 41+ are baseten/pinecone/weaviate/perplexity/midjourney — the pool converting at 0.6%. A bigger slice buys more of what produces nothing.
+- **Extending the nearshore roster.** Attempted and abandoned honestly — ~50 candidate slugs (Nearsure, Jobsity, Devsu, BairesDev, Koombea, Encora, Globant…) probed live against Greenhouse/Ashby/Lever; **only 2 resolved and 1 was already present.** Those firms don't use guessable slugs on these platforms.
+
 ### Re-auditing the queue: `scripts/sweep_i_act_today.py`
 
 Re-runs every deal sitting in "I Act TODAY" against the *current* gate and moves the failures to ❌ No fit, writing an undo file with every previous stage. Dry-run by default; `--apply` to move.
