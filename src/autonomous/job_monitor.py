@@ -167,6 +167,7 @@ class JobMonitor:
             "ats": 0, "dice_mcp": 0, "hn": 0, "remoteok": 0, "yc": 0,
             "wellfound": 0, "wwr": 0, "aijobs": 0, "torre": 0, "himalayas": 0, "bd_linkedin": 0,
             "yc_oss": 0,   # added 2026-07-30
+            "getonbrd": 0, # added 2026-08-04 — LATAM-first, Torre-shaped
         }
 
         # ==============================================================
@@ -230,6 +231,29 @@ class JobMonitor:
             logger.warning(f"⚠️ YC OSS source failed: {e}")
 
         # ==============================================================
+        # GET ON BOARD — LATAM-first board (added 2026-08-04)
+        # A source-conversion audit over 7,087 processed jobs showed Torre alone
+        # producing 88% of everything ever surfaced (36% conversion) while
+        # LinkedIn managed 0 from 3,565. Torre converts because it is LATAM-first.
+        # This is the same shape — and its API carries monthly USD salary plus a
+        # ~2,500-char description, so pay is knowable and the thin-data guard
+        # never fires on it. Verified live: 111 remote LATAM-eligible jobs,
+        # 56 through iron_clad_fit, incl. an Applied AI Developer at $5,600/mo.
+        # Additive: fails to [] and the cycle proceeds unchanged.
+        # ==============================================================
+        try:
+            from src.scrapers.getonbrd_jobs import fetch_getonbrd_jobs
+
+            gob_jobs = await fetch_getonbrd_jobs(timeout_seconds=90)
+
+            logger.info(f"✅ Get on Board returned {len(gob_jobs)} jobs")
+            all_jobs.extend(gob_jobs)
+            source_counts["getonbrd"] = len(gob_jobs)
+
+        except Exception as e:
+            logger.warning(f"⚠️ Get on Board source failed: {e}")
+
+        # ==============================================================
         # 2️⃣-7️⃣ SECONDARY SOURCES (run in parallel with timeout)
         # ==============================================================
         logger.info("🔍 Fetching from secondary sources...")
@@ -287,6 +311,7 @@ class JobMonitor:
         logger.info(f"   ATS APIs:        {source_counts['ats']} jobs")
         logger.info(f"   Dice MCP:        {source_counts['dice_mcp']} jobs")
         logger.info(f"   YC OSS (openings):{source_counts['yc_oss']} jobs")
+        logger.info(f"   Get on Board:    {source_counts['getonbrd']} jobs")
         logger.info(f"   Hacker News:     {source_counts['hn']} jobs")
         logger.info(f"   RemoteOK:        {source_counts['remoteok']} jobs")
         logger.info(f"   YC WAAS:         {source_counts['yc']} jobs")
@@ -308,7 +333,7 @@ class JobMonitor:
         # here, its ~130 postings sit behind ~1700 generic ATS jobs and get cut by max_results,
         # which is exactly how the region-tagged sources were starved in June.
         _PRIO_SRC = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs",
-                     "wellfound", "yc_oss")
+                     "wellfound", "yc_oss", "getonbrd")
         def _job_src(j):
             if isinstance(j, dict):
                 return (j.get("source") or "").lower()
