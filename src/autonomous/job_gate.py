@@ -81,14 +81,22 @@ ROLE_EXCLUDE_KEYWORDS = {
     "customer success", "account manager", "account executive",
     "phd required", "doctorate required",
     "director of sales", "vp sales",
-    # C-level / VP / Director — wrong seniority for Elena's profile
+    # C-level / VP / Director — corporate seniority in the WRONG domain.
+    # 2026-08-05: "chief ai", "director of ai" and "head of ai" were REMOVED from
+    # this list. They were blocking Elena's strongest profile — 7 years C-suite
+    # (Deputy CEO & CLO) plus twelve shipped AI systems is exactly what a Head of
+    # AI or fractional Chief AI Officer looks like at a small or mid-size company.
+    # The generic entries below still stand; _AI_LEADERSHIP (see passes()) carves
+    # them out ONLY when the title is AI-qualified, so "VP Sales" and "Director of
+    # Engineering" keep failing, and the large-company blocklist — which runs
+    # first, before any of this — is untouched.
     "vice president", "vp engineering", "vp of engineering",
     "vp software", "vp technology", "vp, engineering", "vp product",
     "vp ", "vp,", "vp-", "vp/",        # broad catch — any "VP <something>" title
     "svp", "senior vice president",
-    "chief technology", "chief ai", "chief product", "chief operating",
-    "director of engineering", "director of technology", "director of ai",
-    "head of product", "head of ai", "head of technology",
+    "chief technology", "chief product", "chief operating",
+    "director of engineering", "director of technology",
+    "head of product", "head of technology",
     "engineering manager", "engineering director",
     "legal counsel", "general counsel",
     "executive assistant", "administrative",
@@ -235,6 +243,26 @@ SALARY_FLOORS = {
 # ─────────────────────────────
 MAX_ENGINEERING_TEAM_SIZE = 20  # Reject if >20 engineers (too established)
 MAX_TOTAL_EMPLOYEES = 150       # Reject if >150 total (too large)
+
+
+# ── AI-LEADERSHIP CARVE-OUT (2026-08-05) ─────────────────────────────────────
+# Module level on purpose: JobGate.passes is a @staticmethod, so class attributes
+# are NOT in its scope and a bare reference would raise NameError at runtime.
+_AI_LEADERSHIP_TERM = (
+    r"(?:\bai\b|ai[-/]|[-/]ai|\bml\b|machine learning|\bllm\b|agentic|genai|"
+    r"generative ai|automation|artificial intelligence)"
+)
+_AI_LEADERSHIP = re.compile(
+    rf"{_AI_LEADERSHIP_TERM}[^,|]{{0,28}}\b(?:head|chief|director|vp|vice president|officer|lead)\b"
+    rf"|\b(?:head of|chief|director of|vp of|vice president of)\b[^,|]{{0,28}}{_AI_LEADERSHIP_TERM}",
+    re.IGNORECASE,
+)
+# ONLY the indiscriminate seniority words are carved out — never a specific
+# wrong-domain entry like "vp sales" or "director of engineering".
+_GENERIC_SENIORITY_EXCLUDES = frozenset({
+    "vice president", "vp ", "vp,", "vp-", "vp/", "svp", "senior vice president",
+    "director ", "director,", "director-", "head of",
+})
 
 
 class JobGate:
@@ -417,8 +445,25 @@ class JobGate:
         # ─────────────────────────────
         # 1️⃣ EXCLUDE bad roles (instant reject)
         # ─────────────────────────────
+        # AI-LEADERSHIP CARVE-OUT (2026-08-05). The generic "vp "/"director "/
+        # "vice president" entries exist to kill corporate noise, but they are
+        # indiscriminate: they also killed "Head of AI", "Chief AI Officer" and
+        # "VP of AI" — roles Elena is genuinely positioned for after 7 years in the
+        # C-suite plus twelve shipped AI systems. Same failure shape as June 23,
+        # when "ml engineer" sat in this list and killed "AI Engineer" because
+        # exclude runs before include.
+        # The carve-out is narrow on purpose: it applies ONLY to the generic
+        # seniority words, ONLY when the title also carries an AI/automation term.
+        # "VP Sales", "Director of Engineering" and "Head of Product" are matched
+        # by their own specific entries and are unaffected. The large-company
+        # blocklist above already ran, so pedigree-heavy corporates are gone before
+        # this point, and iron_clad_fit still rejects any degree demand later.
+        ai_leadership = bool(_AI_LEADERSHIP.search(title))
         for exclude_kw in ROLE_EXCLUDE_KEYWORDS:
             if exclude_kw in title:
+                if ai_leadership and exclude_kw in _GENERIC_SENIORITY_EXCLUDES:
+                    logger.debug(f"↩️ GATE carve-out (AI leadership beats '{exclude_kw}'): {title[:50]}")
+                    continue
                 logger.debug(f"❌ GATE REJECT (excluded keyword '{exclude_kw}'): {title[:50]}")
                 return False
         
@@ -429,7 +474,14 @@ class JobGate:
         # catches the many "AI X Engineer" / "AI/ML Engineer" / "ML Engineer" variants
         # that no single exact include-phrase covers — without over-matching bare "engineer".
         ai_term = re.search(r"\bai\b|ai[-/]|[-/]ai|\bml\b|ml[-/]|[-/]ml|machine learning|\bllm\b|agentic|genai|generative ai|\bnlp\b", title)
-        builder_term = re.search(r"engineer|developer|architect|builder|scientist|\blead\b|specialist", title)
+        # 2026-08-05: added the leadership/ownership nouns. Without them an
+        # AI-qualified title could survive the exclude carve-out and then fail
+        # HERE, because "Head of AI" and "AI Product Manager" contain no builder
+        # word at all. Wrong-domain seniority is already gone by this point.
+        builder_term = re.search(
+            r"engineer|developer|architect|builder|scientist|\blead\b|specialist|"
+            r"\bhead\b|chief|director|\bvp\b|officer|manager|consultant|strategist|owner",
+            title)
         # GEO/AEO/Tech-SEO titles are a standalone target lane (no AI term needed in the
         # title — "Technical SEO Lead" is a fit on its own). \b-bounded so "archaeology"
         # (contains "aeo") and similar can't substring-match. Judge still vetoes misfits.

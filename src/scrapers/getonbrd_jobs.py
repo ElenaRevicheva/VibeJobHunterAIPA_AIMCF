@@ -48,6 +48,14 @@ _SEARCH_TERMS = (
     "machine learning",
     "automation",
     "agentes ia",
+    # 2026-08-05: leadership / advisory lane. Unblocking "Head of AI" at the gate
+    # is useless unless a source is asked for it. Spanish variants included —
+    # this is a LATAM board and half its postings are written in Spanish.
+    "ai consultant",
+    "ai product manager",
+    "head of ai",
+    "arquitecto de ia",
+    "lider de ia",
 )
 _PER_PAGE = 30
 _MAX_PAGES = 2  # per feed — keeps one cycle's fetch bounded

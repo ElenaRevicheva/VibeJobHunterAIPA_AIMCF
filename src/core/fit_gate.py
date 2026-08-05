@@ -41,8 +41,14 @@ _OPEN_REGION_TOKENS = ('worldwide', 'anywhere', 'global', 'any country',
 # the right one is to surface it clearly marked as unverified.
 # This is NOT a fit gate. It never promotes anything on its own.
 _ON_LANE_TITLE = re.compile(
-    r"\bai\b.*\b(engineer|developer|architect|specialist|builder|lead|consultant)|"
-    r"\b(engineer|developer|architect|specialist|builder|lead)\b.*\bai\b|"
+    # 2026-08-05: leadership and product nouns added. Elena's profile — 7 years
+    # C-suite plus twelve shipped AI systems — fits Head of AI / Chief AI Officer
+    # / AI Product Manager, and those titles carry no "builder" word at all.
+    r"\bai\b.*\b(engineer|developer|architect|specialist|builder|lead|consultant|"
+    r"head|chief|director|officer|manager|strategist|owner)|"
+    r"\b(engineer|developer|architect|specialist|builder|lead|head|chief|director|"
+    r"officer|manager)\b.*\bai\b|"
+    r"chief ai|head of ai|director of ai|vp of ai|ai product (manager|owner)|"
     r"agentic|ai agent|llm|generative ai|genai|"
     r"automation (engineer|specialist|architect|consultant)|"
     r"forward.deployed|solutions (engineer|architect|consultant)|"
