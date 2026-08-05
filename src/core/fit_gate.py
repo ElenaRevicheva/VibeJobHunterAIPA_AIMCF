@@ -270,14 +270,40 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
                 'no leetcode', 'without leetcode', 'no coding required',
                 'no prior coding', 'no engineering degree'):
         heavy_blob = heavy_blob.replace(neg, ' ')
-    heavy = any(k in heavy_blob for k in (
-        'computer science degree', 'cs degree', 'leetcode', 'system design interview',
+    # DEGREE DEMANDS ARE WRITTEN IN MANY WORD ORDERS (fixed 2026-08-05).
+    # The substring list below only caught "computer science degree". Nortal wrote
+    # "Bachelor's Degree in Computer Science, Engineering, or a related field" —
+    # same requirement, different order, so it sailed through. Same failure class
+    # as "united kingdom" never matching "UK&I": matching literal strings against
+    # natural language. Softened requirements ("or equivalent experience",
+    # "preferred but not required") are deliberately NOT treated as a hard bar.
+    _soft = any(s in heavy_blob for s in (
+        'or equivalent experience', 'or equivalent practical', 'equivalent experience',
+        'preferred but not required', 'nice to have', 'or relevant experience',
+        'degree preferred', 'or comparable experience'))
+    degree_demanded = bool(re.search(
+        r"(computer science|comp\s?sci|engineering)\s+degree|"
+        r"degree\s+(?:in|of)\s+(?:computer science|comp\s?sci|software engineering)|"
+        r"(?:bachelor|master|bsc|msc|b\.?s\.?|m\.?s\.?)[^.;\n]{0,60}?\bin\b[^.;\n]{0,60}?"
+        r"(?:computer science|comp\s?sci|software engineering)",
+        heavy_blob)) and not _soft
+
+    # Degree phrases moved under `degree_demanded` (2026-08-05) so that a SOFTENED
+    # requirement stops being a hard bar. "Degree in Computer Science OR EQUIVALENT
+    # EXPERIENCE" and "CS degree preferred but not required" were both rejecting
+    # jobs Elena is explicitly qualified for — equivalent experience is exactly
+    # what twelve shipped systems are. The hard demands below still reject.
+    degree_demanded = degree_demanded or (not _soft and any(k in heavy_blob for k in (
+        'computer science degree', 'cs degree',
         # 2026-07-31: the StatusNeo posting demanded "Bachelor's or Master's degree
         # in Computer Science" and "5+ years of software engineering experience" —
         # neither phrasing matched. The list only knew the words in the OTHER order.
         'degree in computer science', 'degree in engineering', 'bachelor’s or master',
         "bachelor's or master", 'bachelor degree', "bachelor's degree", 'bachelors degree',
-        "master's degree", 'masters degree', 'b.tech', 'b.e./b.tech',
+        "master's degree", 'masters degree', 'b.tech', 'b.e./b.tech')))
+
+    heavy = degree_demanded or any(k in heavy_blob for k in (
+        'leetcode', 'system design interview',
         'years of software engineering experience', 'years of professional experience in software',
         'years of hands-on software', 'years of backend', 'years of full-stack',
         'strong coding', 'strong programming', 'algorithms and data structures',
@@ -302,6 +328,16 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'sdet', 'quality assurance', 'quality engineer',
         'it automation', 'infrastructure automation', 'network automation',
         'industrial automation', 'plc', 'robotics automation', 'rpa developer',
-        'marketing automation', 'sales automation'))
+        'marketing automation', 'sales automation',
+        # 2026-08-05: "(1522) Senior DevOps Engineer @ Nortal" reached "I Act
+        # TODAY" — CS degree + 5 yrs DevOps + Terraform/Jenkins/Kubernetes. It
+        # only got in because the SerpAPI path judges a short Google snippet
+        # that omitted the requirements, and no list vetoed the TITLE. Ops and
+        # infrastructure engineering is not one of Elena's lanes at any level,
+        # and a title veto holds even when the description is unreadable.
+        'devops', 'dev ops', 'sre', 'site reliability', 'platform engineer',
+        'infrastructure engineer', 'cloud engineer', 'systems administrator',
+        'sysadmin', 'network engineer', 'database administrator',
+        'security engineer', 'release engineer'))
 
     return remote and latam and ai_aug and not us_only and not heavy and not wrong_automation
