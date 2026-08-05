@@ -71,6 +71,61 @@ def title_on_lane(title: str) -> bool:
     return bool(_ON_LANE_TITLE.search(t))
 
 
+# ── RESIDENCY STATED IN PROSE, NOT IN THE LOCATION FIELD (added 2026-08-04) ──
+# "Product Execution Partner @ Force of Nature" reached "I Act TODAY" with the
+# location field reading "Remote — Worldwide / LATAM" — which is what its source
+# actually publishes. The real rule was a sentence in the body:
+#     "Location: Remote — Uruguay, Colombia, Peru, or Paraguay preferred."
+# Panama is not on it. roster_excludes_home() could not fire because there was no
+# roster in the location field to read. Same lesson as Singular Agency, one layer
+# deeper: the SPECIFIC statement beats the general label, wherever it is written.
+#
+# Deliberately anchored to residency language. A description that merely mentions
+# countries as MARKETS — "retail partners across the US, GCC and UK" — is not a
+# hiring restriction and must never be read as one.
+_RESIDENCY_ANCHOR = re.compile(
+    r"(must be a resident|residents? of|must reside|candidates? must reside|"
+    r"eligible to work in|open to candidates?|hiring (?:only )?in|"
+    r"location:\s*remote|based in|located in|preferred in|"
+    r"candidates? (?:in|from)|physically (?:perform|located|reside))",
+    re.IGNORECASE,
+)
+# Countries seen in these postings. Not exhaustive by design — it only has to be
+# good enough to recognise "this sentence enumerates places".
+_COUNTRY_WORDS = (
+    "panama", "uruguay", "colombia", "peru", "paraguay", "chile", "bolivia",
+    "ecuador", "venezuela", "guatemala", "honduras", "nicaragua", "salvador",
+    "costa rica", "dominican", "aruba", "mexico", "brazil", "argentina",
+    "united states", "usa", "canada", "ukraine", "poland", "portugal", "spain",
+    "germany", "france", "india", "philippines", "pakistan", "nigeria", "kenya",
+    "south africa", "australia", "israel", "united kingdom", "ireland",
+)
+# If any of these appear in the same sentence, the enumeration is a REGION that
+# includes Panama, not a restriction that excludes her.
+_REGION_COVERS_HOME = (
+    "worldwide", "anywhere", "global", "any country", "latam", "latin america",
+    "central america", "americas", "anywhere in the world",
+)
+
+
+def residency_excludes_home(text: str) -> bool:
+    """
+    True when the BODY states a residency requirement that names countries and
+    Elena's is not among them.
+    """
+    blob = _deaccent((text or "").lower())
+    for m in _RESIDENCY_ANCHOR.finditer(blob):
+        window = blob[m.start():m.start() + 220]
+        if any(r in window for r in _REGION_COVERS_HOME):
+            continue                      # region includes Panama → not a bar
+        if _deaccent(HOME_COUNTRY) in window:
+            continue                      # explicitly eligible
+        named = sum(1 for c in _COUNTRY_WORDS if c in window)
+        if named >= 2:                    # an actual roster, not a passing mention
+            return True
+    return False
+
+
 def _deaccent(s: str) -> str:
     """Fold diacritics so 'Panamá' == 'panama' and 'México' == 'mexico'."""
     import unicodedata
@@ -160,7 +215,10 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     # description keywords when there is no clean region tag (e.g. Google Jobs).
     # An explicit residency roster OUTRANKS the region label in front of it —
     # "Worldwide / LATAM (Colombia, Ecuador, ...)" means those countries, not LATAM.
-    if roster_excludes_home(loc):
+    # A residency roster — in the location field OR in the body — outranks any
+    # region label. "Remote — Worldwide / LATAM" is what the board publishes;
+    # "Uruguay, Colombia, Peru, or Paraguay" is what the employer means.
+    if roster_excludes_home(loc) or residency_excludes_home(desc_l):
         latam = False
     elif any(t in loc for t in LATAM_OK):
         latam = True

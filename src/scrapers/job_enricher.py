@@ -119,6 +119,29 @@ def _looks_like_posting_url(url: str) -> bool:
 # Engineer opening. The URL check upstream is what actually keeps indexes out.
 _LONG_BODY_IS_POSTING_CHARS = int(os.getenv("VJH_LONG_BODY_POSTING_CHARS", "1500"))
 
+# ── SOURCES WHOSE API TEXT IS A TRUNCATED SUBSET OF THE PAGE (2026-08-04) ─────
+# "Product Execution Partner @ Force of Nature" reached "I Act TODAY" and Elena
+# cannot hold it: the posting says "Location: Remote — Uruguay, Colombia, Peru,
+# or Paraguay preferred". That sentence is NOT in Get on Board's API payload —
+# its `countries` field reads ['Remote'] and its description (971 chars) omits
+# both the country line and "Part-time to start (20-30 hrs/week)". The public
+# page carries both, at 6,302 chars. Because 971 chars cleared the thin-data bar
+# and read like real prose, enrichment was skipped and the restriction stayed
+# invisible. For these hosts, length is not evidence of completeness — always
+# fetch the page.
+_ALWAYS_ENRICH_HOSTS = tuple(
+    h.strip() for h in os.getenv("VJH_ALWAYS_ENRICH_HOSTS", "getonbrd.com").split(",") if h.strip()
+)
+
+
+def _always_enrich(url: str) -> bool:
+    try:
+        from urllib.parse import urlparse
+        host = (urlparse(str(url)).netloc or "").lower()
+        return any(h in host for h in _ALWAYS_ENRICH_HOSTS)
+    except Exception:
+        return False
+
 
 def _looks_like_posting_text(text: str, url: str = "") -> bool:
     low = (text or "").lower()
@@ -223,7 +246,9 @@ def enrich_with_state(url: str, description: str, force: bool = False):
     # they were blind. Now: fetch when the text is thin OR when it carries no
     # posting prose (requirements / qualifications / responsibilities), because a
     # blurb without those sections cannot disqualify anything.
-    if not force and len(original) >= THIN_DESCRIPTION_CHARS and _looks_like_posting_text(original):
+    if (not force and not _always_enrich(url)
+            and len(original) >= THIN_DESCRIPTION_CHARS
+            and _looks_like_posting_text(original)):
         return original, False
     if not _looks_like_posting_url(url):
         logger.debug(f"[enrich] not a single-posting URL, refusing to fetch: {str(url)[:70]}")
