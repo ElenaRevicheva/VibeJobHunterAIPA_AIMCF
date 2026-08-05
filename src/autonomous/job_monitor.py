@@ -1158,7 +1158,16 @@ class JobMonitor:
                            "ai automation", "ai agents", "workflow automation", "n8n", "zapier",
                            "prompt engineering", "ai integration", "no-code",
                            "head of ai", "ai consultant", "ai solutions architect",
-                           "ai product manager", "ai strategy", "fractional cto"]:
+                           "ai product manager", "ai strategy", "fractional cto",
+                           # 2026-08-05: employers who describe the WORK the way
+                           # Elena actually works. IgniteTech's board reads "we hire
+                           # individuals who already think in agents, not just
+                           # prompts" — a company selecting for exactly her operating
+                           # style. Its own roles were Java/PMP-gated, but the
+                           # PHRASING is the signal: find the ones writing like that
+                           # and not demanding an enterprise stack.
+                           "ai native", "agent orchestration", "agentic engineer",
+                           "ai augmented", "forward deployed"]:
                     payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
                     url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
                     try:

@@ -56,6 +56,12 @@ _SEARCH_TERMS = (
     "head of ai",
     "arquitecto de ia",
     "lider de ia",
+    # 2026-08-05: phrasing used by employers who select for HOW someone works
+    # rather than for a stack — "thinks in agents, not just prompts". Those are
+    # the ones whose bar Elena clears.
+    "ai native",
+    "agentic",
+    "forward deployed",
 )
 _PER_PAGE = 30
 _MAX_PAGES = 2  # per feed — keeps one cycle's fetch bounded
