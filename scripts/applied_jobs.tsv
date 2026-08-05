@@ -1,0 +1,41 @@
+# Jobs Elena has ALREADY applied to outside VJH (Get on Board, LinkedIn, direct).
+# VJH cannot see these — its dedup only knows what VJH itself surfaced — so
+# without this file it happily re-surfaces a job she applied to months ago.
+# Real case: Rozeta Labs, CG Real Estate and Coderslab were applied to in May/June
+# and the new Get on Board source presented all three as fresh on Aug 4.
+#
+# FORMAT:  company <TAB> title  (one per line, '#' comments ignored)
+# Matching is on normalised company+title, so punctuation and case don't matter.
+# APPEND a line whenever you apply somewhere VJH didn't surface, then run:
+#     venv/bin/python scripts/import_applied_jobs.py --apply
+#
+# Source: Get on Board application history, exported 2026-08-05.
+Manukora	AI Automation Engineer
+PaperStreet Web Design	Applied AI Developer, APIs and Business Intelligence
+Cleveland Holding Group	Operations & AI Enthusiast
+Zagged	Vibe Coder in Residence
+Puente Talent Partners	Founder's Associate
+GROONILTD	Technical SEO Specialist (AEO & Geo Expert)
+Puente Talent Partners	Forward Deployed AI Engineer
+Puente Talent Partners	AI Operations Lead
+LeadsEngine	AI First Full-Stack Developer
+Niuro	AI Product Engineer
+Rozeta Labs	Applied AI Engineer — Agentic Systems
+CG Real Estate Group	AI Automation Architect & Ops Director
+ElevateOS	AI Automation Engineer
+Compara	AI Native Engineer
+Compara	AI Product Engineer
+FortIA	Ingeniero/a Senior de IA Agéntica
+Zaelot	ML Engineer / AI Engineer
+Ruzora	Senior AI Engineer (Llms + Agents)
+Coderslab.io	Líder de GenAI / AI Product Owner
+Get Laser Certified	AI Content Operations Specialist
+Rozeta Labs	Senior Agentic AI Engineer
+Nine-67	AI Product Engineer – Forward Deployed Engineer
+Geniesoft Inc	Full-Stack & AI Developer
+HireLATAM	AI Implementation Specialist
+The Business of Dance	AI Automations Specialist
+Blazestack	Full-Stack Engineer — Document Generation & Report Systems
+Coderslab.io	Desarrollador .NET Inglés Avanzado
+Premo Marketing	AI Automation Operator
+AI Product Accelerator	AI Product Coach
