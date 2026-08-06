@@ -96,12 +96,27 @@ def gate_node(state: JobState) -> dict:
                     _on_lane = title_on_lane(state.get('title', ''))
                 except Exception:
                     _on_lane = False
-                if _on_lane:
+                # GEOGRAPHY STILL APPLIES (fixed 2026-08-05). "Unreadable body" is
+                # not "unknown location" — the location field is published by the
+                # source, not parsed from the prose. Skipping it wholesale put
+                # "Remote — United States" and "Remote — United Kingdom, India" in
+                # front of Elena, who can hold neither.
+                _uloc = state.get('location') or (state.get('raw_job') or {}).get('location') or ''
+                try:
+                    from src.core.fit_gate import location_allows_home
+                    _geo_ok = location_allows_home(_uloc)
+                except Exception:
+                    _geo_ok = True
+                if _on_lane and not _geo_ok:
+                    passed = False
+                    reason = (f"insufficient data AND location rules her out "
+                              f"({str(_uloc)[:40]})")
+                elif _on_lane:
                     unverified = True
                     logger.info(
                         f"[gate] UNVERIFIED PASS  {state['company']} — {state['title']} "
-                        f"(only {len(description or '')} chars; on-lane title → "
-                        f"surfacing for a human look)"
+                        f"(only {len(description or '')} chars; on-lane title + "
+                        f"location OK → surfacing for a human look)"
                     )
                 else:
                     passed = False

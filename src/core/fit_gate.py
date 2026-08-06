@@ -69,6 +69,30 @@ _OFF_LANE_TITLE = re.compile(
 )
 
 
+def location_allows_home(location: str) -> bool:
+    """
+    GEOGRAPHY ONLY, from the source's structured location field.
+
+    Added 2026-08-05. The unverified path — for postings whose BODY could not be
+    read — was skipping iron_clad_fit wholesale, and with it the country check.
+    That put "Remote — United States" (Urbane Systems) and "Remote — United
+    Kingdom, India" (pubX) in front of Elena. But `location` is published by the
+    source as a structured field; it is not parsed out of the prose, so it is
+    exactly as trustworthy on a 112-char posting as on a 4,000-char one. There
+    was never a reason to skip it.
+
+    Returns True when the location is unknown — never drop on absence of evidence.
+    """
+    loc = _deaccent((location or "").lower())
+    if roster_excludes_home(location):
+        return False
+    if any(t in loc for t in LATAM_OK):
+        return True
+    if any(t in loc for t in COUNTRY_LOCK):
+        return False
+    return True
+
+
 def title_on_lane(title: str) -> bool:
     """True if the TITLE alone puts this role in one of Elena's three lanes."""
     t = title or ""
@@ -154,7 +178,14 @@ def roster_excludes_home(location: str) -> bool:
     # raw would miss Elena's OWN country on any accented listing and reject a job
     # she is in fact eligible for, so fold diacritics on both sides.
     inner = _deaccent(m.group(1).lower())
-    if len([x for x in inner.split(",") if x.strip()]) < 2:
+    # 2026-08-05: a SINGLE country is still a roster. This previously required two
+    # or more comma-separated entries — a rule written to stop "Berlin (Remote)"
+    # being misread — and it let three Truelogic roles reach "I Act TODAY" as
+    # "Remote — Worldwide / LATAM (Brazil)". One country named is one country
+    # meant. The right test is not how MANY entries there are but whether any of
+    # them is a country at all, which also handles "(Remote)" and "(anywhere)"
+    # correctly without a count.
+    if not any(c in inner for c in _COUNTRY_WORDS):
         return False
     if any(tok in inner for tok in _OPEN_REGION_TOKENS):
         return False
