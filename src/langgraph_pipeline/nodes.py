@@ -347,6 +347,14 @@ async def submit_node(state: JobState) -> dict:
         if not _jfit:
             logger.info(f"[submit] judge VETO ({_jreason}) → discard: {state['company']} ({state['title']})")
             return {"applied": False, "apply_method": "skipped", "status": "discarded", "gate_reason": "judge veto: " + _jreason}
+        # A job the judge could NOT screen must not be presented as one it approved.
+        # It still surfaces (fail-open keeps lead flow alive) but carries the
+        # unverified label, and the reason travels with it.
+        if str(_jreason).startswith("JUDGE UNAVAILABLE"):
+            logger.warning(f"[submit] surfacing UNJUDGED — {_jreason}: "
+                           f"{state['company']} ({state['title']})")
+            return {"applied": False, "apply_method": "manual", "status": "human_pending",
+                    "unverified": True, "gate_reason": _jreason}
         logger.info(f"[submit] LEAD mode → surface (judge OK: {_jreason}): {state['company']} ({state['title']})")
         return {"applied": False, "apply_method": "manual", "status": "human_pending"}
 

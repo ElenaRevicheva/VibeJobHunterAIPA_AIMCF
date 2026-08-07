@@ -436,7 +436,21 @@ def _ask_judge(client, title: str, company: str, description: str) -> Optional[s
                 return v
         return None
     except Exception as e:
-        pytest.skip(f"Claude API error: {e}")
+        # DO NOT SKIP (changed 2026-08-07). These 14 tests skipped silently for days
+        # on "credit balance is too low", and pytest's summary line reported the run
+        # as green — the same success-shaped silence this pipeline keeps getting
+        # caught by. A test that cannot test has not passed. It fails, and says why.
+        # Set VJH_EVAL_ALLOW_SKIP=true to restore skipping (e.g. offline CI).
+        if os.getenv("VJH_EVAL_ALLOW_SKIP", "false").strip().lower() == "true":
+            pytest.skip(f"LLM judge unavailable (skip allowed): {e}")
+            return None
+        pytest.fail(
+            f"LLM JUDGE COULD NOT RUN — this is a real failure, not a skip.\n"
+            f"  Reason: {e}\n"
+            f"  The judge is a load-bearing filter; if it cannot be exercised, its\n"
+            f"  quality is unverified and the suite must not report green.\n"
+            f"  Fix the provider, or set VJH_EVAL_ALLOW_SKIP=true to acknowledge it."
+        )
         return None
 
 

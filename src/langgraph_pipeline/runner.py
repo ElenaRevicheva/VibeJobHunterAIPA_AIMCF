@@ -361,6 +361,11 @@ class VJHLangGraphRunner:
                             logger.info(f"[runner] judge VETO ({_jr}) → discard: {final_state.get('company')} | {final_state.get('title')}")
                             summary["discarded"] += 1
                             continue
+                        if str(_jr).startswith("JUDGE UNAVAILABLE"):
+                            # Surfaced without screening — say so, loudly, and mark it.
+                            logger.warning(f"[runner] surfacing UNJUDGED — {_jr}: "
+                                           f"{final_state.get('company')} | {final_state.get('title')}")
+                            final_state["unverified"] = True
                         logger.info(f"[runner] judge OK ({_jr}) → surface: {final_state.get('company')} | {final_state.get('title')}")
                         await self._send_human_review_request(final_state, config, checkpointer)
                         self._mark_surfaced(fp_db, fp, initial["company"], initial["title"], job_id)

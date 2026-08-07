@@ -11,10 +11,21 @@ via model_config.groq_model(), switched fleet-wide with the GROQ_MODEL env var).
 FAIL-OPEN: if both are unavailable, returns fit=True so the pipeline still fires.
 """
 
+import logging
 import os
 import json
 import re
 import urllib.request
+
+logger = logging.getLogger(__name__)
+
+# A judge that cannot judge must SAY SO, and say WHY (2026-08-07).
+# Previously every provider error was swallowed by `except Exception: pass` and the
+# caller received a bland "judge unavailable (no LLM)" — indistinguishable in the
+# logs from a judge that ran and approved. Silence shaped like success is the
+# failure mode this project keeps being bitten by. Callers detect this prefix and
+# label the surfaced job, so an unjudged job never wears a vetted badge.
+JUDGE_UNAVAILABLE = "JUDGE UNAVAILABLE"
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
@@ -108,21 +119,41 @@ def _key(name: str) -> str:
         return ""
 
 
-def _call_llm(prompt: str) -> str:
-    """OpenAI (reliable) → Groq (free). Returns model text, or '' if both fail."""
+def _call_llm(prompt: str):
+    """
+    OpenAI (reliable) → Groq (free).
+
+    Returns (text, errors). `errors` records why each provider failed — a missing
+    key is as much a reason as an HTTP 400, and both used to vanish into a bare
+    `except: pass`. When the judge goes quiet, this is the evidence that says why.
+    """
+    errors = []
+
     ok = _key("OPENAI_API_KEY")
-    if ok:
+    if not ok:
+        errors.append("openai: no API key configured")
+    else:
         try:
-            return _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {})
-        except Exception:
-            pass
+            text = _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {})
+            if text:
+                return text, errors
+            errors.append("openai: empty response")
+        except Exception as e:
+            errors.append(f"openai: {str(e)[:140]}")
+
     gk = _key("GROQ_API_KEY")
-    if gk:
+    if not gk:
+        errors.append("groq: no API key configured")
+    else:
         try:
-            return _post(_GROQ_URL, gk, groq_model(), prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
-        except Exception:
-            pass
-    return ""
+            text = _post(_GROQ_URL, gk, groq_model(), prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
+            if text:
+                return text, errors
+            errors.append("groq: empty response")
+        except Exception as e:
+            errors.append(f"groq: {str(e)[:140]}")
+
+    return "", errors
 
 
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
@@ -132,14 +163,42 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
         feedback=_feedback_block(),
         title=(title or "")[:160], company=(company or "")[:80],
         location=(location or "")[:80], desc=(desc or "")[:1500])
-    text = _call_llm(prompt)
+    text, errors = _call_llm(prompt)
+
     if not text:
-        return True, "judge unavailable (no LLM) — fail-open"
+        why = "; ".join(errors) or "no provider attempted"
+        # LOUD, with the actual provider errors. Elena asked for exactly this: if the
+        # judge cannot work, it must say so and say why. Still fail-open so lead flow
+        # continues — but the caller labels the job as unjudged, so it can never be
+        # mistaken for one the judge approved.
+        logger.warning(
+            f"⚖️ {JUDGE_UNAVAILABLE} — no LLM could screen '{(title or '')[:60]}' "
+            f"@ {(company or '')[:40]}. Providers: {why}"
+        )
+        return True, f"{JUDGE_UNAVAILABLE}: {why}"[:300]
+
     m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
     if not m:
-        return True, "judge parse-fail — fail-open"
+        logger.warning(f"⚖️ {JUDGE_UNAVAILABLE} — model replied but no JSON found "
+                       f"for '{(title or '')[:60]}': {text[:120]}")
+        return True, f"{JUDGE_UNAVAILABLE}: model returned no JSON"
     try:
         result = json.loads(m.group())
-    except Exception:
-        return True, "judge json-fail — fail-open"
+    except Exception as e:
+        logger.warning(f"⚖️ {JUDGE_UNAVAILABLE} — JSON parse failed "
+                       f"for '{(title or '')[:60]}': {str(e)[:100]}")
+        return True, f"{JUDGE_UNAVAILABLE}: JSON parse failed"
     return bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
+
+
+def judge_health() -> tuple:
+    """
+    Can the judge actually judge right now? Returns (ok: bool, detail: str).
+
+    A cheap live probe for status checks and the eval harness, so "the judge is
+    working" is something you verify rather than assume.
+    """
+    text, errors = _call_llm('Reply with exactly this JSON: {"fit": true, "reason": "health check"}')
+    if text:
+        return True, "judge reachable"
+    return False, "; ".join(errors) or "no provider attempted"
