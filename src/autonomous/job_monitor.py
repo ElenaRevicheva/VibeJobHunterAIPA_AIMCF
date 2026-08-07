@@ -1033,9 +1033,34 @@ class JobMonitor:
     async def _search_aijobs(self) -> List[Dict]:
         """
         AI-Jobs.net - AI/ML focused job board
-        
+
         Scrapes the main listings page.
+
+        DORMANT since 2026-08-07 — asleep, not deleted. Set VJH_AIJOBS_ENABLED=true
+        to wake it; the scraper below is untouched and still works.
+
+        WHY, measured across all 2,535 postings it has ever returned:
+            US            1,003  39.6%
+            Europe*       ~980   ~38.7%   (263 tagged + most of 717 German-language)
+            Asia/other      431  17.0%
+            LATAM           121   4.8%
+        and the LATAM slice is country-LOCKED — Brazil, Mexico, Costa Rica — which
+        the residency check correctly rejects, because Elena is in Panama.
+
+        Lifetime yield: 2,535 processed → 1 ever surfaced (0.04%). It was not
+        producing BAD matches; it was producing correct rejections, every cycle,
+        while consuming fetches, ~25s of cycle time and most of the log volume.
+        A second independent measurement (the bare-"Remote" recall study, 0 of 30
+        fetched would have qualified) reached the same conclusion.
+
+        WAKE IT IF: ai-jobs.net adds a region filter, or Elena's eligibility
+        changes (relocation, work authorisation elsewhere).
         """
+        import os as _os
+        if _os.getenv("VJH_AIJOBS_ENABLED", "false").strip().lower() != "true":
+            logger.info("⏭️  AI-Jobs.net: dormant (0.04% lifetime yield; VJH_AIJOBS_ENABLED=true to wake)")
+            return []
+
         logger.info("🔍 Checking AI-Jobs.net...")
         jobs = []
 
