@@ -1300,9 +1300,32 @@ class JobMonitor:
         Uses linkedin.com/jobs/search/ (SSR content for SEO bots, works with Web Unlocker).
         Parses job cards from the SSR HTML, then enriches top 5 gate-passing candidates
         with individual job page fetches for salary, applicant count, and seniority level.
+
+        DORMANT since 2026-08-09 — asleep, not deleted. Set VJH_LINKEDIN_ENABLED=true
+        to wake it; everything below is untouched and still works.
+
+        WHY, measured over two days of real intake:
+            linkedin.com   170 jobs   169 with an EMPTY description   170 on-site
+            torre.ai        17 jobs     0 empty                         0 on-site
+            dice.com        14 jobs     0 empty                         0 on-site
+        LinkedIn was 83% of everything entering the pipeline and 100% of it was
+        unusable: Bengaluru, Shenyang, Munich, Dallas, Vilnius — on-site cities,
+        with no description text to judge. Lifetime: 3,565 processed, 0 ever
+        surfaced.
+
+        It is also the only PAID source here (BrightData Web Unlocker credits), so
+        it was spending money to deliver jobs that cannot pass the geography gate.
+
+        WAKE IT IF: the scraper is changed to request remote-only listings with
+        descriptions attached (`f_WT=2` plus real body text), or Elena's location
+        constraints change.
         """
         import os
         import re
+
+        if os.getenv("VJH_LINKEDIN_ENABLED", "false").strip().lower() != "true":
+            logger.info("⏭️  BrightData LinkedIn: dormant (0 surfaced in 3,565; VJH_LINKEDIN_ENABLED=true to wake)")
+            return []
 
         BD_TOKEN = os.getenv("BRIGHTDATA_API_TOKEN", "")
         BD_ZONE  = os.getenv("BRIGHTDATA_ZONE", "web_unlocker1")
