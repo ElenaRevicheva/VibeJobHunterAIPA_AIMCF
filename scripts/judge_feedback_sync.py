@@ -468,12 +468,16 @@ def main() -> int:
             # the rule. Prefer what she typed; fall back to the screenshot she attached.
             notes = _fetch_notes(key, d.get("id", ""))
             why = _rejection_reason(notes, title)
-            if not why:
-                shots = [f for n in notes for f in n.get("attachments", [])]
-                if shots:
-                    why = _read_screenshot(key, shots, shot_cache)
-                    if why:
-                        shots_read += 1
+            # Her text is often a POINTER, not the reason — "Require experienced
+            # engineering - look at the image", "Not a fit. Look at requirements".
+            # The disqualifying detail lives in the screenshot she attached, so read
+            # it whenever one exists and keep BOTH: her verdict plus the evidence.
+            shots = [f for n in notes for f in n.get("attachments", [])]
+            if shots:
+                shot = _read_screenshot(key, shots, shot_cache)
+                if shot:
+                    shots_read += 1
+                    why = f"{why} — from her screenshot: {shot}" if why else shot
             negatives.append(f"{title} — her reason: {why}" if why else title)
             seen.add(title.lower())
         if len(positives) >= MAX_EXAMPLES and len(negatives) >= MAX_EXAMPLES:
