@@ -217,14 +217,17 @@ def _save_shot_cache(cache: dict) -> None:
 def _files_key(default_key: str) -> str:
     """Token used for file reads.
 
-    Normally the same private-app token as everything else. But HubSpot's Aug-2026
-    app migration orphaned Elena's private app from its own UI — Settings → Private
-    Apps redirects to Legacy Apps, Legacy Apps lists nothing, and the app's detail
-    page renders blank — so its scopes CANNOT be edited any more, even though the
-    token itself keeps working. Creating a second, files-read-only app is the only
-    way through. If HUBSPOT_FILES_TOKEN exists it is used for file reads only;
-    everything else keeps using the original token, so nothing already working is
-    put at risk.
+    Normally the same token as everything else, and that is the expected setup.
+
+    The credential is NOT a private app — it is a HubSpot **Service Key** named
+    `Aideazz_Marketing_Engine` (id 39045903), and its scopes ARE editable at
+    Settings → Integrations → Service Keys. Adding `files.read` there is all the
+    screenshot reader needs. (Do not go looking under Private Apps or Legacy Apps:
+    this account has neither, which is why both pages are empty dead ends.)
+
+    HUBSPOT_FILES_TOKEN therefore exists only as an optional escape hatch — if a
+    separate files-only credential is ever preferred, file reads use it and
+    everything else keeps the main key. Unset, behaviour is unchanged.
     """
     return (os.environ.get("HUBSPOT_FILES_TOKEN", "").strip()
             or _read_env_file(REPO / ".env", "HUBSPOT_FILES_TOKEN")
@@ -251,13 +254,28 @@ def _file_bytes(key: str, file_id: str):
                   "Create a files-read-only private app and put its token in VJH .env as "
                   "HUBSPOT_FILES_TOKEN — nothing else needs to change.")
         return None, ""
-    url, ext = meta.get("url"), (meta.get("extension") or "").lower()
-    if not url or ext not in ("png", "jpg", "jpeg", "webp", "gif"):
+    ext = (meta.get("extension") or "").lower()
+    if ext not in ("png", "jpg", "jpeg", "webp", "gif"):
         return None, ""
+    # NOT meta["url"] — for these attachments that is
+    #   api-na1.hubspot.com/filemanager/.../signed-url-redirect
+    # which needs the auth header; fetched plain it returns an HTML error page,
+    # and base64-ing HTML got OpenAI's "unsupported image" 400. The signed-url
+    # endpoint hands back a real CDN link that serves the actual bytes.
     try:
-        raw = urllib.request.urlopen(url, timeout=30).read()
+        sreq = urllib.request.Request(
+            f"https://api.hubapi.com/files/v3/files/{file_id}/signed-url",
+            headers={"Authorization": "Bearer " + key},
+        )
+        url = json.loads(urllib.request.urlopen(sreq, timeout=20).read()).get("url")
+        if not url:
+            return None, ""
+        raw = urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=30).read()
     except Exception:
         return None, ""
+    if not raw[:4].startswith((b"\xff\xd8", b"\x89PNG", b"RIFF", b"GIF8")):
+        return None, ""      # whatever came back, it is not an image
     if len(raw) > 6_000_000:          # don't post a huge upload to the vision API
         return None, ""
     return raw, "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
