@@ -56,6 +56,75 @@ OUTREACH_URL = (_env.get('CTO_AIPA_WEBHOOK_URL') or os.environ.get('CTO_AIPA_WEB
 OUTREACH_SECRET = _env.get('OUTREACH_SECRET') or os.environ.get('OUTREACH_SECRET', '')
 STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
 
+# ─── BORDERLINE ALERT (added 2026-08-14) — PURELY ADDITIVE ───────────────────
+# A gate-vs-judge DISAGREEMENT must never die silently.
+#
+# Earned from Scale Army: VJH found them on Aug 5, `iron_clad_fit` vetoed on the
+# board's country roster (Egypt, Argentina, Ethiopia, South Africa, Nigeria — no
+# Panama) and the job was parked in the "ignore" stage. Nine days later their
+# recruiter emailed Elena directly inviting her to apply to the senior version of
+# the same role. Re-run today, the gate vetoes BOTH Scale Army roles while the LLM
+# judge approves both — so without that email the opportunity would simply have
+# vanished.
+#
+# The gate is NOT loosened here. It is very likely right (Panama really is absent
+# from that roster) and widening it would re-open the 2026-07-30 flood of jobs
+# Elena cannot legally hold. What changes is only that a disagreement now gets
+# announced instead of buried.
+#
+# Measured before building, on a 40-deal sample of the parked pile re-fetched live
+# from Ashby/Greenhouse: 0/26 passed BOTH gates (so parking is broadly correct and
+# a mass rescue would be waste), and 1/26 was gate-NO/judge-YES ≈ 4% — about two a
+# week. Small enough to alert on, which is why this is an alert and not a stage change.
+#
+# ADDITIVE CONTRACT — this block must never alter existing behaviour:
+#   * `fit` and `hiring_stage` are read, NEVER reassigned.
+#   * every failure is swallowed and logged; ingest continues regardless.
+#   * with TELEGRAM_* unset it silently does nothing.
+TELEGRAM_BOT_TOKEN = _env.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_CHAT_ID   = _env.get('TELEGRAM_CHAT_ID')   or os.environ.get('TELEGRAM_CHAT_ID', '')
+
+
+def _borderline_check(title: str, company: str, location: str, desc: str):
+    """(is_borderline, judge_reason) for a job the iron-clad gate rejected.
+
+    Returns (False, '') on ANY problem — a broken alert path must never change
+    which jobs get ingested.
+    """
+    try:
+        from src.core.llm_judge import judge_fit
+        ok, why = judge_fit(title, company, location, desc)
+        if ok and not str(why).startswith('JUDGE UNAVAILABLE'):
+            return True, str(why)
+    except Exception as e:
+        log.debug(f'  borderline check unavailable ({e})')
+    return False, ''
+
+
+def _borderline_alert(title: str, company: str, location: str, job_url: str, why: str) -> None:
+    """Tell Elena a parked job split the gate and the judge. Best-effort only."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    import html as _html
+    e = _html.escape
+    text = (
+        f"🟡 <b>BORDERLINE — worth your eyes</b>\n\n"
+        f"<b>{e(title)}</b>\n{e(company)}\n\n"
+        f"📍 <code>{e(location or 'not stated')}</code>\n\n"
+        f"❌ iron-clad gate: NOT a fit (location roster / eligibility)\n"
+        f"✅ AI judge: a fit — {e(why[:220])}\n\n"
+        f"Parked in HubSpot so it can't clutter “I Act TODAY”. "
+        f"Your call:\n{e(job_url or '(no URL)')}"
+    )
+    try:
+        requests.post(
+            f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage',
+            json={'chat_id': TELEGRAM_CHAT_ID, 'text': text,
+                  'parse_mode': 'HTML', 'disable_web_page_preview': False},
+            timeout=15)
+    except Exception as e:
+        log.debug(f'  borderline alert not sent ({e})')
+
 JOBS_QUERIES = [
     # Aligned with CAREER_FOCUS: only founding/fractional/AI-builder shapes.
     # NO 'principal', 'VP', 'staff', 'head of X' — those map to Elena's hard-discard filter.
@@ -352,6 +421,15 @@ def ingest_once() -> None:
             elif not fit:
                 log.info(f'  parked (not iron-clad fit or below pay floor): {title} @ {company}')
 
+            # ── Additive: a parked job the JUDGE would take is announced, not buried.
+            # Reads `fit`; never reassigns it. See _borderline_check above for why.
+            borderline, borderline_why = (False, '')
+            if not fit:
+                borderline, borderline_why = _borderline_check(title, company, location, desc_full)
+                if borderline:
+                    log.info(f'  BORDERLINE (gate NO / judge YES) -> alerting: {title} @ {company}')
+                    _borderline_alert(title, company, location, job_url, borderline_why)
+
             # 1. Hiring pipeline (VJH track)
             push_crm_event({
                 'source':   'serpapi_jobs',
@@ -360,7 +438,17 @@ def ingest_once() -> None:
                 'sourcePrefix': 'HIRING-VJH-SERP-LEAD',
                 'jobTitle': title,
                 'company':  company,
-                'notes': '\u26a0\ufe0f MANUAL APPLY REQUIRED \u2014 VJH SerpAPI found this job. Click the job URL + apply manually. No cover letter pre-generated for SerpAPI path.',
+                # Borderline jobs carry their split verdict into the note so the
+                # decision is reconstructable in HubSpot months later, and so the
+                # deal is findable by searching "BORDERLINE". Non-borderline jobs
+                # get the exact same string as before.
+                'notes': (
+                    (f'\U0001f7e1 [BORDERLINE] iron-clad gate said NOT a fit '
+                     f'(location roster / eligibility) but the AI judge said FIT: '
+                     f'{borderline_why[:300]}\nParked deliberately \u2014 Elena decides. '
+                     f'Telegram alert sent.\n\n' if borderline else '')
+                    + '\u26a0\ufe0f MANUAL APPLY REQUIRED \u2014 VJH SerpAPI found this job. Click the job URL + apply manually. No cover letter pre-generated for SerpAPI path.'
+                ),
                 'jobUrl':   job_url,
                 'context':  f'[Google Jobs] {title} @ {company} — {location}\n{desc}',
                 'stage':    hiring_stage,
