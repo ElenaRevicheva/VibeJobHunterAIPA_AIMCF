@@ -78,6 +78,12 @@ _BOT_NOTE_TEMPLATE = re.compile(
     r"|approve in telegram:?\s*\S*"
     r"|score:\s*\d+"
     r"|apply(?:\s+at)?:\s*https?://\S+"
+    # Leftovers of the template above. Without these the residual of a bot-only
+    # note is "⚠️ Apply:", which is 9 characters and therefore sailed through the
+    # length check — every negative came back with "her reason: ⚠️ Apply".
+    r"|⚠️|⚠"
+    r"|\bapply\s*:"
+    r"|\bopen job\b"
     r"|---\s*cover\s*/\s*outreach letter.*",
     re.IGNORECASE | re.DOTALL,
 )
@@ -138,8 +144,10 @@ def _rejection_reason(notes, title: str) -> str:
         human = re.sub(r"https?://\S+", " ", human)          # source links carry no taste
         human = re.sub(r"&[a-z]+;", " ", human)              # &amp; etc from HubSpot HTML
         human = _NAV_NOISE.sub(" ", human)
-        human = re.sub(r"\s+", " ", human).strip(" -–—.,:;")
-        if len(human) < 8:
+        human = re.sub(r"\s+", " ", human).strip(" -–—.,:;/|")
+        # A length check is not enough — it is what let "⚠️ Apply" through. A real
+        # reason is a sentence, so demand at least three actual words.
+        if len(re.findall(r"[A-Za-zÀ-ÿ]{2,}", human)) < 3:
             continue
         # A note that opens with the job's own title is the posting re-pasted.
         if title and human[:40].lower().startswith(title[:20].lower()):
