@@ -193,14 +193,18 @@ _VISION_MODEL = "gpt-4o-mini"
 # as a disqualifier. Pulling the requirements out and letting the judge weigh them
 # against her criteria is both more reliable and the correct division of labour.
 _VISION_PROMPT = (
-    "This screenshot shows a job posting. In ONE sentence (max 30 words), list the "
-    "hardest requirements visible: years of experience, degree, must-have stack or "
-    "skills, location restriction, seniority. Requirements only — no commentary, no "
-    "preamble. If the image shows no requirements at all, answer exactly: NONE"
+    "This screenshot shows a job posting. In ONE sentence (max 30 words), summarise "
+    "what the role demands of a candidate: experience, degree, stack or skills, "
+    "location, seniority. Summarise them as stated even if they are vague or "
+    "qualitative. Demands only — no commentary, no preamble. Answer exactly NONE "
+    "only if this is not a job posting at all (a chat window, an error page, a photo)."
 )
 # Bumped whenever _VISION_PROMPT changes, so cached answers from the old prompt are
 # discarded instead of silently outliving it.
-_VISION_PROMPT_VERSION = 2
+#   v2 -> v3: "answer NONE if no requirements" made the model bail on postings whose
+#   demands are qualitative ("deep experience in computer vision") — WWT and AlphaLife
+#   both came back empty. NONE is now about the IMAGE not being a posting at all.
+_VISION_PROMPT_VERSION = 3
 _scope_warned = []
 
 
