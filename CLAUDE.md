@@ -42,6 +42,84 @@ discover (JobMonitor, ~2300 jobs, region-tagged sources prioritized FIRST)
 
 ---
 
+## 🧠 SELF-LEARNING LOOP (Aug 14 2026 — verified end-to-end in production)
+
+The judge is **not static**. It re-calibrates daily from Elena's own CRM behaviour, so
+her manual triage of HubSpot HIRING deals is the training signal.
+
+```
+Elena works HIRING deals in HubSpot (moves stage + writes a note, often + a screenshot)
+  → scripts/judge_feedback_sync.py   (cron, DAILY 06:17 UTC on Oracle)
+  → autonomous_data/judge_feedback.json
+  → src/core/llm_judge.py::_feedback_block()   (read fresh on EVERY judge call)
+  → few-shot taste calibration inside the judge prompt
+```
+
+**Stage → signal map** (what actually counts as her behaviour):
+
+| Signal | Stage | Condition |
+|---|---|---|
+| POSITIVE | `decisionmakerboughtin` (⏳ Sent) | **only if a note says she applied** — the label is "AI *or* Elena sent", so the stage alone would train the judge on its own output |
+| POSITIVE | `presentationscheduled`, `contractsent`, `closedwon` | — |
+| NEGATIVE | `closedlost` (❌ No fit) | her note text and/or the screenshot she attached |
+| *ignored* | `qualifiedtobuy` | the bot files its own finds here — proves nothing |
+
+**It learns her REASONS, not just her verdicts.** Negatives read
+`Title — her reason: manual coding required…` / `— the posting says: …` (when she pasted
+the posting rather than writing a verdict — never attribute pasted text to her). This
+matters concretely: the judge once surfaced *Forward Deployed Engineer @ Blink UX*
+praising it as "hands-on, aligning with Elena's…" and she killed it minutes later with
+**"manual coding required"** — taste exactly inverted, with the correction already
+written in the note and being discarded.
+
+**It reads the screenshots she attaches.** Her note is often a pointer ("Require
+experienced engineering - look at the image"); the disqualifying detail is in the pixels.
+`gpt-4o-mini` vision summarises the posting's demands and they are appended as
+`; her screenshot shows: 2+ years building production software systems, Python & AI/ML…`.
+Cached in `autonomous_data/screenshot_reasons.json` by file id + `_prompt_version`, so
+each screenshot is paid for exactly **once**, and bumping the prompt version re-reads
+instead of inheriting stale answers.
+
+### ⚠️ Traps — every one of these was a real, verified defect
+
+- **Verify judge behaviour from `journalctl -u vibejobhunter`, NOT `logs/vibejobhunter_*.log`.**
+  The log file only carries `src.autonomous.*`; `[submit] judge VETO (...)` and
+  `judge OK (...)` exist **only** in the systemd journal. The loop looks dead if you grep
+  the wrong place.
+- **Verify the sync by rendering `_feedback_block()`, not by trusting its summary line.**
+  It once reported "10 carrying her reason" where every reason was the literal string
+  `⚠️ Apply` — the residue of VJH's own note template, which cleared an 8-char length
+  gate. Gate on **≥3 real words**, never on length.
+- **The HubSpot credential is a SERVICE KEY, not a private app** — `AIdeazz_Marketing_Engine`,
+  id `39045903`, portal `51409153`, one token in `/home/ubuntu/cto-aipa/.env`. Settings →
+  *Private Apps* and *Legacy Apps* are **empty dead ends** (no private app was ever created).
+  Scopes live at **⚙️ Settings → Integrations → Service Keys** →
+  `https://app.hubspot.com/service-keys/51409153/key/39045903`.
+- **Note attachments are `access=HIDDEN_PRIVATE`** → `files.read` alone 403s;
+  **`files.ui_hidden.read` is also required**. Both granted Aug 14 2026.
+- **`files/v3/files/{id}` → `url` is a signed-url *redirect*** needing the auth header;
+  fetched plain it returns an HTML page that base64s into OpenAI as
+  `invalid_image_format`. Use `/files/v3/files/{id}/signed-url` and check magic bytes
+  before spending a vision call.
+- **The vision prompt must EXTRACT demands, not judge disqualification.** A version that
+  asked "which requirement would disqualify her" (with a NONE escape) returned empty for
+  2 of 3 real screenshots, because their demands are qualitative. Judging is the judge's job.
+- **`\bengineer\b` does not match "Engineering"** — it silently dropped
+  *Forward Deployed Staff (Engineering) @ LevelUp Labs* from the negatives entirely.
+
+**Fail-safe by design:** HubSpot unreachable, no qualifying outcomes, missing/invalid
+JSON, or no files scope → the existing `judge_feedback.json` is left untouched (atomic
+tmp+rename) and the judge prompt is byte-identical to the pre-feature version. The loop
+can never take the judge down.
+
+**Verify it in one command:**
+```bash
+cd /home/ubuntu/VibeJobHunterAIPA_AIMCF && python3 scripts/judge_feedback_sync.py && \
+  venv/bin/python -c "from src.core.llm_judge import _feedback_block; print(_feedback_block())"
+```
+
+---
+
 ## What This Repo Is
 
 VibeJobHunter is an autonomous AI job-hunting engine built in Python. It runs 24/7 on Oracle Cloud and performs the full hiring pipeline without human input:
@@ -252,7 +330,13 @@ RESEND_API_KEY=            # Email outreach via Resend
 RESUME_PATH=               # Path to PDF resume for ATS submissions
 GA4_PROPERTY_ID=           # Google Analytics 4 for dashboard
 USE_AI_JOB_ANALYSIS=true   # Feature flag: enable Claude deep scoring
+HUBSPOT_FILES_TOKEN=       # Optional — only if file reads should use a SEPARATE
+                           # credential from HUBSPOT_API_KEY. Unset (the norm):
+                           # the Service Key does both. See the self-learning section.
 ```
+
+> `HUBSPOT_API_KEY` itself is read from `/home/ubuntu/cto-aipa/.env` when absent here —
+> see `_hubspot_key()` in `scripts/judge_feedback_sync.py` for the lookup order.
 
 ---
 
