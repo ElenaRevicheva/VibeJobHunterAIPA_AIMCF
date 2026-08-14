@@ -77,16 +77,22 @@ def _feedback_block() -> str:
         from pathlib import Path
         p = Path(__file__).resolve().parents[2] / "autonomous_data" / "judge_feedback.json"
         data = json.loads(p.read_text(encoding="utf-8"))
-        pos = [t for t in data.get("positives", []) if isinstance(t, str) and t.strip()][:6]
-        neg = [t for t in data.get("negatives", []) if isinstance(t, str) and t.strip()][:6]
+        pos = [t for t in data.get("positives", []) if isinstance(t, str) and t.strip()][:12]
+        neg = [t for t in data.get("negatives", []) if isinstance(t, str) and t.strip()][:12]
         if not pos and not neg:
             return ""
-        lines = ["REAL RECENT OUTCOMES from Elena's own pipeline (weekly-updated taste calibration —",
+        lines = ["REAL RECENT OUTCOMES from Elena's own pipeline (taste calibration refreshed daily —",
                  "these refine your judgment but do NOT override criteria 1-4 above):"]
         if pos:
-            lines.append("She ACTED ON (fit): " + " | ".join(pos))
+            lines.append("She APPLIED to these (fit):")
+            lines += ["  - " + t for t in pos]
         if neg:
-            lines.append("She REJECTED (not fit): " + " | ".join(neg))
+            # Negatives now arrive as "Title — her reason: ...", written by
+            # scripts/judge_feedback_sync.py from her own note or from the screenshot
+            # she attached. One per line: a 12-way ' | ' join was unreadable once the
+            # reasons were included, and the reason is the part that must land.
+            lines.append("She REJECTED these (not fit) — pay attention to WHY:")
+            lines += ["  - " + t for t in neg]
         return "\n".join(lines) + "\n\n"
     except Exception:
         return ""
