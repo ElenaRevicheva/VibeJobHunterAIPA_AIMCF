@@ -132,11 +132,18 @@ _POSTING_PASTE = re.compile(
 )
 
 
-def _rejection_reason(notes, title: str) -> str:
-    """Her own words on why a job was a No-fit, or '' when she left none.
+_HIRING_BANNER = re.compile(r"^[^A-Za-z]*(we[''`]?re hiring|now hiring|hiring)\s*[|:–—-]*\s*",
+                            re.IGNORECASE)
 
-    Never raises and never returns a pasted posting — a bad reason in the judge
-    prompt is worse than no reason, because it reads as taste when it is noise.
+
+def _rejection_reason(notes, title: str) -> str:
+    """Why a job was a No-fit, already labelled with whose words these are.
+
+    Returns "her reason: ..." when Elena wrote it, or "the posting says: ..." when
+    the note is the job description she pasted in. The distinction matters: a pasted
+    requirement is still useful evidence, but presenting it as her voice would put
+    words in her mouth and teach the judge a preference she never expressed.
+    Returns '' when there is nothing usable.
     """
     for n in notes:
         human = re.sub(r"<[^>]+>", " ", n.get("body") or "")
@@ -149,12 +156,14 @@ def _rejection_reason(notes, title: str) -> str:
         # reason is a sentence, so demand at least three actual words.
         if len(re.findall(r"[A-Za-zÀ-ÿ]{2,}", human)) < 3:
             continue
-        # A note that opens with the job's own title is the posting re-pasted.
-        if title and human[:40].lower().startswith(title[:20].lower()):
-            continue
+        human = _HIRING_BANNER.sub("", human)       # "🚀 We're Hiring | <title> ..."
         if _POSTING_PASTE.search(human[:120]):
             continue
-        return human[:_REASON_MAX].strip()
+        # The job's own title inside the opening words means she pasted the posting
+        # rather than writing a verdict — keep the requirement, drop the false byline.
+        pasted = bool(title) and title[:24].lower() in human[:90].lower()
+        label = "the posting says" if pasted else "her reason"
+        return f"{label}: {human[:_REASON_MAX].strip()}"
     return ""
 
 
@@ -438,7 +447,7 @@ def main() -> int:
 
     deals = _search_deals(key)
     positives, negatives, seen = [], [], set()
-    shot_cache, shots_read = _load_shot_cache(), 0
+    shot_cache, shots_read, with_reason = _load_shot_cache(), 0, 0
 
     # PASS 1 — jobs Elena APPLIED TO herself. Strongest signal available, so it
     # fills the positives list first and the weaker stages only top it up.
@@ -485,14 +494,16 @@ def main() -> int:
                 shot = _read_screenshot(key, shots, shot_cache)
                 if shot:
                     shots_read += 1
-                    why = f"{why} — from her screenshot: {shot}" if why else shot
-            negatives.append(f"{title} — her reason: {why}" if why else title)
+                    why = (f"{why}; her screenshot shows: {shot}" if why
+                           else f"her screenshot shows: {shot}")
+            if why:
+                with_reason += 1
+            negatives.append(f"{title} — {why}" if why else title)
             seen.add(title.lower())
         if len(positives) >= MAX_EXAMPLES and len(negatives) >= MAX_EXAMPLES:
             break
 
     _save_shot_cache(shot_cache)
-    with_reason = sum(1 for n in negatives if " — her reason: " in n)
 
     if not positives and not negatives:
         print(f"scanned {len(deals)} deals — no qualifying outcomes; existing file untouched")
