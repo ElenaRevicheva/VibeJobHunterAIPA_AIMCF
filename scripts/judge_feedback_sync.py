@@ -187,21 +187,31 @@ def _rejection_reason(notes, title: str) -> str:
 # screenshot is paid for exactly once.
 SHOT_CACHE = REPO / "autonomous_data" / "screenshot_reasons.json"
 _VISION_MODEL = "gpt-4o-mini"
+# EXTRACT, don't judge. The first version asked which requirement "would disqualify
+# her" and allowed NONE — so the WWT screenshot came back empty even though it plainly
+# demanded deep computer-vision/robotics experience: the model just didn't frame that
+# as a disqualifier. Pulling the requirements out and letting the judge weigh them
+# against her criteria is both more reliable and the correct division of labour.
 _VISION_PROMPT = (
-    "This screenshot is from a job posting that Elena looked at and then REJECTED. "
-    "In ONE short sentence (max 20 words), state the concrete requirement visible here "
-    "that would disqualify her — e.g. a degree, years of hands-on coding, a specific "
-    "stack, an on-site/country restriction, seniority. Answer with the requirement only, "
-    "no preamble. If the image shows no such requirement, answer exactly: NONE"
+    "This screenshot shows a job posting. In ONE sentence (max 30 words), list the "
+    "hardest requirements visible: years of experience, degree, must-have stack or "
+    "skills, location restriction, seniority. Requirements only — no commentary, no "
+    "preamble. If the image shows no requirements at all, answer exactly: NONE"
 )
+# Bumped whenever _VISION_PROMPT changes, so cached answers from the old prompt are
+# discarded instead of silently outliving it.
+_VISION_PROMPT_VERSION = 2
 _scope_warned = []
 
 
 def _load_shot_cache() -> dict:
     try:
-        return json.loads(SHOT_CACHE.read_text(encoding="utf-8"))
+        cache = json.loads(SHOT_CACHE.read_text(encoding="utf-8"))
+        if cache.get("_prompt_version") != _VISION_PROMPT_VERSION:
+            return {"_prompt_version": _VISION_PROMPT_VERSION}   # prompt changed → re-read
+        return cache
     except Exception:
-        return {}
+        return {"_prompt_version": _VISION_PROMPT_VERSION}
 
 
 def _save_shot_cache(cache: dict) -> None:
@@ -348,7 +358,9 @@ EMAIL_SUBJECT = re.compile(
 # Time @ Zagged" carried her own "Applied manually" note and was still discarded
 # here, purely because no word in this list appeared in the title.
 ROLE_NOUN = re.compile(
-    r"\b(engineer|developer|architect|specialist|scientist|analyst|designer|"
+    # `engineering` needs its own entry: \bengineer\b does NOT match it, so
+    # "Forward Deployed Staff (Engineering) @ LevelUp Labs" was silently discarded.
+    r"\b(engineer|engineering|developer|architect|specialist|scientist|analyst|designer|"
     r"manager|lead|head|director|consultant|builder|strategist|marketer|"
     r"operations|ops|automation|技術|programmer|administrator|coordinator|"
     r"technician|advisor|officer|founder|cto|pm|product owner|"
