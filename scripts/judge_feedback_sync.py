@@ -214,11 +214,29 @@ def _save_shot_cache(cache: dict) -> None:
         pass
 
 
+def _files_key(default_key: str) -> str:
+    """Token used for file reads.
+
+    Normally the same private-app token as everything else. But HubSpot's Aug-2026
+    app migration orphaned Elena's private app from its own UI — Settings → Private
+    Apps redirects to Legacy Apps, Legacy Apps lists nothing, and the app's detail
+    page renders blank — so its scopes CANNOT be edited any more, even though the
+    token itself keeps working. Creating a second, files-read-only app is the only
+    way through. If HUBSPOT_FILES_TOKEN exists it is used for file reads only;
+    everything else keeps using the original token, so nothing already working is
+    put at risk.
+    """
+    return (os.environ.get("HUBSPOT_FILES_TOKEN", "").strip()
+            or _read_env_file(REPO / ".env", "HUBSPOT_FILES_TOKEN")
+            or default_key)
+
+
 def _file_bytes(key: str, file_id: str):
     """(bytes, mime) for a HubSpot note attachment, or (None, '') if unavailable.
 
     A 403 here is the missing `files` scope, not a bug — say it once, then stay quiet.
     """
+    key = _files_key(key)
     try:
         req = urllib.request.Request(
             f"https://api.hubapi.com/files/v3/files/{file_id}",
@@ -228,8 +246,10 @@ def _file_bytes(key: str, file_id: str):
     except Exception as e:
         if "403" in str(e) and not _scope_warned:
             _scope_warned.append(1)
-            print("  screenshots SKIPPED — HubSpot token lacks the `files` scope "
-                  "(grant `files.read` on the private app to switch this on)")
+            print("  screenshots SKIPPED — no token with the `files` scope. The original "
+                  "private app can no longer be edited (HubSpot migration orphaned it). "
+                  "Create a files-read-only private app and put its token in VJH .env as "
+                  "HUBSPOT_FILES_TOKEN — nothing else needs to change.")
         return None, ""
     url, ext = meta.get("url"), (meta.get("extension") or "").lower()
     if not url or ext not in ("png", "jpg", "jpeg", "webp", "gif"):
