@@ -30,7 +30,43 @@ JUDGE_UNAVAILABLE = "JUDGE UNAVAILABLE"
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
 _OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-_OPENAI_MODEL = "gpt-4o-mini"
+_OPENAI_MODEL = os.environ.get("OPENAI_JUDGE_MODEL", "").strip() or "gpt-4o-mini"
+
+# ── The rest of the chain (added 2026-08-16) ────────────────────────────────
+#
+# Order is chosen for THIS use case, not copied from the other agents. The judge
+# runs on every job in a high-volume pipeline and needs ~20 words back, so:
+#
+#   1. openai gpt-4o-mini  — proven primary, PLAIN model, pennies/month
+#   2. gemini flash-lite   — FREE and plain; catches an OpenAI outage at zero cost
+#   3. groq gpt-oss-120b   — free, but reasoning: needs the 300-token budget
+#   4. grok                — team credits
+#   5. claude haiku        — paid, most reliable, deliberately LAST because the
+#                            judge is the highest-volume caller in the fleet;
+#                            Claude belongs FIRST in message_generator, where a
+#                            human reads the output, not here.
+#
+# Every model named here is verified by evals/test_provider_chain.py to return a
+# parseable verdict at JUDGE_MAX_TOKENS. Nothing joins this chain unproven.
+_GEMINI_MODEL = os.environ.get("GEMINI_JUDGE_MODEL", "").strip() or "gemini-3.5-flash-lite"
+_XAI_URL = "https://api.x.ai/v1/chat/completions"
+_XAI_MODEL = os.environ.get("XAI_MODEL", "").strip() or "grok-4.20-0309-non-reasoning"
+_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+_CLAUDE_MODEL = os.environ.get("CLAUDE_JUDGE_MODEL", "").strip() or "claude-haiku-4-5-20251001"
+
+# 300, not the original 120 — the budget must fit the SLOWEST provider in the chain.
+#
+# Groq retired llama-3.3-70b (2026-08-16) and every free-tier replacement is a
+# REASONING model: it spends tokens thinking privately before it writes. At 120
+# the Groq leg returned a verdict truncated mid-sentence —
+#     {"fit": true, "reason": "Elena's AI
+# which fails JSON parsing and fails the judge OPEN on a job it never finished
+# reading. Measured floor for openai/gpt-oss-120b: >=200.
+#
+# Costs nothing on the plain models: max_tokens is a ceiling, not a target, so
+# gpt-4o-mini, Gemini and Claude still stop the moment they are done. Proven by
+# evals/test_provider_chain.py — 120: groq FAILED, 300: all five PASSED.
+_MAX_TOKENS = int(os.environ.get("JUDGE_MAX_TOKENS", "300"))
 
 _PROMPT = """You are screening ONE job for Elena, an AI-AUGMENTED BUILDER who ships products
 using AI tools (Claude Code, Cursor, GPT). She has NO formal computer-science degree and does
@@ -102,25 +138,51 @@ def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> s
     payload = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        # 300, not 120 — the budget must fit the SLOWEST provider in the chain.
-        #
-        # Groq retired llama-3.3-70b (2026-08-16) and every free-tier replacement
-        # is a REASONING model: it spends tokens thinking privately before writing.
-        # At 120 the Groq leg returned a TRUNCATED verdict mid-sentence —
-        #   '{"fit": true, "reason": "Elena\'s AI'
-        # which fails JSON parsing and fails the judge OPEN on a job it never
-        # finished reading. Measured floor for openai/gpt-oss-120b: >=200.
-        #
-        # This costs nothing for the plain models: max_tokens is a ceiling, not a
-        # target, so gpt-4o-mini and Claude still stop the moment they are done.
-        # Proven by evals/test_provider_chain.py at 120 (groq fails) vs 300 (passes).
-        "max_tokens": 300, "temperature": 0,
+        "max_tokens": _MAX_TOKENS, "temperature": 0,
     }).encode()
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
     headers.update(extra_headers or {})
     req = urllib.request.Request(url, data=payload, method="POST", headers=headers)
     raw = urllib.request.urlopen(req, timeout=25).read().decode()
     return json.loads(raw)["choices"][0]["message"]["content"]
+
+
+def _post_gemini(key: str, model: str, prompt: str) -> str:
+    """Gemini speaks a different shape than the OpenAI-compatible providers.
+
+    Note there is no thinkingConfig here: gemini-3.5-flash-lite is a PLAIN model
+    and REJECTS thinkingBudget with a 400. That rejection is the reason it was
+    chosen — the newer 3.6/3.7 Flash models think first and returned empty at
+    small budgets, exactly like Groq's reasoning line-up.
+    """
+    payload = json.dumps({
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": _MAX_TOKENS, "temperature": 0},
+    }).encode()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    req = urllib.request.Request(url, data=payload, method="POST",
+                                 headers={"Content-Type": "application/json"})
+    raw = urllib.request.urlopen(req, timeout=25).read().decode()
+    cands = json.loads(raw).get("candidates") or [{}]
+    parts = (cands[0].get("content") or {}).get("parts") or [{}]
+    return parts[0].get("text") or ""
+
+
+def _post_anthropic(key: str, model: str, prompt: str) -> str:
+    """Anthropic uses x-api-key and returns content blocks, not choices."""
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": _MAX_TOKENS,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode()
+    req = urllib.request.Request(_ANTHROPIC_URL, data=payload, method="POST", headers={
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+    })
+    raw = urllib.request.urlopen(req, timeout=25).read().decode()
+    blocks = [b for b in json.loads(raw).get("content", []) if b.get("type") == "text"]
+    return "".join(b.get("text", "") for b in blocks)
 
 
 def _key(name: str) -> str:
@@ -159,6 +221,18 @@ def _call_llm(prompt: str):
         except Exception as e:
             errors.append(f"openai: {str(e)[:140]}")
 
+    gem = _key("GEMINI_API_KEY")
+    if not gem:
+        errors.append("gemini: no API key configured")
+    else:
+        try:
+            text = _post_gemini(gem, _GEMINI_MODEL, prompt)
+            if text:
+                return text, errors
+            errors.append("gemini: empty response")
+        except Exception as e:
+            errors.append(f"gemini: {str(e)[:140]}")
+
     gk = _key("GROQ_API_KEY")
     if not gk:
         errors.append("groq: no API key configured")
@@ -170,6 +244,33 @@ def _call_llm(prompt: str):
             errors.append("groq: empty response")
         except Exception as e:
             errors.append(f"groq: {str(e)[:140]}")
+
+    xk = _key("XAI_API_KEY")
+    if not xk:
+        errors.append("grok: no API key configured")
+    else:
+        try:
+            text = _post(_XAI_URL, xk, _XAI_MODEL, prompt, {})
+            if text:
+                return text, errors
+            errors.append("grok: empty response")
+        except Exception as e:
+            errors.append(f"grok: {str(e)[:140]}")
+
+    # Claude LAST on purpose: it is the most reliable and the most expensive, and
+    # the judge is the highest-volume caller in the fleet. Reaching this line means
+    # four providers are down at once, which is worth paying to survive.
+    ck = _key("ANTHROPIC_API_KEY")
+    if not ck:
+        errors.append("claude: no API key configured")
+    else:
+        try:
+            text = _post_anthropic(ck, _CLAUDE_MODEL, prompt)
+            if text:
+                return text, errors
+            errors.append("claude: empty response")
+        except Exception as e:
+            errors.append(f"claude: {str(e)[:140]}")
 
     return "", errors
 
