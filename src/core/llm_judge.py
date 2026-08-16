@@ -102,7 +102,19 @@ def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> s
     payload = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 120, "temperature": 0,
+        # 300, not 120 — the budget must fit the SLOWEST provider in the chain.
+        #
+        # Groq retired llama-3.3-70b (2026-08-16) and every free-tier replacement
+        # is a REASONING model: it spends tokens thinking privately before writing.
+        # At 120 the Groq leg returned a TRUNCATED verdict mid-sentence —
+        #   '{"fit": true, "reason": "Elena\'s AI'
+        # which fails JSON parsing and fails the judge OPEN on a job it never
+        # finished reading. Measured floor for openai/gpt-oss-120b: >=200.
+        #
+        # This costs nothing for the plain models: max_tokens is a ceiling, not a
+        # target, so gpt-4o-mini and Claude still stop the moment they are done.
+        # Proven by evals/test_provider_chain.py at 120 (groq fails) vs 300 (passes).
+        "max_tokens": 300, "temperature": 0,
     }).encode()
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
     headers.update(extra_headers or {})
