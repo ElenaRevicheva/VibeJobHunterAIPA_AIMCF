@@ -352,24 +352,25 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
         return rtype, conf, "Fallback to keyword classification", "Review manually"
 
     def _groq_classify(self, prompt: str):
-        """Classify via Groq (free tier) using the same prompt as Anthropic.
-        Returns (response_type, confidence, analysis, suggested_action) or None."""
-        import os, urllib.request
-        key = os.environ.get("GROQ_API_KEY", "").strip()
-        if not key:
-            return None
+        """Classify after Anthropic fails — now the whole chain, not Groq alone.
+
+        Name and return contract kept so the caller is untouched: returns
+        (response_type, confidence, analysis, suggested_action) or None, and None
+        still means "fall back to keyword classification".
+
+        Order is PROFILE_CLASSIFY (openai → gemini → groq → grok → claude-haiku).
+        Groq alone stopped being dependable when its free tier went all-reasoning;
+        and note the final Claude leg uses HAIKU while the primary above uses
+        SONNET, so a model-specific outage on one does not take out both.
+        """
+        from ..utils.llm_chain import PROFILE_CLASSIFY, complete
         try:
-            payload = json.dumps({
-                "model": groq_model(),
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500, "temperature": 0,
-            }).encode()
-            req = urllib.request.Request(
-                "https://api.groq.com/openai/v1/chat/completions", data=payload, method="POST",
-                headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
-                         "User-Agent": "Mozilla/5.0 (VJH classifier)"})  # Cloudflare 403s default urllib UA
-            raw = urllib.request.urlopen(req, timeout=25).read().decode()
-            text = json.loads(raw)["choices"][0]["message"]["content"]
+            text, errors = complete(
+                [{"role": "user", "content": prompt}], max_tokens=500, order=PROFILE_CLASSIFY,
+            )
+            if not text:
+                logger.warning("classification chain exhausted: " + "; ".join(errors)[:200])
+                return None
             m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
             if not m:
                 return None
@@ -380,11 +381,16 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                 "SPAM": ResponseType.SPAM, "UNKNOWN": ResponseType.UNKNOWN,
             }
             rtype = type_map.get(result.get("classification", "UNKNOWN").upper(), ResponseType.UNKNOWN)
-            logger.info("🟢 Groq (free) classification used (Anthropic unavailable)")
+            # Name the provider that actually answered. `errors` holds one entry per
+            # provider that failed BEFORE this one, in order, so the winner is the
+            # next one along. Logging "Groq" for a Gemini answer is the kind of
+            # small lie that wastes an hour when something breaks.
+            won = list(PROFILE_CLASSIFY)[len(errors)] if len(errors) < len(PROFILE_CLASSIFY) else "chain"
+            logger.info(f"🟢 {won} classification used (Anthropic unavailable, {len(errors)} tier(s) skipped)")
             return (rtype, float(result.get("confidence", 0.5)),
-                    "Groq: " + result.get("analysis", ""), result.get("suggested_action", "Review manually"))
+                    f"{won}: " + result.get("analysis", ""), result.get("suggested_action", "Review manually"))
         except Exception as e:
-            logger.warning(f"⚠️ Groq fallback failed: {str(e)[:70]}")
+            logger.warning(f"⚠️ classification chain failed: {str(e)[:70]}")
             return None
 
     def _parse_email(self, msg) -> Tuple[str, str, str, datetime]:

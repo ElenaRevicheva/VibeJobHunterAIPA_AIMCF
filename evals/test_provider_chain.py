@@ -195,3 +195,73 @@ def test_provider_returns_usable_verdict(provider: str):
     verdict = _extract_verdict(text)
     assert isinstance(verdict.get("fit"), bool), f"{provider}: 'fit' is not a boolean: {verdict!r}"
     assert str(verdict.get("reason", "")).strip(), f"{provider}: empty reason"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The shared chain used by message_generator and response_detector.
+# The judge has its own chain in llm_judge.py; these two share src/utils/llm_chain.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _chain():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from src.utils.llm_chain import PROFILE_CLASSIFY, PROFILE_QUALITY, complete
+
+    return complete, PROFILE_QUALITY, PROFILE_CLASSIFY
+
+
+def test_chain_returns_text_for_quality_profile():
+    """message_generator's fallback must produce a real message, not ''."""
+    complete, quality, _ = _chain()
+    text, errors = complete(
+        [{"role": "user", "content": "Write one short friendly sentence to a hiring manager."}],
+        max_tokens=200,
+        order=quality,
+    )
+    assert text.strip(), f"whole QUALITY chain returned nothing: {errors}"
+
+
+def test_chain_returns_json_for_classify_profile():
+    """response_detector's fallback must return parseable JSON, or it degrades to keywords."""
+    complete, _, classify = _chain()
+    text, errors = complete(
+        [{"role": "user", "content": 'Classify: "Thanks, we would like to schedule a call." '
+                                     'Respond ONLY as JSON: {"classification":"POSITIVE|REJECTION|QUESTION",'
+                                     '"confidence":0.0-1.0}'}],
+        max_tokens=300,
+        order=classify,
+    )
+    assert text.strip(), f"whole CLASSIFY chain returned nothing: {errors}"
+    _extract_verdict(text)  # raises if no JSON object present
+
+
+def test_chain_survives_losing_its_first_three_providers():
+    """The point of a chain: break most of it and a real answer still comes out.
+
+    This is the scenario that actually happens — Anthropic credit gone, Groq
+    model retired, one key rotated — and the one the old single-fallback design
+    could not survive.
+    """
+    import os
+
+    complete, quality, _ = _chain()
+    saved = {k: os.environ.get(k) for k in ("OPENAI_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY")}
+    for k in saved:
+        os.environ[k] = "broken-on-purpose"
+    try:
+        text, errors = complete(
+            [{"role": "user", "content": "Reply with the single word: ok"}],
+            max_tokens=200,
+            order=quality,
+        )
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    assert len(errors) >= 3, f"expected the first three to fail, got {errors}"
+    assert text.strip(), f"chain died once its first three providers failed: {errors}"

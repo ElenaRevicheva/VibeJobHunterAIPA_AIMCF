@@ -43,17 +43,25 @@ class _GroqMsg:
 
 
 def _groq_fallback(messages: list, max_tokens: int = 4096) -> "_GroqMsg":
-    key = os.environ.get("GROQ_API_KEY", "").strip()
-    if not key:
-        raise RuntimeError("GROQ_API_KEY not set — no fallback")
-    payload = json.dumps({"model": groq_model(), "messages": messages,
-                          "max_tokens": min(max_tokens, 4096), "temperature": 0.3}).encode()
-    req = urllib.request.Request(_GROQ_URL, data=payload, method="POST",
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
-                 "User-Agent": "Mozilla/5.0 (VJH msggen)"})  # Cloudflare 403s default urllib UA
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read())
-    return _GroqMsg(data["choices"][0]["message"]["content"])
+    """Fallback after Claude — now the whole chain, not Groq alone.
+
+    Name kept so every call site stays untouched, and the return type is still
+    _GroqMsg so callers keep reading `.content[0].text`. Only the inside changed.
+
+    Why: this used to be Groq and nothing else. Groq retired llama-3.3-70b
+    (2026-08-16) and its free-tier replacements are reasoning models that return
+    empty or truncated text on small budgets — so the single fallback became the
+    least predictable link exactly when Claude was already down. Now: OpenAI →
+    Gemini → Groq → Grok, quality first because a human reads these messages.
+
+    Raises with every provider's reason attached if all four fail, instead of a
+    bare "GROQ_API_KEY not set".
+    """
+    from ..utils.llm_chain import PROFILE_QUALITY, complete
+    text, errors = complete(messages, max_tokens=min(max_tokens, 4096), order=PROFILE_QUALITY)
+    if not text:
+        raise RuntimeError("all fallback providers failed: " + "; ".join(errors)[:400])
+    return _GroqMsg(text)
 
 
 class MessageGenerator:
@@ -80,17 +88,21 @@ class MessageGenerator:
                     self.client.messages.create, **kwargs
                 )
             except anthropic.APIStatusError as e:
-                if e.status_code == 400:
-                    logger.warning("Claude 400 credit exhaustion — falling back to Groq")
-                    return await asyncio.to_thread(
-                        _groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096)
-                    )
+                # Retry the transient codes first — a 529 usually clears by itself
+                # and Claude is the best writer in the chain, worth waiting for.
                 if e.status_code in RETRY_CODES and attempt < MAX_RETRIES - 1:
                     wait = 2 * (attempt + 1)
                     logger.warning(f"Claude {e.status_code} (attempt {attempt+1}/{MAX_RETRIES}), retrying in {wait}s")
                     await asyncio.sleep(wait)
                     continue
-                raise
+                # Anything else — or transient codes that never cleared — hands off
+                # to the chain. This used to be `if status_code == 400` only, so a
+                # rotated key (401), a 403 or a 500 raised and the message was lost
+                # even though four other providers were sitting there unused.
+                logger.warning(f"Claude {e.status_code} — falling back to the provider chain")
+                return await asyncio.to_thread(
+                    _groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096)
+                )
             except Exception:
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(2)
