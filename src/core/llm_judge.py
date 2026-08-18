@@ -77,7 +77,7 @@ APPROVE the job ONLY IF ALL of these are true:
 1. FULLY REMOTE (work from anywhere / worldwide) — NOT hybrid, NOT onsite.
 2. OPEN TO LATIN AMERICA / PANAMA (worldwide, Americas, LATAM, or no country restriction) —
    NOT US-only, NOT restricted to a single other country/region.
-3. The role is in one of Elena's THREE target lanes:
+3. The role is in one of Elena's FOUR target lanes:
    a) AI-AUGMENTED PRODUCTS / AGENTS / SYSTEMS BUILDER — e.g. "AI Engineer", "AI Agents
       Engineer", "AI Automation Engineer", "AI Solutions Engineer", "Founding AI Engineer",
       "Forward-Deployed Engineer", "AI Product Owner/Builder". Elena builds AI systems USING
@@ -87,13 +87,26 @@ APPROVE the job ONLY IF ALL of these are true:
       AEO/GEO/tech-SEO stack.
    c) AI AUTOMATION or other AI-AUGMENTED ENGINEERING SOLUTIONS ARCHITECT — designing and
       wiring AI/automation solutions for clients or products.
+   d) AI-QUALIFIED EXECUTIVE SUPPORT — "AI Chief of Staff", "AI Executive Assistant",
+      "AI-Proficient Executive/Personal Assistant", "AI-Forward EA to the CEO/Founder", and
+      similar. APPROVE these when the role is explicitly AI-qualified: the work is running
+      and AUTOMATING a founder's or executive's operations with AI tools (ChatGPT/Claude,
+      Zapier/Make/n8n, agents, research and reporting automation). This is a deliberate
+      lane, not an exception — Elena spent seven years as Deputy CEO and now builds the
+      automation, so an AI-qualified chief-of-staff/EA seat is a genuine fit.
+      DISQUALIFY only the NON-AI version: generic administrative, secretarial, calendar-only,
+      household / personal / lifestyle / travel-concierge assistants, or any assistant role
+      with no AI or automation component in the work itself.
    DISQUALIFY for this criterion if the job explicitly requires years of professional
    software engineering, a computer-science degree, leetcode / competitive programming,
    or deep low-level/systems/infra coding.
 4. A role Elena would actually want — NOT pure ML/AI RESEARCH (research scientist, research
    engineer, academic/lab research), NOT legal/counsel, sales, recruiter, developer-relations
-   (devrel), developer-advocate, marketing, finance, HR, executive/VP/director, or data-entry.
-   She is a hands-on BUILDER and ARCHITECT, not a researcher.
+   (devrel), developer-advocate, marketing, finance, HR, or data-entry. She is a hands-on
+   BUILDER and ARCHITECT, not a researcher.
+   "Executive" here means executive LEADERSHIP she would be hired INTO — VP, Director,
+   Head of, C-level. It does NOT mean "Executive Assistant": an AI-qualified EA / chief of
+   staff is lane 3(d) above and must NOT be vetoed by this criterion.
 5. The EMPLOYER is one she can realistically be hired by: startups, scale-ups, product
    companies, agencies, and fractional / contract engagements. DISQUALIFY when the employer
    is a very large enterprise or conglomerate (roughly 5,000+ employees — Fortune-500 or
