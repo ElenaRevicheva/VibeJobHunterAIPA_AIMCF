@@ -63,16 +63,28 @@ def _find_anthropic_key() -> str:
 
 
 ANTHROPIC_API_KEY = _find_anthropic_key()
-HAS_API_KEY = bool(ANTHROPIC_API_KEY)
+
+# LAYER 4 RUNS ON THE FIVE-PROVIDER CHAIN (2026-08-18).
+#
+# It used to require ANTHROPIC_API_KEY and call Anthropic directly. That made the
+# whole layer hostage to one provider's billing: with the key present but out of
+# credits, all 14 tests failed on "credit balance is too low" and the harness could
+# not tell Elena whether her judge actually agrees with her labels.
+#
+# This is the same defect the harness caught in job_matcher on the same day — a dead
+# provider with no waterfall behind it — so it gets the same cure. Layer 4 now skips
+# only when NO provider at all is reachable.
+from src.utils.llm_chain import PROFILE_SCORING, _KEY_FOR, _key  # noqa: E402
+
+_AVAILABLE_PROVIDERS = [p for p in PROFILE_SCORING if _key(_KEY_FOR[p])]
+HAS_API_KEY = bool(_AVAILABLE_PROVIDERS)
 
 pytestmark = pytest.mark.skipif(
     not HAS_API_KEY,
-    reason="ANTHROPIC_API_KEY not set — Layer 4 (LLM judge) requires API access. "
-           "Set it in your system environment or in the project .env file.",
+    reason="No LLM provider key found (OpenAI / Gemini / Groq / Grok / Anthropic) — "
+           "Layer 4 (LLM judge) requires at least one. Set one in the environment "
+           "or in the project .env file.",
 )
-
-if HAS_API_KEY:
-    from anthropic import Anthropic
 
 from src.agents.job_matcher import JobMatcher
 from src.core.models import JobPosting, JobSource, Profile
@@ -374,10 +386,15 @@ JUDGE_CASES = [
 
 @pytest.fixture(scope="module")
 def judge_client():
-    """Anthropic client for judge calls — uses Haiku for cost efficiency."""
+    """Provider order for judge calls — the shared five-provider chain.
+
+    Returns the order tuple rather than a vendor client so `_ask_judge` can walk
+    OpenAI → Gemini → Groq → Grok → Claude. Kept under the original fixture name so
+    every call site is untouched.
+    """
     if not HAS_API_KEY:
-        pytest.skip("No API key")
-    return Anthropic(api_key=ANTHROPIC_API_KEY)
+        pytest.skip("No LLM provider key available")
+    return PROFILE_SCORING
 
 
 @pytest.fixture(scope="module")
@@ -417,16 +434,23 @@ def _ask_judge(client, title: str, company: str, description: str) -> Optional[s
     Returns None on API error.
     """
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=150,
-            system=JUDGE_SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": _build_judge_user_prompt(title, company, description),
-            }],
+        from src.utils.llm_chain import complete as _chain_complete
+
+        # `client` is the provider ORDER (see the judge_client fixture), not a vendor
+        # client. 300 tokens, not 150: Groq's free tier is reasoning-only since
+        # 2026-08-16 and spends a small budget thinking before it emits anything —
+        # under ~200 it returns "" or a verdict cut off mid-word.
+        text, _errs = _chain_complete(
+            [
+                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+                {"role": "user", "content": _build_judge_user_prompt(title, company, description)},
+            ],
+            max_tokens=300,
+            order=client or PROFILE_SCORING,
         )
-        text = response.content[0].text.strip()
+        text = (text or "").strip()
+        if not text:
+            raise RuntimeError("no provider returned a verdict: " + ("; ".join(_errs) or "none tried"))
         # Parse "VERDICT: APPLY" from response
         for line in text.split("\n"):
             if line.upper().startswith("VERDICT:"):
