@@ -139,6 +139,13 @@ JOBS_QUERIES = [
     'AI agent developer remote worldwide',
     'n8n automation engineer remote',
     'AI integration engineer remote contract',
+    # 2026-08-18 APPENDED — AI chief-of-staff / AI-proficient EA-PA lane
+    # (wealthy-principal / family-office roles included). Same supply-gap fix
+    # as Torre: job_gate.py/fit_gate.py already carve these titles through,
+    # they were never being searched for on this source either.
+    'AI chief of staff remote',
+    'AI executive assistant remote',
+    'AI operations lead remote startup',
 ]
 
 # ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its

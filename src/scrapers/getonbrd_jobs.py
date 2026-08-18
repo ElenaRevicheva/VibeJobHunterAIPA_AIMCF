@@ -62,6 +62,15 @@ _SEARCH_TERMS = (
     "ai native",
     "agentic",
     "forward deployed",
+    # 2026-08-18: AI chief-of-staff / AI-proficient EA-PA lane (wealthy-principal
+    # and family-office roles included). This board runs half-Spanish, so both
+    # language forms are queried — same reasoning as "lider de ia" above.
+    "ai chief of staff",
+    "jefe de gabinete ia",
+    "ai executive assistant",
+    "asistente ejecutivo ia",
+    "ai personal assistant",
+    "asistente personal ia",
 )
 _PER_PAGE = 30
 _MAX_PAGES = 2  # per feed — keeps one cycle's fetch bounded

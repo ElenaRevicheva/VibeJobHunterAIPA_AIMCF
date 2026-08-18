@@ -521,7 +521,12 @@ class JobMonitor:
         queries = ["AI automation", "no-code", "AI agent", "AI solutions", "prompt",
                    "AI automation engineer", "AI agent developer", "automation engineer",
                    "n8n", "make.com", "Zapier", "workflow automation",
-                   "AI integration engineer", "AI implementation", "forward deployed engineer"]
+                   "AI integration engineer", "AI implementation", "forward deployed engineer",
+                   # 2026-08-18: AI chief-of-staff / AI-proficient EA-PA lane — same
+                   # supply-gap fix as Torre (job_gate.py / fit_gate.py already carve
+                   # these titles through; they were never being SEARCHED for here).
+                   "AI chief of staff", "AI operations lead", "AI executive assistant",
+                   "AI personal assistant"]
         try:
             async with aiohttp.ClientSession() as session:
                 headers = {"User-Agent": "VibeJobHunter/1.0"}
@@ -840,6 +845,9 @@ class JobMonitor:
                     {"role": "Founding Engineer", "remote": False},
                     {"role": "Machine Learning Engineer", "remote": True},
                     {"role": "Staff Engineer", "remote": True},
+                    # 2026-08-18: AI chief-of-staff / AI-proficient EA-PA lane.
+                    {"role": "AI Chief of Staff", "remote": True},
+                    {"role": "AI Executive Assistant", "remote": True},
                 ]
                 
                 for query_params in queries:
@@ -976,6 +984,11 @@ class JobMonitor:
                     "remote-full-stack-programming-jobs",
                     "remote-back-end-programming-jobs",
                     "remote-devops-sysadmin-jobs",
+                    # 2026-08-18: Chief of Staff / Ops-lead / EA-PA roles live here,
+                    # not in the engineering categories above. The title filter
+                    # below still requires an "ai"/"ml"/"automation"-ish keyword,
+                    # so this stays precise rather than admitting generic ops noise.
+                    "remote-management-and-finance-jobs",
                 ]
                 
                 for category in categories:
@@ -1271,7 +1284,9 @@ class JobMonitor:
                 headers = {"User-Agent": "VibeJobHunter/1.0", "Accept": "application/json"}
                 # Himalayas public JSON feed for software/AI roles
                 url = "https://himalayas.app/jobs/api"
-                params = {"q": "AI engineer OR LLM OR machine learning", "limit": 50}
+                # 2026-08-18: added the AI chief-of-staff / AI-proficient EA-PA lane
+                # alongside the existing engineer/LLM/ML terms.
+                params = {"q": "AI engineer OR LLM OR machine learning OR AI chief of staff OR AI executive assistant OR AI operations lead", "limit": 50}
                 async with session.get(url, headers=headers, params=params, timeout=15) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -1352,6 +1367,9 @@ class JobMonitor:
             "founding+AI+engineer",
             "fractional+CTO+remote",
             "AI+automation+engineer+remote",
+            # 2026-08-18: AI chief-of-staff / AI-proficient EA-PA lane.
+            "AI+chief+of+staff+remote",
+            "AI+executive+assistant+remote",
         ]
 
         async def bd_fetch(url: str) -> str:
