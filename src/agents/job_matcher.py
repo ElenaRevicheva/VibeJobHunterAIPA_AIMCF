@@ -223,16 +223,26 @@ class JobMatcher:
     
     def __init__(self):
         self.settings = get_settings()
+        # THE switch for AI deep analysis (2026-08-18). It is NOT `self.ai`.
+        # Scoring runs on the five-provider chain, so an absent Anthropic client no
+        # longer means "no AI" — Claude is merely one leg, and the last one. Tests
+        # that want deterministic keyword-only scoring set `ai_enabled = False`;
+        # setting `ai = None` no longer disables anything, because that is exactly
+        # the state (rotated/absent key) in which the chain must keep working.
+        self.ai_enabled = True
         self.ai = None
         try:
             api_key = self.settings.anthropic_api_key
             if api_key:
                 self.ai = Anthropic(api_key=api_key)
-                logger.info("✅ AI Job Analyzer: Claude API enabled")
+                logger.info("✅ AI Job Analyzer: Claude leg available; chain is primary")
             else:
-                logger.warning("⚠️ AI Job Analyzer: No API key, using keyword matching only")
+                logger.info(
+                    "ℹ️ AI Job Analyzer: no Anthropic key — scoring via chain "
+                    "(OpenAI → Gemini → Groq → Grok)"
+                )
         except Exception as e:
-            logger.warning(f"⚠️ AI Job Analyzer init failed: {e}")
+            logger.warning(f"⚠️ AI Job Analyzer: Anthropic client init failed ({e}); chain still active")
             self.ai = None
         self.founding_scorer = FoundingEngineerScorer()
     
@@ -785,11 +795,11 @@ class JobMatcher:
         early_penalty, _ = self._wrong_role_penalty(job)
         ai_gate_open = early_penalty > -20  # True only for clean or mild-penalty jobs
 
-        # NOTE: no `self.ai` in this condition (2026-08-18). Scoring runs on the
+        # `self.ai_enabled`, NOT `self.ai` (2026-08-18). Scoring runs on the
         # five-provider chain, not on an Anthropic client — gating it on `self.ai`
         # meant an absent/rotated ANTHROPIC_API_KEY silently disabled AI scoring
         # for every job while four healthy providers sat unused.
-        if USE_AI_DEEP_ANALYSIS and preliminary_score >= 50 and ai_gate_open:
+        if USE_AI_DEEP_ANALYSIS and self.ai_enabled and preliminary_score >= 50 and ai_gate_open:
             ai_attempted = True
             try:
                 ai_result = self._ai_deep_analysis(profile, job)
@@ -914,6 +924,9 @@ class JobMatcher:
         Returns None ONLY when every provider failed — the caller treats that as a
         genuine outage and clamps the job rather than trusting keywords alone.
         """
+        if not getattr(self, 'ai_enabled', True):
+            return None
+
         try:
             title = getattr(job, 'title', '') or ''
             company = getattr(job, 'company', '') or ''

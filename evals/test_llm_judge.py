@@ -382,9 +382,13 @@ def judge_client():
 
 @pytest.fixture(scope="module")
 def deterministic_matcher():
-    """JobMatcher with AI disabled — same as Layers 1-3."""
+    """JobMatcher with AI disabled — same as Layers 1-3.
+
+    `ai_enabled = False`, not `ai = None`: since 2026-08-18 scoring runs on the
+    five-provider chain, so removing the Anthropic client disables nothing.
+    """
     m = JobMatcher()
-    m.ai = None
+    m.ai_enabled = False
     return m
 
 

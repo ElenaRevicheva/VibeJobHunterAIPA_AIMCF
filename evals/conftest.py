@@ -17,19 +17,24 @@ from src.agents.job_matcher import JobMatcher
 @pytest.fixture(scope="session")
 def matcher():
     """
-    JobMatcher with the Anthropic client forcibly disabled.
+    JobMatcher with AI deep analysis forcibly disabled.
 
-    Why: `calculate_match_score` fires Claude for any job scoring ≥ 50
-    in the preliminary phase.  Setting `self.ai = None` short-circuits that
-    branch so every test in this file runs deterministically without network
-    access or API cost.
+    Why: `calculate_match_score` fires the LLM for any job scoring ≥ 50 in the
+    preliminary phase.  Setting `ai_enabled = False` short-circuits that branch so
+    every test in this file runs deterministically without network access or API
+    cost.
 
-    This is intentional, not a hack — we are testing the deterministic
-    layers (keyword scoring + bias compensation).  Layer 4 (LLM consistency)
-    is a separate file that explicitly re-enables the client.
+    This is intentional, not a hack — we are testing the deterministic layers
+    (keyword scoring + bias compensation).  Layer 4 (LLM consistency) is a separate
+    file that explicitly re-enables it.
+
+    NB (2026-08-18): this used to be `m.ai = None`.  That stopped disabling anything
+    when scoring moved onto the five-provider chain — `self.ai` is just the Anthropic
+    leg now, and "no Anthropic client" is precisely the state in which the chain must
+    keep working.  Disabling AI is its own switch, so the tests say what they mean.
     """
     m = JobMatcher()
-    m.ai = None
+    m.ai_enabled = False
     return m
 
 
