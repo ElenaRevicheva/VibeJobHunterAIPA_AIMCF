@@ -1192,7 +1192,17 @@ class JobMonitor:
                            # PHRASING is the signal: find the ones writing like that
                            # and not demanding an enterprise stack.
                            "ai native", "agent orchestration", "agentic engineer",
-                           "ai augmented", "forward deployed"]:
+                           "ai augmented", "forward deployed",
+                           # 2026-08-18: "Chief of Staff @ Pets Table" (a real posting
+                           # heavy on AI-driven operational systems + AI marketing
+                           # integration) was never fetched — no query asked Torre for
+                           # it. Chief-of-Staff / AI-ops-lead / AI-proficient EA-PA
+                           # roles fit the same operator-plus-AI-builder profile
+                           # (7 yrs C-suite + 12 shipped AI systems), including the
+                           # wealthy-principal/family-office EA-PA lane.
+                           "ai chief of staff", "chief of staff ai", "ai operations lead",
+                           "ai executive assistant", "ai personal assistant",
+                           "ai proficient assistant", "ai proficient executive assistant"]:
                     payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
                     url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
                     try:

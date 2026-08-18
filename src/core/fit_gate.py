@@ -44,11 +44,15 @@ _ON_LANE_TITLE = re.compile(
     # 2026-08-05: leadership and product nouns added. Elena's profile — 7 years
     # C-suite plus twelve shipped AI systems — fits Head of AI / Chief AI Officer
     # / AI Product Manager, and those titles carry no "builder" word at all.
+    # 2026-08-18: "assistant" added to the noun group — "AI Executive Assistant" /
+    # "AI Personal Assistant" (wealthy-principal / family-office lane) otherwise
+    # matched none of the existing nouns and was invisible to this check.
     r"\bai\b.*\b(engineer|developer|architect|specialist|builder|lead|consultant|"
-    r"head|chief|director|officer|manager|strategist|owner)|"
+    r"head|chief|director|officer|manager|strategist|owner|assistant)|"
     r"\b(engineer|developer|architect|specialist|builder|lead|head|chief|director|"
-    r"officer|manager)\b.*\bai\b|"
+    r"officer|manager|assistant)\b.*\bai\b|"
     r"chief ai|head of ai|director of ai|vp of ai|ai product (manager|owner)|"
+    r"chief of staff|ai proficient assistant|ai-proficient assistant|"
     r"agentic|ai agent|llm|generative ai|genai|"
     r"automation (engineer|specialist|architect|consultant)|"
     r"forward.deployed|solutions (engineer|architect|consultant)|"
@@ -228,6 +232,31 @@ _TZ_COMPATIBLE_PATTERNS = tuple(re.compile(p) for p in (
     r'\bet\b', r'\bct\b', r'\best\b', r'\bedt\b', r'\bcst\b', r'\bcdt\b',
 ))
 
+# 2026-08-18: "Chief of Staff @ Pets Table" (Torre.ai) states its timezone bar
+# as a RANGE — "specific timezone required: GMT-09:00 to GMT-01:00" — and never
+# once writes "gmt-5"/"utc-5" literally, so _TZ_COMPATIBLE_PATTERNS above (exact
+# literals only) can't see that Panama (UTC-5) sits inside GMT-9..GMT-1. Same
+# failure shape as the earlier "UK&I" / "Berlin (Remote)" misses: matching
+# literal strings against a phrasing the source didn't happen to use.
+_TZ_RANGE_PATTERN = re.compile(
+    r'(?:gmt|utc)\s*([+-]\d{1,2})(?::00)?\s*(?:to|through|[-–—]|and)\s*'
+    r'(?:gmt|utc)\s*([+-]\d{1,2})(?::00)?',
+    re.IGNORECASE,
+)
+
+
+def _tz_range_covers_panama(text: str) -> bool:
+    """True if a stated GMT/UTC offset RANGE includes Panama's UTC-5, even when
+    -5 is never written literally (only the range bounds are)."""
+    for m in _TZ_RANGE_PATTERN.finditer(text or ""):
+        try:
+            lo, hi = int(m.group(1)), int(m.group(2))
+        except ValueError:
+            continue
+        if min(lo, hi) <= -5 <= max(lo, hi):
+            return True
+    return False
+
 # GEO/AEO/Tech-SEO is one of Elena's explicit target lanes (July 9 2026) — it IS
 # AI-augmented work (AI-crawler visibility, generative/answer-engine optimization)
 # but shares no keyword with the ai_aug tuple below. \b-bounded so "seoul" /
@@ -279,6 +308,7 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
                 'open to candidates anywhere', 'candidates from any',
             ))
             or any(p.search(blob) for p in _TZ_COMPATIBLE_PATTERNS)
+            or _tz_range_covers_panama(blob)
         )
 
     us_only = any(k in blob for k in (

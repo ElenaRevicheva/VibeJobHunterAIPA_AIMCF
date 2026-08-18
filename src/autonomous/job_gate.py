@@ -51,6 +51,16 @@ ROLE_INCLUDE_KEYWORDS = {
     "llm", "nlp",
     "product manager", "growth engineer",
     "fractional", "consultant",
+    # AI-native operator/EA lane (2026-08-18) — "Chief of Staff @ Pets Table" was
+    # never even fetched from Torre because no query asked for it (fixed in
+    # job_monitor.py's Torre skill list); these are the matching AI-qualified
+    # include phrases so the gate doesn't then reject it on arrival. Kept
+    # AI-qualified (not bare "chief of staff"/"executive assistant") so a
+    # traditional non-AI EA/CoS posting still fails to qualify here.
+    "ai chief of staff", "chief of staff ai", "ai operations lead",
+    "ai executive assistant", "executive assistant ai",
+    "ai personal assistant", "personal assistant ai",
+    "ai proficient assistant", "ai-proficient assistant", "ai proficient executive assistant",
 }
 
 ROLE_EXCLUDE_KEYWORDS = {
@@ -264,6 +274,18 @@ _GENERIC_SENIORITY_EXCLUDES = frozenset({
     "director ", "director,", "director-", "head of",
 })
 
+# ── AI-ASSISTANT CARVE-OUT (2026-08-18) ───────────────────────────────────────
+# "executive assistant" and "administrative" sit in ROLE_EXCLUDE_KEYWORDS to
+# kill traditional non-AI admin/EA postings — correctly, that's not Elena's
+# lane. But "AI-proficient Executive Assistant" / "AI Personal Assistant" for a
+# wealthy principal or family office IS a fit for the operator-plus-AI-builder
+# profile (same shape as the Chief of Staff carve-out below, narrower trigger:
+# any AI term in the title, not just the leadership-noun pattern _AI_LEADERSHIP
+# requires — "AI Executive Assistant" has no head/chief/director/vp/officer/lead
+# noun so _AI_LEADERSHIP itself would never fire for it).
+_ASSISTANT_EXCLUDE_CARVEOUT = frozenset({"executive assistant", "administrative"})
+_AI_QUALIFIED_TITLE = re.compile(r"\bai\b|ai[-/]|[-/]ai|\bml\b|artificial intelligence", re.IGNORECASE)
+
 
 class JobGate:
     """
@@ -459,10 +481,14 @@ class JobGate:
         # blocklist above already ran, so pedigree-heavy corporates are gone before
         # this point, and iron_clad_fit still rejects any degree demand later.
         ai_leadership = bool(_AI_LEADERSHIP.search(title))
+        ai_qualified_title = bool(_AI_QUALIFIED_TITLE.search(title))
         for exclude_kw in ROLE_EXCLUDE_KEYWORDS:
             if exclude_kw in title:
                 if ai_leadership and exclude_kw in _GENERIC_SENIORITY_EXCLUDES:
                     logger.debug(f"↩️ GATE carve-out (AI leadership beats '{exclude_kw}'): {title[:50]}")
+                    continue
+                if ai_qualified_title and exclude_kw in _ASSISTANT_EXCLUDE_CARVEOUT:
+                    logger.debug(f"↩️ GATE carve-out (AI-qualified assistant beats '{exclude_kw}'): {title[:50]}")
                     continue
                 logger.debug(f"❌ GATE REJECT (excluded keyword '{exclude_kw}'): {title[:50]}")
                 return False
