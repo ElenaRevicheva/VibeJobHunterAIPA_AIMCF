@@ -170,6 +170,22 @@ LARGE_COMPANY_BLOCKLIST = {
     "bristol myers", "airbnb", "adyen", "scribd", "ebay",
     "wealthfront", "skydio", "neuralink", "iomed", "curai",
     "holmusk", "oscaro", "amex", "american express",
+    # ── US healthcare / insurance conglomerates (added 2026-08-18) ──────────
+    # "Forward Deployed Engineer @ Optum" reached "I Act TODAY" on 2026-08-18.
+    # Optum is UnitedHealth Group — roughly 400,000 employees. Torre had tagged
+    # the listing "Remote — LATAM / Americas" (its own label, not the employer's)
+    # and the posting body was unreadable, so every content-based filter was
+    # skipped and this list was the only thing left that could have caught it.
+    # It had no entry for any of these. Elena's CAREER_FOCUS is explicit: the
+    # path is founders, operators and fractional engagements — NOT enterprise
+    # ATS pipelines.
+    "optum", "unitedhealth", "united health", "cvs health", "cigna", "humana",
+    "elevance", "anthem", "kaiser permanente", "hca healthcare", "mckesson",
+    "centene", "molina healthcare",
+    # ── Other Fortune-scale employers seen in these feeds ───────────────────
+    "home depot", "walmart", "target corporation", "lowe's", "costco",
+    "jpmorgan", "goldman sachs", "wells fargo", "citigroup", "bank of america",
+    "unitedhealthcare", "accenture federal", "leidos", "booz allen",
 }
 
 

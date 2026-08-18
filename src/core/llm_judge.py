@@ -94,6 +94,16 @@ APPROVE the job ONLY IF ALL of these are true:
    engineer, academic/lab research), NOT legal/counsel, sales, recruiter, developer-relations
    (devrel), developer-advocate, marketing, finance, HR, executive/VP/director, or data-entry.
    She is a hands-on BUILDER and ARCHITECT, not a researcher.
+5. The EMPLOYER is one she can realistically be hired by: startups, scale-ups, product
+   companies, agencies, and fractional / contract engagements. DISQUALIFY when the employer
+   is a very large enterprise or conglomerate (roughly 5,000+ employees — Fortune-500 or
+   publicly-traded giant, big bank, big insurer, big healthcare, big retail, big telecom),
+   a staffing / body-shop / IT-outsourcing firm, or a recruiter posting on behalf of one.
+   Judge this from what you KNOW about the named company, not only from the listing text.
+   Apply this EVEN IF the listing claims remote / worldwide / LATAM: aggregators relabel
+   geography, and at that scale "remote" is nearly always country-locked in practice and
+   hiring runs through ATS pipelines Elena does not clear. Her documented path is founders,
+   operators and fractional work — not enterprise ATS funnels.
 
 {feedback}JOB:
 Title: {title}

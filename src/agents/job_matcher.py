@@ -785,7 +785,11 @@ class JobMatcher:
         early_penalty, _ = self._wrong_role_penalty(job)
         ai_gate_open = early_penalty > -20  # True only for clean or mild-penalty jobs
 
-        if USE_AI_DEEP_ANALYSIS and self.ai and preliminary_score >= 50 and ai_gate_open:
+        # NOTE: no `self.ai` in this condition (2026-08-18). Scoring runs on the
+        # five-provider chain, not on an Anthropic client — gating it on `self.ai`
+        # meant an absent/rotated ANTHROPIC_API_KEY silently disabled AI scoring
+        # for every job while four healthy providers sat unused.
+        if USE_AI_DEEP_ANALYSIS and preliminary_score >= 50 and ai_gate_open:
             ai_attempted = True
             try:
                 ai_result = self._ai_deep_analysis(profile, job)
@@ -903,14 +907,13 @@ class JobMatcher:
     
     def _ai_deep_analysis(self, profile: Profile, job: JobPosting) -> Optional[Dict]:
         """
-        Deep AI analysis using Claude
-        
-        This actually runs Claude to analyze the job posting deeply.
+        Deep AI analysis via the five-provider chain (OpenAI → Gemini → Groq → Grok
+        → Claude, see llm_chain.PROFILE_SCORING).
+
         Only called for jobs that passed preliminary screening (score >= 50).
+        Returns None ONLY when every provider failed — the caller treats that as a
+        genuine outage and clamps the job rather than trusting keywords alone.
         """
-        if not self.ai:
-            return None
-        
         try:
             title = getattr(job, 'title', '') or ''
             company = getattr(job, 'company', '') or ''
@@ -987,16 +990,33 @@ She's overqualified for most roles, not underqualified.
 Return ONLY valid JSON (no markdown):
 {{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""
 
-            response = call_claude_sync(
-                self.ai,
-                model="claude-sonnet-4-5-20250929",
+            # FIVE-PROVIDER WATERFALL, ENTERED DIRECTLY (2026-08-18).
+            #
+            # This used to be call_claude_sync(self.ai, model="claude-sonnet-4-5…"),
+            # i.e. Claude-primary with the chain reachable only as Claude's exception
+            # handler. Two consequences, both paid for on 2026-08-18:
+            #   1. Claude is 400 credit-exhausted, so EVERY scored job bought a
+            #      guaranteed-failing round trip before any working provider was tried.
+            #   2. The whole chain hung off `self.ai` — an Anthropic client. No key, no
+            #      client, no scoring at all: _ai_deep_analysis returned None, the
+            #      outage clamp capped every job to 54, and lead flow went to zero
+            #      without a single error in the log.
+            # The waterfall is the primary path now. Claude is one leg of it (last, in
+            # PROFILE_SCORING), so restoring credits revives it with no code change.
+            from src.utils.llm_chain import PROFILE_SCORING, complete as _chain_complete
+
+            result_text, _chain_errors = _chain_complete(
+                [{"role": "user", "content": prompt}],
                 max_tokens=500,
-                messages=[{"role": "user", "content": prompt}]
+                order=PROFILE_SCORING,
             )
-            if response is None:
-                raise RuntimeError("Claude returned None after retries")
-            
-            result_text = response.content[0].text.strip()
+            result_text = (result_text or "").strip()
+            if not result_text:
+                # Genuine outage: every provider failed. Name them — "no opinion" is a
+                # real state the caller must clamp on, but it must never be silent.
+                raise RuntimeError(
+                    "all providers failed: " + ("; ".join(_chain_errors) or "none attempted")
+                )
             
             # Extract JSON from response
             if "```json" in result_text:

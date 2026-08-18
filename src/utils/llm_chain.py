@@ -47,6 +47,20 @@ _ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 PROFILE_QUALITY: Tuple[str, ...] = ("openai", "gemini", "groq", "grok")
 # For high-volume structured work: cheap plain models first, Claude last.
 PROFILE_CLASSIFY: Tuple[str, ...] = ("openai", "gemini", "groq", "grok", "claude")
+# Job SCORING (job_matcher._ai_deep_analysis). Added 2026-08-18.
+#
+# This decides whether a job ever reaches Elena, so a missing opinion costs a real
+# lead: when no provider answers, the AI-outage clamp caps the job at 54 and it is
+# discarded. On 2026-08-18 that silently killed three jobs whose keyword scores were
+# 81, 85 and 100 — including "AI Operations & Automation Manager, Europe/LaTAM",
+# squarely in her lane.
+#
+# Claude sits LAST, not first. It is a genuine leg — but it is currently 400
+# credit-exhausted, and a dead provider at the head of the chain buys nothing and
+# costs a guaranteed-failing round trip on EVERY scored job. When credits return it
+# resumes serving from the back without a code change. Same lesson the whitespace
+# repo learned when a retired Groq model sat at tier 2.
+PROFILE_SCORING: Tuple[str, ...] = ("openai", "gemini", "groq", "grok", "claude")
 
 
 def _model(provider: str) -> str:

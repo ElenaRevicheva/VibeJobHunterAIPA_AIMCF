@@ -34,6 +34,7 @@ def push_application_to_crm(
     source: str = "vjh",
     notes: str = "",
     score: float = 0.0,
+    source_prefix: str = "HIRING-VJH-LEAD",
 ) -> bool:
     """POST the job application to CTO AIPA CRM hub. Returns True on success."""
     secret = (os.environ.get("OUTREACH_SECRET") or "").strip()
@@ -56,7 +57,11 @@ def push_application_to_crm(
         "source": source,
         "type": "application",
         "pipeline": "hiring",
-        "sourcePrefix": "HIRING-VJH-LEAD",
+        # Drives the HubSpot deal name: "[{sourcePrefix}] {jobTitle} @ {company}".
+        # UNVERIFIED jobs pass a different prefix (2026-08-18) so a card the bot could
+        # not read is never visually identical to one that cleared every filter —
+        # which is exactly how the Optum lead reached Elena looking fully vetted.
+        "sourcePrefix": source_prefix,
         "jobTitle": job_title,
         "company": company,
         "notes": f"\u26a0\ufe0f MANUAL APPLY REQUIRED \u2014 VJH found this job and generated a cover letter, but did NOT submit. Click the job URL above + paste the cover letter. Cover letter path: see local materials/ folder.",

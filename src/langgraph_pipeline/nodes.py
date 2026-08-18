@@ -323,9 +323,36 @@ async def submit_node(state: JobState) -> dict:
         # is on-lane; notify_node labels it clearly so it can't be mistaken for a
         # vetted match.
         if state.get('unverified'):
-            logger.info(f"[submit] UNVERIFIED surface (filters skipped, title on-lane): "
+            # THE JUDGE STILL RUNS (2026-08-18). iron_clad_fit is skipped here for a
+            # good reason — it reads the description, and we know the description is
+            # incomplete. The judge is different: it also gets TITLE, COMPANY and
+            # LOCATION, and it knows what the named company IS. That is exactly the
+            # evidence that was available, and unused, when "Forward Deployed Engineer
+            # @ Optum" (UnitedHealth, ~400k employees) surfaced to Elena on 2026-08-18
+            # with an unreadable body and Torre's own "Remote — LATAM / Americas" tag.
+            # Being unable to read the BODY is not a reason to ignore the NAME.
+            try:
+                from src.core.llm_judge import judge_fit
+                _ujfit, _ujreason = judge_fit(
+                    state.get('title', ''), state.get('company', ''),
+                    state.get('location', ''),
+                    (state.get('description') or '')
+                    + "\n\n[NOTE: the posting body could not be retrieved. Judge from the "
+                      "title, company and location alone. Do not assume the role is a fit "
+                      "merely because the body is missing.]",
+                )
+            except Exception as _uje:
+                _ujfit, _ujreason = True, f"judge import failed ({_uje})"
+            if not _ujfit:
+                logger.info(f"[submit] UNVERIFIED + judge VETO ({_ujreason}) → discard: "
+                            f"{state['company']} ({state['title']})")
+                return {"applied": False, "apply_method": "skipped", "status": "discarded",
+                        "gate_reason": "unverified + judge veto: " + str(_ujreason)}
+            logger.info(f"[submit] UNVERIFIED surface (judge OK: {_ujreason}): "
                         f"{state['company']} ({state['title']})")
-            return {"applied": False, "apply_method": "manual", "status": "human_pending"}
+            return {"applied": False, "apply_method": "manual", "status": "human_pending",
+                    "unverified": True,
+                    "gate_reason": f"UNVERIFIED (body unreadable) — judge: {_ujreason}"}
         try:
             from src.core.fit_gate import iron_clad_fit
             fit = iron_clad_fit(state.get('title', ''), state.get('location', ''), state.get('description', ''))
@@ -632,12 +659,26 @@ async def notify_node(state: JobState) -> dict:
             try:
                 from src.langgraph_pipeline.crm_hub import push_application_to_crm
                 if status == "human_pending":
+                    # An UNVERIFIED job is a job whose posting the bot could NOT read.
+                    # It is surfaced deliberately (dropping them cost 37 in-lane roles
+                    # in one 48h window) but it must LOOK different in HubSpot, or it
+                    # reads as a vetted match \u2014 the Optum failure on 2026-08-18.
+                    _unver = bool(state.get('unverified'))
+                    _prefix = "HIRING-VJH-UNVERIFIED" if _unver else "HIRING-VJH-LEAD"
                     crm_notes = (
                         f"\u26a0\ufe0f NEEDS MANUAL APPLY\n"
                         f"Score: {score:.0f}\n"
                         f"Apply at: {url}\n"
                         f"Approve in Telegram: /approve_vjh_{state.get('job_id', '')}"
                     )
+                    if _unver:
+                        crm_notes = (
+                            "\U0001f7e1 UNVERIFIED \u2014 VJH could NOT read this posting.\n"
+                            "Title, company and location were screened; the job BODY was not.\n"
+                            "Check pay, seniority, residency rules and that it is still open "
+                            "BEFORE spending time on it.\n"
+                            f"{state.get('gate_reason', '')}\n\n"
+                        ) + crm_notes
                     push_application_to_crm(
                         job_title=title,
                         company=company,
@@ -645,6 +686,7 @@ async def notify_node(state: JobState) -> dict:
                         stage="applied",
                         source="vjh_review",
                         notes=crm_notes,
+                        source_prefix=_prefix,
                     )
                 else:
                     push_application_to_crm(
