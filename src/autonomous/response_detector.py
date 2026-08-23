@@ -31,6 +31,88 @@ from email.header import decode_header
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# MAILBOXES — employers do not all write to the same inbox
+#
+# Until 23 Aug 2026 this detector read Zoho only. Job-board replies land in
+# GMAIL: that day a Contractor Marketing Pros interview request arrived from
+# team@getonbrd.com to the gmail address and nothing fired, because the detector
+# was watching a mailbox employers never write to. Every component was correct
+# and the system was still blind — coverage, not correctness.
+#
+# A mailbox with no password configured is skipped silently, so adding one is
+# purely additive and this keeps working with Zoho alone.
+# ═══════════════════════════════════════════════════════════════════════════════
+MAILBOXES = (
+    {"name": "zoho", "host": "imappro.zoho.com", "port": 993,
+     "user_env": "ZOHO_EMAIL", "pass_env": "ZOHO_APP_PASSWORD",
+     "default_user": "aipa@aideazz.xyz"},
+    {"name": "gmail", "host": "imap.gmail.com", "port": 993,
+     "user_env": "GMAIL_EMAIL", "pass_env": "GMAIL_APP_PASSWORD",
+     "default_user": ""},
+)
+
+# Booking-link hosts. Detection is DELIBERATELY deterministic rather than
+# LLM-classified: a scheduling link is an unambiguous fact, and a regex cannot
+# hallucinate one or miss it during a provider outage. The LLM still judges
+# tone; this only decides "did they hand her a calendar".
+BOOKING_LINK_RE = re.compile(
+    r"https?://(?:www\.)?("
+    r"meetings\.hubspot\.com|meetings-eu1\.hubspot\.com|calendly\.com|"
+    r"cal\.com|savvycal\.com|zcal\.co|tidycal\.com|koalendar\.com|"
+    r"app\.usemotion\.com|scheduler\.zoom\.us"
+    r")/[^\s<>\"')]+",
+    re.IGNORECASE,
+)
+
+INTERVIEW_PHRASES = (
+    "set up an interview", "schedule an interview", "book a call", "book a time",
+    "book a 30", "schedule a call", "schedule a time", "find a time",
+    "pick a slot", "grab a time", "hop on a call", "interview with",
+    "meet the team", "next step",
+)
+
+
+def extract_booking_link(text):
+    """Return the first scheduling URL found in the text, or None."""
+    if not text:
+        return None
+    m = BOOKING_LINK_RE.search(text)
+    return m.group(0).rstrip(".,);") if m else None
+
+
+def looks_like_interview_request(subject, body):
+    """
+    True when the message hands Elena a way to book time.
+
+    A booking link alone is sufficient — that IS the interview request. The
+    phrase list is a fallback for employers who propose times in prose, and it
+    is only trusted alongside interview-ish wording so newsletters stay out.
+    """
+    blob = ((subject or "") + "\n" + (body or "")).lower()
+    if extract_booking_link(blob):
+        return True
+    return any(p in blob for p in INTERVIEW_PHRASES) and (
+        "interview" in blob or "call" in blob
+    )
+
+
+def google_calendar_template_url(title, details=""):
+    """
+    A prefilled Google Calendar link — two taps to save, and crucially NO new
+    credential. Writing to her calendar directly needs an OAuth grant only she
+    can give; this needs none, so the loop closes now rather than after an auth
+    dance. Gap 4 (a real calendar watcher) can take that grant later.
+    """
+    from urllib.parse import quote_plus
+    return (
+        "https://calendar.google.com/calendar/render?action=TEMPLATE"
+        "&text=" + quote_plus(str(title)[:120])
+        + "&details=" + quote_plus(str(details)[:800])
+        + "&ctz=America/Panama"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -74,6 +156,7 @@ def _sender_is_blocked(from_email):
 class ResponseType(Enum):
     """Classification of email responses"""
     POSITIVE = "positive"          # Interview request, interest expressed
+    INTERVIEW_REQUEST = "interview_request"  # They sent a booking link -- act TODAY
     REJECTION = "rejection"        # "We've decided to move forward with others"
     QUESTION = "question"          # "Can you tell me more about..."
     ACKNOWLEDGMENT = "ack"         # "We received your application"
@@ -96,6 +179,7 @@ class DetectedResponse:
     suggested_action: str
     ai_analysis: str
     original_application_id: Optional[int] = None
+    booking_link: Optional[str] = None  # scheduling URL, when they sent one
 
 
 # Keywords that indicate different response types (pre-filter before Claude)
@@ -192,6 +276,44 @@ class ResponseDetector:
                     f.write(line + '\n')
         except Exception as e:
             logger.warning(f"[ResponseDetector] Could not save processed IDs: {e}")
+
+    def _dedupe_key(self, email_id):
+        """
+        Namespace the processed-id set by mailbox.
+
+        IMAP message ids are sequence numbers scoped to ONE mailbox, so gmail
+        id 42 and zoho id 42 are different messages. Before Gmail was added the
+        set was global and that was harmless; with two mailboxes it would drop
+        real messages as "already seen".
+
+        Zoho keeps the bare id on purpose: autonomous_data/processed_email_ids.txt
+        already holds thousands of un-prefixed zoho ids, and re-keying them would
+        re-alert Elena for every historical email at once.
+        """
+        raw = email_id.decode() if isinstance(email_id, bytes) else str(email_id)
+        name = getattr(self, "_mailbox_name", "zoho")
+        return raw if name == "zoho" else name + ":" + raw
+
+    def _open_mailboxes(self):
+        """Open every configured mailbox. Missing password = skipped, not fatal."""
+        opened = []
+        for mb in MAILBOXES:
+            pwd = os.getenv(mb["pass_env"], "").strip()
+            user = os.getenv(mb["user_env"], mb["default_user"]).strip()
+            if not pwd or not user:
+                logger.debug("[mail] %s not configured - skipping", mb["name"])
+                continue
+            try:
+                conn = imaplib.IMAP4_SSL(mb["host"], mb["port"])
+                conn.login(user, pwd)
+                opened.append((mb["name"], conn))
+                logger.info("[mail] connected to %s (%s)", mb["name"], user)
+            except Exception as e:
+                # One dead mailbox must never stop the others being scanned.
+                logger.error("[mail] %s connection failed: %s", mb["name"], e)
+        if not opened:
+            logger.error("[mail] no mailbox could be opened")
+        return opened
 
     def connect(self) -> bool:
         """Connect to Zoho Mail via IMAP"""
@@ -446,13 +568,42 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
     
     async def scan_for_responses(self, hours_back: int = 24) -> List[DetectedResponse]:
         """
-        Scan inbox for responses to job applications.
-        
-        Args:
-            hours_back: How many hours back to scan
-            
-        Returns:
-            List of detected responses
+        Scan EVERY configured mailbox for responses to job applications.
+
+        Was Zoho-only until 23 Aug 2026. Employers reply wherever the job board
+        has her address on file, which for Get on Board / Wellfound / LinkedIn is
+        Gmail. One mailbox failing never stops the others.
+        """
+        opened = self._open_mailboxes()
+        if not opened:
+            return []
+
+        all_responses: List[DetectedResponse] = []
+        try:
+            for name, conn in opened:
+                self._mailbox_name = name
+                self.imap_connection = conn
+                try:
+                    found = await self._scan_current_mailbox(hours_back)
+                    logger.info("[mail] %s: %d response(s)", name, len(found))
+                    all_responses.extend(found)
+                except Exception as e:
+                    logger.error("[mail] %s scan failed: %s", name, e)
+        finally:
+            for _name, conn in opened:
+                try:
+                    conn.logout()
+                except Exception:
+                    pass
+            self.imap_connection = None
+        return all_responses
+
+    async def _scan_current_mailbox(self, hours_back: int = 24) -> List[DetectedResponse]:
+        """
+        Scan the mailbox currently bound to self.imap_connection.
+
+        This is the original scan body; scan_for_responses now drives it once
+        per mailbox.
         """
         logger.info(f"🔍 Scanning inbox for responses (last {hours_back} hours)...")
         
@@ -480,7 +631,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             # Process each email (newest first)
             for email_id in reversed(email_ids[-50:]):  # Limit to 50 most recent
                 # Skip if already processed
-                if email_id in self.processed_email_ids:
+                if self._dedupe_key(email_id) in self.processed_email_ids:
                     continue
                 
                 try:
@@ -494,7 +645,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     # Skip Greenhouse verification emails
                     if "security code" in subject.lower() or "greenhouse" in from_email.lower():
                         if "security code" in subject.lower():
-                            self.processed_email_ids.add(email_id)
+                            self.processed_email_ids.add(self._dedupe_key(email_id))
                             continue
 
                     # Skip calendar reminders and automated notifications
@@ -507,7 +658,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     CALENDAR_SENDERS = ["zohocalendar", "calendar-notification", "noreply@"]
                     if (any(subject_lower.startswith(s) for s in CALENDAR_SKIP) or
                             any(s in from_lower for s in CALENDAR_SENDERS)):
-                        self.processed_email_ids.add(email_id)
+                        self.processed_email_ids.add(self._dedupe_key(email_id))
                         self._save_processed_ids()
                         logger.debug(f"[ResponseDetector] Skipping calendar/auto email: {subject[:60]}")
                         continue
@@ -526,9 +677,31 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     
                     # Skip spam and low-confidence unknowns
                     if response_type == ResponseType.SPAM:
-                        self.processed_email_ids.add(email_id)
+                        self.processed_email_ids.add(self._dedupe_key(email_id))
                         continue
                     
+                    # ── Did they hand her a calendar? ───────────────────────
+                    # Deterministic, and deliberately AFTER the spam skip. Cold
+                    # sales mail is full of calendly links, so a booking link
+                    # must never rescue a message the classifier called spam --
+                    # that would flood her and is the same mistake as weakening
+                    # the SPAM rule to make a self-test pass. It only upgrades
+                    # mail that already cleared the filter.
+                    booking_link = extract_booking_link((subject or "") + " " + (body or ""))
+                    if looks_like_interview_request(subject, body):
+                        if response_type in (ResponseType.POSITIVE,
+                                             ResponseType.QUESTION,
+                                             ResponseType.ACKNOWLEDGMENT,
+                                             ResponseType.UNKNOWN):
+                            logger.info(
+                                "[interview] upgrading %s -> INTERVIEW_REQUEST for %s%s",
+                                response_type.value, company or from_email,
+                                " (booking link found)" if booking_link else "",
+                            )
+                            response_type = ResponseType.INTERVIEW_REQUEST
+                            confidence = max(confidence, 0.95 if booking_link else 0.75)
+                            action = "BOOK THE CALL - then confirm so the deal moves"
+
                     # Create response object
                     detected = DetectedResponse(
                         email_id=email_id.decode() if isinstance(email_id, bytes) else str(email_id),
@@ -541,11 +714,12 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                         confidence=confidence,
                         company_name=company,
                         suggested_action=action,
-                        ai_analysis=analysis
+                        ai_analysis=analysis,
+                        booking_link=booking_link
                     )
                     
                     responses.append(detected)
-                    self.processed_email_ids.add(email_id)
+                    self.processed_email_ids.add(self._dedupe_key(email_id))
                     
                     # Log significant responses
                     if response_type == ResponseType.POSITIVE:
@@ -587,13 +761,34 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             ResponseType.QUESTION: "❓",
             ResponseType.REJECTION: "📭",
             ResponseType.ACKNOWLEDGMENT: "✅",
-            ResponseType.UNKNOWN: "❔"
+            ResponseType.UNKNOWN: "❔",
+            ResponseType.INTERVIEW_REQUEST: "📅🔥"
         }.get(response.response_type, "📧")
         
         urgency = ""
         if response.response_type == ResponseType.POSITIVE:
             urgency = "\n⚡ URGENT: Respond within 24 hours!"
         
+        # An interview request is the only class whose next action is a URL.
+        # Booking happens inside the EMPLOYER scheduler, so it leaves no trace
+        # in any system here -- on 23 Aug 2026 a real booking produced no invite,
+        # no confirmation mail and no calendar entry. Nothing can DETECT that,
+        # so the card closes the loop by hand instead of pretending to.
+        if response.response_type == ResponseType.INTERVIEW_REQUEST:
+            _cal = google_calendar_template_url(
+                "Interview - " + (response.company_name or "employer"),
+                "Booked via " + (response.booking_link or "their scheduler"),
+            )
+            _nl = chr(10)
+            urgency = _nl.join([
+                "",
+                "",
+                "👉 BOOK IT: " + (response.booking_link or "(link is in the email)"),
+                "📅 THEN SAVE THE SLOT: " + _cal,
+                "",
+                "↩ Reply with the date and time and I will move the deal.",
+            ])
+
         return f"""{emoji} **{response.response_type.value.upper()}** from {response.company_name or 'Unknown'}
 
 **From:** {response.from_name}
@@ -686,17 +881,23 @@ def push_response_to_hubspot(response):
             "pipeline": "hiring",
             "sourcePrefix": "HIRING-VJH-LEAD",
             "stage": "recruiter_responded",
+            "interviewRequest": response.response_type.value == "interview_request",
+            "bookingLink": getattr(response, "booking_link", None) or "",
             "jobTitle": (response.subject or "Recruiter response")[:120],
             "company": response.company_name or "Unknown",
             "recruiterEmail": response.from_email or "",
             "recruiterName": response.from_name or "",
             "notes": (
                 "RECRUITER RESPONSE DETECTED - " + response.response_type.value + "\n"
-                "Confidence: " + str(round(response.confidence, 2)) + "\n"
+                + (("BOOKING LINK: " + response.booking_link + "\n")
+                   if getattr(response, "booking_link", None) else "")
+                + "Confidence: " + str(round(response.confidence, 2)) + "\n"
                 "Subject: " + (response.subject or "") + "\n"
                 "AI summary: " + (response.ai_analysis or "")[:300]
             ),
-            "urgency": 5 if response.response_type.value == "positive" else 3,
+            # An interview request outranks everything else: booking slots
+            # genuinely expire, where "we liked your profile" does not.
+            "urgency": 5 if response.response_type.value in ("positive", "interview_request") else 3,
         }
         req = urllib.request.Request(
             base + "/api/crm-event",
