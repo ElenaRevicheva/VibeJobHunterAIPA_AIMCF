@@ -30,13 +30,17 @@ SAFETY
 Usage:
     python3 scripts/followup_radar.py                 # print the report
     python3 scripts/followup_radar.py --notify        # also send to Telegram
+    python3 scripts/followup_radar.py --hubspot       # also raise HubSpot tasks
     python3 scripts/followup_radar.py --days 60       # widen the window
 """
 import email
 import imaplib
+import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import defaultdict
@@ -173,6 +177,132 @@ def build(inbox, sent, mine):
     return threads
 
 
+# ---------------------------------------------------------------------------
+# HubSpot -- the queue lives where the money queue lives
+#
+# Telegram is a notification: it scrolls away and takes the task with it.
+# HubSpot is the playground, so a stalled thread has to become a real Task with
+# an owner and a due date, sitting in the same pipeline as everything else.
+#
+# The hard part is NOT creating the task, it is creating it ONCE. This runs
+# daily; a blind create would manufacture ~15 duplicates a day and make the
+# queue useless within a week -- the same shape as the blog publishing
+# near-duplicates. So every task carries a deterministic subject that doubles as
+# its dedupe key, and we search for an open one before writing.
+# ---------------------------------------------------------------------------
+HS = "https://api.hubapi.com"
+TASK_TO_CONTACT = 204  # HUBSPOT_DEFINED association type
+
+
+def hs_call(token, method, path, payload=None):
+    """
+    Paced and 429-aware. HubSpot enforces a SECONDLY limit, and the first run
+    tripped it: two threads lost their task because the DEDUPE SEARCH 429'd.
+    That failed safe -- an errored search skips rather than creating a duplicate
+    -- but a skipped task is a silently dropped follow-up, which is the thing
+    this whole script exists to prevent. So pace, and retry rather than drop.
+    """
+    data = None if payload is None else json.dumps(payload).encode()
+    for attempt in range(4):
+        req = urllib.request.Request(f"{HS}{path}", data=data, method=method)
+        req.add_header("Authorization", f"Bearer {token}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            time.sleep(0.3)  # stay under the secondly limit by construction
+            with urllib.request.urlopen(req, timeout=45) as r:
+                body = r.read().decode()
+                return json.loads(body) if body else {}
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode()[:200]
+            if e.code == 429 and attempt < 3:
+                time.sleep(2 * (attempt + 1))
+                continue
+            raise RuntimeError(f"HTTP {e.code}: {detail}") from None
+    raise RuntimeError("HTTP 429: retries exhausted")
+
+
+def hs_find_contact(token, addr):
+    res = hs_call(token, "POST", "/crm/v3/objects/contacts/search", {
+        "filterGroups": [{"filters": [
+            {"propertyName": "email", "operator": "EQ", "value": addr}]}],
+        "properties": ["email"], "limit": 1,
+    })
+    hits = res.get("results") or []
+    return hits[0]["id"] if hits else None
+
+
+def hs_upsert_contact(token, addr):
+    existing = hs_find_contact(token, addr)
+    if existing:
+        return existing
+    try:
+        created = hs_call(token, "POST", "/crm/v3/objects/contacts",
+                          {"properties": {"email": addr}})
+        return created.get("id")
+    except RuntimeError as e:
+        # 409 = created between our search and our write. Re-read, do not guess.
+        if "409" in str(e):
+            return hs_find_contact(token, addr)
+        raise
+
+
+def hs_open_task_exists(token, subject):
+    """The dedupe gate. An open task with this exact subject means today's run
+    has nothing new to say -- the thread is already in her queue."""
+    res = hs_call(token, "POST", "/crm/v3/objects/tasks/search", {
+        "filterGroups": [{"filters": [
+            {"propertyName": "hs_task_subject", "operator": "EQ", "value": subject},
+            {"propertyName": "hs_task_status", "operator": "NEQ", "value": "COMPLETED"},
+        ]}],
+        "properties": ["hs_task_subject"], "limit": 1,
+    })
+    return bool(res.get("results"))
+
+
+def hs_sync(token, owner, owed_by_you, owed_by_them):
+    created, skipped, failed = 0, 0, 0
+    batches = [("YOUR MOVE", "HIGH", 4, owed_by_you),
+               ("NUDGE THEM", "MEDIUM", 24, owed_by_them)]
+    for label, priority, due_hours, rows in batches:
+        for age, t in rows:
+            addr = t["who"]
+            subject = f"[FOLLOWUP-RADAR] {label} — {addr} — {t['subject'][:48]}"
+            try:
+                if hs_open_task_exists(token, subject):
+                    skipped += 1
+                    continue
+                cid = hs_upsert_contact(token, addr)
+                due = datetime.now(timezone.utc) + timedelta(hours=due_hours)
+                body = (
+                    f"Thread: {t['subject']}\n"
+                    f"Counterpart: {addr}\n"
+                    f"Silent for: {age} days\n"
+                    f"Whose turn: {'THEY wrote last — she owes a reply' if label == 'YOUR MOVE' else 'SHE wrote last — a nudge is free'}\n\n"
+                    f"Raised automatically by followup_radar.py. Closing this task is the "
+                    f"signal it is handled; the radar will not re-open it while it is open."
+                )
+                payload = {"properties": {
+                    "hs_task_subject": subject,
+                    "hs_task_body": body,
+                    "hs_task_status": "NOT_STARTED",
+                    "hs_task_priority": priority,
+                    "hs_timestamp": due.isoformat(),
+                    "hubspot_owner_id": owner,
+                }}
+                if cid:
+                    payload["associations"] = [{
+                        "to": {"id": cid},
+                        "types": [{"associationCategory": "HUBSPOT_DEFINED",
+                                   "associationTypeId": TASK_TO_CONTACT}],
+                    }]
+                hs_call(token, "POST", "/crm/v3/objects/tasks", payload)
+                created += 1
+            except Exception as e:
+                failed += 1
+                print(f"  ! hubspot {addr}: {e}", file=sys.stderr)
+    return created, skipped, failed
+
+
 def main():
     days = 45
     if "--days" in sys.argv:
@@ -181,6 +311,7 @@ def main():
         except Exception:
             pass
     notify = "--notify" in sys.argv
+    to_hubspot = "--hubspot" in sys.argv
 
     env = load_env(VJH_ENV)
     since = datetime.now(timezone.utc) - timedelta(days=days)
@@ -245,6 +376,16 @@ def main():
         f"\n{len(owed_by_you)} waiting on you · {len(owed_by_them)} waiting on them "
         f"· {len(threads)} two-way threads in {days}d"
     )
+
+    if to_hubspot:
+        cto = load_env(CTO_ENV)
+        hs_token = cto.get("HUBSPOT_API_KEY")
+        owner = cto.get("HUBSPOT_OWNER_ID", "91612860")
+        if not hs_token:
+            print("  ! HUBSPOT_API_KEY not set — HubSpot sync skipped", file=sys.stderr)
+        else:
+            c, s_, f = hs_sync(hs_token, owner, owed_by_you, owed_by_them)
+            print(f"  hubspot: {c} task(s) created, {s_} already open, {f} failed")
 
     if notify:
         tok = load_env(CTO_ENV).get("TELEGRAM_BOT_TOKEN")
