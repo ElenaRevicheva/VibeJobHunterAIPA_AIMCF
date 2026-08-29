@@ -43,6 +43,8 @@ from typing import Dict, List, Optional
 
 import aiohttp
 
+from src.scrapers.board_hygiene import clean_board_jobs
+
 logger = logging.getLogger(__name__)
 
 _BASE = "https://www.ai-native-builder.com"
@@ -222,5 +224,9 @@ async def fetch_ai_native_builder_jobs(timeout_seconds: int = 120) -> List[Dict]
                     len(jobs), cached_n, len(jobs) - cached_n)
     except Exception as e:
         logger.warning("ai-native-builder failed: %s", e)
-        return jobs  # partial is better than none; cache makes the next cycle cheaper
-    return jobs
+        return clean_board_jobs(jobs, "ai-native-builder")  # partial, still cleaned
+
+    # The cache is deliberately long-lived (30d) so cycles stay cheap, which means
+    # a posting can expire while it is still cached. Hygiene runs on every cycle,
+    # not at fetch time, so an expired listing stops being served the day it dies.
+    return clean_board_jobs(jobs, "ai-native-builder")
