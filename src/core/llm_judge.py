@@ -6,9 +6,29 @@ This judge evaluates each candidate against Elena's EXACT criteria right before 
 surface to her Telegram/HubSpot (high PRECISION: veto "Senior Counsel @ AI-company" etc.).
 
 Runs only on the handful of jobs about to surface (post-gate, post-score), so cost is tiny.
-Provider order: OpenAI gpt-4o-mini (reliable, ~fractions of a cent) → Groq (free; model id
-via model_config.groq_model(), switched fleet-wide with the GROQ_MODEL env var).
-FAIL-OPEN: if both are unavailable, returns fit=True so the pipeline still fires.
+
+PROVIDER ORDER — five tiers, and the order is NOT the fleet default (2026-08-29):
+
+    1. OpenAI  gpt-4o-mini   reliable, ~fractions of a cent  ← serves virtually every call
+    2. Gemini
+    3. Groq                  free; model id via model_config.groq_model()
+    4. xAI / Grok
+    5. Claude                LAST on purpose — see the comment at the tier itself
+
+Claude is deliberately the LAST tier here, not the first. It is the most reliable and
+the most expensive, and this judge is the highest-volume LLM caller in the fleet, so
+reaching tier 5 means four providers are down simultaneously — a situation worth
+paying to survive, and only that situation.
+
+This ordering is per USE CASE and differs from the classification path, which is
+Anthropic-first. A consequence worth stating plainly, because it looks alarming in
+the logs and is not: when Anthropic credits ran out on 2026-08-17, the classifier
+started logging "Anthropic unavailable" on every call while THIS JUDGE was completely
+unaffected — it had never reached tier 5. Verified 2026-08-29: zero JUDGE_UNAVAILABLE
+events in 14 days.
+
+FAIL-OPEN: if all five are unavailable, returns fit=True so the pipeline still fires —
+but tagged JUDGE_UNAVAILABLE (see below) so an unjudged job never wears a vetted badge.
 """
 
 import logging
