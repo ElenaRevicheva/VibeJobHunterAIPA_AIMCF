@@ -44,3 +44,11 @@
 *.db    binary
 *.mp4   binary
 *.woff2 binary
+
+# Git's own metadata files. Without these, .gitattributes does not govern itself
+# and stays CRLF on Windows - harmless (git parses it either way) but it made the
+# "is everything in sync?" check fail on its own policy file, which is a silly way
+# to look wrong.
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+.gitmodules    text eol=lf
