@@ -168,6 +168,7 @@ class JobMonitor:
             "wellfound": 0, "wwr": 0, "aijobs": 0, "torre": 0, "himalayas": 0, "bd_linkedin": 0,
             "yc_oss": 0,   # added 2026-07-30
             "getonbrd": 0, # added 2026-08-04 — LATAM-first, Torre-shaped
+            "ai_native_builder": 0,  # added 2026-08-29 — curated AI-builder board
         }
 
         # ==============================================================
@@ -284,18 +285,25 @@ class JobMonitor:
             safe_fetch("Himalayas (global)", self._search_himalayas(), 20),
             safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
             safe_fetch("Remotive", self._search_remotive(), 20),
+            # 2026-08-29: ai-native-builder.com — a CURATED board, not a volume source.
+            # Measured on its full 345-posting sitemap: 72.4% of it clears JobGate,
+            # against ~5.6% fleet-wide, and it carries ZERO ML-researcher titles.
+            # Generous timeout because the FIRST run warms a per-slug disk cache
+            # (~150 detail fetches); every later run is served from cache in seconds.
+            safe_fetch("AI-Native-Builder", self._search_ai_native_builder(), 150),
             return_exceptions=True
         )
 
         # Unpack results
-        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs, remotive_jobs = secondary_results
+        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs, remotive_jobs, anb_jobs = secondary_results
 
         # Handle any exceptions that slipped through
         for name, jobs in [("hn", hn_jobs), ("remoteok", remoteok_jobs),
                            ("yc", yc_jobs), ("wellfound", wellfound_jobs),
                            ("wwr", wwr_jobs), ("aijobs", ai_jobs),
                            ("torre", torre_jobs), ("himalayas", himalayas_jobs),
-                           ("bd_linkedin", bd_linkedin_jobs), ("remotive", remotive_jobs)]:
+                           ("bd_linkedin", bd_linkedin_jobs), ("remotive", remotive_jobs),
+                           ("ai_native_builder", anb_jobs)]:
             if isinstance(jobs, Exception):
                 logger.warning(f"   ⚠️ {name} exception: {jobs}")
                 jobs = []
@@ -322,6 +330,7 @@ class JobMonitor:
         logger.info(f"   Himalayas (glbl):{source_counts['himalayas']} jobs")
         logger.info(f"   BrightData LI:   {source_counts['bd_linkedin']} jobs")
         logger.info(f"   Remotive:        {source_counts.get('remotive', 0)} jobs")
+        logger.info(f"   AI-Native-Bldr:  {source_counts.get('ai_native_builder', 0)} jobs")
         logger.info(f"   TOTAL:           {len(all_jobs)} jobs")
         logger.info("=" * 60)
 
@@ -332,8 +341,12 @@ class JobMonitor:
         # 2026-07-30: added "yc_oss" — the new YC-companies→real-openings source. Without it
         # here, its ~130 postings sit behind ~1700 generic ATS jobs and get cut by max_results,
         # which is exactly how the region-tagged sources were starved in June.
+        # 2026-08-29: added "ai_native_builder" for the SAME reason yc_oss was added on
+        # 07-30. It is the highest-converting source in the fleet by measured gate rate
+        # (72.4% vs ~5.6%), so leaving it out of this list would bury its ~345 postings
+        # behind ~1700 generic ATS jobs and let max_results cut the best supply we have.
         _PRIO_SRC = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs",
-                     "wellfound", "yc_oss", "getonbrd")
+                     "wellfound", "yc_oss", "getonbrd", "ai_native_builder")
         def _job_src(j):
             if isinstance(j, dict):
                 return (j.get("source") or "").lower()
@@ -558,6 +571,23 @@ class JobMonitor:
         except Exception as e:
             logger.warning(f"⚠️ Remotive failed: {e}")
         return jobs
+
+    async def _search_ai_native_builder(self) -> List[Dict]:
+        """ai-native-builder.com — a CURATED board for people who BUILD with AI tools
+        rather than train models. This is a signal-density source, not a volume one:
+        measured over its full 345-posting sitemap on 2026-08-29, 72.4% cleared JobGate
+        (fleet-wide is ~5.6%) and ZERO postings carried an ML-researcher title, which is
+        Elena's single largest discard bucket everywhere else.
+
+        Ingest is the publisher's own machine-readable data — sitemap.xml plus a
+        schema.org JobPosting JSON-LD block on every job page — under a robots.txt that
+        reads 'User-Agent: * / Allow: /'. No key, no auth, no paywall. Fails soft to []."""
+        try:
+            from src.scrapers.ai_native_builder import fetch_ai_native_builder_jobs
+            return await fetch_ai_native_builder_jobs()
+        except Exception as e:
+            logger.warning(f"⚠️ ai-native-builder source failed: {e}")
+            return []
 
     async def _search_yc_workatastartup(self) -> List[Dict]:
         """
