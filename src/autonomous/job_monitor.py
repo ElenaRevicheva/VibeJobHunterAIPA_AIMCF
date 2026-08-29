@@ -600,9 +600,33 @@ class JobMonitor:
         
         FIXED: December 2025 - More reliable API access
         """
-        # DISABLED June 2026: YC WAAS is login-gated now — all 3 public methods return
-        # 0 and waste a 20s timeout + warn every cycle. Re-enable if a free API returns.
-        logger.info("⏭️  YC WAAS: disabled (login-gated, no free API)")
+        # DISABLED June 2026, and RE-CONFIRMED 2026-08-29 for a stronger reason.
+        #
+        # The original note said "login-gated, no free API". That is no longer the
+        # whole truth and it invited a future session to go looking for a way in:
+        # www.workatastartup.com/jobs is in fact PUBLIC again (Rails + Inertia, the
+        # payload sits in the data-page attribute, ~30 jobs with title, location,
+        # salary on 26/30, company, batch and applyUrl). It is easy to parse.
+        #
+        # We still do not touch it. Y Combinator's terms of service state:
+        #     "In connection with your use of the Site you will not engage in or use
+        #      any data mining, robots, scraping or similar data gathering or
+        #      extraction methods."
+        # That governs all YC properties including workatastartup.com. robots.txt on
+        # that host says "Disallow:" (allow all), but robots.txt is a crawler hint and
+        # the ToS is a deliberate statement of intent. When they disagree, the ToS wins.
+        #
+        # Doing it anyway would also be bad business: the public page yielded 4/30
+        # through the career gate (13%, and 24 of 30 were onsite), and using Elena's
+        # own WaaS session to reach the full board would put a real account she needs
+        # at risk of a ban. WaaS is a DEMAND channel for her — YC founders search it
+        # for candidates — so the account is worth more to her intact than scraped.
+        #
+        # YC coverage therefore comes from src/scrapers/yc_oss_jobs.py instead, which
+        # reads the community yc-oss dataset plus each company's OWN public ATS board
+        # (Greenhouse/Ashby/Lever APIs). Different systems, no YC ToS involved.
+        logger.info("⏭️  YC WAAS: deliberately not scraped (YC ToS forbids automated "
+                    "extraction) — YC coverage comes from yc_oss + company ATS boards")
         return []
 
         jobs = []
