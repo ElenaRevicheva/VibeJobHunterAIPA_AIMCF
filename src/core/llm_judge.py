@@ -88,10 +88,19 @@ _CLAUDE_MODEL = os.environ.get("CLAUDE_JUDGE_MODEL", "").strip() or "claude-haik
 # evals/test_provider_chain.py — 120: groq FAILED, 300: all five PASSED.
 _MAX_TOKENS = int(os.environ.get("JUDGE_MAX_TOKENS", "300"))
 
-_PROMPT = """You are screening ONE job for Elena, an AI-AUGMENTED BUILDER who ships products
-using AI tools (Claude Code, Cursor, GPT). She has NO formal computer-science degree and does
-NOT do hardcore hand-coding or leetcode-style interviews. She is based in Panama (Latin America,
-UTC-5) and works fully remote.
+_PROMPT = """You are screening ONE job for Elena, an AI-AUGMENTED BUILDER who ships and
+OPERATES production systems using AI tools (Claude Code, Cursor, GPT).
+
+She writes production Python and TypeScript daily — twelve live systems, eighteen months,
+sole operator, on her own cloud infrastructure. So "requires Python", "requires TypeScript",
+"strong programming skills", the word "Engineer" in the title, API/integration work, and
+system design are all POSITIVE signals. They are NEVER disqualifiers.
+
+What she does not have is a computer-science degree, and she does not clear leetcode /
+HackerRank-style algorithm screens or deep low-level systems work (kernels, compilers,
+embedded, distributed-systems internals). Those are the ONLY coding-related disqualifiers.
+
+She is based in Panama (Latin America, UTC-5) and works fully remote.
 
 APPROVE the job ONLY IF ALL of these are true:
 1. FULLY REMOTE (work from anywhere / worldwide) — NOT hybrid, NOT onsite.
@@ -117,9 +126,13 @@ APPROVE the job ONLY IF ALL of these are true:
       DISQUALIFY only the NON-AI version: generic administrative, secretarial, calendar-only,
       household / personal / lifestyle / travel-concierge assistants, or any assistant role
       with no AI or automation component in the work itself.
-   DISQUALIFY for this criterion if the job explicitly requires years of professional
-   software engineering, a computer-science degree, leetcode / competitive programming,
-   or deep low-level/systems/infra coding.
+   DISQUALIFY for this criterion ONLY if the job requires a computer-science degree,
+   leetcode / HackerRank / competitive-programming assessments, or deep low-level systems
+   work (kernels, compilers, embedded, distributed-systems internals).
+   Do NOT disqualify because a role asks for Python, TypeScript, "strong programming",
+   API integration, system design, or years of shipping — she does all of that daily.
+   A seniority bar alone ("5+ years building X") is not a disqualifier either; judge the
+   WORK, not the years.
 4. A role Elena would actually want — NOT pure ML/AI RESEARCH (research scientist, research
    engineer, academic/lab research), NOT legal/counsel, sales, recruiter, developer-relations
    (devrel), developer-advocate, marketing, finance, HR, or data-entry. She is a hands-on

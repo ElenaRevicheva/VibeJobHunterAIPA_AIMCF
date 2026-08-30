@@ -158,6 +158,70 @@ def _parse_job_page(html: str, page_url: str) -> Optional[Dict]:
     }
 
 
+async def _verify_location_with_ats(session: aiohttp.ClientSession,
+                                    job: Dict) -> Dict:
+    """When the board names ONE country, check that against the employer's own ATS.
+
+    WHY (measured 2026-08-30). The board derives applicantLocationRequirements from
+    the employer's ATS record. When Ashby leaves that field EMPTY — meaning no
+    eligibility restriction — the board falls back to the nominal head-office address
+    and republishes it as a hard `Country` restriction. Absence of a restriction
+    becomes a restriction.
+
+    That is not theoretical. Rwazi's "AI Engineer - Marketing & GTM Systems" is
+    "Global (Remote)" on Ashby with an EMPTY requirement; the board republished it as
+    "United States", and the judge correctly rejected a globally-open role as US-only.
+    Spot-checking six US-tagged postings against their ATS found five genuinely
+    US-restricted and this one falsely restricted.
+
+    So: only ever RELAX, and only on the employer's own explicit say-so. If the ATS
+    cannot be read or says nothing useful, the board's value stands untouched. A
+    wrongly-restricted job is invisible and costs an opportunity; a wrongly-open one
+    costs a few seconds to dismiss. Fail toward visible.
+    """
+    loc = job.get("location") or ""
+    if not loc.startswith("Remote - "):
+        return job
+    region = loc[len("Remote - "):].strip()
+    if not region or "," in region or region in ("Worldwide", "Global", "Anywhere"):
+        return job
+    ats_url = job.get("url") or ""
+    if not _ATS_RE.match(ats_url):
+        return job  # board_url only — nothing authoritative to check against
+
+    try:
+        async with session.get(ats_url, timeout=aiohttp.ClientTimeout(total=12)) as r:
+            if r.status != 200:
+                return job
+            html = await r.text()
+    except Exception:
+        return job
+
+    for block in _LDJSON_RE.findall(html):
+        try:
+            d = json.loads(block)
+        except Exception:
+            continue
+        if not (isinstance(d, dict) and d.get("@type") == "JobPosting"):
+            continue
+        alr = d.get("applicantLocationRequirements")
+        names: List[str] = []
+        for a in (alr if isinstance(alr, list) else [alr]):
+            if isinstance(a, dict) and str(a.get("name") or "").strip():
+                names.append(str(a["name"]).strip())
+        if names:
+            job["location"] = "Remote - " + ", ".join(names)   # employer's own list
+        elif str(d.get("jobLocationType") or "").upper() == "TELECOMMUTE":
+            # Remote, and the employer declares NO eligibility restriction.
+            job["location"] = "Remote - Worldwide"
+            job["location_corrected_from"] = region
+            logger.info("   [anb] %s @ %s: board said %s, employer declares no "
+                        "restriction -> Worldwide", job.get("title"),
+                        job.get("company"), region)
+        break
+    return job
+
+
 async def _fetch_slug(session: aiohttp.ClientSession, sem: asyncio.Semaphore,
                       url: str) -> Optional[Dict]:
     slug = _slug_of(url)
@@ -173,6 +237,7 @@ async def _fetch_slug(session: aiohttp.ClientSession, sem: asyncio.Semaphore,
         await asyncio.sleep(0.15)  # be a good citizen on a small publisher
     job = _parse_job_page(html, url)
     if job:
+        job = await _verify_location_with_ats(session, job)
         _write_cache(slug, job)
     return job
 

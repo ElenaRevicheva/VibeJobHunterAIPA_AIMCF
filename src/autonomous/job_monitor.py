@@ -345,8 +345,23 @@ class JobMonitor:
         # 07-30. It is the highest-converting source in the fleet by measured gate rate
         # (72.4% vs ~5.6%), so leaving it out of this list would bury its ~345 postings
         # behind ~1700 generic ATS jobs and let max_results cut the best supply we have.
-        _PRIO_SRC = ("torre", "remotive", "remoteok", "weworkremotely", "himalayas", "aijobs",
-                     "wellfound", "yc_oss", "getonbrd", "ai_native_builder")
+        # Round-robin order: richest source first WITHIN each round. This is a
+        # tie-break, not a quota — every source still gets one slot per round, so
+        # nothing here can starve anything below it. Percentages are measured gate
+        # pass rates, not guesses; re-measure before reordering.
+        _SRC_YIELD_ORDER = (
+            "ai_native_builder",   # 72% gate pass, measured 2026-08-30
+            "torre",               # the long-standing best converter (LATAM-first)
+            "getonbrd",            # LATAM, carries real salary data
+            "remotive",
+            "yc_oss",
+            "remoteok",
+            "weworkremotely",
+            "himalayas",
+            "wellfound",
+            "aijobs",
+        )
+        _PRIO_SRC = _SRC_YIELD_ORDER  # kept: other call sites read this name
         def _job_src(j):
             if isinstance(j, dict):
                 return (j.get("source") or "").lower()
@@ -354,7 +369,45 @@ class JobMonitor:
                 return (j.model_dump().get("source") or "").lower()
             except Exception:
                 return str(getattr(j, "source", "")).lower()
-        all_jobs.sort(key=lambda j: 0 if any(p in _job_src(j) for p in _PRIO_SRC) else 1)
+        # 2026-08-30 — REPLACED a binary sort with round-robin interleaving.
+        #
+        # The old line was `sort(key=0 if source in _PRIO_SRC else 1)`. That is a
+        # GROUP, not a RANKING, and a stable sort preserves append order inside the
+        # group. ai_native_builder is appended last among the priority sources, so
+        # ~888 jobs from Torre/getonbrd/yc_oss queued ahead of it and the
+        # max_results cap (120) was exhausted long before the board was reached.
+        # Measured 2026-08-30: 279 of its postings sat in seen_jobs and EVERY ONE
+        # had status='seen' — not one had ever reached LangGraph. The densest source
+        # in the fleet (72% gate pass vs ~21%) was contributing exactly nothing.
+        #
+        # Round-robin fixes the class of bug rather than this instance: one job per
+        # source per round, richest source first within the round. No source can
+        # crowd out another no matter how much volume it brings, so adding a big new
+        # source can never again silently starve an existing one.
+        def _interleave_by_source(jobs: List) -> List:
+            buckets: Dict[str, List] = {}
+            for j in jobs:
+                s = _job_src(j)
+                key = next((p for p in _SRC_YIELD_ORDER if p in s), "_other")
+                buckets.setdefault(key, []).append(j)
+            order = [k for k in _SRC_YIELD_ORDER if k in buckets]
+            if "_other" in buckets:
+                order.append("_other")
+            out: List = []
+            cursor = {k: 0 for k in order}
+            while len(out) < len(jobs):
+                moved = False
+                for k in order:
+                    i = cursor[k]
+                    if i < len(buckets[k]):
+                        out.append(buckets[k][i])
+                        cursor[k] = i + 1
+                        moved = True
+                if not moved:
+                    break
+            return out
+
+        all_jobs = _interleave_by_source(all_jobs)
 
         # ==============================================================
         # 4️⃣ CAREER GATE FILTERING
@@ -385,36 +438,64 @@ class JobMonitor:
         new_jobs: List[JobPosting] = []
         now_iso = datetime.now(timezone.utc).isoformat()
 
+        # 2026-08-30 — MARK-SEEN NOW HAPPENS AFTER THE CAP, NOT BEFORE IT.
+        #
+        # The previous version marked every gate-passing job as seen, persisted that,
+        # logged "N NEW jobs accepted", and THEN did `return new_jobs[:max_results]`.
+        # Everything past the cap was recorded as "we have looked at this" without
+        # anyone ever looking at it, and SEEN_TTL_DAYS=21 kept it buried for three
+        # weeks — long enough for a posting to expire. On 2026-08-29 that read:
+        #
+        #     🎯 295 NEW jobs accepted (not seen before)
+        #     ✅ Found 120 new jobs
+        #
+        # 175 jobs burned in one cycle, under a log line announcing success. This is
+        # the house failure mode — silence shaped like success — so the fix is
+        # structural: a job is marked seen if and only if it is being returned.
+        accepted: List = []          # (job_id, raw job) actually being returned
+        in_cycle: Set[str] = set()   # in-cycle dedupe, NOT persisted
+
         for job in gated_jobs:
+            if len(new_jobs) >= max_results:
+                break                # stop before touching anything we cannot process
+
             job_id = self._job_id(job)
+            if job_id in self.seen_jobs or job_id in in_cycle:
+                continue
+            in_cycle.add(job_id)
 
-            if job_id not in self.seen_jobs:
-                # Record in rich DB
-                job_dict = job if isinstance(job, dict) else (job.to_dict() if hasattr(job, 'to_dict') else {})
-                self.seen_jobs_db[job_id] = {
-                    "first_seen": self.seen_jobs_db.get(job_id, {}).get("first_seen", now_iso),
-                    "last_seen": now_iso,
-                    "status": "seen",
-                    "company": job_dict.get("company", "") if isinstance(job_dict, dict) else getattr(job, 'company', ''),
-                    "title": job_dict.get("title", "") if isinstance(job_dict, dict) else getattr(job, 'title', ''),
-                }
-                self.seen_jobs.add(job_id)
+            # Convert to JobPosting if needed
+            if isinstance(job, JobPosting):
+                new_jobs.append(job)
+            elif hasattr(job, 'to_dict') or hasattr(job, 'model_dump'):
+                new_jobs.append(self._ats_job_to_posting(job))
+            else:
+                new_jobs.append(self._dict_to_job_posting(job))
+            accepted.append((job_id, job))
 
-                # Convert to JobPosting if needed
-                if isinstance(job, JobPosting):
-                    new_jobs.append(job)
-                elif hasattr(job, 'to_dict') or hasattr(job, 'model_dump'):
-                    new_jobs.append(self._ats_job_to_posting(job))
-                else:
-                    new_jobs.append(self._dict_to_job_posting(job))
+        # Persist 'seen' ONLY for what is being handed to the pipeline.
+        for job_id, job in accepted:
+            job_dict = job if isinstance(job, dict) else (job.to_dict() if hasattr(job, 'to_dict') else {})
+            self.seen_jobs_db[job_id] = {
+                "first_seen": self.seen_jobs_db.get(job_id, {}).get("first_seen", now_iso),
+                "last_seen": now_iso,
+                "status": "seen",
+                "company": job_dict.get("company", "") if isinstance(job_dict, dict) else getattr(job, 'company', ''),
+                "title": job_dict.get("title", "") if isinstance(job_dict, dict) else getattr(job, 'title', ''),
+            }
+            self.seen_jobs.add(job_id)
 
         self._save_seen_jobs()
 
-        logger.info(f"🎯 {len(new_jobs)} NEW jobs accepted (not seen before)")
+        deferred = len(gated_jobs) - len(new_jobs)
+        logger.info(f"🎯 {len(new_jobs)} NEW jobs accepted and marked seen (cap {max_results})")
+        if deferred > 0:
+            # Deferred, NOT dropped: these were never marked seen, so the next cycle
+            # reconsiders them immediately instead of in 21 days.
+            logger.info(f"   ↩️  {deferred} gate-passing jobs left UNSEEN for the next cycle")
         logger.info("=" * 60)
 
-        # (Prioritization happens on the raw dicts BEFORE the gate — JobPosting.source is OTHER here.)
-        return new_jobs[:max_results]
+        return new_jobs
 
     # ------------------------------------------------------------------
     # Additional Sources
