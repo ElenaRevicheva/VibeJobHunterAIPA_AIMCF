@@ -954,10 +954,35 @@ class JobMonitor:
     
     async def _search_wellfound(self) -> List[Dict]:
         """
-        Wellfound (formerly AngelList Talent) - GraphQL API
-        
-        Searches for AI/ML/Founding roles at startups.
+        Wellfound (formerly AngelList Talent) — DORMANT since 2026-08-30.
+
+        It was returning `✅ Wellfound: 0 jobs found` on every cycle: a green tick over
+        zero output, and — unlike AI-Jobs.net and BrightData LinkedIn — it was never
+        marked dormant, so nothing ever prompted anyone to look. A source that reports
+        success while delivering nothing is worse than one that reports failure,
+        because it consumes the attention budget that would have found the problem.
+
+        WHY IT RETURNS ZERO: the code below POSTs to https://wellfound.com/graphql with
+        a hand-guessed `operationName: "JobSearchResults"`. That is Wellfound's private
+        internal API. Nobody published it, nobody promised to keep it stable, and it
+        changed.
+
+        WHY WE ARE NOT FIXING IT BY TRYING HARDER: same call as YC Work at a Startup on
+        2026-08-29. Reverse-engineering a company's private GraphQL endpoint to extract
+        listings is exactly the automated-extraction that these platforms' terms exist
+        to forbid, and re-guessing the schema every time they ship a release is not a
+        source, it is a treadmill. VJH already has fourteen sources that publish their
+        data deliberately.
+
+        Set VJH_WELLFOUND_ENABLED=true to wake the old code path (it is untouched below).
         """
+        import os as _os
+        if _os.getenv("VJH_WELLFOUND_ENABLED", "false").strip().lower() != "true":
+            logger.info("⏭️  Wellfound: dormant (private GraphQL API changed; "
+                        "0 jobs for months behind a green log line — "
+                        "VJH_WELLFOUND_ENABLED=true to wake)")
+            return []
+
         logger.info("🔍 Checking Wellfound (AngelList)...")
         jobs = []
 
