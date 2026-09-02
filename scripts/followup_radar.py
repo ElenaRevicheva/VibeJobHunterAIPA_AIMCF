@@ -459,12 +459,25 @@ def main():
             report += (
                 "\n\n\U0001F9F9 " + str(len(stale))
                 + " thread(s) silent " + str(CLEAN_AFTER_DAYS) + "d+ look dead."
-                + "\nClear them from this radar?"
+                + "\nTap one to clear it, or clear them all."
             )
-            markup = json.dumps({"inline_keyboard": [[
-                {"text": "🧹 Clear " + str(len(stale)), "callback_data": "rdrclean:" + pid},
-                {"text": "Keep them", "callback_data": "rdrkeep:" + pid},
-            ]]})
+            # One button per thread, so she can clear some and keep others.
+            # All-or-nothing is the wrong granularity for a list where one entry
+            # may still matter -- and being forced to keep a dead thread because
+            # a live one shares the batch is how she stops using the buttons.
+            rows = []
+            for n, it in enumerate(stale[:8]):
+                who = it["who"].split("@")[0][:18]
+                dom = it["who"].split("@")[-1][:14]
+                rows.append([{
+                    "text": "🧹 " + str(it["age"]) + "d  " + who + "@" + dom,
+                    "callback_data": "rdrone:" + pid + ":" + str(n),
+                }])
+            rows.append([
+                {"text": "🧹 Clear all " + str(len(stale)), "callback_data": "rdrclean:" + pid},
+                {"text": "Keep all", "callback_data": "rdrkeep:" + pid},
+            ])
+            markup = json.dumps({"inline_keyboard": rows})
 
         text = "📡 Follow-up radar\n\n" + report
         payload = {"chat_id": chat, "text": text[:3900], "disable_web_page_preview": "true"}
