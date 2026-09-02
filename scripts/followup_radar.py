@@ -51,6 +51,39 @@ from email.utils import parsedate_to_datetime, parseaddr
 VJH_ENV = "/home/ubuntu/VibeJobHunterAIPA_AIMCF/.env"
 CTO_ENV = "/home/ubuntu/cto-aipa/.env"
 
+# Shared with the Telegram bot (cto-aipa). The radar PROPOSES; only a tap in
+# Telegram dismisses. Nothing here ever deletes mail or touches a mailbox --
+# "clean" means "stop showing me this thread", and it is reversible by editing
+# one JSON file.
+RADAR_DIR = os.environ.get("RADAR_STATE_DIR", "/home/ubuntu/cto-aipa/data")
+DISMISSED_PATH = os.path.join(RADAR_DIR, "radar-dismissed.json")
+PROPOSAL_PATH = os.path.join(RADAR_DIR, "radar-proposal.json")
+# A thread this old with no movement is dead. Conservative on purpose: a school
+# appointment four days old must never appear in a cleanup proposal.
+CLEAN_AFTER_DAYS = int(os.environ.get("RADAR_CLEAN_AFTER_DAYS", "30"))
+
+
+def load_dismissed():
+    """{key: {"at": iso, "until": iso|None}} -- `until` set means snoozed, not dead."""
+    try:
+        with open(DISMISSED_PATH, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def is_hidden(key, dismissed, now):
+    rec = dismissed.get(key)
+    if not rec:
+        return False
+    until = rec.get("until")
+    if not until:
+        return True  # permanently dismissed
+    try:
+        return now < datetime.fromisoformat(until)
+    except Exception:
+        return True
+
 # A conversation only counts once both sides have spoken. These senders never
 # speak -- they announce. Counting them would bury the real threads.
 NOISE_SENDER = re.compile(
@@ -264,7 +297,7 @@ def hs_sync(token, owner, owed_by_you, owed_by_them):
     batches = [("YOUR MOVE", "HIGH", 4, owed_by_you),
                ("NUDGE THEM", "MEDIUM", 24, owed_by_them)]
     for label, priority, due_hours, rows in batches:
-        for age, t in rows:
+        for age, t, *_rest in rows:
             addr = t["who"]
             subject = f"[FOLLOWUP-RADAR] {label} — {addr} — {t['subject'][:48]}"
             try:
@@ -341,17 +374,22 @@ def main():
     now = datetime.now(timezone.utc)
     owed_by_you, owed_by_them = [], []
 
+    dismissed = load_dismissed()
+    hidden = 0
     for key, t in threads.items():
         if t["in"] is None or t["out"] is None:
             continue  # one-sided: never a real conversation
+        if is_hidden(key, dismissed, now):
+            hidden += 1
+            continue  # she has already said this one is done
         if t["out"] > t["in"]:
             age = (now - t["out"]).days
             if age >= 3:
-                owed_by_them.append((age, t))
+                owed_by_them.append((age, t, key))
         else:
             age = (now - t["in"]).days
             if age >= 2:
-                owed_by_you.append((age, t))
+                owed_by_you.append((age, t, key))
 
     owed_by_you.sort(key=lambda x: x[0], reverse=True)  # key only: equal ages must not fall through to comparing dicts
     owed_by_them.sort(key=lambda x: x[0], reverse=True)
@@ -359,12 +397,12 @@ def main():
     lines = []
     if owed_by_you:
         lines.append("🔴 THEY WROTE LAST — your move")
-        for age, t in owed_by_you[:12]:
+        for age, t, _k in owed_by_you[:12]:
             lines.append(f"  {age}d  {t['who']}\n       {t['subject'][:70]}")
     if owed_by_them:
         lines.append("")
         lines.append("🟡 YOU WROTE LAST — gone quiet, a nudge is free")
-        for age, t in owed_by_them[:12]:
+        for age, t, _k in owed_by_them[:12]:
             lines.append(f"  {age}d  {t['who']}\n       {t['subject'][:70]}")
     if not lines:
         lines.append("✅ No stalled conversations. Everything is either fresh or closed.")
@@ -375,6 +413,7 @@ def main():
     print(
         f"\n{len(owed_by_you)} waiting on you · {len(owed_by_them)} waiting on them "
         f"· {len(threads)} two-way threads in {days}d"
+        + (f" · {hidden} hidden by you" if hidden else "")
     )
 
     if to_hubspot:
@@ -393,10 +432,45 @@ def main():
         if not tok or not chat:
             print("  ! Telegram not configured — printed only", file=sys.stderr)
             return
+        # Cleanup proposal. The radar recomputes from the mailbox every morning,
+        # so a dead thread returns forever. Propose the clearly-dead ones and let
+        # her approve with ONE TAP; the bot writes the ledger. Nothing is cleaned
+        # without that tap, and nothing touches the mailbox -- "clean" here means
+        # "stop showing me this thread", and it is reversible by editing one file.
+        stale = []
+        for lane, rows in (("them", owed_by_you), ("you", owed_by_them)):
+            for age, t, key in rows:
+                if age >= CLEAN_AFTER_DAYS:
+                    stale.append({"key": key, "who": t["who"],
+                                  "subject": t["subject"][:90], "age": age, "lane": lane})
+        stale.sort(key=lambda x: x["age"], reverse=True)
+
+        markup = None
+        if stale:
+            pid = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+            try:
+                os.makedirs(RADAR_DIR, exist_ok=True)
+                with open(PROPOSAL_PATH, "w", encoding="utf-8") as fh:
+                    json.dump({"id": pid, "created": now.isoformat(), "items": stale}, fh, indent=2)
+            except Exception as e:
+                print("  ! could not write proposal: " + type(e).__name__, file=sys.stderr)
+                stale = []
+        if stale:
+            report += (
+                "\n\n\U0001F9F9 " + str(len(stale))
+                + " thread(s) silent " + str(CLEAN_AFTER_DAYS) + "d+ look dead."
+                + "\nClear them from this radar?"
+            )
+            markup = json.dumps({"inline_keyboard": [[
+                {"text": "🧹 Clear " + str(len(stale)), "callback_data": "rdrclean:" + pid},
+                {"text": "Keep them", "callback_data": "rdrkeep:" + pid},
+            ]]})
+
         text = "📡 Follow-up radar\n\n" + report
-        body = urllib.parse.urlencode(
-            {"chat_id": chat, "text": text[:3900], "disable_web_page_preview": "true"}
-        ).encode()
+        payload = {"chat_id": chat, "text": text[:3900], "disable_web_page_preview": "true"}
+        if markup:
+            payload["reply_markup"] = markup
+        body = urllib.parse.urlencode(payload).encode()
         try:
             req = urllib.request.Request(
                 f"https://api.telegram.org/bot{tok}/sendMessage", data=body
