@@ -73,9 +73,12 @@ def load_dismissed():
 
 
 def is_hidden(key, dismissed, now):
+    """Hidden from the RADAR entirely. Only a dismissal does this."""
     rec = dismissed.get(key)
     if not rec:
         return False
+    if rec.get("kind") == "kept":
+        return False  # kept = still mine, keep showing it
     until = rec.get("until")
     if not until:
         return True  # permanently dismissed
@@ -83,6 +86,25 @@ def is_hidden(key, dismissed, now):
         return now < datetime.fromisoformat(until)
     except Exception:
         return True
+
+
+def is_kept(key, dismissed, now):
+    """Still on the radar, but do not keep ASKING me to clear it.
+
+    "Keep" and "hide" are different answers and collapsing them was a bug: the
+    first version snoozed a kept thread, which removed from the radar the very
+    thread she had just said she wanted to watch.
+    """
+    rec = dismissed.get(key)
+    if not rec or rec.get("kind") != "kept":
+        return False
+    until = rec.get("until")
+    if not until:
+        return True
+    try:
+        return now < datetime.fromisoformat(until)
+    except Exception:
+        return False
 
 # A conversation only counts once both sides have spoken. These senders never
 # speak -- they announce. Counting them would bury the real threads.
@@ -447,7 +469,10 @@ def main():
             for age, t, key in rows[:12]:
                 allrows.append({"key": key, "who": t["who"],
                                 "subject": t["subject"][:90], "age": age, "lane": lane,
-                                "stale": age >= CLEAN_AFTER_DAYS})
+                                # A thread she has explicitly kept is never proposed
+                                # again while the keep is live -- but it stays listed.
+                                "stale": age >= CLEAN_AFTER_DAYS
+                                and not is_kept(key, dismissed, now)})
         allrows.sort(key=lambda x: x["age"], reverse=True)
         stale = [r for r in allrows if r["stale"]]
 
