@@ -464,13 +464,36 @@ class JobMonitor:
                 continue
             in_cycle.add(job_id)
 
-            # Convert to JobPosting if needed
-            if isinstance(job, JobPosting):
-                new_jobs.append(job)
-            elif hasattr(job, 'to_dict') or hasattr(job, 'model_dump'):
-                new_jobs.append(self._ats_job_to_posting(job))
-            else:
-                new_jobs.append(self._dict_to_job_posting(job))
+            # Convert to JobPosting if needed.
+            # 2026-09-01: one malformed record must never kill the cycle. A source
+            # emitting a null company took down every run until this was wrapped —
+            # 2,000+ good jobs discarded because one was bad. Skip the record, log
+            # which source produced it, and keep going.
+            try:
+                if isinstance(job, JobPosting):
+                    posting = job
+                elif hasattr(job, 'to_dict') or hasattr(job, 'model_dump'):
+                    posting = self._ats_job_to_posting(job)
+                else:
+                    posting = self._dict_to_job_posting(job)
+            except Exception as e:
+                src = job.get("source", "?") if isinstance(job, dict) else "?"
+                ttl = job.get("title", "?") if isinstance(job, dict) else "?"
+                logger.warning(
+                    "   ⚠️ skipping malformed job from '%s' (%s): %s",
+                    src, str(ttl)[:48], str(e).splitlines()[0][:110])
+                in_cycle.discard(job_id)   # not seen, so a fixed version can return
+                continue
+
+            # A posting with no company cannot be applied to and reads as a blank
+            # card in the CRM. Drop it here rather than downstream.
+            if not (posting.company or "").strip():
+                logger.warning("   ⚠️ skipping job with no company: %s",
+                               (posting.title or "?")[:60])
+                in_cycle.discard(job_id)
+                continue
+
+            new_jobs.append(posting)
             accepted.append((job_id, job))
 
         # Persist 'seen' ONLY for what is being handed to the pipeline.
@@ -1686,15 +1709,30 @@ class JobMonitor:
         )
 
     def _dict_to_job_posting(self, job: Dict) -> JobPosting:
-        """Convert dict to JobPosting"""
+        """Convert dict to JobPosting.
+
+        2026-09-01 — `dict.get(key, default)` returns the default only when the key is
+        ABSENT. Several public job APIs emit the key present and explicitly null, so
+        `{"company": None}` sailed through `.get("company", "")` as None and pydantic
+        rejected it, taking the WHOLE cycle down for one malformed record.
+
+        It had been latent for months: those records always sat beyond the max_results
+        cap, so nothing ever converted them. Round-robin interleaving (30 Aug) made every
+        source reachable, which is what exposed it. Coerce every field explicitly —
+        a missing key and a null key must behave the same.
+        """
+        def _s(key: str, fallback: str = "") -> str:
+            v = job.get(key)
+            return v.strip() if isinstance(v, str) and v.strip() else fallback
+
         return JobPosting(
-            id=job.get('id', ''),
-            title=job.get("title", ""),
-            company=job.get("company", ""),
-            location=job.get("location", "Remote"),
-            description=job.get("description", job.get("raw_text", "")),
+            id=_s('id'),
+            title=_s('title'),
+            company=_s('company'),
+            location=_s('location', 'Remote'),
+            description=_s('description') or _s('raw_text'),
             source=JobSource.OTHER,
-            url=job.get("url", ""),
+            url=_s('url'),
             posted_date=datetime.utcnow(),
             remote_allowed=True,
             requirements=[],

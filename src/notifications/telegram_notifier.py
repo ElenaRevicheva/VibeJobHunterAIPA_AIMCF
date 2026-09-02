@@ -328,15 +328,20 @@ You'll receive notifications for:
         if not self.enabled:
             return False
         
+        # 2026-09-01: this said "Check Railway logs" for a year after the move to
+        # Oracle. An alert that points at infrastructure which no longer exists costs
+        # the reader the first minute of every incident, and quietly teaches them to
+        # distrust the alert. The command below is the one that actually works.
         message = f"""⚠️ <b>ERROR ALERT</b>
 
 Something went wrong with the autonomous engine:
 
 <code>{error_message[:500]}</code>
 
-🔧 Check Railway logs for details.
+🔧 Logs (Oracle, not Railway):
+<code>sudo journalctl -u vibejobhunter -n 80 --no-pager</code>
 
-💡 The engine will automatically retry.
+💡 The engine will automatically retry on the next cycle.
 """
         
         return await self.send_message(message)
