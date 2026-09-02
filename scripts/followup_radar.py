@@ -437,46 +437,64 @@ def main():
         # her approve with ONE TAP; the bot writes the ledger. Nothing is cleaned
         # without that tap, and nothing touches the mailbox -- "clean" here means
         # "stop showing me this thread", and it is reversible by editing one file.
-        stale = []
+        # Every listed thread becomes a candidate, not only the old ones.
+        # The threshold decides what is PROPOSED; it must not decide what is
+        # POSSIBLE. Elena knows a contact has vanished long before a day counter
+        # agrees, and a cleaner that refuses to clear what she can plainly see is
+        # dead just sends her back to doing it by hand.
+        allrows = []
         for lane, rows in (("them", owed_by_you), ("you", owed_by_them)):
-            for age, t, key in rows:
-                if age >= CLEAN_AFTER_DAYS:
-                    stale.append({"key": key, "who": t["who"],
-                                  "subject": t["subject"][:90], "age": age, "lane": lane})
-        stale.sort(key=lambda x: x["age"], reverse=True)
+            for age, t, key in rows[:12]:
+                allrows.append({"key": key, "who": t["who"],
+                                "subject": t["subject"][:90], "age": age, "lane": lane,
+                                "stale": age >= CLEAN_AFTER_DAYS})
+        allrows.sort(key=lambda x: x["age"], reverse=True)
+        stale = [r for r in allrows if r["stale"]]
 
         markup = None
-        if stale:
+        if allrows:
             pid = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
             try:
                 os.makedirs(RADAR_DIR, exist_ok=True)
                 with open(PROPOSAL_PATH, "w", encoding="utf-8") as fh:
-                    json.dump({"id": pid, "created": now.isoformat(), "items": stale}, fh, indent=2)
+                    # EVERY listed thread is written, not only the stale ones, so
+                    # "Show all" can offer any of them without a second run.
+                    json.dump({"id": pid, "created": now.isoformat(), "items": allrows},
+                              fh, indent=2)
             except Exception as e:
                 print("  ! could not write proposal: " + type(e).__name__, file=sys.stderr)
-                stale = []
-        if stale:
-            report += (
-                "\n\n\U0001F9F9 " + str(len(stale))
-                + " thread(s) silent " + str(CLEAN_AFTER_DAYS) + "d+ look dead."
-                + "\nTap one to clear it, or clear them all."
-            )
-            # One button per thread, so she can clear some and keep others.
-            # All-or-nothing is the wrong granularity for a list where one entry
-            # may still matter -- and being forced to keep a dead thread because
-            # a live one shares the batch is how she stops using the buttons.
+                allrows = []
+        if allrows:
+            if stale:
+                report += (
+                    "\n\n\U0001F9F9 " + str(len(stale))
+                    + " thread(s) silent " + str(CLEAN_AFTER_DAYS) + "d+ look dead."
+                    + "\nTap one to clear it — or Show all to prune anything here."
+                )
+            else:
+                report += "\n\n\U0001F9F9 Nothing looks dead by age. Show all to prune by hand."
+            # One button per thread. The threshold decides what is PROPOSED, never
+            # what is POSSIBLE -- she knows a contact has vanished long before a
+            # day counter agrees.
             rows = []
-            for n, it in enumerate(stale[:8]):
+            for n, it in enumerate(allrows):
+                if not it["stale"]:
+                    continue
                 who = it["who"].split("@")[0][:18]
                 dom = it["who"].split("@")[-1][:14]
                 rows.append([{
                     "text": "🧹 " + str(it["age"]) + "d  " + who + "@" + dom,
                     "callback_data": "rdrone:" + pid + ":" + str(n),
                 }])
-            rows.append([
-                {"text": "🧹 Clear all " + str(len(stale)), "callback_data": "rdrclean:" + pid},
-                {"text": "Keep all", "callback_data": "rdrkeep:" + pid},
-            ])
+            tail = []
+            if len(allrows) > len(stale):
+                tail.append({"text": "📋 Show all " + str(len(allrows)),
+                             "callback_data": "rdrall:" + pid})
+            if stale:
+                tail.append({"text": "🧹 Clear " + str(len(stale)),
+                             "callback_data": "rdrclean:" + pid})
+            tail.append({"text": "Keep all", "callback_data": "rdrkeep:" + pid})
+            rows.append(tail)
             markup = json.dumps({"inline_keyboard": rows})
 
         text = "📡 Follow-up radar\n\n" + report
