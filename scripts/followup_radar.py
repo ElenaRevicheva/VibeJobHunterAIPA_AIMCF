@@ -61,6 +61,13 @@ PROPOSAL_PATH = os.path.join(RADAR_DIR, "radar-proposal.json")
 # A thread this old with no movement is dead. Conservative on purpose: a school
 # appointment four days old must never appear in a cleanup proposal.
 CLEAN_AFTER_DAYS = int(os.environ.get("RADAR_CLEAN_AFTER_DAYS", "30"))
+# A thread younger than this is never CLEARABLE, not even under "Show all".
+# Elena cleared her daughter's school appointment twice in ten minutes: 4 days
+# old, genuinely live, sitting in a column of identical-looking buttons right
+# beside the dead recruiters she was pruning. Offering a one-tap clear on a
+# fresh thread is inviting exactly that misfire. It still appears in the radar --
+# it simply has no button.
+MIN_CLEARABLE_DAYS = int(os.environ.get("RADAR_MIN_CLEARABLE_DAYS", "7"))
 
 
 def load_dismissed():
@@ -467,6 +474,8 @@ def main():
         allrows = []
         for lane, rows in (("them", owed_by_you), ("you", owed_by_them)):
             for age, t, key in rows[:12]:
+                if age < MIN_CLEARABLE_DAYS:
+                    continue  # too fresh to be a cleanup candidate -- listed, not clearable
                 allrows.append({"key": key, "who": t["who"],
                                 "subject": t["subject"][:90], "age": age, "lane": lane,
                                 # A thread she has explicitly kept is never proposed
