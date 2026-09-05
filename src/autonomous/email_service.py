@@ -397,7 +397,7 @@ class EmailService:
         import base64
         
         if not from_email:
-            from_email = os.getenv('FROM_EMAIL', 'elena.revicheva2016@gmail.com')
+            from_email = os.getenv('FROM_EMAIL', 'aipa@aideazz.xyz')
         
         message = Mail(
             from_email=from_email,
@@ -603,17 +603,17 @@ if __name__ == '__main__':
         
         test_cases = [
             # Should BLOCK (ATS emails)
-            ('careers@webflow.com', False, 'ats'),
-            ('jobs@gitlab.com', False, 'ats'),
-            ('hr@vercel.com', False, 'ats'),
-            ('recruiting@stripe.com', False, 'ats'),
+            ('careers@example.com', False, 'ats'),
+            ('jobs@example.com', False, 'ats'),
+            ('hr@example.com', False, 'ats'),
+            ('recruiting@example.com', False, 'ats'),
             
             # Should ALLOW (founder/personal emails)
-            ('sid@gitlab.com', True, 'founder'),
-            ('guillermo@vercel.com', True, 'founder'),
-            ('elena@company.com', True, 'founder'),
-            ('john.doe@startup.com', True, 'founder'),
-            ('hello@smallstartup.com', True, 'founder'),
+            ('sid@example.com', True, 'founder'),
+            ('guillermo@example.com', True, 'founder'),
+            ('elena@example.com', True, 'founder'),
+            ('john.doe@example.com', True, 'founder'),
+            ('hello@example.com', True, 'founder'),
         ]
         
         print("\n📋 Test Results:")

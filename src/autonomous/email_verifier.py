@@ -163,7 +163,7 @@ class EmailVerifier:
         
         Usage:
             result = await verifier.find_email("stripe.com", "Patrick", "Collison")
-            # Returns patrick@stripe.com (verified)
+            # Returns firstname@example.com (verified)
         """
         if not self.api_key:
             return {

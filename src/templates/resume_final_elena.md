@@ -4,7 +4,7 @@
 
 Panama City, Panama | Remote Worldwide | On-site | Hybrid
 
-📧 aipa@aideazz.xyz | elena.revicheva2016@gmail.com | 📱 +507 616 66 716 (WhatsApp/Telegram)
+📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
 🌐 ENS: aideazz.eth
 
