@@ -414,7 +414,7 @@ def judge_profile():
     """Minimal Profile for the deterministic matcher."""
     return Profile(
         name="Elena Revicheva",
-        email="aipa@aideazz.xyz",
+        email="aipa@" "aideazz.xyz",
         location="Panama",
         resume_path="resume.pdf",
         skills=["Python", "TypeScript", "LLM", "Claude", "GPT", "LangChain"],

@@ -501,8 +501,8 @@ Applications:        3–5/day (capped for quality)
 | AI Scoring | ✅ Calibrated | AI scoring with Claude retry (3x backoff on 529/503/429) |
 | Apply Threshold | ✅ Working | AUTO_APPLY ≥ 60, OUTREACH ≥ 58 |
 | Resume Selection | ✅ Working | 3 PDF variants — needs re-labeling per Section 10 |
-| Founder Finder | ✅ **Fixed (Apr 10)** | `_send_email_message` TypeError fixed, `FROM_EMAIL` corrected to `aipa@aideazz.xyz`, `_extract_email` no longer returns `careers@` ATS addresses |
-| Email Service | ✅ **Working + retry** | Resend API via `aipa@aideazz.xyz`. Claude calls have 3x retry with exponential backoff (shared `claude_helper.py`). |
+| Founder Finder | ✅ **Fixed (Apr 10)** | `_send_email_message` TypeError fixed, `FROM_EMAIL` corrected to `aipa [at] aideazz.xyz`, `_extract_email` no longer returns `careers@` ATS addresses |
+| Email Service | ✅ **Working + retry** | Resend API via `aipa [at] aideazz.xyz`. Claude calls have 3x retry with exponential backoff (shared `claude_helper.py`). |
 | ATS Form Submission | ✅ Working | Playwright + Greenhouse email verification |
 | Daily Caps | ✅ Enforced | 5/day applications, 2/day founder outreach |
 | LinkedIn CMO | ✅ Live | Daily posts **20:00 America/Panama** (orchestrator); narrative updated Apr 2026 |

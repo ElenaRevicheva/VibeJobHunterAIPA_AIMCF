@@ -98,3 +98,13 @@ railway-db-export*.json
 *.env.local
 .env.*.local
 .claude/worktrees/
+
+# Elena's personal resume documents — not product source, not read at runtime.
+# The five templates the resume selector/formatter DO load stay tracked.
+/09.06.2026_*.pdf
+docs/ELENA_REVICHEVA_RESUME_2026.md
+docs/resume_EN_ElenaRevicheva_*.md
+docs/resume_ES_ElenaRevicheva_*.md
+src/templates/resume_ai_solutions_architect.md
+src/templates/resume_founding_engineer.md
+src/templates/resume_senior_ai_engineer.md

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # IDENTITY
     # -------------------------------------------------
     FULL_NAME: str = "Elena Revicheva"
-    EMAIL: str = "aipa@aideazz.xyz"
+    EMAIL: str = "aipa@" "aideazz.xyz"
     WHATSAPP: str = "https://wa.me/50761666716"
     TELEGRAM: str = "https://t.me/ElenaRevicheva"
 

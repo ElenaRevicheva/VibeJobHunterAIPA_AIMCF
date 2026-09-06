@@ -8,7 +8,7 @@
 # VJH already trusts can rot the same way, quietly, at any time.
 #
 # NOTE: does NOT source .env. That file contains values with spaces and angle
-# brackets (FROM_EMAIL='Elena Revicheva <aipa@aideazz.xyz>') which make
+# brackets (FROM_EMAIL='Elena Revicheva <aipa [at] aideazz.xyz>') which make
 # `. ./.env` a syntax error. Read the two keys we need with grep/cut instead.
 
 set -uo pipefail

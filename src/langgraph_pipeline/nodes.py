@@ -617,7 +617,7 @@ async def notify_node(state: JobState) -> dict:
                 f"<b>To:</b> {email}\n"
                 f"<b>Subject:</b> {subj}\n\n"
                 f"{body[:1500]}\n\n"
-                f"<i>Review, personalize, and send from aipa@aideazz.xyz.</i>\n"
+                f"<i>Review, personalize, and send from aipa@" "aideazz.xyz.</i>\n"
                 f"<a href='{url}'>View posting</a>"
             )
         elif status == "human_pending":

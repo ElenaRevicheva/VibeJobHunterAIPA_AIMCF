@@ -362,18 +362,18 @@ ANTHROPIC_API_KEY=sk-ant-...          # Claude API (scoring, content, research)
 
 # Email (for applications)
 RESEND_API_KEY=re_...                 # Resend email service
-FROM_EMAIL=Elena Revicheva <aipa@aideazz.xyz>
+FROM_EMAIL=Elena Revicheva <aipa [at] aideazz.xyz>
 
 # Applicant Info
 APPLICANT_FIRST_NAME=Elena
 APPLICANT_LAST_NAME=Revicheva
-APPLICANT_EMAIL=aipa@aideazz.xyz
-APPLICANT_PHONE=+507-6166-6716
+APPLICANT_EMAIL=aipa [at] aideazz.xyz
+APPLICANT_PHONE=<your-phone-number>
 APPLICANT_LINKEDIN=https://linkedin.com/in/elenarevicheva
 APPLICANT_PORTFOLIO=https://aideazz.xyz
 
 # Zoho Mail (verification codes + responses)
-ZOHO_EMAIL=aipa@aideazz.xyz
+ZOHO_EMAIL=aipa [at] aideazz.xyz
 ZOHO_APP_PASSWORD=xxxxxxxxxxxx
 
 # Telegram

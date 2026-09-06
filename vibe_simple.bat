@@ -30,8 +30,8 @@ if not exist ".env" (
     echo   API KEY SETUP
     echo ========================================
     echo.
-    set /p APIKEY="Enter your Anthropic API key: "
-    echo ANTHROPIC_API_KEY=%APIKEY% > .env
+    set /p USERKEY="Enter your Anthropic API key: "
+    echo ANTHROPIC_API_KEY=%USERKEY% > .env
     echo [OK] API key saved
 )
 

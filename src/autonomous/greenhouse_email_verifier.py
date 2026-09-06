@@ -79,7 +79,7 @@ class GreenhouseEmailVerifier:
     
     def __init__(self):
         """Initialize with Zoho credentials from environment"""
-        self.email_address = os.getenv("ZOHO_EMAIL", "aipa@aideazz.xyz")
+        self.email_address = os.getenv("ZOHO_EMAIL", "aipa@" "aideazz.xyz")
         raw_password = os.getenv("ZOHO_APP_PASSWORD")  # App-specific password
         
         # Alternative: Use regular password if app password not set

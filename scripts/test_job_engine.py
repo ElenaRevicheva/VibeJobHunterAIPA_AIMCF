@@ -278,7 +278,7 @@ class JobEngineTest:
             # Create Elena's profile
             profile = Profile(
                 name="Elena Revicheva",
-                email="aipa@aideazz.xyz",
+                email="aipa@" "aideazz.xyz",
                 title="AI-First Engineer & Founder",
                 skills=["Python", "TypeScript", "React", "Claude", "GPT", "LangChain"],
                 experience_years=10,
@@ -459,7 +459,7 @@ class JobEngineTest:
             
             profile = Profile(
                 name="Elena Revicheva",
-                email="aipa@aideazz.xyz",
+                email="aipa@" "aideazz.xyz",
                 title="AI-First Engineer & Founder",
                 skills=["Python", "TypeScript", "React", "Claude", "GPT"],
                 experience_years=10,

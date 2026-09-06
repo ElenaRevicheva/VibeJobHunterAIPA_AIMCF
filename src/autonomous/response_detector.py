@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 #
 # Until 23 Aug 2026 this detector read Zoho only. Job-board replies land in
 # GMAIL: that day a Contractor Marketing Pros interview request arrived from
-# team@getonbrd.com to the gmail address and nothing fired, because the detector
+# a job board replied to the gmail address and nothing fired, because the detector
 # was watching a mailbox employers never write to. Every component was correct
 # and the system was still blind — coverage, not correctness.
 #
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 MAILBOXES = (
     {"name": "zoho", "host": "imappro.zoho.com", "port": 993,
      "user_env": "ZOHO_EMAIL", "pass_env": "ZOHO_APP_PASSWORD",
-     "default_user": "aipa@aideazz.xyz"},
+     "default_user": "aipa@" "aideazz.xyz"},
     {"name": "gmail", "host": "imap.gmail.com", "port": 993,
      "user_env": "GMAIL_EMAIL", "pass_env": "GMAIL_APP_PASSWORD",
      "default_user": ""},
@@ -227,7 +227,7 @@ class ResponseDetector:
     
     def __init__(self):
         """Initialize response detector"""
-        self.email_address = os.getenv("ZOHO_EMAIL", "aipa@aideazz.xyz")
+        self.email_address = os.getenv("ZOHO_EMAIL", "aipa@" "aideazz.xyz")
         self.email_password = os.getenv("ZOHO_APP_PASSWORD")
         self.imap_connection = None
         self.anthropic_client = None

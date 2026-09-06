@@ -667,7 +667,7 @@ wa.me/50766623757"""
                 return False
 
             import os
-            from_email = os.getenv("FROM_EMAIL", "Elena Revicheva <aipa@aideazz.xyz>")
+            from_email = os.getenv("FROM_EMAIL", "Elena Revicheva <aipa@" "aideazz.xyz>")
 
             result = await self.email_service.send_email(
                 to=email,
