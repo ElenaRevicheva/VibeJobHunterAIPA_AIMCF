@@ -208,7 +208,7 @@ src/
 │   ├── nodes.py              # LangGraph nodes — gate→score→route→submit/outreach/discard→notify
 │   │                         # MODIFIED: after submit_node, calls crm_hub.py to push to HubSpot
 │   └── crm_hub.py            # NEW — posts to CTO AIPA /api/crm-event after each job application
-│                             # pipeline=hiring; Auth: Bearer OUTREACH_SECRET
+│                             # pipeline=hiring; Auth: Authorization header: OUTREACH_SECRET
 └── utils/
     ├── claude_helper.py      # Anthropic API wrapper
     ├── cache.py              # Seen-jobs dedup cache
@@ -362,7 +362,7 @@ After each job application, `src/langgraph_pipeline/crm_hub.py` (NEW) posts the 
 
 ```
 POST https://webhook.aideazz.xyz/cto/api/crm-event
-Authorization: Bearer OUTREACH_SECRET
+Authorization: Authorization header: OUTREACH_SECRET
 {
   "source": "vjh",
   "type": "application",
