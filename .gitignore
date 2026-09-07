@@ -116,3 +116,8 @@ autonomous_data/profiles/profile.json
 # CTO AIPA milestone queue — runtime state. src/api/app.py writes it and
 # linkedin_cmo_v4._get_pending_tech_updates() returns [] when it is absent.
 cto_aipa_updates/pending_tech_updates.json
+
+# Elena's resume PDFs. Runtime data, read only by auto_applicator, which is off
+# (AUTO_APPLY_ENABLED=false). Backed up on the server before untracking.
+autonomous_data/resumes/*.pdf
+/elena_resume_updated_*.pdf
