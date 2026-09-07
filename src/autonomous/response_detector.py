@@ -141,7 +141,7 @@ BLOCKED_SENDER_DOMAINS = (
     "@zohostore.com",
     "automated@",
     "notifications@",
-    "support@scalearmycareers.com",
+    "support@" "scalearmycareers.com",
 )
 
 

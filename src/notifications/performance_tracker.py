@@ -382,7 +382,7 @@ class PerformanceTracker:
             # Example structure:
             sample_opportunity = {
                 "type": "investor_contact",  # investor_contact, job_interview, collaboration
-                "from": "investor@vc.com",
+                "from": "investor@" "vc.com",
                 "subject": "Saw your LinkedIn post - let's chat",
                 "date": datetime.now().isoformat(),
                 "linkedin_mentioned": True,

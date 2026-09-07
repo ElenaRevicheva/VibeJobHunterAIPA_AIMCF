@@ -9,6 +9,7 @@ from datetime import datetime
 
 from ..core.models import Profile
 from ..core.config import get_settings
+from src.core.contact import render_deep
 
 
 class CandidateDataLoader:
@@ -32,7 +33,7 @@ class CandidateDataLoader:
         
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = render_deep(json.load(f))
             
             candidate = data.get('candidate', {})
             technical = data.get('technical_skills', {})
@@ -133,7 +134,7 @@ class CandidateDataLoader:
         
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = render_deep(json.load(f))
             
             return {
                 'target_roles': data.get('target_roles', []),
@@ -153,7 +154,7 @@ class CandidateDataLoader:
         
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = render_deep(json.load(f))
             
             return data.get('email_templates', {})
         except Exception as e:
@@ -167,7 +168,7 @@ class CandidateDataLoader:
         
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = render_deep(json.load(f))
             
             return {
                 'questions_prep': data.get('interview_questions_prep', {}),
@@ -184,7 +185,7 @@ class CandidateDataLoader:
         
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = render_deep(json.load(f))
             
             return data.get('cover_letter_template', {})
         except Exception as e:

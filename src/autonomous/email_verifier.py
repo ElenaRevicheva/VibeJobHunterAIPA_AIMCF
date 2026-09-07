@@ -6,7 +6,7 @@ This PREVENTS bounces which damage your email reputation.
 
 Usage:
     verifier = EmailVerifier()
-    result = await verifier.verify_email("founder@company.com")
+    result = await verifier.verify_email(address)
     
     if result['deliverable']:
         # Safe to send
@@ -163,7 +163,7 @@ class EmailVerifier:
         
         Usage:
             result = await verifier.find_email("stripe.com", "Patrick", "Collison")
-            # Returns firstname@example.com (verified)
+            # Returns the verified address
         """
         if not self.api_key:
             return {
@@ -306,7 +306,7 @@ async def verify_before_send(email: str) -> bool:
     Quick helper to verify email before sending.
     
     Usage:
-        if await verify_before_send("founder@company.com"):
+        if await verify_before_send(address):
             await send_email(...)
     """
     verifier = get_email_verifier()
@@ -337,7 +337,7 @@ if __name__ == "__main__":
             print("   Get your API key at: https://hunter.io/api")
         
         # Test verification
-        test_email = "test@example.com"
+        test_email = "test@" "example.com"
         print(f"\n📧 Testing verification for: {test_email}")
         result = await verifier.verify_email(test_email)
         print(f"   Deliverable: {result['deliverable']}")

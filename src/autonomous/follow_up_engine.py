@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from ..utils.logger import setup_logger
+from src.core.contact import CONTACT_EMAIL
 
 logger = setup_logger(__name__)
 
@@ -39,7 +40,7 @@ class FollowUpEngine:
         "company::title": {
             "company": "Anthropic",
             "title": "AI Product Engineer",
-            "email": "founder@anthropic.com",
+            "email": "<the recipient address>",
             "channel": "email",         # email | outreach | ats
             "sent_at": "2026-02-05T12:00:00",
             "follow_ups_sent": 0,
@@ -247,7 +248,7 @@ Happy to jump on a quick call anytime.</p>
 
 <p>Best regards,<br>
 Elena Revicheva<br>
-<a href="mailto:aipa@aideazz.xyz">aipa@aideazz.xyz</a> · 
+<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · 
 <a href="https://aideazz.xyz">aideazz.xyz</a></p>"""
 
         else:
@@ -271,7 +272,7 @@ to chat about what I could bring to {company}.</p>
 
 <p>Best,<br>
 Elena Revicheva<br>
-<a href="mailto:aipa@aideazz.xyz">aipa@aideazz.xyz</a> · 
+<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · 
 <a href="https://aideazz.xyz">aideazz.xyz</a></p>"""
 
         return subject, body

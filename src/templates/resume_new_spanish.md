@@ -4,7 +4,7 @@
 
 Juan Díaz, Ciudad de Panamá, Panamá | Remoto Global | UTC-5
 
-📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp)
+📧 __CONTACT_EMAIL__ | 📱 __CONTACT_PHONE_SPACED__ (WhatsApp)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portafolio](https://aideazz.xyz/portfolio)
 
 ---

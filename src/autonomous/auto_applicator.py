@@ -23,6 +23,7 @@ from .email_service import validate_email_for_resend
 
 from anthropic import AsyncAnthropic
 from ..utils.claude_helper import acall_claude
+from src.core.contact import CONTACT_EMAIL
 
 # Database tracking
 try:
@@ -696,7 +697,7 @@ I'd love 15 minutes to chat about how my scrappy shipping speed could help {comp
 Elena Revicheva
 🔗 linkedin.com/in/elenarevicheva
 🌐 aideazz.xyz
-📧 aipa@aideazz.xyz
+📧 {CONTACT_EMAIL}
 """
         
         try:

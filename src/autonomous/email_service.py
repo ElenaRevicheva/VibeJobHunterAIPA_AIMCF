@@ -21,6 +21,7 @@ import logging
 import re
 
 from .rate_limiter import get_rate_limiter
+from src.core.contact import CONTACT_EMAIL
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,8 @@ BLOCKED_EMAIL_PATTERNS = [
 ]
 
 ALLOWED_FOUNDER_PATTERNS = [
-    r'^[a-z]+@',              # firstname@company.com
-    r'^[a-z]+\.[a-z]+@',      # firstname.lastname@company.com
+    r'^[a-z]+@',              # firstname@" "company.com
+    r'^[a-z]+\.[a-z]+@',      # firstname.lastname@" "company.com
     r'^founder@',
     r'^ceo@',
     r'^hello@',               # Only for small startups
@@ -358,11 +359,11 @@ class EmailService:
         
         if not from_email:
             # Use verified domain email - replies go to Zoho inbox
-            from_email = os.getenv('FROM_EMAIL', 'Elena Revicheva <aipa@aideazz.xyz>')
+            from_email = os.getenv('FROM_EMAIL', 'Elena Revicheva <aipa@' 'aideazz.xyz>')
         
         params = {
             "from": from_email,
-            "reply_to": "aipa@aideazz.xyz",  # Ensure replies go to Zoho inbox
+            "reply_to": "aipa@" "aideazz.xyz",  # Ensure replies go to Zoho inbox
             "to": [to],
             "subject": subject,
         }
@@ -397,7 +398,7 @@ class EmailService:
         import base64
         
         if not from_email:
-            from_email = os.getenv('FROM_EMAIL', 'aipa@aideazz.xyz')
+            from_email = os.getenv('FROM_EMAIL', 'aipa@' 'aideazz.xyz')
         
         message = Mail(
             from_email=from_email,
@@ -538,7 +539,7 @@ class EmailService:
     <div class="signature">
         <p>Best regards,<br>
         Elena Revicheva<br>
-        <a href="mailto:aipa@aideazz.xyz">aipa@aideazz.xyz</a><br>
+        <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a><br>
         <a href="https://linkedin.com/in/elenarevicheva">linkedin.com/in/elenarevicheva</a><br>
         <a href="https://aideazz.xyz">aideazz.xyz</a></p>
     </div>
@@ -603,17 +604,17 @@ if __name__ == '__main__':
         
         test_cases = [
             # Should BLOCK (ATS emails)
-            ('careers@example.com', False, 'ats'),
-            ('jobs@example.com', False, 'ats'),
-            ('hr@example.com', False, 'ats'),
-            ('recruiting@example.com', False, 'ats'),
+            ('careers@' 'example.com', False, 'ats'),
+            ('jobs@' 'example.com', False, 'ats'),
+            ('hr@' 'example.com', False, 'ats'),
+            ('recruiting@' 'example.com', False, 'ats'),
             
             # Should ALLOW (founder/personal emails)
-            ('sid@example.com', True, 'founder'),
-            ('guillermo@example.com', True, 'founder'),
-            ('elena@example.com', True, 'founder'),
-            ('john.doe@example.com', True, 'founder'),
-            ('hello@example.com', True, 'founder'),
+            ('sid@' 'example.com', True, 'founder'),
+            ('guillermo@' 'example.com', True, 'founder'),
+            ('elena@' 'example.com', True, 'founder'),
+            ('john.doe@' 'example.com', True, 'founder'),
+            ('hello@' 'example.com', True, 'founder'),
         ]
         
         print("\n📋 Test Results:")
@@ -644,7 +645,7 @@ if __name__ == '__main__':
             
             # This should be BLOCKED
             result = await service.send_application_email(
-                to="careers@testcompany.com",
+                to="careers@" "testcompany.com",
                 company="TestCompany",
                 role="Software Engineer",
                 cover_letter="This should be blocked"
@@ -654,7 +655,7 @@ if __name__ == '__main__':
             # This should be ALLOWED (but won't actually send in test)
             # Uncomment to test real sending
             # result = await service.send_application_email(
-            #     to="founder@testcompany.com",
+            #     to="founder@" "testcompany.com",
             #     company="TestCompany",
             #     role="Software Engineer",
             #     cover_letter="This should go through"

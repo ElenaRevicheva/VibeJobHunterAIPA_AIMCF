@@ -14,6 +14,7 @@ Selection Rules:
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
+from src.core.contact import render
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,9 @@ class ResumeSelector:
             for base in [".", "/app", "/workspace"]:
                 path = Path(base) / resume_path
                 if path.exists():
-                    content = path.read_text(encoding='utf-8')
+                    # Templates carry __CONTACT_*__ tokens instead of literal
+                    # contact details; fill them in at the moment of use.
+                    content = render(path.read_text(encoding='utf-8'))
                     self._cache[resume_type] = content
                     logger.debug(f"📄 Loaded resume from {path}")
                     return content

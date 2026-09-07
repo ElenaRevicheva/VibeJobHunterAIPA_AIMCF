@@ -4,7 +4,7 @@
 
 Panama City, Panama | Remote Worldwide | On-site | Hybrid
 
-📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp/Telegram)
+📧 __CONTACT_EMAIL__ | 📱 __CONTACT_PHONE_SPACED__ (WhatsApp/Telegram)
 🔗 [LinkedIn](https://linkedin.com/in/elenarevicheva) | [GitHub](https://github.com/ElenaRevicheva) | [Portfolio](https://aideazz.xyz/card)
 🌐 ENS: aideazz.eth
 
@@ -150,4 +150,4 @@ Open to: Full-time, Part-time, Contract, Remote
 
 ---
 
-📧 aipa@aideazz.xyz | 💬 +507 616 66 716 (WhatsApp/Telegram) | 🔗 aideazz.xyz/card
+📧 __CONTACT_EMAIL__ | 💬 __CONTACT_PHONE_SPACED__ (WhatsApp/Telegram) | 🔗 aideazz.xyz/card

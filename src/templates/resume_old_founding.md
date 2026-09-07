@@ -4,7 +4,7 @@
 
 Juan Diaz, Panama City, Panama | Remote Worldwide | UTC-5 | 🌎 EN/ES
 
-📧 aipa@aideazz.xyz | 📱 +507 616 66 716 (WhatsApp)
+📧 __CONTACT_EMAIL__ | 📱 __CONTACT_PHONE_SPACED__ (WhatsApp)
 🔗 [Portfolio](https://aideazz.xyz/portfolio) | [GitHub](https://github.com/ElenaRevicheva) | [LinkedIn](https://linkedin.com/in/elenarevicheva)
 
 ---

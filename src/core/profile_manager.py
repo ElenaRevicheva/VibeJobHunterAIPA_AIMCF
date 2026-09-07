@@ -102,7 +102,7 @@ Return only valid JSON, no other text."""
         if "name" not in parsed_data:
             parsed_data["name"] = "Unknown"
         if "email" not in parsed_data:
-            parsed_data["email"] = "unknown@example.com"
+            parsed_data["email"] = "unknown"
         if "location" not in parsed_data:
             parsed_data["location"] = "Unknown"
         

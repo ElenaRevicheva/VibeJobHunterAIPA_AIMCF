@@ -11,6 +11,7 @@ from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
 from ..utils import retry_sync, ResponseCache, RateLimiter, get_logger, APICallTracker
 from ..utils.claude_helper import call_claude_sync  # Groq fallback on credit exhaustion
+from src.core.contact import CONTACT_EMAIL
 
 
 class ContentGeneratorV2:
@@ -268,7 +269,7 @@ Hi [Name / Team],
 Best regards,
 Elena Revicheva
 💬 Try my AI: wa.me/50766623757
-📧 aipa@aideazz.xyz
+📧 {CONTACT_EMAIL}
 🌐 aideazz.xyz"""
 
     def _save_resume(self, resume: str, job: JobPosting):

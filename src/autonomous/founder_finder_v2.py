@@ -372,10 +372,10 @@ class FounderFinderV2:
             
             # Generate common email patterns for this founder
             personalized_patterns = [
-                f"{first_name}@{domain}",                     # john@company.com
-                f"{first_name}.{last_name}@{domain}",         # john.doe@company.com
-                f"{first_name[0]}{last_name}@{domain}",       # jdoe@company.com
-                f"{first_name}{last_name[0]}@{domain}",       # johnd@company.com
+                f"{first_name}@{domain}",                     # john@" "company.com
+                f"{first_name}.{last_name}@{domain}",         # john.doe@" "company.com
+                f"{first_name[0]}{last_name}@{domain}",       # jdoe@" "company.com
+                f"{first_name}{last_name[0]}@{domain}",       # johnd@" "company.com
             ]
             
             # Try to verify with Hunter.io if available

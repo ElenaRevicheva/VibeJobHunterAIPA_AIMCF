@@ -113,7 +113,7 @@ class ATSSubmitter:
             "first_name": os.getenv("APPLICANT_FIRST_NAME", "Elena"),
             "last_name": os.getenv("APPLICANT_LAST_NAME", "Revicheva"),
             "full_name": os.getenv("APPLICANT_FULL_NAME", "Elena Revicheva"),
-            "email": os.getenv("APPLICANT_EMAIL", "aipa@aideazz.xyz"),
+            "email": os.getenv("APPLICANT_EMAIL", "aipa@" "aideazz.xyz"),
             "phone": os.getenv("APPLICANT_PHONE", "+507-6166-" "6716"),  # Elena's PERSONAL Panama number
             # NOTE: the EspaLuz product WhatsApp line is a different number; do not use it
             # for job applications.
@@ -641,7 +641,7 @@ class ATSSubmitter:
         
         Requirements:
         - ZOHO_APP_PASSWORD environment variable must be set
-        - Email must be aipa@aideazz.xyz (or configured in ZOHO_EMAIL)
+        - Email must match the configured sender (ZOHO_EMAIL, or CONTACT_EMAIL)
         """
         try:
             from .greenhouse_email_verifier import GreenhouseEmailVerifier

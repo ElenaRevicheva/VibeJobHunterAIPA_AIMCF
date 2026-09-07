@@ -8,6 +8,7 @@ from typing import List, Dict, Tuple
 import json
 
 from ..core.models import Application, ApplicationStatus
+from src.core.contact import CONTACT_EMAIL
 
 
 class FollowUpScheduler:
@@ -114,7 +115,7 @@ I'd love to discuss how I can help {company} achieve [their goal]. Would you be 
 
 Best regards,
 Elena Revicheva
-aipa@aideazz.xyz | wa.me/50766623757 | aideazz.xyz"""
+{CONTACT_EMAIL} | wa.me/50766623757 | aideazz.xyz"""
         
         elif days_since <= 7:
             # Second follow-up (value-add)
@@ -147,7 +148,7 @@ Either way, I wish you and the team continued success!
 
 Best regards,
 Elena Revicheva
-aipa@aideazz.xyz"""
+{CONTACT_EMAIL}"""
     
     def get_follow_up_summary(self) -> Tuple[int, int, List[Dict]]:
         """

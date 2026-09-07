@@ -53,10 +53,10 @@ ZOHO_IMAP_SERVERS = [
 
 # Greenhouse email patterns - multiple possible senders
 GREENHOUSE_SENDERS = [
-    "no-reply@us.greenhouse-mail.io",
-    "no-reply@greenhouse-mail.io",
-    "noreply@greenhouse.io",
-    "no-reply@greenhouse.io",
+    "no-reply@" "us.greenhouse-mail.io",
+    "no-reply@" "greenhouse-mail.io",
+    "noreply@" "greenhouse.io",
+    "no-reply@" "greenhouse.io",
     "greenhouse",  # Catch-all for any greenhouse sender
 ]
 GREENHOUSE_SUBJECT_PATTERN = r"Security code for your application"

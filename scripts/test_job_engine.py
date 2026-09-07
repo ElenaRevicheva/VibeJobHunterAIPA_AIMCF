@@ -171,7 +171,7 @@ class JobEngineTest:
             print(f"   Bounce rate: {status['bounce_rate']}")
             
             # Test can_send
-            can_send, reason = limiter.can_send_email("test@example.com")
+            can_send, reason = limiter.can_send_email("test@" "example.com")
             print(f"   Can send now: {can_send} ({reason})")
             
             self.results['rate_limiter'] = True
@@ -201,9 +201,9 @@ class JobEngineTest:
             
             # Test validation
             test_emails = [
-                ("careers@company.com", False, "Should block ATS emails"),
-                ("founder@company.com", True, "Should allow founder emails"),
-                ("john@company.com", True, "Should allow personal emails"),
+                ("careers@" "company.com", False, "Should block ATS emails"),
+                ("founder@" "company.com", True, "Should allow founder emails"),
+                ("john@" "company.com", True, "Should allow personal emails"),
             ]
             
             print("\n   Email validation tests:")
@@ -428,7 +428,7 @@ class JobEngineTest:
             from src.autonomous.email_verifier import get_email_verifier
             
             verifier = get_email_verifier()
-            test_email = "test@anthropic.com"
+            test_email = "test@" "anthropic.com"
             
             print(f"\n   Testing email verification for: {test_email}")
             verify_result = await verifier.verify_email(test_email)

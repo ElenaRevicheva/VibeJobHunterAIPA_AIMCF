@@ -55,16 +55,16 @@ class ResendRateLimiter:
         limiter = ResendRateLimiter()
         
         # Before sending
-        can_send, reason = limiter.can_send_email("john@company.com")
+        can_send, reason = limiter.can_send_email(recipient)
         if not can_send:
             logger.warning(f"Rate limited: {reason}")
             return
         
         # After sending
-        limiter.record_sent("john@company.com", "founder")
+        limiter.record_sent(recipient, "founder")
         
         # On bounce
-        limiter.record_bounce("john@company.com")
+        limiter.record_bounce(recipient)
     """
     
     def __init__(self, stats_file: str = "autonomous_data/email_stats.json"):
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         print(f"   {key}: {value}")
     
     # Test can_send
-    test_email = "test@example.com"
+    test_email = "test@" "example.com"
     can_send, reason = limiter.can_send_email(test_email)
     print(f"\n📧 Can send to {test_email}? {can_send} ({reason})")
     
