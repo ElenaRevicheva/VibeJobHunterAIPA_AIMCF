@@ -860,12 +860,54 @@ async def check_for_responses_and_alert(telegram_notifier=None) -> List[Detected
 # DATABASE INTEGRATION (for success prediction)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _is_business_development_thread(response) -> bool:
+    """
+    Is this reply part of a SELLING conversation rather than a job application?
+
+    Why this exists (9 Sep 2026): the detector watches ZOHO_EMAIL, and that
+    mailbox is not only the job-hunt identity. It is
+    also the sender for the licence outreach that sells the eight repositories. So
+    when Fermatix AI's business-development lead replied to a LICENCE offer with
+    four ownership questions, the detector read it as a recruiter response, opened a
+    `[HIRING-VJH-LEAD]` deal named after the licence subject, and drafted a cover
+    letter applying "for the role of Non-exclusive training licence". The buyer
+    conversation and the job hunt collided in one inbox.
+
+    The guard sits HERE, at the CRM boundary, and deliberately not in the
+    classifier. Detection, logging and the Telegram alert are untouched: Elena still
+    sees every reply. Only the hiring-deal write is suppressed. That ordering is
+    on purpose -- a stricter classifier is how a real interview request went missing
+    once already, and a false negative there costs far more than a junk deal does.
+
+    Configure with VJH_BD_DOMAINS (comma-separated). Add a domain whenever a selling
+    thread opens with a company that is not an employer.
+    """
+    raw = os.getenv("VJH_BD_DOMAINS", "fermatix.ai")
+    domains = {d.strip().lower().lstrip("@") for d in raw.split(",") if d.strip()}
+    if not domains:
+        return False
+    sender = (getattr(response, "from_email", "") or "").lower()
+    at = sender.rfind("@")
+    if at == -1:
+        return False
+    host = sender[at + 1:]
+    return any(host == d or host.endswith("." + d) for d in domains)
+
+
 def push_response_to_hubspot(response):
     """
     Update HubSpot deal stage to 'recruiter_responded' for this response.
     Silent failure (logged warning) so a HubSpot blip never breaks detection.
     Added May 24 2026 - closes the inbox-to-CRM loop.
     """
+    if _is_business_development_thread(response):
+        logger.info(
+            "[ResponseDetector->HubSpot] SKIP hiring deal: %s is a business-development "
+            "domain (VJH_BD_DOMAINS). This is a selling thread, not an application. "
+            "Detection and the Telegram alert still fired.",
+            (getattr(response, "from_email", "") or "?").split("@")[-1],
+        )
+        return
     try:
         import urllib.request
         import urllib.error
