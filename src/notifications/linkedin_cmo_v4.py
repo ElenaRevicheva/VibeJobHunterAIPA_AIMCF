@@ -1025,7 +1025,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
         content = _linkedin_finalize_post_body(content, post_content.get("language") or "en")
         
         # === IMAGE SELECTION WITH ANTI-REPEAT ROTATION ===
-        github_base = "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets"
+        github_base = "https://webhook.aideazz.xyz/influencer-images/cmo"
         all_images = [
             f"{github_base}/image_1.png",
             f"{github_base}/image_1.1.jpeg",
