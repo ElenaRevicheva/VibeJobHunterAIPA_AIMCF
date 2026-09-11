@@ -38,7 +38,7 @@ logging.basicConfig(
 log = logging.getLogger("marketing_image_test")
 
 GITHUB_BASE = (
-    "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets"
+    "https://webhook.aideazz.xyz/influencer-images/cmo"
 )
 
 # Four posts: three lane types + one repeat with the fourth diagram (all EN for predictability).

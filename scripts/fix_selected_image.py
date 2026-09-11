@@ -1,4 +1,4 @@
-﻿import os,sys,shutil
+import os,sys,shutil
 
 src = "src/notifications/linkedin_cmo_v4.py"
 bak = src + ".bak"
@@ -21,12 +21,12 @@ if a == -1 or b == -1:
 
 new_block = """
             image_urls = {
-                "open_to_work": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
-                "technical_showcase": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
-                "transformation_story": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
-                "seeking_funding": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png",
-                "busco_trabajo": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.1.jpeg",
-                "historia_transformacion": "https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.1.jpeg"
+                "open_to_work": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.png",
+                "technical_showcase": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.png",
+                "transformation_story": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.png",
+                "seeking_funding": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.png",
+                "busco_trabajo": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.1.jpeg",
+                "historia_transformacion": "https://webhook.aideazz.xyz/influencer-images/cmo/image_1.1.jpeg"
             }
 
             # Choose image based on post type (fallback to first available)

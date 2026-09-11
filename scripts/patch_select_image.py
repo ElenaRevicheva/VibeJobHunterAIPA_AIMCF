@@ -1,4 +1,4 @@
-﻿import sys, shutil, os
+import sys, shutil, os
 
 src = "src/notifications/linkedin_cmo_v4.py"
 bak = src + ".bak"
@@ -28,7 +28,7 @@ insertion = (
     "                selected_image = image_urls.get(post_content.get(\"type\"), image_urls.get(\"open_to_work\"))\n"
     "            except Exception:\n"
     "                # fallback to first available or default image\n"
-    "                selected_image = (list(image_urls.values())[0] if isinstance(image_urls, dict) and image_urls else \"https://raw.githubusercontent.com/ElenaRevicheva/VibeJobHunterAIPA_AIMCF/main/assets/image_1.png\")\n"
+    "                selected_image = (list(image_urls.values())[0] if isinstance(image_urls, dict) and image_urls else \"https://webhook.aideazz.xyz/influencer-images/cmo/image_1.png\")\n"
 )
 
 s2 = s[:payload_pos] + insertion + s[payload_pos:]
