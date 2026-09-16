@@ -128,6 +128,7 @@ def _borderline_alert(title: str, company: str, location: str, job_url: str, why
 JOBS_QUERIES = [
     # Aligned with CAREER_FOCUS: only founding/fractional/AI-builder shapes.
     # NO 'principal', 'VP', 'staff', 'head of X' — those map to Elena's hard-discard filter.
+    # 2026-09-16: EXCEPT AI leadership ('head of AI', 'chief AI officer'), which is a lane.
     'fractional CTO remote',
     'AI engineer founding team remote',
     'founding engineer AI remote',
@@ -146,6 +147,13 @@ JOBS_QUERIES = [
     'AI chief of staff remote',
     'AI executive assistant remote',
     'AI operations lead remote startup',
+    # 2026-09-16 APPENDED — AI product / consulting / leadership lanes
+    # (src/core/target_lanes.py). Every query here is a paid search twice a day, so
+    # only the four highest-yield shapes are added; the free sources carry the rest.
+    'AI product manager remote latin america',
+    'chief AI officer remote startup',
+    'AI solutions consultant remote',
+    'head of AI remote startup',
 ]
 
 # ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its

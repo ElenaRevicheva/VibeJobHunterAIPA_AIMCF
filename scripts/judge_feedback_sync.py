@@ -84,7 +84,11 @@ _BOT_NOTE_TEMPLATE = re.compile(
     r"|⚠️|⚠"
     r"|\bapply\s*:"
     r"|\bopen job\b"
-    r"|---\s*cover\s*/\s*outreach letter.*",
+    r"|---\s*cover\s*/\s*outreach letter.*"
+    # 2026-09-16: VJH's CURRENT cover-letter note, which the line above never matched.
+    # 10 of the judge's 12 "rejected" examples carried this bot text as "her reason",
+    # so the judge was being taught by VJH's own prose. Strip it to the end of the note.
+    r"|cover\s+letter\s*[—–-]+\s*drafted against this posting.*",
     re.IGNORECASE | re.DOTALL,
 )
 

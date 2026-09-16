@@ -643,7 +643,12 @@ class JobMonitor:
                    # supply-gap fix as Torre (job_gate.py / fit_gate.py already carve
                    # these titles through; they were never being SEARCHED for here).
                    "AI chief of staff", "AI operations lead", "AI executive assistant",
-                   "AI personal assistant"]
+                   "AI personal assistant",
+                   # 2026-09-16: AI product / consulting / leadership lanes — the judge and
+                   # the scoring prompt now approve these (src/core/target_lanes.py), so
+                   # supply has to ask for them too.
+                   "AI product manager", "chief AI officer", "head of AI", "AI consultant",
+                   "AI program manager", "AI transformation", "solutions consultant"]
         try:
             async with aiohttp.ClientSession() as session:
                 headers = {"User-Agent": "VibeJobHunter/1.0"}
@@ -1398,7 +1403,14 @@ class JobMonitor:
                            # wealthy-principal/family-office EA-PA lane.
                            "ai chief of staff", "chief of staff ai", "ai operations lead",
                            "ai executive assistant", "ai personal assistant",
-                           "ai proficient assistant", "ai proficient executive assistant"]:
+                           "ai proficient assistant", "ai proficient executive assistant",
+                           # 2026-09-16: AI product / consulting / leadership lanes
+                           # (src/core/target_lanes.py). Torre converts best of all
+                           # sources, so it gets the widest set of these.
+                           "chief ai officer", "ai program manager", "technical product manager ai",
+                           "ai solutions consultant", "ai transformation", "ai implementation manager",
+                           "ai adoption", "ai enablement", "director of ai", "vp of ai",
+                           "conversational ai designer", "gtm engineer", "ai evaluation"]:
                     payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
                     url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
                     try:
@@ -1469,7 +1481,7 @@ class JobMonitor:
                 url = "https://himalayas.app/jobs/api"
                 # 2026-08-18: added the AI chief-of-staff / AI-proficient EA-PA lane
                 # alongside the existing engineer/LLM/ML terms.
-                params = {"q": "AI engineer OR LLM OR machine learning OR AI chief of staff OR AI executive assistant OR AI operations lead", "limit": 50}
+                params = {"q": "AI engineer OR LLM OR machine learning OR AI chief of staff OR AI executive assistant OR AI operations lead OR AI product manager OR chief AI officer OR head of AI OR AI solutions architect OR AI consultant", "limit": 50}
                 async with session.get(url, headers=headers, params=params, timeout=15) as resp:
                     if resp.status == 200:
                         data = await resp.json()

@@ -71,6 +71,15 @@ _SEARCH_TERMS = (
     "asistente ejecutivo ia",
     "ai personal assistant",
     "asistente personal ia",
+    # 2026-09-16: AI product / consulting / leadership lanes (src/core/target_lanes.py),
+    # both languages — this board runs half-Spanish.
+    "chief ai officer",
+    "director de ia",
+    "gerente de producto ia",
+    "consultor de ia",
+    "ai solutions architect",
+    "ai transformation",
+    "ai program manager",
 )
 _PER_PAGE = 30
 _MAX_PAGES = 2  # per feed — keeps one cycle's fetch bounded

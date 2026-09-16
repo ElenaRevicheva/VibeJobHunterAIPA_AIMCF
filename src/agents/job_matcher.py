@@ -939,28 +939,31 @@ class JobMatcher:
             desc_truncated = description[:2000] if len(description) > 2000 else description
             req_text = '\n'.join([f"  • {r}" for r in requirements[:8]])
             
+            # 2026-09-16: lanes rendered from src/core/target_lanes.py — the SAME block the
+            # LLM judge embeds, so the scorer and the judge cannot disagree about which roles
+            # are hers. This prompt had said "THREE lanes" since 2026-07-30, never received AI
+            # product management (2026-08-05) or AI executive support (2026-08-18), and still
+            # paid +15 for Staff/Principal engineer titles — the shape she rejects.
+            from ..core.target_lanes import render_lanes_for_prompt
+            lanes_text = render_lanes_for_prompt(indent="  ")
+
             prompt = f"""Analyze this job posting against Elena's profile. Return a JSON score and reasons.
 
 ELENA'S PROFILE:
-- 11 AI products built solo in 10 months (5 AIPAs running 24/7)
-- Ex-CEO & CLO (7 years strategic leadership)
-- Tech: Python, TypeScript, React, Claude, GPT, Groq, LangChain, MCP
-- 19 countries reach, PayPal subscriptions LIVE
-- 99%+ cost reduction ($900K → <$15K)
-- AI Co-Founders: CTO AIPA (code reviews) + CMO AIPA (LinkedIn)
+- AI-augmented operator, product lead and solutions architect: twelve live AI systems designed,
+  shipped and run solo for eighteen months (agents, automation pipelines, CRM automation, a
+  public AI-visibility API)
+- Seven years as Deputy CEO & Chief Legal Officer — board-level digital transformation
+- Builds by directing AI coding tools (Claude Code, Cursor, GPT) across Python, TypeScript,
+  LLMs, RAG, agents and n8n / Make / Zapier. Does NOT hand-write code without AI tools and does
+  not take leetcode or live-coding screens
 - Based in Panama (LATAM, UTC-5); needs FULLY REMOTE, LATAM-open, >= $3,000 USD/month
 
-ELENA'S THREE TARGET LANES (corrected 2026-07-09, same lanes the LLM judge uses):
-  a) AI-AUGMENTED PRODUCTS / AGENTS / SYSTEMS BUILDER — "AI Engineer", "AI Agents
-     Engineer", "AI Solutions Engineer", "Founding AI Engineer", "Forward-Deployed
-     Engineer", "AI Product Owner". She builds WITH AI tools, so "Engineer" in a
-     title is NOT a negative.
-  b) GEO / AEO / TECHNICAL SEO — generative- and answer-engine optimization, AI
-     crawler visibility, structured data. She shipped a full production stack.
-  c) AI AUTOMATION / SOLUTIONS ARCHITECT — agent builders, n8n / Make / Zapier,
-     workflow automation, AI integration for clients or products.
-  NOT a fit: pure ML/AI research, legal, sales, recruiting, devrel, marketing,
-  finance, HR, exec/VP/director, data entry.
+ELENA'S TARGET LANES (the same list the LLM judge uses):
+{lanes_text}
+  NOT a fit: pure ML/AI research, ML engineering focused on training models, quota-carrying
+  sales, recruiting, HR, legal, finance, generic marketing, devrel, data entry or labeling, and
+  NON-AI executive leadership. AI leadership (Chief AI Officer, Head / VP / Director of AI) IS a lane.
 
 JOB:
 Title: {title}
@@ -977,13 +980,14 @@ BASE: 60 (for AI/ML roles) or 50 (for other engineering)
 POSITIVE (add points):
 +25: Founding Engineer / First Engineer / 0-1 role
 +20: AI/ML Product Engineer role
-+20: Squarely in one of the THREE target lanes above — AI automation / agent
-     building / n8n-Make-Zapier workflow automation, AI solutions architecture,
-     or GEO/AEO/technical SEO. These are her strongest lanes, not side quests.
++20: Squarely in one of her target lanes above — AI product or program management, AI
+     solutions architecture or consulting, AI leadership or transformation, AI automation,
+     AI-augmented building, GEO/AEO, AI-qualified executive support, expert AI evaluation.
+     These are her strongest lanes, not side quests.
 +10: Fully remote AND open to LATAM / worldwide (she can actually hold the job)
 +10: States pay at or above $3,000 USD/month
 +15: YC / Seed / Series A startup
-+15: Staff/Principal/Lead engineer role  
++15: AI leadership, AI product or AI consulting role at a startup or scale-up
 +10: Equity mentioned
 +10: Small team (under 50 people)
 +10: High autonomy / ownership emphasized
@@ -991,14 +995,16 @@ POSITIVE (add points):
 +5: Web3 + AI combo
 
 NEGATIVE (subtract points - BE CONSERVATIVE):
+-25: Requires a CS degree, a leetcode / live-coding test, or is mainly hand-writing code
 -10: Big corp (Google, Meta, Microsoft, Amazon, Databricks) - they still pay well!
 -15: Junior/Entry level
 -10: Pure research / PhD required
 -10: Maintenance-focused role
 -5: Large engineering team (100+ engineers)
 
-IMPORTANT: Elena has 11 AI products shipped. Be generous with AI/startup roles.
-She's overqualified for most roles, not underqualified.
+IMPORTANT: Be generous with AI product, solutions, consulting, automation and AI-leadership
+roles at startups — seven years in the C-suite plus twelve live AI systems fit them well.
+Do not reward a title for containing "Staff", "Principal" or "Engineer" on its own.
 
 Return ONLY valid JSON (no markdown):
 {{"score": <0-100>, "reasons": ["reason1", "reason2", "reason3"], "recommendation": "apply|maybe|skip", "fit_summary": "one sentence"}}"""

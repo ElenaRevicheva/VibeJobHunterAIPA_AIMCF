@@ -61,6 +61,16 @@ ROLE_INCLUDE_KEYWORDS = {
     "ai executive assistant", "executive assistant ai",
     "ai personal assistant", "personal assistant ai",
     "ai proficient assistant", "ai-proficient assistant", "ai proficient executive assistant",
+    # 2026-09-16: target-lane titles (src/core/target_lanes.py) that carry no AI term
+    # plus builder noun, so they could only ever pass on description luck.
+    # evals/test_target_lanes.py pushes every lane title through this gate on a
+    # neutral description, so a title missing here fails the suite.
+    "forward-deployed", "technical solutions manager", "solutions consultant",
+    "technical account manager", "automation architect", "automation consultant",
+    "workflow automation", "gtm engineer", "go-to-market engineer", "agentops",
+    "chatbot designer", "conversation designer", "conversational ai",
+    "ai-proficient executive assistant", "ai-forward executive assistant",
+    "ai trainer", "ai tutor", "llm evaluator", "ai evaluation", "fractional cto",
 }
 
 ROLE_EXCLUDE_KEYWORDS = {
@@ -506,6 +516,11 @@ class JobGate:
                 if ai_qualified_title and exclude_kw in _ASSISTANT_EXCLUDE_CARVEOUT:
                     logger.debug(f"↩️ GATE carve-out (AI-qualified assistant beats '{exclude_kw}'): {title[:50]}")
                     continue
+                # 2026-09-16: a Technical Account Manager on an AI automation platform
+                # is solution design for clients, not the sales-quota account manager
+                # this entry exists to drop.
+                if exclude_kw == "account manager" and "technical account manager" in title:
+                    continue
                 logger.debug(f"❌ GATE REJECT (excluded keyword '{exclude_kw}'): {title[:50]}")
                 return False
         
@@ -522,7 +537,9 @@ class JobGate:
         # word at all. Wrong-domain seniority is already gone by this point.
         builder_term = re.search(
             r"engineer|developer|architect|builder|scientist|\blead\b|specialist|"
-            r"\bhead\b|chief|director|\bvp\b|officer|manager|consultant|strategist|owner",
+            r"\bhead\b|chief|director|\bvp\b|officer|manager|consultant|strategist|owner|"
+            # 2026-09-16: nouns of the enriched lanes in src/core/target_lanes.py
+            r"assistant|designer|evaluator|trainer|tutor|reviewer|advisor|operator",
             title)
         # GEO/AEO/Tech-SEO titles are a standalone target lane (no AI term needed in the
         # title — "Technical SEO Lead" is a fit on its own). \b-bounded so "archaeology"

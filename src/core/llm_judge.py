@@ -88,68 +88,80 @@ _CLAUDE_MODEL = os.environ.get("CLAUDE_JUDGE_MODEL", "").strip() or "claude-haik
 # evals/test_provider_chain.py — 120: groq FAILED, 300: all five PASSED.
 _MAX_TOKENS = int(os.environ.get("JUDGE_MAX_TOKENS", "300"))
 
-_PROMPT = """You are screening ONE job for Elena, an AI-AUGMENTED BUILDER who ships and
-OPERATES production systems using AI tools (Claude Code, Cursor, GPT).
+# 2026-09-16: the lane block is RENDERED from src/core/target_lanes.py — the same list
+# the AI scoring prompt uses and evals/test_target_lanes.py checks against every gate.
+# Before this, "AI Product Manager" was opened in the gates and the searches on
+# 2026-08-05 and never reached this prompt, so those jobs scored 85-100 and were vetoed
+# here as "not a hands-on builder". Criteria 2, 5 and 7 close the other veto failures
+# seen in production: US Eastern hours read as incompatible with Panama, customers
+# counted as employees, and opinions or guesses about a company used as reasons.
+from .target_lanes import render_lanes_for_prompt  # noqa: E402
 
-She writes production Python and TypeScript daily — twelve live systems, eighteen months,
-sole operator, on her own cloud infrastructure. So "requires Python", "requires TypeScript",
-"strong programming skills", the word "Engineer" in the title, API/integration work, and
-system design are all POSITIVE signals. They are NEVER disqualifiers.
+_PROMPT_TEMPLATE = """You are screening ONE job for Elena Revicheva. Decide whether it deserves HER time.
 
-What she does not have is a computer-science degree, and she does not clear leetcode /
-HackerRank-style algorithm screens or deep low-level systems work (kernels, compilers,
-embedded, distributed-systems internals). Those are the ONLY coding-related disqualifiers.
-
-She is based in Panama (Latin America, UTC-5) and works fully remote.
+WHO SHE IS
+- An AI-augmented operator, product lead and solutions architect. Seven years as Deputy CEO
+  and Chief Legal Officer, running large regulated digital-transformation programs at board
+  level. For the last eighteen months she has designed, shipped and run twelve live AI
+  systems (agents, automation pipelines, CRM automation, a public AI-visibility API) as the
+  sole architect and operator.
+- She builds by directing AI coding tools (Claude Code, Cursor, GPT) and reviewing what they
+  produce. Python, TypeScript, APIs, LLMs, RAG, agents, integrations and system design are
+  POSITIVE signals: she ships production systems in them. She does NOT hand-write code
+  without AI tools and does not take leetcode or live-coding screens.
+- So AI product management, solution design, AI consulting, AI strategy and transformation,
+  automation and AI leadership are her CORE lanes, not exceptions to a "builder" rule.
+- She lives in Panama (Latin America), UTC-5 all year, works fully remote, and needs at least
+  $3,000 USD per month.
 
 APPROVE the job ONLY IF ALL of these are true:
-1. FULLY REMOTE (work from anywhere / worldwide) — NOT hybrid, NOT onsite.
-2. OPEN TO LATIN AMERICA / PANAMA (worldwide, Americas, LATAM, or no country restriction) —
-   NOT US-only, NOT restricted to a single other country/region.
-3. The role is in one of Elena's FOUR target lanes:
-   a) AI-AUGMENTED PRODUCTS / AGENTS / SYSTEMS BUILDER — e.g. "AI Engineer", "AI Agents
-      Engineer", "AI Automation Engineer", "AI Solutions Engineer", "Founding AI Engineer",
-      "Forward-Deployed Engineer", "AI Product Owner/Builder". Elena builds AI systems USING
-      AI tools, so the word "Engineer" is NOT a disqualifier.
-   b) GEO / AEO / TECHNICAL SEO — generative-engine & answer-engine optimization, AI-crawler
-      visibility, structured data, AI search visibility. She built a full production
-      AEO/GEO/tech-SEO stack.
-   c) AI AUTOMATION or other AI-AUGMENTED ENGINEERING SOLUTIONS ARCHITECT — designing and
-      wiring AI/automation solutions for clients or products.
-   d) AI-QUALIFIED EXECUTIVE SUPPORT — "AI Chief of Staff", "AI Executive Assistant",
-      "AI-Proficient Executive/Personal Assistant", "AI-Forward EA to the CEO/Founder", and
-      similar. APPROVE these when the role is explicitly AI-qualified: the work is running
-      and AUTOMATING a founder's or executive's operations with AI tools (ChatGPT/Claude,
-      Zapier/Make/n8n, agents, research and reporting automation). This is a deliberate
-      lane, not an exception — Elena spent seven years as Deputy CEO and now builds the
-      automation, so an AI-qualified chief-of-staff/EA seat is a genuine fit.
-      DISQUALIFY only the NON-AI version: generic administrative, secretarial, calendar-only,
-      household / personal / lifestyle / travel-concierge assistants, or any assistant role
-      with no AI or automation component in the work itself.
-   DISQUALIFY for this criterion ONLY if the job requires a computer-science degree,
-   leetcode / HackerRank / competitive-programming assessments, or deep low-level systems
-   work (kernels, compilers, embedded, distributed-systems internals).
-   Do NOT disqualify because a role asks for Python, TypeScript, "strong programming",
-   API integration, system design, or years of shipping — she does all of that daily.
-   A seniority bar alone ("5+ years building X") is not a disqualifier either; judge the
-   WORK, not the years.
-4. A role Elena would actually want — NOT pure ML/AI RESEARCH (research scientist, research
-   engineer, academic/lab research), NOT legal/counsel, sales, recruiter, developer-relations
-   (devrel), developer-advocate, marketing, finance, HR, or data-entry. She is a hands-on
-   BUILDER and ARCHITECT, not a researcher.
-   "Executive" here means executive LEADERSHIP she would be hired INTO — VP, Director,
-   Head of, C-level. It does NOT mean "Executive Assistant": an AI-qualified EA / chief of
-   staff is lane 3(d) above and must NOT be vetoed by this criterion.
-5. The EMPLOYER is one she can realistically be hired by: startups, scale-ups, product
-   companies, agencies, and fractional / contract engagements. DISQUALIFY when the employer
-   is a very large enterprise or conglomerate (roughly 5,000+ employees — Fortune-500 or
-   publicly-traded giant, big bank, big insurer, big healthcare, big retail, big telecom),
-   a staffing / body-shop / IT-outsourcing firm, or a recruiter posting on behalf of one.
-   Judge this from what you KNOW about the named company, not only from the listing text.
-   Apply this EVEN IF the listing claims remote / worldwide / LATAM: aggregators relabel
-   geography, and at that scale "remote" is nearly always country-locked in practice and
-   hiring runs through ATS pipelines Elena does not clear. Her documented path is founders,
-   operators and fractional work — not enterprise ATS funnels.
+
+1. FULLY REMOTE — not hybrid, not onsite, no required office days.
+
+2. SHE CAN HOLD IT FROM PANAMA — open to Panama, Latin America, the Americas or worldwide, or no
+   country restriction is stated.
+   - US Eastern or Central working hours (ET, CT, EST, CST, EDT, CDT, UTC-5, UTC-6) are
+     COMPATIBLE: Panama is UTC-5. Never reject for requiring US Eastern/Central overlap.
+   - Reject only when the listing restricts WHERE SHE MAY LIVE (US-only, a residency list of
+     countries that excludes Panama, EMEA-only, one other country), or requires working
+     hours clearly incompatible with UTC-5 (for example IST or APAC business hours).
+
+3. THE ROLE IS IN ONE OF HER TARGET LANES:
+__LANES__
+   Judge the WORK the listing describes, not whether the title contains "engineer" or
+   "builder". A title from these lanes is a strong fit signal on its own.
+   CODING DISQUALIFIERS — ONLY these four, and only when the listing states them:
+     (i)   a computer-science or engineering degree is REQUIRED (not "or equivalent experience");
+     (ii)  a leetcode / HackerRank / live-coding / algorithmic coding test;
+     (iii) deep low-level systems work (kernels, compilers, embedded, distributed-systems internals);
+     (iv)  the job is mainly hand-writing production code as an individual software engineer,
+           with no AI, product, solution-design, automation or leadership component.
+   A seniority bar alone ("5+ years building X") is NOT a disqualifier — judge the work.
+
+4. NOT one of these (NON-AI roles, unless stated otherwise):
+   pure ML/AI RESEARCH (research scientist or research engineer, model-training research, PhD
+   research); machine-learning ENGINEERING focused on training models; quota-carrying sales
+   (account executive, SDR, BDR); recruiting; HR; legal or counsel; finance or accounting;
+   generic marketing; developer relations or advocacy; data entry, data labeling or annotation
+   gigs; NON-AI executive leadership (VP Sales, CFO, COO, a "Head of" anything with no AI mandate).
+   AI LEADERSHIP IS A LANE: Chief AI Officer, Head / VP / Director of AI, AI Transformation
+   leaders and similar are NEVER rejected for seniority.
+
+5. THE EMPLOYER can realistically hire her: startups, scale-ups, product companies, agencies,
+   consultancies, fractional or contract engagements.
+   Reject when the employer has roughly 5,000 or more EMPLOYEES, or is a staffing, body-shop or
+   IT-outsourcing firm, or a recruiter posting for one.
+   - Count EMPLOYEES only. Customers, users, clients, partners or brands a company serves are NOT
+     its size ("serves 30,000 businesses" says nothing about how many people work there).
+   - NEVER use reputation, politics, culture, news, reviews or opinions about a company.
+   - If you do not reliably know the employee count, size is UNKNOWN — do not reject on size.
+
+6. PAY — reject only if the listing STATES pay whose maximum is below $3,000 USD per month (or
+   the hourly or annual equivalent). Pay that is not stated is NOT a reason to reject.
+
+7. NO GUESSES. Reject only for a disqualifier the listing EXPLICITLY states, or a known employee
+   count over the threshold in criterion 5. "May", "might", "likely", "suggests" and "could
+   involve" are never grounds to reject. When the listing is silent, give the benefit of the doubt.
 
 {feedback}JOB:
 Title: {title}
@@ -157,7 +169,10 @@ Company: {company}
 Location: {location}
 Description: {desc}
 
-Respond with ONLY JSON, nothing else: {{"fit": true or false, "reason": "<one short sentence>"}}"""
+Respond with ONLY JSON, nothing else: {{"fit": true or false, "reason": "<criterion number, then one short sentence>"}}"""
+
+# Rendered once at import, so every caller's _PROMPT.format(...) keeps its exact signature.
+_PROMPT = _PROMPT_TEMPLATE.replace("__LANES__", render_lanes_for_prompt(indent="   "))
 
 
 def _feedback_block() -> str:
@@ -174,7 +189,7 @@ def _feedback_block() -> str:
         if not pos and not neg:
             return ""
         lines = ["REAL RECENT OUTCOMES from Elena's own pipeline (taste calibration refreshed daily —",
-                 "these refine your judgment but do NOT override criteria 1-4 above):"]
+                 "these refine your judgment but do NOT override criteria 1-7 above):"]
         if pos:
             lines.append("She APPLIED to these (fit):")
             lines += ["  - " + t for t in pos]

@@ -47,17 +47,25 @@ _ON_LANE_TITLE = re.compile(
     # 2026-08-18: "assistant" added to the noun group — "AI Executive Assistant" /
     # "AI Personal Assistant" (wealthy-principal / family-office lane) otherwise
     # matched none of the existing nouns and was invisible to this check.
+    # 2026-09-16: nouns and phrases for the enriched lanes in src/core/target_lanes.py —
+    # designer / evaluator / trainer / tutor / reviewer / advisor / operator, CTO, GTM,
+    # AgentOps, technical solutions / account management, and the full GEO/AEO phrasing.
     r"\bai\b.*\b(engineer|developer|architect|specialist|builder|lead|consultant|"
-    r"head|chief|director|officer|manager|strategist|owner|assistant)|"
+    r"head|chief|director|officer|manager|strategist|owner|assistant|designer|"
+    r"evaluator|trainer|tutor|reviewer|advisor|operator|cto)|"
     r"\b(engineer|developer|architect|specialist|builder|lead|head|chief|director|"
-    r"officer|manager|assistant)\b.*\bai\b|"
+    r"officer|manager|assistant|designer|consultant|strategist|cto)\b.*\bai\b|"
     r"chief ai|head of ai|director of ai|vp of ai|ai product (manager|owner)|"
     r"chief of staff|ai proficient assistant|ai-proficient assistant|"
     r"agentic|ai agent|llm|generative ai|genai|"
     r"automation (engineer|specialist|architect|consultant)|"
     r"forward.deployed|solutions (engineer|architect|consultant)|"
+    r"technical (solutions|account) manager|fractional cto|"
+    r"\bgtm engineer\b|go-to-market engineer|agentops|chatbot designer|"
+    r"conversation(al)? designer|"
     r"\bn8n\b|make\.com|zapier|workflow automation|prompt engineer|"
-    r"\b(geo|aeo)\b|technical seo",
+    r"\b(geo|aeo|seo)\b|technical seo|generative engine optimization|"
+    r"answer engine optimization|search everywhere optimization",
     re.IGNORECASE,
 )
 _OFF_LANE_TITLE = re.compile(
@@ -327,7 +335,14 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'ai engineer', 'ai developer', 'ai architect', 'ai/ml', 'ai solution', 'ai system',
         'ai lead', 'ai specialist', 'ai product', 'ai ops', 'machine learning', 'ml engineer',
         'artificial intelligence', 'generative ai', 'genai', 'agentic', 'rag', 'nlp', 'deep learning',
-        'product builder')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
+        'product builder',
+        # 2026-09-16: AI product / consulting / leadership / evaluation lanes
+        # (src/core/target_lanes.py) — "Chief AI Officer" matched none of the above.
+        'ai program', 'ai project', 'ai delivery', 'ai implementation', 'ai transformation',
+        'ai adoption', 'ai enablement', 'ai strategy', 'ai governance', 'ai consult',
+        'chief ai', 'head of ai', 'vp of ai', 'director of ai', 'ai deployment',
+        'ai evaluation', 'llm evaluat', 'ai trainer', 'ai tutor', 'red team',
+        'conversational ai', 'chatbot', 'agentops', 'gtm engineer')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
 
     # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
     # don't falsely trip the heavy-coding exclusion — those are a GOOD sign.
