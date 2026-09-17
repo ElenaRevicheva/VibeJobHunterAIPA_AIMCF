@@ -130,6 +130,9 @@ APPROVE the job ONLY IF ALL of these are true:
 __LANES__
    Judge the WORK the listing describes, not whether the title contains "engineer" or
    "builder". A title from these lanes is a strong fit signal on its own.
+   EVERY lane is AI work: a role whose work has no AI, LLM, agent or automation component
+   (for example a plain payments product manager, a claims-domain consultant, a copywriter)
+   is NOT in a lane, whatever its title.
    CODING DISQUALIFIERS — ONLY these four, and only when the listing states them:
      (i)   a computer-science or engineering degree is REQUIRED (not "or equivalent experience");
      (ii)  a leetcode / HackerRank / live-coding / algorithmic coding test;
@@ -151,10 +154,15 @@ __LANES__
    consultancies, fractional or contract engagements.
    Reject when the employer has roughly 5,000 or more EMPLOYEES, or is a staffing, body-shop or
    IT-outsourcing firm, or a recruiter posting for one.
-   - Count EMPLOYEES only. Customers, users, clients, partners or brands a company serves are NOT
-     its size ("serves 30,000 businesses" says nothing about how many people work there).
+   - Count EMPLOYEES only. Customers, users, clients, partners, brands a company serves, and
+     freelancers or contractors in a talent network are NOT its size ("serves 30,000
+     businesses" says nothing about how many people work there).
+   - Reject on size ONLY for a household-name enterprise you are CERTAIN of (a Fortune-1000
+     or large publicly traded company, a Big-4 firm, a global IT-outsourcing giant). For any
+     other company the size is UNKNOWN — do not reject on size, and do not estimate one.
+   - A job marketplace or talent platform that relays postings (Torre, Toptal, Upwork,
+     Braintrust, Get on Board) is NOT the employer; never judge its size.
    - NEVER use reputation, politics, culture, news, reviews or opinions about a company.
-   - If you do not reliably know the employee count, size is UNKNOWN — do not reject on size.
 
 6. PAY — reject only if the listing STATES pay whose maximum is below $3,000 USD per month (or
    the hourly or annual equivalent). Pay that is not stated is NOT a reason to reject.
