@@ -139,7 +139,13 @@ __LANES__
      (iii) deep low-level systems work (kernels, compilers, embedded, distributed-systems internals);
      (iv)  the job is mainly hand-writing production code as an individual software engineer,
            with no AI, product, solution-design, automation or leadership component.
-   A seniority bar alone ("5+ years building X") is NOT a disqualifier — judge the work.
+   YEARS OF EXPERIENCE: her experience is her whole career — seven years of executive
+   leadership plus eighteen months building and running live AI systems. A requirement for
+   N+ years of experience, of professional experience, or of product, management, leadership,
+   consulting, transformation, automation or AI work is MET — never reject for it, whatever N is.
+   Reject for years ONLY when the listing demands years of hand-writing code as a software
+   engineer ("7+ years of professional Java development") AND the job is mainly coding —
+   that is disqualifier (iv), not a seniority bar.
 
 4. NOT one of these (NON-AI roles, unless stated otherwise):
    pure ML/AI RESEARCH (research scientist or research engineer, model-training research, PhD

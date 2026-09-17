@@ -70,7 +70,8 @@ def test_judge_prompt_formats_and_carries_guards():
     rendered = llm_judge._PROMPT.format(feedback="", title="x", company="y",
                                         location="z", desc="d")
     for guard in ("UTC-5", "EMPLOYEES only", "NEVER use reputation", "NO GUESSES",
-                  "AI LEADERSHIP IS A LANE", "$3,000"):
+                  "AI LEADERSHIP IS A LANE", "$3,000", "YEARS OF EXPERIENCE",
+                  "whatever N is"):
         assert guard in rendered, guard
     assert "__LANES__" not in rendered
     assert "hands-on\n   BUILDER" not in rendered

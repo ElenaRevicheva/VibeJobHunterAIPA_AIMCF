@@ -996,6 +996,8 @@ POSITIVE (add points):
 
 NEGATIVE (subtract points - BE CONSERVATIVE):
 -25: Requires a CS degree, a leetcode / live-coding test, or is mainly hand-writing code
+(Never subtract for "N+ years of experience" in general, management, product or AI work —
+ her seven executive years plus AI building meet it. Only years of hand-coding count against.)
 -10: Big corp (Google, Meta, Microsoft, Amazon, Databricks) - they still pay well!
 -15: Junior/Entry level
 -10: Pure research / PhD required

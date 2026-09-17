@@ -1,7 +1,12 @@
 """
-serpapi_jobs_ingest.py — Google Jobs API feed for VJH + client prospect pipeline.
+serpapi_jobs_ingest.py — Google job-board search feed for VJH + client prospect pipeline.
 
-Queries Google Jobs every 12h for roles Elena targets.
+⚠️ THE NAME IS HISTORICAL. SerpAPI is NOT used: its quota died 31 May 2026 and the
+account was cancelled 11 Aug 2026. The engine is BRIGHT DATA (fetch_google_jobs below).
+The file and PM2 name `serpapi-jobs` are kept only so the running process, its logs and
+the PM2 config keep matching; renaming them is a deploy change, not a cleanup.
+
+Queries Google (via Bright Data) every 12h for roles Elena targets.
 Each result:
   1. Pushed through /api/crm-event pipeline:'hiring'  (VJH track)
   2. If company matches high-intent signals → also pushed as pipeline:'client'
@@ -41,7 +46,8 @@ _env = dotenv_values(Path(__file__).parents[2] / '.env')
 logging.basicConfig(level=logging.INFO, format='[SerpJobs] %(message)s')
 log = logging.getLogger(__name__)
 
-SERPAPI_KEY  = _env.get('SERPAPI_KEY') or os.environ.get('SERPAPI_KEY', '')
+# SERPAPI_KEY removed 2026-09-17: read here, used nowhere, and its presence kept
+# suggesting SerpAPI was still live.
 # BrightData SERP (May 31 2026): SerpAPI google_jobs quota is exhausted (HTTP 429,
 # no top-up). BrightData is now the engine — reuses the same token/zone as cto-aipa's
 # brightdata-enrich.ts. brd_json does NOT parse the Google Jobs vertical, so we use
