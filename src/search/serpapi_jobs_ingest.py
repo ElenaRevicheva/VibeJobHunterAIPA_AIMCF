@@ -136,8 +136,15 @@ JOBS_QUERIES = [
     # NO 'principal', 'VP', 'staff', 'head of X' — those map to Elena's hard-discard filter.
     # 2026-09-16: EXCEPT AI leadership ('head of AI', 'chief AI officer'), which is a lane.
     'fractional CTO remote',
-    'AI engineer founding team remote',
-    'founding engineer AI remote',
+    # 2026-09-20 SWAPPED, not appended — these are PAID searches twice a day, so the two
+    # generic engineer queries that used to sit here ('AI engineer founding team remote',
+    # 'founding engineer AI remote') were paying to generate her rejections: engineer-titled
+    # roles were 62% of the ACT-TODAY queue but 58% of her negatives and 17% of her positives,
+    # every reason being "5-8 years", "4+ years ... MLOps", "8+ years", "Senior-level backend".
+    # Replaced 1:1 with the two shapes her positives actually came from, so the query count
+    # and the bill are unchanged. fit_gate now also vetoes those titles by name.
+    'AI automation specialist remote latin america',   # AI Automation Specialist @ LanceMart
+    'technical account manager AI automation remote',  # Sr. Technical Account Manager @ Zapier
     'AI automation lead remote startup',
     'solutions architect AI startup remote',
     # 2026-07-30 APPENDED — the AI-automation category (Elena's shipped skill set,
