@@ -36,7 +36,13 @@ TITLES = list(target_lanes.all_titles())
 
 
 def test_registry_is_rich_and_unique():
-    assert len(TITLES) >= 100
+    # Floor lowered 100 -> 95 on 2026-09-20. The builder lane lost 8 generic engineer titles
+    # on Elena's instruction (they were 62% of the ACT-TODAY queue but 58% of her rejections
+    # and 17% of her positives); 4 titles traceable to actual positives were added back, so
+    # the registry sits at 96. The guard still catches a real gutting - it is not there to
+    # stop a deliberate, measured cut, and padding it with invented titles to clear 100 would
+    # defeat the point of the registry.
+    assert len(TITLES) >= 95
     lowered = [t.lower() for t in TITLES]
     assert len(lowered) == len(set(lowered)), "duplicate lane titles"
     for must in ("Chief AI Officer", "AI Product Manager", "AI Solutions Architect",

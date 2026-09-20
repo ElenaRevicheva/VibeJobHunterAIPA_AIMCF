@@ -422,4 +422,37 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'sysadmin', 'network engineer', 'database administrator',
         'security engineer', 'release engineer'))
 
-    return remote and latam and ai_aug and not us_only and not heavy and not wrong_automation
+    # ── GENERIC AI-ENGINEER TITLES (added 2026-09-20) ────────────────────────
+    # Elena's instruction, backed by her own labels: 22 of the 35 ACT-TODAY deals were
+    # engineer-titled, they were 7 of her 12 negatives and only 2 of her 12 positives, and
+    # every recorded reason was the same — "5-8 years", "4+ years ... MLOps", "8+ years",
+    # "Senior-level backend software development, Node.js, TypeScript, AWS, CI/CD".
+    #
+    # The `heavy` list above already rejects those phrases, and they still got through: the
+    # search path judges a short snippet that omits the requirements. So this is a TITLE veto,
+    # for the same reason the DevOps titles above are — it holds when the description is
+    # unreadable. Kept deliberately: AI Automation / Solutions / Integration Engineer and
+    # Forward Deployed Engineer, none of which contain the vetoed substrings.
+    # Hand-coding seats. Nothing rescues these — "Forward Deployed SOFTWARE Engineer" is a
+    # software engineer wearing a deployment label, and Machine Learning / Data / Research
+    # Engineer are not her lanes at any seniority.
+    hard_swe = any(k in title_l for k in (
+        'software engineer', 'machine learning engineer', 'ml engineer', 'ai/ml engineer',
+        'data engineer', 'research engineer', 'founding engineer'))
+
+    # Titles that read engineer-ish but ARE her shape, or are leadership over engineers rather
+    # than an engineering seat. Both were killed by a naive substring veto on first test:
+    # "Forward-Deployed AI Engineer" (a title this lane deliberately keeps) and
+    # "Senior Manager, AI Engineering" (a management role) both contain "ai engineer".
+    engineer_ok = (not hard_swe) and (
+        any(k in title_l for k in ('automation engineer', 'solutions engineer',
+                                   'integration engineer', 'forward deployed', 'forward-deployed'))
+        or ('engineering' in title_l and any(k in title_l for k in (
+            'manager', 'director', 'head of', 'vp ', 'vice president', 'chief'))))
+
+    swe_titled = hard_swe or ((not engineer_ok) and any(k in title_l for k in (
+        'ai engineer', 'ai agents engineer', 'gen ai engineer', 'genai engineer',
+        'llm engineer')))
+
+    return (remote and latam and ai_aug
+            and not us_only and not heavy and not wrong_automation and not swe_titled)

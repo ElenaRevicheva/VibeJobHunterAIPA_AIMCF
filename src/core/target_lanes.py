@@ -69,6 +69,10 @@ LANES = (
             "AI Customer Engineer",
             "Fractional AI Consultant",
             "Forward Deployed AI Strategist",
+            # 2026-09-20: added to replace the volume cut from the engineer lane. Each one is
+            # traceable to a role she herself marked positive, not invented to pad the list.
+            "Technical Account Manager",          # Sr. Technical Account Manager @ Zapier
+            "AI Enablement Lead",
         ),
     },
     {
@@ -114,28 +118,39 @@ LANES = (
             "Conversational AI Designer",
             "Chatbot Designer",
             "AI Process Improvement Lead",
+            # 2026-09-20: same replacement intake, same rule — each traceable to a positive.
+            "Business Operations Lead, AI",       # Business Ops & Growth Lead @ Niuro
+            "AI Solutions Specialist",
         ),
     },
     {
-        "name": "AI-AUGMENTED BUILDER / ENGINEER",
+        "name": "AI-AUGMENTED BUILDER / INTEGRATION",
+        # 2026-09-20: the generic engineer titles are GONE, on her instruction and on her own
+        # labelling data. They were 62% of the ACT-TODAY queue (22 of 35) but 58% of her
+        # rejections (7 of 12) and only 17% of her positives (2 of 12). Her recorded reasons are
+        # all the same shape: "5-8 years of experience, strong Python and backend skills",
+        # "4+ years as an AI Engineer ... MLOps", "8+ years", "Senior-level backend software
+        # development, Node.js, TypeScript, AWS, CI/CD".
+        #
+        # What survives is the integration/deployment half of the lane — the roles where the job
+        # is wiring AI into someone's business, not writing their backend by hand. fit_gate has a
+        # matching TITLE veto, because the search path often sees only a short snippet with the
+        # years requirement missing, and a title veto holds when the description is unreadable.
         "work": ("designing, shipping and operating AI products, agents and integrations by "
-                 "directing AI coding tools. The word Engineer in a title is NOT a negative."),
+                 "directing AI coding tools — the deployment and integration half of the work, "
+                 "not building someone's backend by hand."),
         "titles": (
-            "AI Engineer",
-            "Applied AI Engineer",
-            "AI Agents Engineer",
-            "Agentic AI Engineer",
             "AI Automation Engineer",
             "AI Solutions Engineer",
             "AI Integration Engineer",
-            "Founding AI Engineer",
             "Forward Deployed Engineer",
             "Forward-Deployed AI Engineer",
-            "AI Product Engineer",
-            "LLM Application Engineer",
-            "Prompt Engineer",
             "AI Builder",
         ),
+        "not": ("generic software-engineering roles wearing an AI label — AI Engineer, Applied / "
+                "Senior AI Engineer, Machine Learning Engineer, Founding Engineer, or anything "
+                "demanding years of hand-written backend code, a CS degree or a language stack. "
+                "She directs AI coding tools; she is not a hand-coding backend engineer."),
     },
     {
         "name": "GEO / AEO / AI SEARCH VISIBILITY",
