@@ -161,6 +161,12 @@ LARGE_COMPANY_BLOCKLIST = {
     "siro clinpharm", "nagarro", "codeforce360",
     "akaasa", "xforia", "verito", "argyll",
     "sr partners",
+    # 2026-09-20: reached "YOU act TODAY" as "Technical Product Manager, AI Platform".
+    # A US IT body shop on Dice: Contract W2 (needs US work authorization she does not have),
+    # rate "DOE" so no floor against her $3k/mo, and ML in the required skills. Only 1 of 18 in
+    # the queue had this shape, so the NAME goes on the list rather than building a
+    # staffing-pattern detector for a single case.
+    "georgia it",
     # HR / payroll / large established companies — wrong domain or too big
     "deel",                 # 5 000+ employees, HR/payroll platform
     "outlier ai",           # data labeling platform, not a product startup
