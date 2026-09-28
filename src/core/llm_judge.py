@@ -210,9 +210,14 @@ def _feedback_block() -> str:
             # could never veto anything. The summary covers ALL of her rejections, and when a
             # job matches one of these lessons that is a reason to reject — she is the authority
             # on her own fit. It can only REJECT; it never widens what criteria 1-7 allow.
+            # Apply a lesson only on EVIDENCE. The first replay (27 Sep) showed the judge citing
+            # "Location or eligibility she cannot meet" for a listing that stated no location at
+            # all — a lesson turned into a guess, which criterion 7 forbids.
             lines += ["ELENA'S LESSONS — learned from her own rejections. These are HER criteria too:",
-                      "when this job clearly matches a lesson, answer fit=false and name the lesson.",
-                      "A lesson can only reject; it never makes a job pass that criteria 1-7 reject.",
+                      "reject when THIS listing itself STATES the fact a lesson is about (a country list",
+                      "without Panama, a closed notice, a required degree, the tool, the company) and name",
+                      "the lesson. If the listing is silent on it, criterion 7 applies — never reject by",
+                      "assuming a lesson. A lesson can only reject; it never passes what criteria 1-7 reject.",
                       lessons.strip()[:1800], ""]
         lines += ["REAL RECENT OUTCOMES from Elena's own pipeline (refreshed hourly):"]
         if pos:
