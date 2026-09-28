@@ -175,6 +175,10 @@ def test_apply_kit_notes_are_never_her_reason():
     assert s._rejection_reason([{"body": ready}], "AI Engineer") == ""
     assert s._rejection_reason([{"body": defense}], "AI Engineer") == ""
     assert not s._elena_said_applied([{"body": defense}])
+    # Found on the real Glean deal the same day: an agent's August promotion note, not her words.
+    promoted = ("🟡 [BORDERLINE] Promoted to I Act TODAY on 2026-08-14 at Elena request. Iron-clad gate said NOT a "
+                "fit. AI judge said FIT: The role is fully remote and in her lanes.")
+    assert s._rejection_reason([{"body": promoted}, {"body": hers}], "Resident Solutions Architect").startswith("her reason: Not a fit")
 
 
 # ── the sync learns rules from her words, not from VJH's ─────────────────────

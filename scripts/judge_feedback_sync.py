@@ -78,7 +78,9 @@ NEGATIVE_STAGES = {"closedlost"}
 MANUAL_APPLY_STAGE = "decisionmakerboughtin"
 # Whole notes written by cto-aipa's apply kit (hs-fill-apply-kit.cjs + hand-built kits): skipped, never
 # stripped-and-kept, because their prose is long enough to pass as a sentence of hers.
-_KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND")
+# Also the Aug 2026 "🟡 [BORDERLINE] Promoted to I Act TODAY … at Elena request" note an agent wrote when
+# promoting a job: found on a real deal 28 Sep, read as "her reason" (0 ledger entries affected).
+_KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*\[BORDERLINE\]\s*Promoted to I Act TODAY")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
