@@ -656,7 +656,11 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
 
 # ── from her reasons to lessons and rules ─────────────────────────────────────
 _LESSON_KINDS = (
-    ("location", "Location or eligibility she cannot meet from Panama",
+    # Wording matters: "Location or eligibility she cannot meet" made the judge reject a job she
+    # APPLIED to (Rove Concepts) because its listing was SILENT on location — 2/2 runs. Silence is
+    # not a restriction (criterion 2); hard location vetoes live in fit_gate + learned_rules.
+    ("location", "A STATED location or eligibility restriction that excludes Panama "
+                 "(a listing silent on location is NOT restricted)",
      r"\blocat|\bonly (?:in )?[a-z]+\b|born in|citizen|\busc\b|green card|\bw-?2\b|country|countries|"
      r"india|philippines|colombia|timezone|time zone|region"),
     ("coding", "Hand-coding, a CS degree or senior software engineering required",
