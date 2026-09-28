@@ -179,6 +179,15 @@ def test_apply_kit_notes_are_never_her_reason():
     promoted = ("🟡 [BORDERLINE] Promoted to I Act TODAY on 2026-08-14 at Elena request. Iron-clad gate said NOT a "
                 "fit. AI judge said FIT: The role is fully remote and in her lanes.")
     assert s._rejection_reason([{"body": promoted}, {"body": hers}], "Resident Solutions Architect").startswith("her reason: Not a fit")
+    # 28 Sep: the Perplexity company brief is web text about the employer — "applied AI" in it is not her applying.
+    brief = ('<strong>🔎 COMPANY BRIEF — Acme</strong><p>Acme builds applied AI for insurers and submitted its '
+             'S-1 in 2025.</p><p><em>Cited from: acme.com/about</em></p>')
+    assert not s._elena_said_applied([{"body": brief}])
+    assert s._rejection_reason([{"body": brief}], "AI Engineer") == ""
+    assert s._rejection_reason([{"body": brief}, {"body": hers}], "AI Engineer").startswith("her reason: Not a fit")
+    # Her own word still counts next to any kit note.
+    assert s._elena_said_applied([{"body": brief}, {"body": "i applied manually"}])
+    assert s._elena_said_applied([{"body": "I applied on GetOnBoard, 28 Sep 2026."}])
 
 
 # ── the sync learns rules from her words, not from VJH's ─────────────────────

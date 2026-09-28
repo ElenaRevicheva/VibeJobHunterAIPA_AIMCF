@@ -80,7 +80,10 @@ MANUAL_APPLY_STAGE = "decisionmakerboughtin"
 # stripped-and-kept, because their prose is long enough to pass as a sentence of hers.
 # Also the Aug 2026 "🟡 [BORDERLINE] Promoted to I Act TODAY … at Elena request" note an agent wrote when
 # promoting a job: found on a real deal 28 Sep, read as "her reason" (0 ledger entries affected).
-_KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*\[BORDERLINE\]\s*Promoted to I Act TODAY")
+# 28 Sep 2026: "🔎 COMPANY BRIEF" — cto-aipa's Perplexity research on the company, one note per deal. It is web
+# text about the EMPLOYER ("applied AI", "submitted to the SEC"), so it must never read as her words either.
+_KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*\[BORDERLINE\]\s*Promoted to I Act TODAY"
+                       r"|🔎\s*COMPANY BRIEF")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
@@ -133,6 +136,8 @@ _APPLIED_MARK = re.compile(
 def _elena_said_applied(notes) -> bool:
     """True only if SHE wrote an 'applied' marker, after removing VJH's template."""
     for n in notes:
+        if _KIT_NOTE.search(n.get("body") or ""):
+            continue    # agent-written kit / research notes are never her words (same rule as _rejection_reason)
         human = _BOT_NOTE_TEMPLATE.sub(" ", re.sub(r"<[^>]+>", " ", n.get("body") or ""))
         if _APPLIED_MARK.search(human):
             return True
