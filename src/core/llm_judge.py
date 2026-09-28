@@ -416,7 +416,13 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
     A listing open to LATAM / the Americas / worldwide includes her UNLESS it also names a country list
     or a single country that excludes Panama — fit_gate's rosters, or "Colombia only".
     """
-    blob = f"{title or ''}\n{location or ''}\n{desc or ''}"
+    try:
+        from .fit_gate import is_source_default_location
+        # A label our own source adapter wrote is not the employer stating LATAM (2026-09-28).
+        claimed = "" if is_source_default_location(location) else (location or "")
+    except Exception:
+        return False
+    blob = f"{title or ''}\n{claimed}\n{desc or ''}"
     if not _OPEN_TO_HER.search(blob) or _COUNTRY_ONLY.search(blob):
         return False
     try:

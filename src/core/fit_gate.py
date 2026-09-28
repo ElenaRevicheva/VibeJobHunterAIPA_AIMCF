@@ -280,6 +280,20 @@ _SEO_AEO_PATTERNS = tuple(re.compile(p) for p in (
 ))
 
 
+# A location a SOURCE ADAPTER wrote, not one the employer stated (2026-09-28). Torre returns an
+# empty `locations` list for many postings and job_monitor labels them "Remote — LATAM / Americas"
+# so the gates do not drop them. The gates may keep treating that as open — silence is open to
+# her. Nothing may read it as the employer PROMISING LATAM: the judge's overrule did, and released
+# Plain Concepts (Brazil/Portugal), Ruby Labs (Canada/UK/US) and SPACE44 (EU) on VJH's own label.
+SOURCE_DEFAULT_MARK = "employer stated no location"
+_LEGACY_SOURCE_DEFAULTS = ("remote — latam / americas",)
+
+
+def is_source_default_location(location: str) -> bool:
+    loc = (location or "").strip().lower()
+    return SOURCE_DEFAULT_MARK in loc or loc in _LEGACY_SOURCE_DEFAULTS
+
+
 # Moved out of iron_clad_fit unchanged (2026-09-28) so the judge's location overrule can use the
 # SAME reading instead of a weaker copy of it.
 _US_ONLY_PHRASES = (

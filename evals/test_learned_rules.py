@@ -110,6 +110,30 @@ def test_latam_open_listing_overrules_a_location_veto():
     assert latam_veto_is_wrong("AI Automation Lead", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
 
 
+def test_a_location_our_adapter_wrote_is_not_the_employer_promising_latam():
+    from src.core.llm_judge import latam_veto_is_wrong
+    from src.core.fit_gate import is_source_default_location, SOURCE_DEFAULT_MARK
+    old, new = "Remote — LATAM / Americas", f"Remote — LATAM / Americas (Torre default: {SOURCE_DEFAULT_MARK})"
+    assert is_source_default_location(old) and is_source_default_location(new)
+    assert not is_source_default_location("Remote - LATAM")                       # an employer's own words
+    # Plain Concepts, 28 Sep: Torre gave no countries, the employer page said Portugal/Brazil.
+    ctx = "Remote positions available for Senior AI Golang Software Engineer (Brazil, Portugal)."
+    assert not latam_veto_is_wrong("Senior AI Software Engineer", old, ctx)
+    assert not latam_veto_is_wrong("Senior AI Software Engineer", new, ctx)
+    # When the POSTING itself states LATAM, the overrule still works through the default label.
+    assert latam_veto_is_wrong("AI Automation Lead", new, "Open to candidates anywhere in Latin America.")
+
+
+def test_torre_default_label_changes_no_gate_decision():
+    from src.autonomous.job_monitor import JobMonitor
+    from src.core.fit_gate import iron_clad_fit
+    new = JobMonitor._torre_location_string([])
+    assert "latam" in new.lower() and "employer stated no location" in new
+    desc = "Fully remote. You will build AI automation and agent workflows with Claude and Cursor."
+    for title in ("AI Automation Lead", "AI Product Manager", "Senior Software Engineer (Java)"):
+        assert iron_clad_fit(title, new, desc) == iron_clad_fit(title, "Remote — LATAM / Americas", desc), title
+
+
 def test_location_excludes_her_reads_what_the_posting_states():
     from src.core.fit_gate import location_excludes_her
     assert location_excludes_her("x", "Remote", "Candidates may work in the U.S. only.")

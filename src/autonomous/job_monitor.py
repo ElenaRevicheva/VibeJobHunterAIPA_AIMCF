@@ -18,6 +18,7 @@ from typing import List, Dict, Set, Any, Optional
 import aiohttp
 
 from src.core.models import JobPosting, JobSource
+from src.core.fit_gate import SOURCE_DEFAULT_MARK
 from src.utils.logger import setup_logger
 from src.utils.cache import ResponseCache
 from src.autonomous.job_gate import JobGate
@@ -1358,7 +1359,9 @@ class JobMonitor:
     @classmethod
     def _torre_location_string(cls, locations: List[str]) -> str:
         if not locations:
-            return "Remote — LATAM / Americas"
+            # Still "LATAM / Americas" so every gate treats it exactly as before; the mark says it
+            # is OUR default, not the employer's statement (src/core/fit_gate.SOURCE_DEFAULT_MARK).
+            return f"Remote — LATAM / Americas (Torre default: {SOURCE_DEFAULT_MARK})"
         if any(loc.lower() in cls._TORRE_LATAM_COUNTRIES for loc in locations):
             return f"Remote — Worldwide / LATAM ({', '.join(locations)})"
         return f"Remote — {', '.join(locations)}"
