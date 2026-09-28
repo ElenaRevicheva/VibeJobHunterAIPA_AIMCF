@@ -91,6 +91,17 @@ def test_same_kind_of_role_as_an_out_of_field_rejection():
     assert not learned_veto("AI Product Manager", "Y", "", rules=RULES)[0]
 
 
+# ── a location veto that contradicts criterion 2 is overruled (28 Sep 2026) ──
+def test_latam_open_listing_overrules_a_location_veto():
+    from src.core.llm_judge import latam_veto_is_wrong
+    assert latam_veto_is_wrong("Senior Solutions Engineer- LATAM", "", "")             # Fin, seen in production
+    assert latam_veto_is_wrong("AI Automation Lead", "Remote - Latin America", "")
+    assert not latam_veto_is_wrong("AI Solutions Architect", "Remote LATAM", "Colombia only.")
+    assert not latam_veto_is_wrong("AI Automation Lead", "LATAM (Brazil, Mexico)", "")
+    assert not latam_veto_is_wrong("AI Automation Lead", "Remote", "")                  # nothing says LATAM
+    assert not latam_veto_is_wrong("AI Lead", "Remote - LATAM", "Candidates must reside in Brazil or Argentina.")
+
+
 # ── the sync learns rules from her words, not from VJH's ─────────────────────
 def test_sync_builds_rules_from_her_reasons():
     s = _load_sync()

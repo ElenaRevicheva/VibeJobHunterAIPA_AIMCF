@@ -386,6 +386,38 @@ def _call_llm(prompt: str):
     return "", errors
 
 
+_CRIT2_REASON = re.compile(r"^\s*2\b")
+_OPEN_TO_HER = re.compile(r"\b(latam|latin america|central america|the americas|americas|worldwide|"
+                          r"anywhere in the world|work from anywhere)\b", re.IGNORECASE)
+_COUNTRY_ONLY = re.compile(
+    r"\b(?:only|exclusively)\b[^.\n]{0,25}\b(colombia|brazil|mexico|argentina|chile|peru|uruguay|"
+    r"costa rica|guatemala|ecuador|venezuela|bolivia|paraguay|dominican|us|usa|united states|canada)\b|"
+    r"\b(colombia|brazil|mexico|argentina|chile|peru|uruguay|costa rica|guatemala|ecuador|venezuela|"
+    r"bolivia|paraguay|dominican|usa|united states|canada)\b[^.\n]{0,12}\bonly\b", re.IGNORECASE)
+
+
+def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
+    """True when a criterion-2 (location) veto contradicts criterion 2 itself.
+
+    Seen in production 28 Sep 2026: "Senior Solutions Engineer - LATAM @ Fin" vetoed as "LATAM may
+    exclude Panama" — 3/3 runs with the old prompt, with no feedback at all, and even after an explicit
+    "Panama is in Latin America" line. A prompt could not fix it, so the criterion is enforced here.
+    A listing open to LATAM / the Americas / worldwide includes her UNLESS it also names a country list
+    or a single country that excludes Panama — fit_gate's rosters, or "Colombia only".
+    """
+    blob = f"{title or ''}\n{location or ''}\n{desc or ''}"
+    if not _OPEN_TO_HER.search(blob) or _COUNTRY_ONLY.search(blob):
+        return False
+    try:
+        from .fit_gate import roster_excludes_home, residency_excludes_home
+        if roster_excludes_home(location or "") or roster_excludes_home(title or "") \
+                or residency_excludes_home(desc or ""):
+            return False
+    except Exception:
+        return False
+    return True
+
+
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
     FAIL-OPEN: returns (True, ...) if no provider is available."""
@@ -418,7 +450,12 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
         logger.warning(f"⚖️ {JUDGE_UNAVAILABLE} — JSON parse failed "
                        f"for '{(title or '')[:60]}': {str(e)[:100]}")
         return True, f"{JUDGE_UNAVAILABLE}: JSON parse failed"
-    return bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
+    fit, reason = bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
+    if not fit and _CRIT2_REASON.match(reason) and latam_veto_is_wrong(title, location, desc):
+        logger.info(f"⚖️ location veto OVERRULED (listing is open to LATAM/Americas, no roster excludes "
+                    f"Panama): '{(title or '')[:60]}' @ {(company or '')[:40]} — judge said: {reason[:80]}")
+        return True, f"criterion-2 veto overruled — LATAM-open listing ({reason[:70]})"
+    return fit, reason
 
 
 def judge_health() -> tuple:
