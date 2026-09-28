@@ -102,6 +102,19 @@ def test_latam_open_listing_overrules_a_location_veto():
     assert not latam_veto_is_wrong("AI Lead", "Remote - LATAM", "Candidates must reside in Brazil or Argentina.")
 
 
+def test_pay_veto_without_stated_pay_is_overruled():
+    from src.core.llm_judge import pay_veto_is_wrong, _CRIT6_REASON
+    # Seen on the live judge 28 Sep: no pay anywhere, rejected as "6 Pay below her floor".
+    assert _CRIT6_REASON.search("6 Pay below her floor.")
+    assert _CRIT6_REASON.search("Criterion 6: pay is below her floor")
+    assert not _CRIT6_REASON.search("3 The role is not in one of her target lanes.")
+    assert pay_veto_is_wrong("Fully remote, open to LATAM. Please write your application answers yourself.")
+    # Any stated pay keeps the veto — the judge may be right about it.
+    for stated in ("Salary: $1,200 per month.", "USD 15/hour", "Compensation 18k a year",
+                   "Pay: 900 USD monthly", "€2.000 per month", "$20/hr"):
+        assert not pay_veto_is_wrong("Remote. " + stated), stated
+
+
 # ── the sync learns rules from her words, not from VJH's ─────────────────────
 def test_sync_builds_rules_from_her_reasons():
     s = _load_sync()

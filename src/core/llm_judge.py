@@ -429,6 +429,26 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
     return True
 
 
+_CRIT6_REASON = re.compile(r"^\s*(criterion\s*)?6\b|\bpay\b[^.]{0,40}\bfloor\b", re.IGNORECASE)
+_STATED_PAY = re.compile(
+    r"(\$|us\$|usd|eur|€|£|mxn|brl|cop)\s?\d|"
+    r"\d[\d,.]*\s?(k\b|usd\b|eur\b|dollars\b|/\s?(h|hr|hour|mo|month|yr|year)\b|"
+    r"per\s+(hour|month|year|annum)\b|an hour\b|a month\b|a year\b)", re.IGNORECASE)
+
+
+def pay_veto_is_wrong(desc: str) -> bool:
+    """True when a criterion-6 (pay) veto cites pay the listing never states.
+
+    Seen 28 Sep 2026 on the live judge: an otherwise-passing listing plus one sentence asking for the
+    APPLICATION answers to be written without AI was rejected 4/4 as "6 Pay below her floor" — the
+    listing states no pay at all (control without that sentence: approved 4/4). Criterion 6 says
+    unstated pay is NOT a reason, so a pay veto with no number anywhere in the listing is enforced
+    here. The full description is checked, not the 1,500 chars the judge saw, so pay stated further
+    down is never overruled. The ingest's own code pay floor still applies independently.
+    """
+    return not _STATED_PAY.search(desc or "")
+
+
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
     FAIL-OPEN: returns (True, ...) if no provider is available."""
@@ -466,6 +486,10 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
         logger.info(f"⚖️ location veto OVERRULED (listing is open to LATAM/Americas, no roster excludes "
                     f"Panama): '{(title or '')[:60]}' @ {(company or '')[:40]} — judge said: {reason[:80]}")
         return True, f"criterion-2 veto overruled — LATAM-open listing ({reason[:70]})"
+    if not fit and _CRIT6_REASON.search(reason) and pay_veto_is_wrong(desc):
+        logger.info(f"⚖️ pay veto OVERRULED (the listing states no pay): '{(title or '')[:60]}' @ "
+                    f"{(company or '')[:40]} — judge said: {reason[:80]}")
+        return True, f"criterion-6 veto overruled — listing states no pay ({reason[:70]})"
     return fit, reason
 
 
