@@ -471,9 +471,38 @@ def pay_veto_is_wrong(desc: str) -> bool:
         return False                      # cannot check the ban → keep the veto
 
 
-def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
+_RECENT_MARK = "REAL RECENT OUTCOMES from Elena's own pipeline"
+_REMINDER_MARK = "REMINDER: a listing SILENT on location"
+
+
+def _with_similar(feedback: str, similar: str) -> str:
+    """Swap the RECENT examples for her verdicts on the most SIMILAR postings; lessons and the
+    closing reminder stay exactly where they are."""
+    if not similar:
+        return feedback
+    start = feedback.find(_RECENT_MARK)
+    rem = feedback.find(_REMINDER_MARK)
+    if start == -1:
+        head, tail = (feedback[:rem], feedback[rem:]) if rem != -1 else (feedback.rstrip("\n") + "\n", "")
+        return f"{head}{similar}\n{tail}" if tail else f"{head}{similar}\n\n"
+    end = rem if rem != -1 else len(feedback)
+    tail = feedback[end:] if rem != -1 else "\n"
+    return f"{feedback[:start]}{similar}\n{tail}"
+
+
+def _examples_mode() -> str:
+    """'recent' (default: the 12+12 most recent outcomes) or 'similar' (RAG over her decisions).
+    Read at call time from the environment or .env, so it flips without a code change."""
+    try:
+        return (_key("VJH_JUDGE_EXAMPLES") or "recent").lower()
+    except Exception:
+        return "recent"
+
+
+def judge_fit(title: str, company: str, location: str, desc: str, url: str = None) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
-    FAIL-OPEN: returns (True, ...) if no provider is available."""
+    FAIL-OPEN: returns (True, ...) if no provider is available.
+    `url` is optional and only used so a replay never retrieves the job's own decision."""
     # 2026-09-28: a location our source adapter WROTE ("Remote — LATAM / Americas" when Torre gives
     # no countries) is shown to the judge as what it is. The replay on real postings had every model
     # answer "open to LATAM/Americas" for employers that said EU-only or Canada/UK/US. The gates keep
@@ -485,8 +514,22 @@ def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
             shown_location = "not stated by the employer (remote)"
     except Exception:
         pass
+    feedback = _feedback_block()
+    mode = _examples_mode()
+    if mode in ("similar", "similar_applied"):
+        # 2026-09-28 RAG: her verdicts on the postings most like this one (src/core/decision_memory.py,
+        # ported from EspaLuz). Any failure returns "" and the recent examples stay.
+        # "similar_applied" retrieves only jobs she APPLIED to — her rejections already reach the
+        # judge through the lessons, with her reasons.
+        try:
+            from .decision_memory import similar_block
+            labels = ("APPLIED",) if mode == "similar_applied" else ("APPLIED", "REJECTED")
+            feedback = _with_similar(feedback, similar_block(title, company, shown_location, desc,
+                                                              exclude_url=url, labels=labels))
+        except Exception:
+            pass
     prompt = _PROMPT.format(
-        feedback=_feedback_block(),
+        feedback=feedback,
         title=(title or "")[:160], company=(company or "")[:80],
         location=shown_location[:80], desc=(desc or "")[:1500])
     text, errors = _call_llm(prompt)

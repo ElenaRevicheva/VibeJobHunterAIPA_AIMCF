@@ -128,7 +128,9 @@ def replay_judge(ledger: dict, n: int, since: str = "", show: bool = False) -> N
         out = []
         for e in sample:
             title, _, company = e["title"].rpartition(" @ ")
-            fit, why = llm_judge.judge_fit(title or e["title"], company, _location(e), _evidence(e))
+            # url= makes the RAG mode leave-one-out: a job never retrieves its own decision.
+            fit, why = llm_judge.judge_fit(title or e["title"], company, _location(e), _evidence(e),
+                                           url=e.get("url"))
             out.append((fit, why))
         return out
 

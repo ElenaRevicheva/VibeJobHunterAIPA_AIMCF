@@ -930,6 +930,16 @@ def main() -> int:
               f"have the posting ({ev['linked_now']} linked now) · {ev['no_evidence']} without")
     except Exception as ex:
         print(f"  evidence not linked ({str(ex)[:80]})")
+    # RAG memory: embed each decided posting once, so the judge can retrieve her verdicts on the
+    # postings most like a new one (src/core/decision_memory.py). Fail-safe like the step above.
+    try:
+        sys.path.insert(0, str(REPO))
+        from src.core.decision_memory import index_decisions
+        ix = index_decisions(ledger)
+        print(f"  memory: {ix['decided_with_posting']} decided postings · {ix['already']} embedded before · "
+              f"{ix['embedded_now']} embedded now · {ix['failed']} failed")
+    except Exception as ex:
+        print(f"  memory not indexed ({str(ex)[:80]})")
 
     positives, negatives = _pick_examples(ledger)
     lessons, rules = _build_lessons_and_rules(ledger)
