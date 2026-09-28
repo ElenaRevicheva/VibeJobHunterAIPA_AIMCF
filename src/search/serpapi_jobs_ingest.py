@@ -167,6 +167,11 @@ JOBS_QUERIES = [
     'chief AI officer remote startup',
     'AI solutions consultant remote',
     'head of AI remote startup',
+    # 2026-09-28 APPENDED — creative AI lane (src/core/target_lanes.py): 8 published AI films
+    # and a production pipeline were invisible to her own job search. Two paid shapes only;
+    # Remotive and Torre carry the rest for free.
+    'creative technologist generative AI remote',
+    'AI video producer remote',
 ]
 
 # ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its

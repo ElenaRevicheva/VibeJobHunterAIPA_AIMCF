@@ -648,7 +648,10 @@ class JobMonitor:
                    # the scoring prompt now approve these (src/core/target_lanes.py), so
                    # supply has to ask for them too.
                    "AI product manager", "chief AI officer", "head of AI", "AI consultant",
-                   "AI program manager", "AI transformation", "solutions consultant"]
+                   "AI program manager", "AI transformation", "solutions consultant",
+                   # 2026-09-28: creative AI lane (src/core/target_lanes.py) — never searched before.
+                   "creative technologist", "generative AI producer", "AI video producer",
+                   "AI filmmaker"]
         try:
             async with aiohttp.ClientSession() as session:
                 headers = {"User-Agent": "VibeJobHunter/1.0"}
@@ -1410,7 +1413,10 @@ class JobMonitor:
                            "chief ai officer", "ai program manager", "technical product manager ai",
                            "ai solutions consultant", "ai transformation", "ai implementation manager",
                            "ai adoption", "ai enablement", "director of ai", "vp of ai",
-                           "conversational ai designer", "gtm engineer", "ai evaluation"]:
+                           "conversational ai designer", "gtm engineer", "ai evaluation",
+                           # 2026-09-28: creative AI lane — Torre is her best-converting source.
+                           "creative technologist", "generative ai producer", "ai video producer",
+                           "ai filmmaker", "creative ai", "genai content"]:
                     payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
                     url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
                     try:

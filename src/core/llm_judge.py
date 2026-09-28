@@ -102,9 +102,13 @@ _PROMPT_TEMPLATE = """You are screening ONE job for Elena Revicheva. Decide whet
 WHO SHE IS
 - An AI-augmented operator, product lead and solutions architect. Seven years as Deputy CEO
   and Chief Legal Officer, running large regulated digital-transformation programs at board
-  level. For the last eighteen months she has designed, shipped and run twelve live AI
-  systems (agents, automation pipelines, CRM automation, a public AI-visibility API) as the
-  sole architect and operator.
+  level. Since May 2025 she has designed, shipped and run twelve live AI systems (agents,
+  automation pipelines, CRM automation, a public AI-visibility API) as the sole architect and
+  operator.
+- She is also a creative director of generative media: 8 published AI films made with her own
+  automated production pipeline (a bot that directs a dozen image and video models, edits,
+  mixes and publishes), and 99 published poems in Russian and English. Creative AI roles that
+  generate with models ARE her work.
 - She builds by directing AI coding tools (Claude Code, Cursor, GPT) and reviewing what they
   produce. Python, TypeScript, APIs, LLMs, RAG, agents, integrations and system design are
   POSITIVE signals: she ships production systems in them. She does NOT hand-write code

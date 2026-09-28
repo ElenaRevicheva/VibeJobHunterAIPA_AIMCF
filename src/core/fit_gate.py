@@ -65,7 +65,11 @@ _ON_LANE_TITLE = re.compile(
     r"conversation(al)? designer|"
     r"\bn8n\b|make\.com|zapier|workflow automation|prompt engineer|"
     r"\b(geo|aeo|seo)\b|technical seo|generative engine optimization|"
-    r"answer engine optimization|search everywhere optimization",
+    r"answer engine optimization|search everywhere optimization|"
+    # 2026-09-28: creative AI lane (src/core/target_lanes.py). Producer / filmmaker /
+    # technologist count ONLY next to "AI" — a plain "Video Producer" stays off-lane.
+    r"creative technologist|creative ai|"
+    r"\bai\b.*\b(producer|filmmaker|technologist)\b|\b(producer|filmmaker|technologist)\b.*\bai\b",
     re.IGNORECASE,
 )
 _OFF_LANE_TITLE = re.compile(
@@ -446,7 +450,10 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     # "Senior Manager, AI Engineering" (a management role) both contain "ai engineer".
     engineer_ok = (not hard_swe) and (
         any(k in title_l for k in ('automation engineer', 'solutions engineer',
-                                   'integration engineer', 'forward deployed', 'forward-deployed'))
+                                   'integration engineer', 'forward deployed', 'forward-deployed',
+                                   # 2026-09-28: creative AI lane — directing generative models
+                                   # is the craft, not a hand-coding seat.
+                                   'creative ai engineer', 'creative technologist'))
         or ('engineering' in title_l and any(k in title_l for k in (
             'manager', 'director', 'head of', 'vp ', 'vice president', 'chief'))))
 

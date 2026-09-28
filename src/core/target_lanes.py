@@ -204,6 +204,36 @@ LANES = (
             "AI Tutor, Business & Product",
         ),
     },
+    {
+        # 2026-09-28 (Elena: "Make step 2"). Her creative work was invisible to her own job search:
+        # not one creative word in any lane, so VJH never searched for it and the judge would have
+        # rejected it as marketing. Evidence she can show: 8 published AI films from an automated
+        # production pipeline (atuona.xyz/aifilmstudio), 99 published poems in two languages, a bot
+        # that drives a dozen image and video models with an LLM as director. In this field,
+        # operating the models IS the production method — nothing to apologise for.
+        # Added LAST so the letters the judge cites for the other lanes (3a..3h) do not shift.
+        "name": "CREATIVE AI & GENERATIVE MEDIA SYSTEMS",
+        "work": ("designing and running generative image, video and audio production end to end — "
+                 "concept and narrative, directing the models, and building the pipeline that takes "
+                 "an idea to a finished, published film or campaign. Hands-on generation with AI "
+                 "models is the craft here."),
+        "not": ("video editing, motion graphics, graphic design, photography or social-media content "
+                "work done without generative AI; paid-media buying; influencer or UGC gigs."),
+        "titles": (
+            "Creative Technologist, Generative AI",
+            "Creative Technologist (AI)",
+            "Generative AI Producer",
+            "AI Video Producer",
+            "AI Filmmaker",
+            "Creative AI Engineer",
+            "Generative AI Creative Lead",
+            "AI Creative Technology Lead",
+            "GenAI Production Lead",
+            "AI Content Production Lead",
+            "AI Innovation Producer",
+            "Head of Generative AI Content",
+        ),
+    },
 )
 
 
