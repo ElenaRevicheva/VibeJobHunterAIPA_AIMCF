@@ -445,8 +445,18 @@ def pay_veto_is_wrong(desc: str) -> bool:
     unstated pay is NOT a reason, so a pay veto with no number anywhere in the listing is enforced
     here. The full description is checked, not the 1,500 chars the judge saw, so pay stated further
     down is never overruled. The ingest's own code pay floor still applies independently.
+
+    The judge also wrote "6 Pay below her floor; the assessment disqualifies the use of AI tools" for
+    a listing that bans AI in the hiring test — right verdict, wrong label (disqualifier (v)). So a
+    listing with a STATED AI ban is never overruled here, whatever number the reason carries.
     """
-    return not _STATED_PAY.search(desc or "")
+    if _STATED_PAY.search(desc or ""):
+        return False
+    try:
+        from .fit_gate import no_ai_allowed
+        return not no_ai_allowed(desc or "")
+    except Exception:
+        return False                      # cannot check the ban → keep the veto
 
 
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:

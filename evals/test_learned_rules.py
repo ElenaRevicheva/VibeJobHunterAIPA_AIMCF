@@ -113,6 +113,9 @@ def test_pay_veto_without_stated_pay_is_overruled():
     for stated in ("Salary: $1,200 per month.", "USD 15/hour", "Compensation 18k a year",
                    "Pay: 900 USD monthly", "€2.000 per month", "$20/hr"):
         assert not pay_veto_is_wrong("Remote. " + stated), stated
+    # Seen on the live judge: "6 Pay below her floor; the assessment disqualifies the use of AI
+    # tools". Right verdict, wrong label — a stated AI ban is never overruled.
+    assert not pay_veto_is_wrong("Remote, LATAM. The take-home must be completed without the use of AI tools.")
 
 
 # ── the sync learns rules from her words, not from VJH's ─────────────────────
