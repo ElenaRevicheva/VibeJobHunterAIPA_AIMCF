@@ -346,7 +346,16 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'ai adoption', 'ai enablement', 'ai strategy', 'ai governance', 'ai consult',
         'chief ai', 'head of ai', 'vp of ai', 'director of ai', 'ai deployment',
         'ai evaluation', 'llm evaluat', 'ai trainer', 'ai tutor', 'red team',
-        'conversational ai', 'chatbot', 'agentops', 'gtm engineer')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
+        'conversational ai', 'chatbot', 'agentops', 'gtm engineer',
+        # 2026-09-28: creative AI lane. A real "AI Video Producer" posting says "generative
+        # video models" and "AI video tools" and matched NONE of the above — caught by a live
+        # probe on Oracle, not by the lane eval, whose neutral text carries "Claude, Cursor".
+        # Ambiguous tool names (runway, flux, sora, veo) are deliberately left out.
+        'creative technologist', 'creative ai', 'ai video', 'ai film', 'ai producer',
+        'ai creative', 'genai production', 'generative video', 'generative image',
+        'generative media', 'text-to-video', 'text-to-image', 'image generation',
+        'video generation', 'ai-generated', 'ai generated', 'midjourney',
+        'stable diffusion', 'comfyui', 'kling')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
 
     # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
     # don't falsely trip the heavy-coding exclusion — those are a GOOD sign.

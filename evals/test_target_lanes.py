@@ -98,6 +98,37 @@ def test_gate_still_rejects_off_lane(title):
     assert not JobGate.passes(job), title
 
 
+# NEUTRAL_DESC names Claude/Cursor/GPT, so it proves nothing about the AI-work check for a
+# lane whose postings name video models instead. A real creative posting, shaped like the
+# one that failed the live probe on 2026-09-28 ("AI Video Producer" parked by iron_clad_fit).
+CREATIVE_DESC = (
+    "Produce short-form films end to end with generative video models. Own concept, shot "
+    "generation, edit, sound and publishing. Experience orchestrating multiple AI video "
+    "tools required. Fully remote, open to candidates anywhere in Latin America."
+)
+
+
+CREATIVE_TITLES = [t for lane in target_lanes.LANES
+                   if lane["name"] == "CREATIVE AI & GENERATIVE MEDIA SYSTEMS"
+                   for t in lane["titles"]]
+
+
+def test_creative_lane_exists():
+    assert len(CREATIVE_TITLES) >= 10
+
+
+@pytest.mark.parametrize("title", CREATIVE_TITLES)
+def test_iron_clad_passes_creative_title_on_a_real_creative_posting(title):
+    assert iron_clad_fit(title, LOCATION, CREATIVE_DESC), f"iron_clad_fit drops: {title}"
+
+
+@pytest.mark.parametrize("title", ["Video Editor", "Video Producer", "Motion Graphics Artist",
+                                   "Social Media Content Creator"])
+def test_plain_media_roles_stay_off_lane(title):
+    # The creative lane is generative-AI production, not every media job.
+    assert not title_on_lane(title), title
+
+
 def test_iron_clad_still_rejects_us_only():
     assert not iron_clad_fit("AI Product Manager", "Remote — United States", NEUTRAL_DESC)
 
