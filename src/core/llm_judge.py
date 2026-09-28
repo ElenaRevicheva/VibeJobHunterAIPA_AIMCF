@@ -230,6 +230,13 @@ def _feedback_block() -> str:
             # reasons were included, and the reason is the part that must land.
             lines.append("She REJECTED these (not fit) — pay attention to WHY:")
             lines += ["  - " + t for t in neg]
+        if lessons.strip():
+            # Placed LAST, nearest the job. Replay 27 Sep: the lessons and the location-heavy
+            # examples were each harmless alone, but together they flipped Rove Concepts — a job
+            # she APPLIED to, silent on location — to a reject in 2/2 runs. With this line: 3/3
+            # approved, and a listing that STATES "Colombia only" is still rejected 2/2.
+            lines.append("REMINDER: a listing SILENT on location or eligibility is open to her "
+                         "(criterion 2). Only a restriction the listing STATES can reject.")
         return "\n".join(lines) + "\n\n"
     except Exception:
         return ""
