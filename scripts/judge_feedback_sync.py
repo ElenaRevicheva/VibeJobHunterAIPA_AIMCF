@@ -674,7 +674,11 @@ _LESSON_KINDS = (
                  "(a listing silent on location is NOT restricted)",
      r"\blocat|\bonly (?:in )?[a-z]+\b|born in|citizen|\busc\b|green card|\bw-?2\b|country|countries|"
      r"india|philippines|colombia|timezone|time zone|region"),
-    ("coding", "Hand-coding, a CS degree or senior software engineering required",
+    # 2026-09-28: the label is what the judge READS. "Hand-coding ... required" made it reject the
+    # AI Automation / Applied AI roles she applied to as "hands-on coding, not her expertise" —
+    # her words were "manual coding required" and "standard CS": coding with AI switched off.
+    ("coding", "Manual coding WITHOUT AI, a required CS degree, or a standard software-engineering "
+               "seat (coding THROUGH her AI environment is her work — never this lesson)",
      r"coding|coder|experienced engineering|backend|back-end|\bcs\b|computer science|degree|"
      r"standard cs|software engineer|python engineer|developer"),
     ("tool", "Centred on a tool or specialty she does not have",

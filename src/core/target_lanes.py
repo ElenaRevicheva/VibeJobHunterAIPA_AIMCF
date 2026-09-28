@@ -118,6 +118,7 @@ LANES = (
             "Conversational AI Designer",
             "Chatbot Designer",
             "AI Process Improvement Lead",
+            "AI Process Engineer",        # 2026-09-28: she applied (CivicPlus); the judge called it off-lane
             # 2026-09-20: same replacement intake, same rule — each traceable to a positive.
             "Business Operations Lead, AI",       # Business Ops & Growth Lead @ Niuro
             "AI Solutions Specialist",

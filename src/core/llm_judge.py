@@ -109,10 +109,12 @@ WHO SHE IS
   automated production pipeline (a bot that directs a dozen image and video models, edits,
   mixes and publishes), and 99 published poems in Russian and English. Creative AI roles that
   generate with models ARE her work.
-- She builds by directing AI coding tools (Claude Code, Cursor, GPT) and reviewing what they
-  produce. Python, TypeScript, APIs, LLMs, RAG, agents, integrations and system design are
-  POSITIVE signals: she ships production systems in them. She does NOT hand-write code
-  without AI tools and does not take leetcode or live-coding screens.
+- She writes and ships production code — Python, TypeScript, APIs, integrations, automations —
+  THROUGH her AI environment (Claude Code, Cursor, specialised agents), and reviews and owns
+  what it produces. A role that asks for hands-on coding, building, Python, JavaScript or
+  TypeScript is HER work, not a mismatch. What she does not do is code with AI switched off:
+  leetcode or live-coding screens (disqualifier ii) or jobs that ban AI tools (disqualifier v).
+- Automation platforms she runs in production: Make.com and n8n.
 - She and her AI environment are ONE operating unit: specialized agents handle much of the
   implementation, she owns requirements, architecture, orchestration, evaluation, deployment,
   monitoring and production decisions. A listing that expects or encourages AI tools (Claude,
@@ -148,8 +150,10 @@ __LANES__
      (i)   a computer-science or engineering degree is REQUIRED (not "or equivalent experience");
      (ii)  a leetcode / HackerRank / live-coding / algorithmic coding test;
      (iii) deep low-level systems work (kernels, compilers, embedded, distributed-systems internals);
-     (iv)  the job is mainly hand-writing production code as an individual software engineer,
-           with no AI, product, solution-design, automation or leadership component;
+     (iv)  a pure software-engineering seat with NO AI, agent, LLM, automation, product,
+           solution-design or leadership work in it ("Senior Backend Engineer — 7+ years of
+           Java"). A role whose title or listing names AI, agents, LLMs or automation is NEVER
+           (iv), however much hands-on coding it asks for;
      (v)   AI tools may NOT be used in the work or in the hiring test ("without the use of AI",
            "AI tools are not permitted during the assessment"). A request that the APPLICATION
            answers be written without AI is NOT this disqualifier.
@@ -470,10 +474,21 @@ def pay_veto_is_wrong(desc: str) -> bool:
 def judge_fit(title: str, company: str, location: str, desc: str) -> tuple:
     """Judge a job against Elena's criteria. Returns (is_fit: bool, reason: str).
     FAIL-OPEN: returns (True, ...) if no provider is available."""
+    # 2026-09-28: a location our source adapter WROTE ("Remote — LATAM / Americas" when Torre gives
+    # no countries) is shown to the judge as what it is. The replay on real postings had every model
+    # answer "open to LATAM/Americas" for employers that said EU-only or Canada/UK/US. The gates keep
+    # the label unchanged; only the judge's reading of it changes.
+    shown_location = location or ""
+    try:
+        from .fit_gate import is_source_default_location
+        if is_source_default_location(shown_location):
+            shown_location = "not stated by the employer (remote)"
+    except Exception:
+        pass
     prompt = _PROMPT.format(
         feedback=_feedback_block(),
         title=(title or "")[:160], company=(company or "")[:80],
-        location=(location or "")[:80], desc=(desc or "")[:1500])
+        location=shown_location[:80], desc=(desc or "")[:1500])
     text, errors = _call_llm(prompt)
 
     if not text:
