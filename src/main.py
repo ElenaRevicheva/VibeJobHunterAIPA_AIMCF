@@ -4,12 +4,18 @@ VibeJobHunter - Main Application
 AI-powered job hunting automation
 """
 import asyncio
+import logging
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from pathlib import Path
+
+# 2026-09-28: httpx logs every request at INFO, and the Telegram bot's getUpdates URL carries the
+# bot TOKEN — ~8,640 lines a day in the systemd journal: half of VJH's journal, and a secret written
+# to a log thousands of times a day. Warnings and errors still log.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 from .core import ProfileManager, get_settings, ApplicationStatus
 from .agents import JobMatcher, ContentGenerator, ApplicationManager
