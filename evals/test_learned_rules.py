@@ -100,6 +100,25 @@ def test_latam_open_listing_overrules_a_location_veto():
     assert not latam_veto_is_wrong("AI Automation Lead", "LATAM (Brazil, Mexico)", "")
     assert not latam_veto_is_wrong("AI Automation Lead", "Remote", "")                  # nothing says LATAM
     assert not latam_veto_is_wrong("AI Lead", "Remote - LATAM", "Candidates must reside in Brazil or Argentina.")
+    # Replay on REAL postings, 28 Sep: the overrule released these three correct vetoes.
+    assert not latam_veto_is_wrong("AI Solutions Architect", "Remote",
+                                   "Americas team. Candidates may live or work in the U.S. only (USC or GC).")
+    assert not latam_veto_is_wrong("AI/GenAI Engineer", "Remote - Americas",
+                                   "Remote (specific timezone, GMT-08:00 to GMT-06:00).")
+    assert not latam_veto_is_wrong("AI Architect", "Remote LATAM", "Hours: UTC-3 to UTC+1 only for the EMEA desk.")
+    # ...and a range that DOES include Panama still overrules.
+    assert latam_veto_is_wrong("AI Automation Lead", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
+
+
+def test_location_excludes_her_reads_what_the_posting_states():
+    from src.core.fit_gate import location_excludes_her
+    assert location_excludes_her("x", "Remote", "Candidates may work in the U.S. only.")
+    assert location_excludes_her("x", "Remote", "Remote (GMT-08:00 to GMT-06:00)")
+    assert location_excludes_her("x", "Brazil", "")
+    assert location_excludes_her("x", "LATAM (Brazil, Mexico)", "")
+    assert not location_excludes_her("x", "Remote - Worldwide", "")
+    assert not location_excludes_her("x", "Remote", "")                                  # silence ≠ exclusion
+    assert not location_excludes_her("x", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
 
 
 def test_pay_veto_without_stated_pay_is_overruled():

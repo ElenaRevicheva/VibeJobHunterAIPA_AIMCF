@@ -91,7 +91,7 @@ def replay_rules(ledger: dict, rules: dict) -> None:
         print(f"        ✖ {w}")
 
 
-def replay_judge(ledger: dict, n: int, since: str = "") -> None:
+def replay_judge(ledger: dict, n: int, since: str = "", show: bool = False) -> None:
     from src.core import llm_judge
     data = json.loads(FEEDBACK.read_text(encoding="utf-8"))
     quoted = {t.split(" — ")[0].lower() for t in data.get("negatives", []) + data.get("positives", [])}
@@ -139,6 +139,15 @@ def replay_judge(ledger: dict, n: int, since: str = "") -> None:
             print(f"JUDGE {name:6} rejections it also rejects {sum(1 for f, _ in vn if not f)}/{len(vn)} · "
                   f"applications it approves {sum(1 for f, _ in vp if f)}/{len(vp)}"
                   + (f" · unavailable {unav}" if unav else ""))
+            if show and name == "after":
+                # Every disagreement, her side next to the judge's — the input for fixing the judge.
+                for e, (f, w) in zip(poss, vp):
+                    if not f:
+                        print(f"  ✖ she APPLIED, judge rejected: {e['title'][:70]}\n      judge: {w[:150]}")
+                for e, (f, w) in zip(negs, vn):
+                    if f:
+                        print(f"  ✖ she REJECTED, judge approved: {e['title'][:70]}\n"
+                              f"      her reason: {(e.get('why') or '')[:150]}\n      judge: {w[:120]}")
     finally:
         llm_judge._feedback_block = new_block
 
@@ -147,6 +156,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--judge", type=int, default=0, help="also replay the judge on N + N decisions")
     ap.add_argument("--since", default="", help="judge only decisions first made on/after YYYY-MM-DD")
+    ap.add_argument("--show", action="store_true", help="print every disagreement with her decision")
     a = ap.parse_args()
     try:
         ledger = json.loads(LEDGER.read_text(encoding="utf-8"))["deals"]
@@ -157,7 +167,7 @@ def main() -> int:
     print(f"ledger {len(ledger)} decisions · learned rules {sorted(rules)}")
     replay_rules(ledger, rules)
     if a.judge:
-        replay_judge(ledger, a.judge, a.since)
+        replay_judge(ledger, a.judge, a.since, a.show)
     return 0
 
 

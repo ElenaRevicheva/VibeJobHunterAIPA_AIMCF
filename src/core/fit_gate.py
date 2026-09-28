@@ -280,6 +280,40 @@ _SEO_AEO_PATTERNS = tuple(re.compile(p) for p in (
 ))
 
 
+# Moved out of iron_clad_fit unchanged (2026-09-28) so the judge's location overrule can use the
+# SAME reading instead of a weaker copy of it.
+_US_ONLY_PHRASES = (
+    'us only', 'u.s. only', 'united states only', 'us-based only', 'usa only',
+    'must be based in the us', 'must be located in the united states',
+    'authorized to work in the us', 'eligible to work in the us',
+    'us-remote', 'us remote', 'remote - united states', 'remote, united states',
+    'remote (us', 'remote, us')
+
+
+def _tz_range_excludes_panama(text: str) -> bool:
+    """True if the text STATES a GMT/UTC offset range and no stated range includes UTC-5."""
+    ranges = [m for m in _TZ_RANGE_PATTERN.finditer(text or "")]
+    return bool(ranges) and not _tz_range_covers_panama(text)
+
+
+def location_excludes_her(title: str, location: str, desc: str) -> bool:
+    """True when the posting STATES a location she cannot hold, read the way iron_clad_fit reads it:
+    a residency roster, a US-only phrase, a time-zone range without UTC-5, or a single-country lock
+    in the location field. Silence is never exclusion.
+
+    Added 2026-09-28 after the replay on REAL postings showed the judge's LATAM overrule releasing
+    correct vetoes: "U.S. only" (Tech9), "Brazil and Portugal" (Plain Concepts) and "GMT-08:00 to
+    GMT-06:00" (Xadel) — the overrule saw the word LATAM and never asked what the posting stated."""
+    loc = (location or '').lower()
+    blob = f"{(title or '').lower()} {loc} {(desc or '').lower()}"
+    if roster_excludes_home(location or '') or roster_excludes_home(title or '') \
+            or residency_excludes_home((desc or '').lower()):
+        return True
+    if any(k in blob for k in _US_ONLY_PHRASES) or _tz_range_excludes_panama(blob):
+        return True
+    return any(t in loc for t in COUNTRY_LOCK) and not any(t in loc for t in LATAM_OK)
+
+
 # ── ELENA'S QUALIFICATION TEST (added 2026-09-28) ─────────────────────────────
 # "Could I perform this job exceptionally well with AIPA / Claude / Cursor as my operating
 # environment? If the employer's answer is 'no, we need to know you could do all of this
@@ -359,12 +393,7 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
             or _tz_range_covers_panama(blob)
         )
 
-    us_only = any(k in blob for k in (
-        'us only', 'u.s. only', 'united states only', 'us-based only', 'usa only',
-        'must be based in the us', 'must be located in the united states',
-        'authorized to work in the us', 'eligible to work in the us',
-        'us-remote', 'us remote', 'remote - united states', 'remote, united states',
-        'remote (us', 'remote, us'))
+    us_only = any(k in blob for k in _US_ONLY_PHRASES)
 
     ai_aug = any(k in blob for k in (
         'no-code', 'no code', 'low-code', 'low code', 'prompt', 'ai-augment', 'ai augment',

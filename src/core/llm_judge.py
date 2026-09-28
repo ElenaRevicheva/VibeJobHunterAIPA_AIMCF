@@ -420,9 +420,11 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
     if not _OPEN_TO_HER.search(blob) or _COUNTRY_ONLY.search(blob):
         return False
     try:
-        from .fit_gate import roster_excludes_home, residency_excludes_home
-        if roster_excludes_home(location or "") or roster_excludes_home(title or "") \
-                or residency_excludes_home(desc or ""):
+        # 2026-09-28: ask the gate what the posting STATES (rosters, US-only, a time-zone range
+        # without UTC-5, a country lock) — the replay on real postings caught this overrule
+        # releasing three correct location vetoes. The old roster check is a subset of this one.
+        from .fit_gate import location_excludes_her
+        if location_excludes_her(title, location, desc):
             return False
     except Exception:
         return False
