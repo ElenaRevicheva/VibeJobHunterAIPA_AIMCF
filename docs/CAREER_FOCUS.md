@@ -117,6 +117,16 @@ First run cleared **36 of 53**: 22 off-lane (ML-engineer / researcher / SDE titl
 
 **First cycle after this shipped:** `human_pending` went from **0 → 6** (the per-cycle surface cap), all in lane (c), two with pay stated at ~$5,000 and ~$3,360/mo.
 
+**28 Sep 2026 — it runs DAILY now, and it can never teach the judge.** Cron `55 12 * * *` (07:55 Panama,
+20 min before the apply queue): `--apply --dead-only` — closed postings only; the gate verdicts stay hers.
+Evidence, not age: the page text, the Ashby board API (job no longer listed) or the Greenhouse job API (404).
+Every move sets **Closed Lost Reason = `AUTO-SWEEP <date>: …`**, and `judge_feedback_sync.py` keeps those deals
+OUT of her ledger — same principle as the June bulk move and the 1 Aug sweep ("a clean-up is not her choice"):
+a closed posting must not mute its company, take a "she rejected" example slot, or lower weekly precision.
+A deal she moves back is never swept again. First run: 17 moved (8 closed + 7 ineligible + 2 checked by hand);
+ledger before/after identical (557 decisions, 370 rejections, 35 with her reason), rules and examples unchanged.
+Queue: 19 → 2 open jobs. Undo files: `autonomous_data/sweep_undo_*.json`.
+
 ---
 
 ## 🆕 Interview proof — Bright Data hackathon (added May 26 2026)
