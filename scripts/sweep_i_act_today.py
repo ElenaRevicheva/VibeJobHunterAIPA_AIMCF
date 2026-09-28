@@ -152,6 +152,14 @@ def note_url(deal_id):
     return ""
 
 
+def public_get(url):
+    """GET a PUBLIC job-board API. Never api(): that helper attaches the HubSpot key, and on 28 Sep
+    the first version of board_says_closed() sent it to Ashby and Greenhouse that way."""
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (VibeJobHunter sweep)",
+                                               "Accept": "application/json"})
+    return json.loads(urllib.request.urlopen(req, timeout=30).read())
+
+
 def board_says_closed(url):
     """Ashby and Greenhouse render job pages in the browser, so the page text proves nothing
     server-side. Their PUBLIC job APIs do: verified 28 Sep on jobs checked by hand in Chrome
@@ -160,7 +168,7 @@ def board_says_closed(url):
     try:
         m = re.match(r"https?://jobs\.ashbyhq\.com/([^/?#]+)/([0-9a-f-]{36})", url, re.I)
         if m:
-            board = api("GET", f"https://api.ashbyhq.com/posting-api/job-board/{m.group(1)}")
+            board = public_get(f"https://api.ashbyhq.com/posting-api/job-board/{m.group(1)}")
             ids = {j.get("id") for j in board.get("jobs", [])}
             if ids and m.group(2) not in ids:
                 return "Ashby board no longer lists this job"
@@ -168,7 +176,7 @@ def board_says_closed(url):
         m = re.match(r"https?://(?:job-)?boards\.greenhouse\.io/([^/?#]+)/jobs/(\d+)", url, re.I)
         if m:
             try:
-                api("GET", f"https://boards-api.greenhouse.io/v1/boards/{m.group(1)}/jobs/{m.group(2)}")
+                public_get(f"https://boards-api.greenhouse.io/v1/boards/{m.group(1)}/jobs/{m.group(2)}")
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     return "Greenhouse job API returns 404"
@@ -221,6 +229,8 @@ for d in deals:
                         verdict = f"UNDERPAID (~${amt:,.0f}/mo)"
                 except Exception:
                     pass
+    if "--verbose" in sys.argv:
+        print(f"  · {name[:50]:<50} url={url[:90] or '(none)'} → {verdict or 'keep'}")
     row = (d["id"], name, verdict, d["properties"]["createdate"][:10])
     if verdict and DEAD_ONLY and not verdict.startswith("DEAD"):
         gate_only.append(row)       # the daily run removes closed postings only; the gate is hers to apply

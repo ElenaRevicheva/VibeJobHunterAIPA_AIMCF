@@ -12,6 +12,17 @@ def test_torre_banners_both_wordings():
     assert looks_closed("This job opening is closed. SET AN ALERT")
 
 
+def test_sweep_never_sends_the_hubspot_key_to_a_job_board():
+    """28 Sep 2026: the first Ashby/Greenhouse check used api(), which attaches the HubSpot key —
+    it reached both public APIs during dry runs. Every api() call must target HubSpot itself."""
+    import re
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "sweep_i_act_today.py").read_text(encoding="utf-8")
+    targets = re.findall(r'\bapi\("(?:GET|POST|PATCH|PUT|DELETE)",\s*f?"([^"]+)"', src)
+    assert targets, "no api() calls found — the test is not reading the script"
+    assert all(t.startswith("https://api.hubapi.com/") for t in targets), targets
+
+
 def test_prose_is_not_closed():
     assert not looks_closed("We build closed-loop systems and post updates on our blog.")
     assert not looks_closed("<p>Remote (anywhere). Apply now.</p>")
