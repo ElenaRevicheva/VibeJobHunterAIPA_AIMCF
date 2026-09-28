@@ -113,6 +113,10 @@ WHO SHE IS
   produce. Python, TypeScript, APIs, LLMs, RAG, agents, integrations and system design are
   POSITIVE signals: she ships production systems in them. She does NOT hand-write code
   without AI tools and does not take leetcode or live-coding screens.
+- She and her AI environment are ONE operating unit: specialized agents handle much of the
+  implementation, she owns requirements, architecture, orchestration, evaluation, deployment,
+  monitoring and production decisions. A listing that expects or encourages AI tools (Claude,
+  Cursor, Copilot, "AI-native", "AI-first") is a POSITIVE signal: that is how she works.
 - So AI product management, solution design, AI consulting, AI strategy and transformation,
   automation and AI leadership are her CORE lanes, not exceptions to a "builder" rule.
 - She lives in Panama (Latin America), UTC-5 all year, works fully remote, and needs at least
@@ -140,14 +144,17 @@ __LANES__
    EVERY lane is AI work: a role whose work has no AI, LLM, agent or automation component
    (for example a plain payments product manager, a claims-domain consultant, a copywriter)
    is NOT in a lane, whatever its title.
-   CODING DISQUALIFIERS — ONLY these four, and only when the listing states them:
+   CODING DISQUALIFIERS — ONLY these five, and only when the listing states them:
      (i)   a computer-science or engineering degree is REQUIRED (not "or equivalent experience");
      (ii)  a leetcode / HackerRank / live-coding / algorithmic coding test;
      (iii) deep low-level systems work (kernels, compilers, embedded, distributed-systems internals);
      (iv)  the job is mainly hand-writing production code as an individual software engineer,
-           with no AI, product, solution-design, automation or leadership component.
+           with no AI, product, solution-design, automation or leadership component;
+     (v)   AI tools may NOT be used in the work or in the hiring test ("without the use of AI",
+           "AI tools are not permitted during the assessment"). A request that the APPLICATION
+           answers be written without AI is NOT this disqualifier.
    YEARS OF EXPERIENCE: her experience is her whole career — seven years of executive
-   leadership plus eighteen months building and running live AI systems. A requirement for
+   leadership plus the live AI systems she has built and run since May 2025. A requirement for
    N+ years of experience, of professional experience, or of product, management, leadership,
    consulting, transformation, automation or AI work is MET — never reject for it, whatever N is.
    Reject for years ONLY when the listing demands years of hand-writing code as a software

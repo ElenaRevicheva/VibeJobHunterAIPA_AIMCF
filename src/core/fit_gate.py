@@ -280,6 +280,42 @@ _SEO_AEO_PATTERNS = tuple(re.compile(p) for p in (
 ))
 
 
+# ── ELENA'S QUALIFICATION TEST (added 2026-09-28) ─────────────────────────────
+# "Could I perform this job exceptionally well with AIPA / Claude / Cursor as my operating
+# environment? If the employer's answer is 'no, we need to know you could do all of this
+# yourself without AI' → reject immediately."  Elena + her AI environment are one operating
+# unit; a job that bans the environment bans the unit.
+#
+# Only a STATED ban counts, on the WORK or on the HIRING TEST. A request that the application
+# answers be written without AI is about the form, not the job, and is not a veto here.
+_AI = r"\b(ai|chatgpt|copilot|claude|gemini|llms?|generative ai)\b"
+_AI_LIST = rf"{_AI}(\s*(,|/|\bor\b|\band\b)\s*{_AI})*"      # "ChatGPT or Copilot", "AI/LLM"
+_NO_AI_PATTERNS = tuple(re.compile(p, re.I) for p in (
+    rf"{_AI_LIST}(\s+coding)?\s+(tools?|assistants?|assistance|use|usage)"
+    r"\s+(is|are)\s+(not\s+(allowed|permitted)|(strictly\s+)?(prohibited|forbidden|banned))",
+    rf"\b(use|using)\s+(of\s+)?{_AI_LIST}(\s+(coding\s+)?tools?)?"
+    r"\s+(is\s+|are\s+)?(not\s+(allowed|permitted)|(strictly\s+)?(prohibited|forbidden|banned))",
+    rf"\bwithout\s+(the\s+)?(use|help|aid|assistance)\s+of\s+{_AI_LIST}",
+    rf"\bwithout\s+(any\s+)?{_AI_LIST}(\s+coding)?\s+(tools?|assistance|assistants?|help)\b",
+    rf"\bno\s+{_AI_LIST}(\s+coding)?\s+(tools?|assistance|assistants?)\s+(are\s+|is\s+)?(allowed|permitted)\b",
+))
+_APPLICATION_ONLY = re.compile(r"\b(application|cover letter|essay|responses?|answers?)\b", re.I)
+_ABOUT_THE_JOB = re.compile(
+    r"\b(assessment|test|interview|exercise|challenge|take-home|task|work|job|role|day-to-day|"
+    r"production|coding|code|deliverables?)\b", re.I)
+
+
+def no_ai_allowed(text: str) -> bool:
+    """True when the listing STATES that AI may not be used in the work or in the hiring test."""
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text or ""):
+        if not any(p.search(sentence) for p in _NO_AI_PATTERNS):
+            continue
+        if _APPLICATION_ONLY.search(sentence) and not _ABOUT_THE_JOB.search(sentence):
+            continue          # "write your application answers without AI" — the form, not the job
+        return True
+    return False
+
+
 def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     title_l, loc, desc_l = (title or '').lower(), (location or '').lower(), (desc or '').lower()
     blob = f"{title_l} {loc} {desc_l}"
@@ -355,7 +391,9 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'ai creative', 'genai production', 'generative video', 'generative image',
         'generative media', 'text-to-video', 'text-to-image', 'image generation',
         'video generation', 'ai-generated', 'ai generated', 'midjourney',
-        'stable diffusion', 'comfyui', 'kling')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
+        'stable diffusion', 'comfyui', 'kling',
+        # 2026-09-28: an employer that works AI-native is working the way she does.
+        'ai-native', 'ai native', 'ai-first')) or any(p.search(blob) for p in _SEO_AEO_PATTERNS)
 
     # Strip NEGATED mentions first, so "no CS degree required" / "no leetcode"
     # don't falsely trip the heavy-coding exclusion — those are a GOOD sign.
@@ -471,4 +509,5 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'llm engineer')))
 
     return (remote and latam and ai_aug
-            and not us_only and not heavy and not wrong_automation and not swe_titled)
+            and not us_only and not heavy and not wrong_automation and not swe_titled
+            and not no_ai_allowed(desc))
