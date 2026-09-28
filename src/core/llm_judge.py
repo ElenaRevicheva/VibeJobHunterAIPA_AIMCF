@@ -120,6 +120,9 @@ APPROVE the job ONLY IF ALL of these are true:
 
 2. SHE CAN HOLD IT FROM PANAMA — open to Panama, Latin America, the Americas or worldwide, or no
    country restriction is stated.
+   - PANAMA IS IN LATIN AMERICA AND CENTRAL AMERICA. A role open to "LATAM", "Latin America",
+     "Central America" or "the Americas" INCLUDES her — never reject it for location. (Seen
+     28 Sep 2026: "Senior Solutions Engineer - LATAM" rejected as "LATAM may exclude Panama".)
    - US Eastern or Central working hours (ET, CT, EST, CST, EDT, CDT, UTC-5, UTC-6) are
      COMPATIBLE: Panama is UTC-5. Never reject for requiring US Eastern/Central overlap.
    - Reject only when the listing restricts WHERE SHE MAY LIVE (US-only, a residency list of
