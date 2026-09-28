@@ -38,13 +38,22 @@ Key:    HUBSPOT_API_KEY from env, VJH .env, or /home/ubuntu/cto-aipa/.env (in th
 import json
 import os
 import re
+import sqlite3
 import sys
+import time
+import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "autonomous_data" / "judge_feedback.json"
+# 2026-09-27: permanent memory. Every decision she has made, kept once, forever — the sync used
+# to read only the 400 most recently MODIFIED deals (8 days in late Sep: 18 of 370 rejections).
+LEDGER = REPO / "autonomous_data" / "judge_decisions.json"
+RULES_OUT = REPO / "autonomous_data" / "learned_rules.json"
+DB_PATH = REPO / "autonomous_data" / "vibejobhunter.db"
+LEDGER_VERSION = 1
 
 POSITIVE_STAGES = {"presentationscheduled", "contractsent", "closedwon"}
 NEGATIVE_STAGES = {"closedlost"}
@@ -88,7 +97,19 @@ _BOT_NOTE_TEMPLATE = re.compile(
     # 2026-09-16: VJH's CURRENT cover-letter note, which the line above never matched.
     # 10 of the judge's 12 "rejected" examples carried this bot text as "her reason",
     # so the judge was being taught by VJH's own prose. Strip it to the end of the note.
-    r"|cover\s+letter\s*[—–-]+\s*drafted against this posting.*",
+    r"|cover\s+letter\s*[—–-]+\s*drafted against this posting.*"
+    # 2026-09-27: the ingest now writes WHY it parked a job ("🚫 [LEARNED …] Parked, not shown
+    # in I Act TODAY … VJH learns from that too."). That is VJH's voice — if she moves such a
+    # deal to No fit without writing anything, reading it as her reason would make VJH teach
+    # itself. Same for the borderline stamp.
+    r"|🚫\s*\[.*?VJH learns from that too\."
+    # The Google-Jobs ingest (runs on Bright Data; "SerpAPI"/"SERP" is only its legacy name —
+    # SerpAPI was cancelled Aug 2026) still writes "VJH SerpAPI found this job" into the note,
+    # which neither pattern above matches — so every SERP-LEAD deal she rejected WITHOUT a
+    # note taught the judge "her reason: MANUAL APPLY REQUIRED — VJH SerpAPI found this job".
+    # Found by the eval. The literal words are matched because they are what the note says.
+    r"|manual apply required\s*[—–-]?\s*vjh serpapi found this job.*?(?:serpapi path\.?|$)"
+    r"|🟡\s*\[BORDERLINE\].*?Telegram alert sent\.",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -197,18 +218,23 @@ _VISION_MODEL = "gpt-4o-mini"
 # as a disqualifier. Pulling the requirements out and letting the judge weigh them
 # against her criteria is both more reliable and the correct division of labour.
 _VISION_PROMPT = (
-    "This screenshot shows a job posting. In ONE sentence (max 30 words), summarise "
-    "what the role demands of a candidate: experience, degree, stack or skills, "
-    "location, seniority. Summarise them as stated even if they are vague or "
-    "qualitative. Demands only — no commentary, no preamble. Answer exactly NONE "
-    "only if this is not a job posting at all (a chat window, an error page, a photo)."
+    "This screenshot shows a job posting. In ONE sentence (max 45 words) state, as written: "
+    "WHERE candidates may live or work (countries, regions, citizenship, eligibility, time "
+    "zone); whether the post says it is CLOSED or no longer accepting applications; any "
+    "stated PAY; and what the role DEMANDS (experience, degree, stack or skills, seniority). "
+    "Facts only — no commentary, no preamble. Answer exactly NONE only if this is not a job "
+    "posting at all (a chat window, an error page, a photo)."
 )
 # Bumped whenever _VISION_PROMPT changes, so cached answers from the old prompt are
 # discarded instead of silently outliving it.
 #   v2 -> v3: "answer NONE if no requirements" made the model bail on postings whose
 #   demands are qualitative ("deep experience in computer vision") — WWT and AlphaLife
 #   both came back empty. NONE is now about the IMAGE not being a posting at all.
-_VISION_PROMPT_VERSION = 3
+#   v3 -> v4 (2026-09-27): v3 asked only for DEMANDS, so the reason she actually rejected for
+#   was dropped: micro1's "Location: Remote (US, CA, UK, IE, AU, NZ)" came back as "no prior AI
+#   experience required", and Byldd's "This job post is closed." is not a demand at all.
+_VISION_PROMPT_VERSION = 4
+_SHOT_MAX = 240
 _scope_warned = []
 
 
@@ -299,40 +325,77 @@ def _file_bytes(key: str, file_id: str):
     return raw, "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
 
 
-def _read_screenshot(key: str, file_ids, cache: dict) -> str:
-    """What the attached screenshot says disqualifies her. '' when unavailable."""
-    import base64
-    ok = _read_env_file(REPO / ".env", "OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
-    for fid in file_ids[:2]:
-        if fid in cache:                       # already paid for — never re-read
-            if cache[fid]:
-                return cache[fid]
-            continue
-        if not ok:
-            return ""
-        raw, mime = _file_bytes(key, fid)
-        if not raw:
-            return ""
-        payload = json.dumps({
-            "model": _VISION_MODEL,
-            "max_tokens": 60,
-            "temperature": 0,
-            "messages": [{"role": "user", "content": [
-                {"type": "text", "text": _VISION_PROMPT},
-                {"type": "image_url", "image_url": {"url":
-                    f"data:{mime};base64," + base64.b64encode(raw).decode()}},
-            ]}],
-        }).encode()
+def _vision_openai(ok: str, mime: str, b64: str) -> str:
+    """One OpenAI vision read. Retries a 429 — 18 reads were lost to 'Too Many Requests'
+    before 27 Sep, and a failed read is never cached, so Byldd's screenshot was simply
+    never read."""
+    payload = json.dumps({
+        "model": _VISION_MODEL, "max_tokens": 110, "temperature": 0,
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": _VISION_PROMPT},
+            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+        ]}],
+    }).encode()
+    for attempt in range(3):
         try:
             req = urllib.request.Request(
                 "https://api.openai.com/v1/chat/completions", data=payload, method="POST",
                 headers={"Content-Type": "application/json", "Authorization": "Bearer " + ok})
             out = json.loads(urllib.request.urlopen(req, timeout=60).read())
-            txt = (out["choices"][0]["message"]["content"] or "").strip()
-        except Exception as e:
-            print(f"  screenshot {fid}: vision call failed ({str(e)[:90]})")
+            return (out["choices"][0]["message"]["content"] or "").strip()
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                time.sleep(8 * (attempt + 1))
+                continue
+            raise
+
+
+def _vision_gemini(gk: str, mime: str, b64: str) -> str:
+    """Fallback reader, so one provider's quota cannot blind the loop."""
+    model = os.environ.get("GEMINI_JUDGE_MODEL", "").strip() or "gemini-3.5-flash-lite"
+    payload = json.dumps({
+        "contents": [{"role": "user", "parts": [
+            {"text": _VISION_PROMPT}, {"inline_data": {"mime_type": mime, "data": b64}}]}],
+        "generationConfig": {"maxOutputTokens": 160, "temperature": 0},
+    }).encode()
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gk}",
+        data=payload, method="POST", headers={"Content-Type": "application/json"})
+    out = json.loads(urllib.request.urlopen(req, timeout=60).read())
+    parts = ((out.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [{}]
+    return (parts[0].get("text") or "").strip()
+
+
+def _read_screenshot(key: str, file_ids, cache: dict) -> str:
+    """What the attached screenshot says (location, closed, pay, demands). '' when unavailable."""
+    import base64
+    ok = _read_env_file(REPO / ".env", "OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+    gk = _read_env_file(REPO / ".env", "GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+    for fid in file_ids[:2]:
+        if fid in cache:                       # already paid for — never re-read
+            if cache[fid]:
+                return cache[fid]
+            continue
+        if not ok and not gk:
             return ""
-        txt = "" if txt.upper().startswith("NONE") else txt[:_REASON_MAX]
+        raw, mime = _file_bytes(key, fid)
+        if not raw:
+            continue                           # e.g. the CV PDF on the same note — try the next file
+        b64 = base64.b64encode(raw).decode()
+        txt, errs = "", []
+        for name, fn, k in (("openai", _vision_openai, ok), ("gemini", _vision_gemini, gk)):
+            if not k:
+                continue
+            try:
+                txt = fn(k, mime, b64)
+                if txt:
+                    break
+            except Exception as e:
+                errs.append(f"{name}: {str(e)[:70]}")
+        if not txt:
+            print(f"  screenshot {fid}: vision call failed ({'; '.join(errs)[:160]})")
+            return ""
+        txt = "" if txt.upper().startswith("NONE") else txt[:_SHOT_MAX]
         cache[fid] = txt
         if txt:
             return txt
@@ -430,12 +493,39 @@ def _hubspot_key() -> str:
     )
 
 
+# ── HubSpot I/O ───────────────────────────────────────────────────────────────
+DECIDED_STAGES = sorted(POSITIVE_STAGES | NEGATIVE_STAGES | {MANUAL_APPLY_STAGE})
+
+
+def _hs(key: str, path: str, body=None, timeout: int = 30):
+    """One HubSpot call with a 429 retry. A refused call must not read as 'no data'."""
+    data = json.dumps(body).encode() if body is not None else None
+    for attempt in range(5):
+        req = urllib.request.Request(
+            "https://api.hubapi.com" + path, data=data, method="POST" if body is not None else "GET",
+            headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+        try:
+            return json.loads(urllib.request.urlopen(req, timeout=timeout).read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 4:
+                time.sleep(2 * (attempt + 1))
+                continue
+            raise
+
+
 def _search_deals(key: str) -> list:
+    """EVERY decided HIRING deal — by stage, not by recency.
+
+    Until 2026-09-27 this read the 400 most recently MODIFIED deals and stopped. With ~150 new
+    deals a week plus note and attachment writes, that window reached back 8 days: 18 of her
+    370 rejections were visible, the rest silently forgotten.
+    """
     deals, after = [], None
     while True:
         body = {
             "filterGroups": [{"filters": [
                 {"propertyName": "dealname", "operator": "CONTAINS_TOKEN", "value": "HIRING"},
+                {"propertyName": "dealstage", "operator": "IN", "values": DECIDED_STAGES},
             ]}],
             "sorts": [{"propertyName": "hs_lastmodifieddate", "direction": "DESCENDING"}],
             "properties": ["dealname", "dealstage", "hs_lastmodifieddate"],
@@ -443,58 +533,358 @@ def _search_deals(key: str) -> list:
         }
         if after:
             body["after"] = after
-        req = urllib.request.Request(
-            "https://api.hubapi.com/crm/v3/objects/deals/search",
-            data=json.dumps(body).encode(),
-            headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
-            method="POST",
-        )
-        data = json.loads(urllib.request.urlopen(req, timeout=30).read().decode())
+        data = _hs(key, "/crm/v3/objects/deals/search", body)
         deals.extend(data.get("results", []))
         after = (data.get("paging") or {}).get("next", {}).get("after")
-        if not after or len(deals) >= 400:
+        if not after or len(deals) >= 9900:      # the search API's own ceiling is 10,000
             break
     return deals
 
 
-def _fetch_notes(key: str, deal_id: str) -> list:
-    """Notes on a deal as [{"body": str, "attachments": [file_id, ...]}, ...].
-
-    Returns [] on any failure — this loop must never break the sync just because
-    one deal's notes are unreachable."""
-    bodies = []
-    try:
-        req = urllib.request.Request(
-            f"https://api.hubapi.com/crm/v4/objects/deals/{deal_id}/associations/notes",
-            headers={"Authorization": "Bearer " + key},
-        )
-        assoc = json.loads(urllib.request.urlopen(req, timeout=20).read()).get("results", [])
-    except Exception:
-        return []
-    for a in assoc[:6]:
-        nid = a.get("toObjectId")
-        if not nid:
-            continue
+def _fetch_notes_batch(key: str, deal_ids: list) -> dict:
+    """{deal_id: [{"body", "attachments"}]} for many deals in a handful of calls."""
+    out = {d: [] for d in deal_ids}
+    note_of = {}
+    for i in range(0, len(deal_ids), 100):
+        chunk = deal_ids[i:i + 100]
         try:
-            nreq = urllib.request.Request(
-                f"https://api.hubapi.com/crm/v3/objects/notes/{nid}"
-                "?properties=hs_note_body,hs_attachment_ids",
-                headers={"Authorization": "Bearer " + key},
-            )
-            props = json.loads(urllib.request.urlopen(nreq, timeout=20).read()) \
-                .get("properties", {}) or {}
+            res = _hs(key, "/crm/v4/associations/deals/notes/batch/read",
+                      {"inputs": [{"id": d} for d in chunk]}).get("results", [])
+        except Exception as e:
+            print(f"  note associations unavailable for {len(chunk)} deals ({str(e)[:80]})")
+            continue
+        for r in res:
+            for t in (r.get("to") or [])[:8]:
+                note_of.setdefault(str(t.get("toObjectId")), []).append(str(r["from"]["id"]))
+    nids = list(note_of)
+    for i in range(0, len(nids), 100):
+        try:
+            res = _hs(key, "/crm/v3/objects/notes/batch/read", {
+                "properties": ["hs_note_body", "hs_attachment_ids"],
+                "inputs": [{"id": n} for n in nids[i:i + 100]]}).get("results", [])
+        except Exception as e:
+            print(f"  notes unavailable ({str(e)[:80]})")
+            continue
+        for n in res:
+            props = n.get("properties") or {}
             body = props.get("hs_note_body") or ""
             atts = [a.strip() for a in (props.get("hs_attachment_ids") or "").split(";") if a.strip()]
             if body or atts:
-                bodies.append({"body": body, "attachments": atts})
-        except Exception:
-            continue
-    return bodies
+                for d in note_of.get(str(n.get("id")), []):
+                    out[d].append({"body": body, "attachments": atts})
+    return out
+
+
+def _fetch_notes(key: str, deal_id: str) -> list:
+    """Single-deal form, kept for callers outside this script."""
+    return _fetch_notes_batch(key, [deal_id]).get(deal_id, [])
 
 
 def _clean_title(dealname: str) -> str:
     t = re.sub(r"^\[[A-Za-z0-9_-]+\]\s*", "", dealname or "")  # strip [PREFIX]
     return t.strip()[:90]
+
+
+def _prefix(dealname: str) -> str:
+    m = re.match(r"^\[([A-Za-z0-9_-]+)\]", dealname or "")
+    return m.group(1) if m else ""
+
+
+def _company(dealname: str) -> str:
+    t = _clean_title(dealname)
+    return t.rsplit(" @ ", 1)[1].strip()[:60] if " @ " in t else ""
+
+
+def _norm_company(name: str) -> str:
+    # Mirrors src/core/learned_rules.norm_company (this script must not import repo code).
+    return re.sub(r"[^a-z0-9]+", " ", (name or "").lower().replace("%20", " ")).strip()
+
+
+# ── the ledger: permanent memory of her decisions ─────────────────────────────
+def _load_ledger() -> dict:
+    try:
+        data = json.loads(LEDGER.read_text(encoding="utf-8"))
+        return data.get("deals", {}) if data.get("version") == LEDGER_VERSION else {}
+    except Exception:
+        return {}
+
+
+def _write_json(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)  # atomic — a reader never sees a half-written file
+
+
+def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
+    """Refresh the ledger, fetching notes ONLY for deals that are new or changed."""
+    now = datetime.now(timezone.utc).isoformat()
+    ledger, todo = {}, []
+    for d in deals:
+        p, did = d.get("properties", {}), str(d.get("id"))
+        stage, mod = p.get("dealstage", ""), p.get("hs_lastmodifieddate", "")
+        e = old.get(did)
+        if e and e.get("modified") == mod and e.get("stage") == stage:
+            ledger[did] = e
+            continue
+        if e and e.get("stage") == stage:
+            first = e.get("first_decided") or mod
+        else:
+            first = mod if not e else now     # first sight: HubSpot's date; a stage change: now
+        ledger[did] = {"title": _clean_title(p.get("dealname", "")), "company": _company(p.get("dealname", "")),
+                       "prefix": _prefix(p.get("dealname", "")), "stage": stage, "modified": mod,
+                       "first_decided": first, "why": "", "applied": None}
+        if stage in NEGATIVE_STAGES or stage == MANUAL_APPLY_STAGE:
+            todo.append(did)
+    notes = _fetch_notes_batch(key, todo) if todo else {}
+    shots_read = 0
+    for did in todo:
+        e, ns = ledger[did], notes.get(did, [])
+        if e["stage"] == MANUAL_APPLY_STAGE:
+            e["applied"] = _elena_said_applied(ns)
+            continue
+        why = _rejection_reason(ns, e["title"])
+        shots = [f for n in ns for f in n.get("attachments", [])]
+        if shots:
+            shot = _read_screenshot(key, shots, shot_cache)
+            if shot:
+                shots_read += 1
+                why = f"{why}; her screenshot shows: {shot}" if why else f"her screenshot shows: {shot}"
+        e["why"] = why
+    return ledger, len(todo), shots_read
+
+
+# ── from her reasons to lessons and rules ─────────────────────────────────────
+_LESSON_KINDS = (
+    ("location", "Location or eligibility she cannot meet from Panama",
+     r"\blocat|\bonly (?:in )?[a-z]+\b|born in|citizen|\busc\b|green card|\bw-?2\b|country|countries|"
+     r"india|philippines|colombia|timezone|time zone|region"),
+    ("coding", "Hand-coding, a CS degree or senior software engineering required",
+     r"coding|coder|experienced engineering|backend|back-end|\bcs\b|computer science|degree|"
+     r"standard cs|software engineer|python engineer|developer"),
+    ("tool", "Centred on a tool or specialty she does not have",
+     r"not an expert in|do not have|don't have|dont have|never used|no experience (?:with|in)"),
+    ("closed", "The posting was closed", r"no longer open|job post is closed|closed|expired|no longer available"),
+    ("unreliable", "Unreliable listing (a relay that leads to LinkedIn or another site)",
+     r"scam|suspicious|leads? (?:to )?linkedin|redirected|torre lead"),
+    ("pay", "Pay below her floor", r"salary|\bpay\b|too low|per hour|\$\d"),
+)
+_CLOSED_EVIDENCE = re.compile(r"no longer open|job post is closed|this job is closed|position is closed|"
+                              r"no longer accepting|job has expired|posting has expired|\bpost is closed\b", re.I)
+# "the post does NOT state it is closed" (micro1's screenshot) must never teach "closed".
+_NEGATED = re.compile(r"\b(?:not|never|no)\b[^.;]{0,25}$", re.I)
+
+
+def _says_closed(text: str) -> bool:
+    for m in _CLOSED_EVIDENCE.finditer(text or ""):
+        if not _NEGATED.search(text[max(0, m.start() - 30):m.start()]):
+            return True
+    return False
+_ELIG_EVIDENCE = {
+    "born_in": re.compile(r"\bborn in\b", re.I),
+    "citizenship": re.compile(r"\busc\b|u\.?s\.? citizen|green card|\bgc\b|citizens? only", re.I),
+    "w2_only": re.compile(r"\bw-?2\b", re.I),
+}
+# "(US, CA, UK)" or "in the US, CA, UK, IE" — two-letter COUNTRY codes only ("(AI, ML)" is not a roster).
+_CC_EVIDENCE = r"(?:US|CA|UK|GB|IE|AU|NZ|DE|FR|ES|PT|NL|PL|IN|PH|BR|MX|AR|CO|IL|SG)"
+_CODE_LIST_EVIDENCE = re.compile(r"\b" + _CC_EVIDENCE + r"(?:\s*[,/]\s*" + _CC_EVIDENCE + r"){1,}\b")
+_TOOL_STATEMENT = re.compile(
+    r"(?:not an expert in|do not have|don't have|dont have|never used|no experience (?:with|in))\s+"
+    r"([a-z0-9.+\- ]{2,40}?)(?=\s+plus\b|[,;:]|\.\s|\.$|$)", re.I)
+_TOOL_STOP = {"this", "it", "that", "these", "them", "experience", "the", "a", "an", "such", "any"}
+_OUT_OF_FIELD = re.compile(r"not an expert in this|not my field|not my area|not relevant to me", re.I)
+PROTECTED_COMPANIES = {
+    "", "name", "company", "confidential", "stealth", "unknown", "linkedin", "torre", "torre ai",
+    "micro1", "micro1is", "micro1 io", "toptal", "turing", "mercor", "remotive", "upwork", "getonbrd",
+    "get on board", "indeed", "wellfound", "dice", "remoteok", "weworkremotely", "himalayas",
+}
+MIN_COMPANY_REJECTIONS = 3
+# Only her RECENT triage counts toward muting a company: 255 of the 370 rejections are a June bulk
+# move with no reasons (possibly a clean-up, not her choice), and "Hiring manager @ — outreach"
+# junk deals would otherwise parse as a company called "outreach".
+COMPANY_WINDOW_DAYS = 90
+
+
+def _clean_quote(her: str) -> str:
+    """Her own sentence for the prompt — never a job posting she pasted after it."""
+    q = re.split(r"\s(?:About the Role|Required Qualifications|What we are looking for)|🚀|we.re hiring",
+                 her, maxsplit=1, flags=re.I)[0].strip(" -–—|:;,")
+    return q[:80] if len(re.findall(r"[A-Za-z]{2,}", q)) >= 3 else ""
+
+
+def _split_why(why: str) -> tuple:
+    """(her words, what her screenshot shows)."""
+    her, _, shot = (why or "").partition("her screenshot shows:")
+    her = re.sub(r"^(?:her reason|the posting says):\s*", "", her.strip().rstrip(";")).strip()
+    return her, shot.strip()
+
+
+def _lane_titles_text() -> str:
+    """Her declared target titles, read as TEXT (no repo import — system python3)."""
+    try:
+        return (REPO / "src" / "core" / "target_lanes.py").read_text(encoding="utf-8").lower()
+    except Exception:
+        return ""
+
+
+def _build_lessons_and_rules(ledger: dict) -> tuple:
+    negs = [e for e in ledger.values() if e["stage"] in NEGATIVE_STAGES]
+    pos_companies = {_norm_company(e["company"]) for e in ledger.values()
+                     if e["stage"] in POSITIVE_STAGES or e.get("applied")}
+    kinds = {k: {"label": lbl, "count": 0, "quotes": [], "taught_by": []} for k, lbl, _ in _LESSON_KINDS}
+    rules = {}
+    closed, elig, codes_taught, tools, out_field, comp = [], {}, [], {}, [], {}
+    lanes_text = _lane_titles_text()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=COMPANY_WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%S")
+    with_reason = 0
+    for e in sorted(negs, key=lambda x: x.get("modified", ""), reverse=True):
+        her, shot = _split_why(e.get("why", ""))
+        c = _norm_company(e["company"])
+        recent = e.get("first_decided", "") >= cutoff
+        if c and recent and not e["company"].startswith(("—", "-")) \
+                and not e["title"].lower().startswith("hiring manager"):
+            comp.setdefault(c, []).append(e["title"])
+        if not her and not shot:
+            continue
+        with_reason += 1
+        label = e["title"][:60]
+        for k, _lbl, rx in _LESSON_KINDS:
+            if re.search(rx, her, re.I):
+                kinds[k]["count"] += 1
+                kinds[k]["taught_by"].append(label)
+                q = _clean_quote(her)
+                if len(kinds[k]["quotes"]) < 2 and q:
+                    kinds[k]["quotes"].append(q)
+        if _says_closed(her) or _says_closed(shot):
+            closed.append(label)
+        for code, rx in _ELIG_EVIDENCE.items():
+            if rx.search(her) or rx.search(shot):
+                elig.setdefault(code, []).append(label)
+        if re.search(r"\blocat", her, re.I) and _CODE_LIST_EVIDENCE.search(shot):
+            codes_taught.append(label)
+        for m in _TOOL_STATEMENT.finditer(her):
+            for t in re.split(r"\s+and\s+|/|,", m.group(1).lower()):
+                t = t.strip(" .")
+                # A tool named in her OWN target titles (Zapier in "Automation Architect
+                # (n8n / Make / Zapier)") is never learned as one she does not use.
+                if t and t not in _TOOL_STOP and len(t) >= 3 and t not in lanes_text:
+                    tools.setdefault(t, []).append(label)
+        if _OUT_OF_FIELD.search(her):
+            out_field.append(e["title"].split(" @ ")[0])
+    if closed:
+        rules["closed_posting"] = {"enabled": True, "taught_by": closed}
+    if elig:
+        rules["eligibility"] = {"patterns": sorted(elig),
+                                "taught_by": [t for v in elig.values() for t in v]}
+    if codes_taught:
+        rules["country_code_list"] = {"enabled": True, "taught_by": codes_taught}
+    if tools:
+        rules["tools_not_hers"] = {"enabled": True, "tools": sorted(tools),
+                                   "taught_by": [t for v in tools.values() for t in v]}
+    bad_co = {c: len(v) for c, v in comp.items()
+              if len(v) >= MIN_COMPANY_REJECTIONS and c not in PROTECTED_COMPANIES and c not in pos_companies}
+    if bad_co:
+        rules["rejected_companies"] = {"enabled": True, "companies": sorted(bad_co), "counts": bad_co,
+                                       "taught_by": [f"{v[0][:50]} x{len(v)}" for c, v in comp.items() if c in bad_co]}
+    if out_field:
+        rules["out_of_field_titles"] = {"enabled": True, "titles": out_field, "taught_by": out_field}
+    lessons = {"total_rejections": len(negs), "with_reason": with_reason,
+               "kinds": {k: v for k, v in kinds.items() if v["count"]}}
+    return lessons, rules
+
+
+def _lessons_text(lessons: dict, rules: dict) -> str:
+    """The compact, prompt-ready summary of EVERYTHING she has taught — not 12 examples."""
+    lines = [f"From ALL {lessons['total_rejections']} of her rejections "
+             f"({lessons['with_reason']} with her stated reason):"]
+    for k in sorted(lessons["kinds"], key=lambda x: -lessons["kinds"][x]["count"]):
+        v = lessons["kinds"][k]
+        q = "; ".join('"' + s + '"' for s in v["quotes"])
+        lines.append(f"  - {v['label']} — {v['count']}x" + (f", e.g. {q}" if q else ""))
+    if rules.get("tools_not_hers"):
+        lines.append("  - Tools she does not use: " + ", ".join(rules["tools_not_hers"]["tools"]))
+    if rules.get("rejected_companies"):
+        lines.append("  - Companies she has repeatedly rejected: " + ", ".join(rules["rejected_companies"]["companies"]))
+    return "\n".join(lines)
+
+
+# ── the proof it is working: precision of what VJH put in front of her ────────
+def _weekly_metrics(ledger: dict) -> list:
+    weeks = {}
+    for e in ledger.values():
+        if not e.get("prefix", "").startswith("HIRING-VJH"):
+            continue                                   # only what VJH itself found
+        try:
+            d = datetime.fromisoformat(e["first_decided"].replace("Z", "+00:00")).date()
+        except Exception:
+            continue
+        wk = (d - timedelta(days=d.weekday())).isoformat()
+        w = weeks.setdefault(wk, {"week_start": wk, "applied": 0, "rejected": 0, "replied": 0})
+        if e["stage"] in NEGATIVE_STAGES:
+            w["rejected"] += 1
+        elif e.get("applied") or e["stage"] in ("presentationscheduled", "closedwon"):
+            w["applied"] += 1
+        elif e["stage"] == "contractsent":
+            w["replied"] += 1
+    out = sorted(weeks.values(), key=lambda w: w["week_start"])
+    for w in out:
+        n = w["applied"] + w["rejected"]
+        w["precision"] = round(w["applied"] / n, 3) if n else None
+    return out
+
+
+def _write_learning_metrics(weeks: list, rules: dict) -> None:
+    """The learning_metrics table existed since Dec 2025 and was written by no code (0 rows)."""
+    if not DB_PATH.exists():
+        return
+    try:
+        con = sqlite3.connect(str(DB_PATH))
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        for w in weeks[-8:]:
+            con.execute(
+                "INSERT OR REPLACE INTO learning_metrics (id, metric_date, week_start, applications_sent, "
+                "responses_received, interviews_scheduled, offers_received, response_rate, top_companies, "
+                "ai_insights, recommendations) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (f"week-{w['week_start']}", now, w["week_start"] + " 00:00:00", w["applied"], w["replied"],
+                 0, 0, w["precision"],
+                 json.dumps((rules.get("rejected_companies") or {}).get("companies", [])),
+                 f"precision {w['precision']} = applied {w['applied']} / (applied + rejected {w['rejected']})",
+                 json.dumps(sorted(rules))))
+        con.commit()
+        con.close()
+    except Exception as e:
+        print(f"  learning_metrics not written ({str(e)[:80]})")
+
+
+def _pick_examples(ledger: dict) -> tuple:
+    """The 12 + 12 most recent examples, as before — but a rejection WITH her reason is
+    preferred over one without (5 reason-less Jerry.ai deals used to take 5 of the 12 slots)."""
+    rows = sorted(ledger.values(), key=lambda e: e.get("modified", ""), reverse=True)
+    positives, negatives, seen = [], [], set()
+    for e in rows:                                   # her own applications first
+        if len(positives) >= MAX_EXAMPLES:
+            break
+        if e["stage"] == MANUAL_APPLY_STAGE and e.get("applied") and _is_usable_title(e["title"], positive=True) \
+                and e["title"].lower() not in seen:
+            positives.append(e["title"])
+            seen.add(e["title"].lower())
+    for e in rows:
+        if len(positives) >= MAX_EXAMPLES:
+            break
+        if e["stage"] in POSITIVE_STAGES and _is_usable_title(e["title"], positive=True) and e["title"].lower() not in seen:
+            positives.append(e["title"])
+            seen.add(e["title"].lower())
+    for want_reason in (True, False):
+        for e in rows:
+            if len(negatives) >= MAX_EXAMPLES:
+                break
+            if e["stage"] not in NEGATIVE_STAGES or bool(e.get("why")) != want_reason:
+                continue
+            if not _is_usable_title(e["title"]) or e["title"].lower() in seen:
+                continue
+            negatives.append(f"{e['title']} — {e['why']}" if e.get("why") else e["title"])
+            seen.add(e["title"].lower())
+    return positives, negatives
 
 
 def main() -> int:
@@ -504,81 +894,40 @@ def main() -> int:
         return 1
 
     deals = _search_deals(key)
-    positives, negatives, seen = [], [], set()
-    shot_cache, shots_read, with_reason = _load_shot_cache(), 0, 0
-
-    # PASS 1 — jobs Elena APPLIED TO herself. Strongest signal available, so it
-    # fills the positives list first and the weaker stages only top it up.
-    applied_checked = 0
-    for d in deals:
-        if len(positives) >= MAX_EXAMPLES:
-            break
-        p = d.get("properties", {})
-        if p.get("dealstage") != MANUAL_APPLY_STAGE:
-            continue
-        title = _clean_title(p.get("dealname", ""))
-        if not _is_usable_title(title, positive=True) or title.lower() in seen:
-            continue
-        applied_checked += 1
-        if _elena_said_applied(_fetch_notes(key, d.get("id", ""))):
-            positives.append(title)
-            seen.add(title.lower())
-    print(f"manual-apply stage: inspected {applied_checked}, "
-          f"confirmed applied-by-Elena {len(positives)}")
-
-    # PASS 2 — the outcome stages, as before.
-    for d in deals:  # already newest-first
-        p = d.get("properties", {})
-        name, stage = p.get("dealname", ""), p.get("dealstage", "")
-        title = _clean_title(name)
-        # _is_usable_title also covers the old NOISE check (see its definition).
-        # Positives are held to the stricter on-lane bar.
-        if not _is_usable_title(title, positive=(stage in POSITIVE_STAGES)) or title.lower() in seen:
-            continue
-        if stage in POSITIVE_STAGES and len(positives) < MAX_EXAMPLES:
-            positives.append(title)
-            seen.add(title.lower())
-        elif stage in NEGATIVE_STAGES and len(negatives) < MAX_EXAMPLES:
-            # A rejected TITLE teaches the judge almost nothing; her REASON teaches it
-            # the rule. Prefer what she typed; fall back to the screenshot she attached.
-            notes = _fetch_notes(key, d.get("id", ""))
-            why = _rejection_reason(notes, title)
-            # Her text is often a POINTER, not the reason — "Require experienced
-            # engineering - look at the image", "Not a fit. Look at requirements".
-            # The disqualifying detail lives in the screenshot she attached, so read
-            # it whenever one exists and keep BOTH: her verdict plus the evidence.
-            shots = [f for n in notes for f in n.get("attachments", [])]
-            if shots:
-                shot = _read_screenshot(key, shots, shot_cache)
-                if shot:
-                    shots_read += 1
-                    why = (f"{why}; her screenshot shows: {shot}" if why
-                           else f"her screenshot shows: {shot}")
-            if why:
-                with_reason += 1
-            negatives.append(f"{title} — {why}" if why else title)
-            seen.add(title.lower())
-        if len(positives) >= MAX_EXAMPLES and len(negatives) >= MAX_EXAMPLES:
-            break
-
-    _save_shot_cache(shot_cache)
-
-    if not positives and not negatives:
-        print(f"scanned {len(deals)} deals — no qualifying outcomes; existing file untouched")
+    if not deals:
+        print("no decided deals returned — existing files untouched")
         return 0
+    shot_cache = _load_shot_cache()
+    ledger, refreshed, shots_read = _update_ledger(key, deals, _load_ledger(), shot_cache)
+    _save_shot_cache(shot_cache)
+    _write_json(LEDGER, {"version": LEDGER_VERSION, "updated": datetime.now(timezone.utc).isoformat(),
+                         "deals": ledger})
 
-    payload = {
+    positives, negatives = _pick_examples(ledger)
+    lessons, rules = _build_lessons_and_rules(ledger)
+    weeks = _weekly_metrics(ledger)
+
+    _write_json(RULES_OUT, {"updated": datetime.now(timezone.utc).isoformat(),
+                            "source": "scripts/judge_feedback_sync.py — learned from her own rejections",
+                            "rules": rules})
+    _write_learning_metrics(weeks, rules)
+    _write_json(OUT, {
         "updated": datetime.now(timezone.utc).isoformat(),
-        "source": "judge_feedback_sync.py (weekly cron)",
+        "source": "judge_feedback_sync.py (hourly cron)",
         "positives": positives,
         "negatives": negatives,
-    }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    tmp = OUT.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(OUT)  # atomic — never leaves a half-written file
-    print(f"scanned {len(deals)} deals -> {len(positives)} positives, {len(negatives)} negatives "
-          f"({with_reason} carrying her reason, {shots_read} read from screenshots) -> {OUT}")
+        "lessons": lessons,
+        "lessons_text": _lessons_text(lessons, rules),
+        "metrics": weeks[-6:],
+    })
+
+    n_neg = sum(1 for e in ledger.values() if e["stage"] in NEGATIVE_STAGES)
+    print(f"ledger {len(ledger)} decided deals ({n_neg} rejections, {lessons['with_reason']} with her reason) · "
+          f"refreshed {refreshed} · screenshots read {shots_read} · rules {sorted(rules)} · "
+          f"examples {len(positives)}+/{len(negatives)}-")
+    if weeks:
+        print("precision by week (applied / applied+rejected, VJH-found only): " +
+              " · ".join(f"{w['week_start']} {w['precision']}" for w in weeks[-4:]))
     return 0
 
 

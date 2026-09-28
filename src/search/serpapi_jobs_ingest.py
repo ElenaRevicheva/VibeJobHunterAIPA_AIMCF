@@ -443,16 +443,45 @@ def ingest_once() -> None:
                 except Exception as _se:
                     log.debug(f'  salary gate unavailable ({_se}); pay not checked')
 
+            # ── HER LESSONS + THE JUDGE ON THIS DOOR TOO (added 2026-09-27) ──
+            # Until today a gate-PASS went straight to "I Act TODAY": the judge — the only
+            # component that reads Elena's rejections — was consulted here only to RESCUE a
+            # gate-NO (borderline, below), never to veto a gate-YES. This path created most
+            # of what she then rejected (Addi, Byldd, Avenga…). Now a gate-pass must also
+            # clear the rules she taught (src/core/learned_rules.py) and the judge.
+            # Both fail OPEN: no rules file / judge unavailable = today's behaviour exactly.
+            veto_note = ''
+            if fit:
+                try:
+                    from src.core.learned_rules import learned_veto
+                    _lv, _lwhy = learned_veto(title, company, f'{location}\n{desc_full}')
+                    if _lv:
+                        fit, veto_note = False, _lwhy
+                        log.info(f'  parked by {_lwhy}: {title} @ {company}')
+                except Exception as _le:
+                    log.debug(f'  learned rules unavailable ({_le})')
+            if fit:
+                try:
+                    from src.core.llm_judge import judge_fit
+                    _jok, _jwhy = judge_fit(title, company, location, desc_full)
+                    if not _jok and not str(_jwhy).startswith('JUDGE UNAVAILABLE'):
+                        fit, veto_note = False, f'JUDGE VETO: {_jwhy}'
+                        log.info(f'  parked by judge VETO ({_jwhy}): {title} @ {company}')
+                except Exception as _je:
+                    log.debug(f'  judge unavailable ({_je}); gate decision stands')
+
             hiring_stage = 'applied' if fit else 'lead_parked'
             if fit:
-                log.info(f'  IRON-CLAD FIT -> I Act TODAY: {title} @ {company}')
-            elif not fit:
+                log.info(f'  IRON-CLAD FIT + judge OK -> I Act TODAY: {title} @ {company}')
+            elif not fit and not veto_note:
                 log.info(f'  parked (not iron-clad fit or below pay floor): {title} @ {company}')
 
             # ── Additive: a parked job the JUDGE would take is announced, not buried.
             # Reads `fit`; never reassigns it. See _borderline_check above for why.
+            # Not for a job her lessons or the judge just vetoed — asking again would only
+            # produce the contradiction the borderline alert exists to report.
             borderline, borderline_why = (False, '')
-            if not fit:
+            if not fit and not veto_note:
                 borderline, borderline_why = _borderline_check(title, company, location, desc_full)
                 if borderline:
                     log.info(f'  BORDERLINE (gate NO / judge YES) -> alerting: {title} @ {company}')
@@ -471,7 +500,11 @@ def ingest_once() -> None:
                 # deal is findable by searching "BORDERLINE". Non-borderline jobs
                 # get the exact same string as before.
                 'notes': (
-                    (f'\U0001f7e1 [BORDERLINE] iron-clad gate said NOT a fit '
+                    # A vetoed job says WHICH lesson or judge reason parked it, so Elena can
+                    # see — and correct, by moving the deal — every decision made for her.
+                    (f'\U0001f6ab [{veto_note[:280]}]\nParked, not shown in I Act TODAY. '
+                     f'If this is wrong, move the deal: VJH learns from that too.\n\n' if veto_note else '')
+                    + (f'\U0001f7e1 [BORDERLINE] iron-clad gate said NOT a fit '
                      f'(location roster / eligibility) but the AI judge said FIT: '
                      f'{borderline_why[:300]}\nParked deliberately \u2014 Elena decides. '
                      f'Telegram alert sent.\n\n' if borderline else '')

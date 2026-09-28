@@ -322,6 +322,20 @@ async def submit_node(state: JobState) -> dict:
         # confident answer from no evidence. gate_node already confirmed the title
         # is on-lane; notify_node labels it clearly so it can't be mistaken for a
         # vetted match.
+        # HER LESSONS FIRST (2026-09-27): rules learned from Elena's own rejections
+        # (src/core/learned_rules.py) run before the judge on BOTH branches below. Company,
+        # tool and title rules need no posting body, so they work on unverified jobs too.
+        # Fail-open: no rules file = no veto = behaviour unchanged.
+        try:
+            from src.core.learned_rules import learned_veto
+            _lv, _lwhy = learned_veto(state.get('title', ''), state.get('company', ''),
+                                      f"{state.get('location', '')}\n{state.get('description') or ''}")
+        except Exception:
+            _lv, _lwhy = False, ''
+        if _lv:
+            logger.info(f"[submit] {_lwhy} → discard: {state.get('company')} ({state.get('title')})")
+            return {"applied": False, "apply_method": "skipped", "status": "discarded",
+                    "gate_reason": _lwhy}
         if state.get('unverified'):
             # THE JUDGE STILL RUNS (2026-08-18). iron_clad_fit is skipped here for a
             # good reason — it reads the description, and we know the description is

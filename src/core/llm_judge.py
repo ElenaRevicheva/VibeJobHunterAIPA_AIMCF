@@ -200,10 +200,21 @@ def _feedback_block() -> str:
         data = json.loads(p.read_text(encoding="utf-8"))
         pos = [t for t in data.get("positives", []) if isinstance(t, str) and t.strip()][:12]
         neg = [t for t in data.get("negatives", []) if isinstance(t, str) and t.strip()][:12]
-        if not pos and not neg:
+        lessons = data.get("lessons_text") if isinstance(data.get("lessons_text"), str) else ""
+        if not pos and not neg and not lessons:
             return ""
-        lines = ["REAL RECENT OUTCOMES from Elena's own pipeline (taste calibration refreshed daily —",
-                 "these refine your judgment but do NOT override criteria 1-7 above):"]
+        lines = []
+        if lessons.strip():
+            # 2026-09-27: her lessons used to arrive as 12 recent examples labelled "do NOT
+            # override criteria 1-7", so a reason as crisp as "only hires people born in LATAM"
+            # could never veto anything. The summary covers ALL of her rejections, and when a
+            # job matches one of these lessons that is a reason to reject — she is the authority
+            # on her own fit. It can only REJECT; it never widens what criteria 1-7 allow.
+            lines += ["ELENA'S LESSONS — learned from her own rejections. These are HER criteria too:",
+                      "when this job clearly matches a lesson, answer fit=false and name the lesson.",
+                      "A lesson can only reject; it never makes a job pass that criteria 1-7 reject.",
+                      lessons.strip()[:1800], ""]
+        lines += ["REAL RECENT OUTCOMES from Elena's own pipeline (refreshed hourly):"]
         if pos:
             lines.append("She APPLIED to these (fit):")
             lines += ["  - " + t for t in pos]
