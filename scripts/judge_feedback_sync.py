@@ -528,7 +528,8 @@ def _search_deals(key: str) -> list:
                 {"propertyName": "dealstage", "operator": "IN", "values": DECIDED_STAGES},
             ]}],
             "sorts": [{"propertyName": "hs_lastmodifieddate", "direction": "DESCENDING"}],
-            "properties": ["dealname", "dealstage", "hs_lastmodifieddate"],
+            # description carries "Job URL: ..." — the key that links a decision to the posting.
+            "properties": ["dealname", "dealstage", "hs_lastmodifieddate", "description"],
             "limit": 100,
         }
         if after:
@@ -616,6 +617,15 @@ def _write_json(path: Path, payload) -> None:
     tmp.replace(path)  # atomic — a reader never sees a half-written file
 
 
+_JOB_URL = re.compile(r"Job URL:\s*(\S+)")
+
+
+def _job_url(description) -> str:
+    """The posting URL cto-aipa writes into every hiring deal's description ("Job URL: ...")."""
+    m = _JOB_URL.search(description or "")
+    return m.group(1).strip() if m else ""
+
+
 def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
     """Refresh the ledger, fetching notes ONLY for deals that are new or changed."""
     now = datetime.now(timezone.utc).isoformat()
@@ -624,8 +634,9 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
         p, did = d.get("properties", {}), str(d.get("id"))
         stage, mod = p.get("dealstage", ""), p.get("hs_lastmodifieddate", "")
         e = old.get(did)
+        url = _job_url(p.get("description"))
         if e and e.get("modified") == mod and e.get("stage") == stage:
-            ledger[did] = e
+            ledger[did] = {**e, "url": url or e.get("url")}      # links old entries, no extra call
             continue
         if e and e.get("stage") == stage:
             first = e.get("first_decided") or mod
@@ -633,7 +644,7 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
             first = mod if not e else now     # first sight: HubSpot's date; a stage change: now
         ledger[did] = {"title": _clean_title(p.get("dealname", "")), "company": _company(p.get("dealname", "")),
                        "prefix": _prefix(p.get("dealname", "")), "stage": stage, "modified": mod,
-                       "first_decided": first, "why": "", "applied": None}
+                       "first_decided": first, "why": "", "applied": None, "url": url}
         if stage in NEGATIVE_STAGES or stage == MANUAL_APPLY_STAGE:
             todo.append(did)
     notes = _fetch_notes_batch(key, todo) if todo else {}
@@ -906,6 +917,15 @@ def main() -> int:
     _save_shot_cache(shot_cache)
     _write_json(LEDGER, {"version": LEDGER_VERSION, "updated": datetime.now(timezone.utc).isoformat(),
                          "deals": ledger})
+    # Each decision gets the posting it was made on (job_listings), so the judge replay measures
+    # the judge on real text. Additive and fail-safe: a failure here changes nothing above.
+    try:
+        from link_evidence import link_evidence
+        ev = link_evidence(ledger)
+        print(f"  evidence: {ev['with_url']} decisions carry a URL · {ev['had_evidence'] + ev['linked_now']} "
+              f"have the posting ({ev['linked_now']} linked now) · {ev['no_evidence']} without")
+    except Exception as ex:
+        print(f"  evidence not linked ({str(ex)[:80]})")
 
     positives, negatives = _pick_examples(ledger)
     lessons, rules = _build_lessons_and_rules(ledger)

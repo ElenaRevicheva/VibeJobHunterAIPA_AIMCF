@@ -741,6 +741,111 @@ def is_priority_company(job_company: str, priority_slugs: set) -> bool:
     return False
 
 
+# ── EVIDENCE MEMORY (added 2026-09-28) ────────────────────────────────────────
+# job_listings and add_job_listing() existed since Dec 2025 with ZERO callers, so nothing kept the
+# posting a decision was made on. The judge replay then re-judged her past decisions on an EMPTY
+# listing, and its accuracy numbers meant nothing. These helpers connect the existing table: the
+# doors record what the judge saw, the replay reads it back by URL.
+#
+# ONE file for every process. The ingest reads .env with dotenv_values (nothing reaches
+# os.environ), so get_engine() alone would send it to autonomous_data/ while the systemd service
+# follows DATABASE_URL to the repo root — two processes, two databases. Resolve it here, once.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_EVIDENCE_ENGINE = None
+
+
+def _app_db_url() -> str:
+    url = (os.getenv('DATABASE_URL') or '').strip()
+    if not url:
+        try:
+            from dotenv import dotenv_values
+            url = (dotenv_values(_REPO_ROOT / '.env').get('DATABASE_URL') or '').strip()
+        except Exception:
+            url = ''
+    url = url or 'sqlite:///autonomous_data/vibejobhunter.db'
+    if url.startswith('sqlite:///') and not url.startswith('sqlite:////'):
+        rel = url[len('sqlite:///'):]
+        if not Path(rel).is_absolute():
+            url = 'sqlite:///' + (_REPO_ROOT / rel).resolve().as_posix()
+    return url
+
+
+def _evidence_session(db_url: str = None):
+    global _EVIDENCE_ENGINE
+    if db_url:
+        engine = create_engine(db_url, echo=False)
+    else:
+        if _EVIDENCE_ENGINE is None:
+            _EVIDENCE_ENGINE = create_engine(_app_db_url(), echo=False)
+        engine = _EVIDENCE_ENGINE
+    JobListing.__table__.create(engine, checkfirst=True)     # exists already; never recreated
+    return sessionmaker(bind=engine)()
+
+
+def _posting_id(company: str, url: str, title: str) -> str:
+    import hashlib
+    if url:
+        return 'url_' + hashlib.sha1(url.strip().encode('utf-8')).hexdigest()[:16]
+    key = f"{(company or '').strip().lower()}|{(title or '').strip().lower()}"
+    return 'tc_' + hashlib.sha1(key.encode('utf-8')).hexdigest()[:16]
+
+
+def record_judged_posting(title, company, url, location, description, source=None, db_url=None) -> bool:
+    """Keep the posting a decision is made on. Fail-safe: never raises, never blocks a door.
+    The FIRST text seen is kept (add_job_listing only refreshes last_seen_date), because that
+    is the text the judge ruled on."""
+    if not (title and company):
+        return False
+    s = None
+    try:
+        s = _evidence_session(db_url)
+        pid = _posting_id(company, url, title)
+        DatabaseHelper(s).add_job_listing({
+            'id': pid, 'company': str(company)[:200], 'title': str(title)[:300],
+            'url': (url or f'no-url:{pid}')[:1000],
+            'description': (description or '')[:20000], 'location': (location or '')[:300],
+            'ats_type': (source or '')[:80],
+        })
+        return True
+    except Exception:
+        if s is not None:
+            try:
+                s.rollback()
+            except Exception:
+                pass
+        return False
+    finally:
+        if s is not None:
+            try:
+                s.close()
+            except Exception:
+                pass
+
+
+def find_posting(url=None, title=None, company=None, db_url=None):
+    """The posting a decision was made on, or None. Exact URL first, then exact title + company."""
+    s = None
+    try:
+        s = _evidence_session(db_url)
+        row = s.query(JobListing).filter_by(url=url).first() if url else None
+        if row is None and title and company:
+            row = (s.query(JobListing).filter(JobListing.title == title, JobListing.company == company)
+                   .order_by(JobListing.found_date.desc()).first())
+        if row is None:
+            return None
+        return {'title': row.title, 'company': row.company, 'url': row.url,
+                'location': row.location or '', 'description': row.description or '',
+                'source': row.ats_type or ''}
+    except Exception:
+        return None
+    finally:
+        if s is not None:
+            try:
+                s.close()
+            except Exception:
+                pass
+
+
 if __name__ == '__main__':
     # Initialize database when run directly
     print(" Initializing VibeJobHunter database...")

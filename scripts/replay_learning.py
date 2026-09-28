@@ -15,6 +15,13 @@ and autonomous_data/learned_rules.json. Writes nothing.
    the pre-27-Sep prompt block (12 recent examples, "do NOT override criteria 1-7") and with the
    new one (lessons from ALL rejections, allowed to reject). The 12 examples quoted in the
    prompt are excluded from the sample so the test does not mark its own homework.
+
+EVIDENCE (28 Sep 2026). Until now every application was judged on an EMPTY listing — the ledger
+kept her words, not the posting — so "applications approved 1-4/20" measured the empty input, not
+the judge. Each decision is now judged on the posting it was made on (job_listings, linked by
+scripts/link_evidence.py from the deal's Job URL), plus her screenshot reading. The judge sample
+takes ONLY decisions with a posting on record and says how many it skipped; --since limits it to
+decisions made under the current targeting (e.g. --since 2026-09-20).
 """
 import argparse
 import json
@@ -26,14 +33,38 @@ sys.path.insert(0, str(REPO))
 
 from src.core.learned_rules import learned_veto, load_rules  # noqa: E402
 
+try:
+    from src.database.database_models import find_posting  # noqa: E402
+except Exception:                                            # no DB layer → screenshot text only
+    def find_posting(**_k):
+        return None
+
 LEDGER = REPO / "autonomous_data" / "judge_decisions.json"
 FEEDBACK = REPO / "autonomous_data" / "judge_feedback.json"
 POSITIVE_STAGES = {"presentationscheduled", "contractsent", "closedwon"}
 
 
+_POSTINGS: dict = {}
+
+
+def _posting(e: dict):
+    """The posting this decision was made on (job_listings), or None."""
+    key = e.get("url") or e["title"]
+    if key not in _POSTINGS:
+        title, _, company = e["title"].rpartition(" @ ")
+        _POSTINGS[key] = find_posting(url=e.get("url"), title=title or e["title"], company=company)
+    return _POSTINGS[key]
+
+
 def _evidence(e: dict) -> str:
-    """What the POSTING said — the screenshot reading only, never her words."""
-    return (e.get("why") or "").partition("her screenshot shows:")[2].strip()
+    """What the POSTING said — the posting on record plus her screenshot reading, never her words."""
+    shot = (e.get("why") or "").partition("her screenshot shows:")[2].strip()
+    p = _posting(e)
+    return "\n".join(x for x in ((p or {}).get("description", ""), shot) if x)
+
+
+def _location(e: dict) -> str:
+    return ((_posting(e) or {}).get("location") or "")
 
 
 def _is_applied(e: dict) -> bool:
@@ -60,7 +91,7 @@ def replay_rules(ledger: dict, rules: dict) -> None:
         print(f"        ✖ {w}")
 
 
-def replay_judge(ledger: dict, n: int) -> None:
+def replay_judge(ledger: dict, n: int, since: str = "") -> None:
     from src.core import llm_judge
     data = json.loads(FEEDBACK.read_text(encoding="utf-8"))
     quoted = {t.split(" — ")[0].lower() for t in data.get("negatives", []) + data.get("positives", [])}
@@ -77,15 +108,27 @@ def replay_judge(ledger: dict, n: int) -> None:
 
     new_block = llm_judge._feedback_block
     rows = sorted(ledger.values(), key=lambda e: e.get("modified", ""), reverse=True)
-    negs = [e for e in rows if e["stage"] == "closedlost" and e.get("why") and e["title"].lower() not in quoted][:n]
-    poss = [e for e in rows if _is_applied(e) and e["title"].lower() not in quoted][:n]
+    if since:
+        rows = [e for e in rows if (e.get("first_decided") or e.get("modified") or "")[:10] >= since]
+    all_negs = [e for e in rows if e["stage"] == "closedlost" and e.get("why") and e["title"].lower() not in quoted]
+    all_poss = [e for e in rows if _is_applied(e) and e["title"].lower() not in quoted]
+    # Only decisions whose posting is on record: judging an empty listing measures nothing.
+    negs = [e for e in all_negs if _posting(e)][:n]
+    poss = [e for e in all_poss if _posting(e)][:n]
+    print(f"JUDGE sample{' since ' + since if since else ''}: rejections {len(negs)} "
+          f"(of {len(all_negs)}; {sum(1 for e in all_negs if not _posting(e))} have no posting on record) · "
+          f"applications {len(poss)} (of {len(all_poss)}; "
+          f"{sum(1 for e in all_poss if not _posting(e))} have no posting on record)")
+    if not negs or not poss:
+        print("JUDGE not measured — too few decisions with a posting on record")
+        return
 
     def verdicts(block, sample):
         llm_judge._feedback_block = block
         out = []
         for e in sample:
             title, _, company = e["title"].rpartition(" @ ")
-            fit, why = llm_judge.judge_fit(title or e["title"], company, "", _evidence(e))
+            fit, why = llm_judge.judge_fit(title or e["title"], company, _location(e), _evidence(e))
             out.append((fit, why))
         return out
 
@@ -103,6 +146,7 @@ def replay_judge(ledger: dict, n: int) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--judge", type=int, default=0, help="also replay the judge on N + N decisions")
+    ap.add_argument("--since", default="", help="judge only decisions first made on/after YYYY-MM-DD")
     a = ap.parse_args()
     try:
         ledger = json.loads(LEDGER.read_text(encoding="utf-8"))["deals"]
@@ -113,7 +157,7 @@ def main() -> int:
     print(f"ledger {len(ledger)} decisions · learned rules {sorted(rules)}")
     replay_rules(ledger, rules)
     if a.judge:
-        replay_judge(ledger, a.judge)
+        replay_judge(ledger, a.judge, a.since)
     return 0
 
 

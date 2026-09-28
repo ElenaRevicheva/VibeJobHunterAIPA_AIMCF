@@ -40,6 +40,14 @@ except Exception:
     JobGate = None  # type: ignore
     _GATE_AVAILABLE = False
 
+# 2026-09-28 — evidence memory: keep the posting each decision is made on (job_listings), so the
+# judge replay re-judges HER decision on the same text. Missing module = no memory, never a crash.
+try:
+    from src.database.database_models import record_judged_posting  # type: ignore
+except Exception:
+    def record_judged_posting(*_a, **_k):  # type: ignore
+        return False
+
 # dotenv_values reads directly from file, unaffected by PM2 env inheritance
 _env = dotenv_values(Path(__file__).parents[2] / '.env')
 
@@ -491,6 +499,9 @@ def ingest_once() -> None:
                 if borderline:
                     log.info(f'  BORDERLINE (gate NO / judge YES) -> alerting: {title} @ {company}')
                     _borderline_alert(title, company, location, job_url, borderline_why)
+
+            # Evidence memory: the text this decision was made on, keyed by the URL the deal carries.
+            record_judged_posting(title, company, job_url, location, desc_full, 'serpapi_jobs')
 
             # 1. Hiring pipeline (VJH track)
             push_crm_event({
