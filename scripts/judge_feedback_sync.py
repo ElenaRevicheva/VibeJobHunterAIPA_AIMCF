@@ -547,7 +547,8 @@ def _search_deals(key: str) -> list:
             ]}],
             "sorts": [{"propertyName": "hs_lastmodifieddate", "direction": "DESCENDING"}],
             # description carries "Job URL: ..." — the key that links a decision to the posting.
-            "properties": ["dealname", "dealstage", "hs_lastmodifieddate", "description"],
+            # closed_lost_reason carries the AUTO-SWEEP label (see _is_auto_swept).
+            "properties": ["dealname", "dealstage", "hs_lastmodifieddate", "description", "closed_lost_reason"],
             "limit": 100,
         }
         if after:
@@ -644,12 +645,26 @@ def _job_url(description) -> str:
     return m.group(1).strip() if m else ""
 
 
+# A clean-up is not her choice (same principle as the June bulk move and the 1 Aug sweep above).
+# scripts/sweep_i_act_today.py labels every deal it moves: Closed Lost Reason = "AUTO-SWEEP <date>: …".
+# Those never enter the ledger, so a posting that CLOSED cannot mute its company, fill a "she
+# rejected" example slot, or lower the weekly precision. Everything she decided is untouched.
+_AUTO_SWEEP = "AUTO-SWEEP"
+
+
+def _is_auto_swept(props: dict) -> bool:
+    return props.get("dealstage") in NEGATIVE_STAGES \
+        and str(props.get("closed_lost_reason") or "").startswith(_AUTO_SWEEP)
+
+
 def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
     """Refresh the ledger, fetching notes ONLY for deals that are new or changed."""
     now = datetime.now(timezone.utc).isoformat()
     ledger, todo = {}, []
     for d in deals:
         p, did = d.get("properties", {}), str(d.get("id"))
+        if _is_auto_swept(p):
+            continue                                   # the sweep's decision, not hers
         stage, mod = p.get("dealstage", ""), p.get("hs_lastmodifieddate", "")
         e = old.get(did)
         url = _job_url(p.get("description"))

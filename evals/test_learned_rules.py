@@ -190,6 +190,23 @@ def test_apply_kit_notes_are_never_her_reason():
     assert s._elena_said_applied([{"body": "I applied on GetOnBoard, 28 Sep 2026."}])
 
 
+def test_auto_sweep_is_never_her_decision():
+    """28 Sep: the daily sweep moves CLOSED postings to closedlost. Without the label they would mute
+    the company (3 in 90 days), take "she rejected" example slots and lower precision."""
+    s = _load_sync()
+    swept = {"id": "1", "properties": {"dealname": "[HIRING-VJH-LEAD] AI Program Manager @ Acme", "dealstage": "closedlost",
+                                       "hs_lastmodifieddate": "2026-09-29T13:00:00Z",
+                                       "closed_lost_reason": "AUTO-SWEEP 2026-09-29: DEAD (posting closed: the page says so)"}}
+    ledger, fetched, _ = s._update_ledger("no-key", [swept], {}, {})
+    assert ledger == {} and fetched == 0          # never recorded, and no note fetch for it
+    # Her own rejection — any other reason, or none — is recorded exactly as before.
+    hers = {"id": "2", "properties": {**swept["properties"], "closed_lost_reason": "not a fit"}}
+    assert s._is_auto_swept(swept["properties"]) and not s._is_auto_swept(hers["properties"])
+    # A deal she moved BACK to I Act TODAY keeps the label but is not a rejection at all.
+    back = {**swept["properties"], "dealstage": "qualifiedtobuy"}
+    assert not s._is_auto_swept(back)
+
+
 # ── the sync learns rules from her words, not from VJH's ─────────────────────
 def test_sync_builds_rules_from_her_reasons():
     s = _load_sync()
