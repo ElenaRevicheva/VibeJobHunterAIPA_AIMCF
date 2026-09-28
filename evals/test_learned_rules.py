@@ -161,6 +161,22 @@ def test_pay_veto_without_stated_pay_is_overruled():
     assert not pay_veto_is_wrong("Remote, LATAM. The take-home must be completed without the use of AI tools.")
 
 
+def test_apply_kit_notes_are_never_her_reason():
+    s = _load_sync()
+    defense = ('<strong>🛡️ TECHNICAL DEFENSE — AI Engineer @ Acme</strong><p>📎 <strong>Tailored CV attached to this '
+               'note — use this one:</strong> CV_x.pdf</p><p><strong>Q: Who writes the code?</strong><br>Specialized AI '
+               'agents do much of the implementation. I own what gets built, what gets accepted.</p>')
+    ready = ('<strong>✅ READY TO SEND — cover letter — drafted against this posting (openai, direct). Read it, then '
+             'paste. ---</strong><p>I am applying for the AI Engineer role at Acme. I operate an AI-native environment.</p>')
+    hers = "Not a fit: requires 8 years of Java and relocation to Berlin."
+    # 28 Sep 2026: before the fix the defense note MASKED her reason and the READY note became one.
+    assert s._rejection_reason([{"body": defense}, {"body": hers}], "AI Engineer") == f"her reason: {hers.rstrip('.')}" \
+        or s._rejection_reason([{"body": defense}, {"body": hers}], "AI Engineer").startswith("her reason: Not a fit")
+    assert s._rejection_reason([{"body": ready}], "AI Engineer") == ""
+    assert s._rejection_reason([{"body": defense}], "AI Engineer") == ""
+    assert not s._elena_said_applied([{"body": defense}])
+
+
 # ── the sync learns rules from her words, not from VJH's ─────────────────────
 def test_sync_builds_rules_from_her_reasons():
     s = _load_sync()

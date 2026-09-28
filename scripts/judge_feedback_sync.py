@@ -76,6 +76,10 @@ NEGATIVE_STAGES = {"closedlost"}
 # mention the template would miss those. Therefore: strip the bot's template
 # first, then look for a past-tense "applied" in whatever SHE wrote.
 MANUAL_APPLY_STAGE = "decisionmakerboughtin"
+# Whole notes written by cto-aipa's apply kit (hs-fill-apply-kit.cjs + hand-built kits): skipped, never
+# stripped-and-kept, because their prose is long enough to pass as a sentence of hers.
+_KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND")
+
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
     r"|vjh found this[^.]*\.?"
@@ -171,6 +175,13 @@ def _rejection_reason(notes, title: str) -> str:
     Returns '' when there is nothing usable.
     """
     for n in notes:
+        # Notes the cto-aipa apply kit writes are never her voice: the READY letter note and, since
+        # 28 Sep 2026, the technical-defense note on every new ACT-TODAY deal. Without this, a defense
+        # note read as "the posting says: 🛡️ TECHNICAL DEFENSE …" and MASKED her real reason, and a
+        # READY note read as "her reason: ✅ READY TO SEND" (tested on the real templates; 0 ledger
+        # entries were affected before the fix).
+        if _KIT_NOTE.search(n.get("body") or ""):
+            continue
         human = re.sub(r"<[^>]+>", " ", n.get("body") or "")
         human = _BOT_NOTE_TEMPLATE.sub(" ", human)
         human = re.sub(r"https?://\S+", " ", human)          # source links carry no taste
