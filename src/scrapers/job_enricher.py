@@ -83,6 +83,10 @@ _CLOSED_MARKERS = (
     "job posting is no longer available",
     "this job is no longer available",
     "we are no longer hiring for this",
+    # 2026-09-28: Torre's banner now reads 'This job post is closed.' — the July phrase above no
+    # longer appears, so 5 closed Torre jobs sat in I Act TODAY for 10 days. Verified on raw HTML:
+    # present on all 5 closed posts, absent on 4 posts Torre's own API reports status=open.
+    "this job post is closed",
 )
 
 
