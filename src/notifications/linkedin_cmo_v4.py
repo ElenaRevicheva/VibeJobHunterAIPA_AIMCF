@@ -707,6 +707,27 @@ Roadmap: https://github.com/ElenaRevicheva/AIPA_AITCF/blob/main/docs/oracle/AIDE
         }
     }
     
+    async def _waterfall_text(self, prompt: str, max_tokens: int, label: str) -> Optional[str]:
+        """The 5-provider waterfall (src/utils/llm_chain.py) for when Claude cannot answer.
+
+        28 Sep 2026: Anthropic credits have been at zero since 17 Aug and both generation paths in
+        this file knew ONLY Claude — every daily LinkedIn post since at least 9 Sep shipped as a
+        template while the log said "sent successfully". Claude stays first (if credits return it
+        writes again); this runs before any template. None only if every provider failed.
+        """
+        try:
+            from src.utils.llm_chain import PROFILE_QUALITY, complete
+            text, errors = await asyncio.to_thread(
+                complete, [{"role": "user", "content": prompt}], max_tokens, PROFILE_QUALITY)
+            if text and text.strip():
+                won = list(PROFILE_QUALITY)[len(errors)] if len(errors) < len(PROFILE_QUALITY) else "chain"
+                logger.info(f"🧠 {label} generated via {won} (waterfall; Claude unavailable, {len(errors)} tier(s) skipped)")
+                return text.strip()
+            logger.error(f"❌ {label}: waterfall exhausted — " + "; ".join(errors)[:300])
+        except Exception as e:
+            logger.error(f"❌ {label}: waterfall failed — {str(e)[:160]}")
+        return None
+
     async def generate_ai_cofounder_content(self, post_type: str, language: str) -> str:
         """
         AI CO-FOUNDER: Generate FRESH content using Claude API
@@ -726,6 +747,7 @@ Elena Revicheva — executive-turned-AI-builder (see docs/CAREER_FOCUS.md Honest
 • Phase 1: 7+ years Deputy CEO / CLO — board-level digital infrastructure programs (Russia, 2011–2018).
 • Phase 2: ~1 year hands-on shipping 9 production AI systems (2025–present) using AI-assisted development (Cursor, Claude Code) — real uptime, Oracle-first $0/month infra where applicable.
 • Rare hybrid: can translate between a CEO and a debugger; NOT a conventional "Senior AI Engineer" pedigree (no CS degree; honest about ATS limits).
+• How she works (her approved words, 28 Sep 2026 — use this framing, never "solo"): "I operate an AI-native development environment where specialized agents handle much of the implementation execution. I own requirements, architecture, orchestration, evaluation, deployment, monitoring and production decisions."
 • Right fit: founders, founding AI hire (pre-seed), fractional ($40–70/hr), internal AI tools / AI integration / AI ops at seed–Series B — quality conversations over volume.
 • Products: VibeJobHunter, CTO/CMO AIPA, EspaLuz stack, ALGOM, Atuona; bilingual EN/ES; users across markets — traction real but early.
 """
@@ -817,7 +839,9 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
                 logger.warning(f"AI Co-Founder generation attempt {attempt}/2 failed: {e}")
 
         logger.error(f"AI Co-Founder generation failed after retries: {last_err}")
-        return None  # Caller falls back to templates so the daily post still ships
+        # Not straight to a template any more: the other four providers first.
+        return await self._waterfall_text(prompt, max_tokens, f"AI Co-Founder {language.upper()} content")
+        # (None → caller falls back to templates so the daily post still ships)
     
     async def generate_linkedin_post(self, post_type: str = "random", language: str = "random") -> Dict[str, str]:
         """
@@ -911,6 +935,19 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
                         }
                     except Exception as claude_err:
                         logger.error(f"❌ [CTO Integration] Claude API call failed: {claude_err}")
+                        # 28 Sep 2026: the waterfall before giving up on the tech-update post.
+                        content = await self._waterfall_text(prompt, 600, "[CTO Integration] tech-update post")
+                        if content:
+                            self._mark_tech_update_posted(latest_update)
+                            return {
+                                "content": content,
+                                "language": language,
+                                "type": "tech_update",
+                                "timestamp": datetime.now().isoformat(),
+                                "author": "Elena Revicheva",
+                                "ai_generated": True,
+                                "post_id": f"tech_update_{latest_update.get('pr_number', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+                            }
                         logger.info("🔄 [CTO Integration] Falling back to regular content generation")
                         # Fall through to regular content below...
                 else:

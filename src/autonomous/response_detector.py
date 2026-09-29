@@ -30,6 +30,19 @@ from email.header import decode_header
 
 logger = logging.getLogger(__name__)
 
+# ── Circuit breaker for the Claude primary (28 Sep 2026) ─────────────────────
+# Anthropic credits have been at zero since 17 Aug; every classification still tried Claude Sonnet
+# first — ~300 failed calls a day — before the provider chain answered. After a "credit balance"
+# refusal, Claude is skipped for 6 hours and the chain classifies directly; then it is tried again,
+# so a top-up is picked up on its own. Any other error does not trip it.
+import time as _time
+_ANTHROPIC_COOLDOWN_S = 6 * 3600
+_anthropic_skip_until = 0.0
+
+
+class _ClaudeSkipped(Exception):
+    """Claude is in cooldown or not configured: go straight to the provider chain."""
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAILBOXES — employers do not all write to the same inbox
 #
@@ -400,10 +413,11 @@ class ResponseDetector:
         
         Returns: (response_type, confidence, analysis, suggested_action)
         """
-        if not self.anthropic_client:
-            rtype, conf = self._keyword_classify(subject, body)
-            return rtype, conf, "Keyword-based classification (no AI)", "Review manually"
-        
+        global _anthropic_skip_until
+        # 28 Sep 2026: no Anthropic client used to mean "keywords only" — skipping the whole provider
+        # chain. Now it only means "skip Claude"; the chain still classifies.
+        use_claude = bool(self.anthropic_client) and _time.time() >= _anthropic_skip_until
+
         try:
             prompt = f"""You are analyzing an email response to a job application. Classify it and provide actionable advice.
 
@@ -431,6 +445,8 @@ Respond in this exact JSON format:
 
 Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt confirmation."""
 
+            if not use_claude:
+                raise _ClaudeSkipped()
             response = self.anthropic_client.messages.create(
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=500,
@@ -460,8 +476,14 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                 
                 return type_map.get(classification, ResponseType.UNKNOWN), confidence, analysis, action
             
+        except _ClaudeSkipped:
+            pass                                       # cooldown / no key → the chain below
         except Exception as e:
-            logger.warning(f"⚠️ Anthropic classify failed ({str(e)[:70]}); trying free Groq fallback")
+            if "credit balance" in str(e).lower():
+                _anthropic_skip_until = _time.time() + _ANTHROPIC_COOLDOWN_S
+                logger.warning("⚠️ Anthropic has no credits — skipping Claude for 6h; the provider chain classifies meanwhile")
+            else:
+                logger.warning(f"⚠️ Anthropic classify failed ({str(e)[:70]}); trying free Groq fallback")
 
         # FREE fallback: Groq (Llama 3.3 70B) before dumb keyword matching. Anthropic
         # credits can run dry; Groq has a working free tier. Keyword is the LAST resort.
