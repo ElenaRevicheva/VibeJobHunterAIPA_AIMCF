@@ -10,6 +10,7 @@ This is a PRECISION CAREER WEAPON, not a volume play.
 """
 
 import asyncio
+import hashlib
 import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -288,7 +289,7 @@ class JobMonitor:
             # source — delivered ~0 per cycle. 90s ≈ 3x the measured run; the gather already waits
             # up to 150s (AI-Native-Builder), so the cycle is not lengthened.
             safe_fetch("Torre.ai (LATAM)", self._search_torre(), 90),
-            safe_fetch("Himalayas (global)", self._search_himalayas(), 20),
+            safe_fetch("Himalayas (global)", self._search_himalayas(), 40),  # 13 searches, 4 at a time, 8 s cap each
             safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
             safe_fetch("Remotive", self._search_remotive(), 20),
             # 2026-08-29: ai-native-builder.com — a CURATED board, not a volume source.
@@ -1486,41 +1487,69 @@ class JobMonitor:
         Himalayas.app — truly global remote jobs, no location restrictions.
         Has a public jobs RSS/JSON feed filtered by category.
         """
-        logger.info("🔍 Checking Himalayas (global remote)...")
-        jobs = []
+        # 2026-09-29 — THIS SOURCE SEARCHED NOTHING UNTIL TODAY. It called /jobs/api, which ignores `q`
+        # and `limit` and returns the 20 newest jobs on the whole site (a Salesforce Specialist, an NDT
+        # inspector…), so the lane terms never applied; and it read the link from `url`/`applyUrl`, which
+        # Himalayas does not send, so every job got the same URL and id. Found because Elena met an
+        # "AI Video Producer" posting on Himalayas that VJH never saw. /jobs/api/search?q= is the real
+        # search (one phrase per call, 20 results, ~0.4 s) — the posting ranked 3rd for its own title.
+        # The calls run concurrently: safe_fetch drops the WHOLE source on timeout (Torre, 17 Sep).
+        logger.info("🔍 Checking Himalayas (search, one query per lane)...")
+        queries = (
+            "AI automation", "AI solutions architect", "AI product manager", "AI operations",
+            "AI consultant", "chief AI officer", "AI chief of staff", "AI executive assistant",
+            "AI evaluation", "generative engine optimization", "AI video producer",
+            "creative technologist", "generative AI",
+        )
+        url = "https://himalayas.app/jobs/api/search"
+        headers = {"User-Agent": "VibeJobHunter/1.0", "Accept": "application/json"}
+        seen, jobs, failed = set(), [], 0
+        sem = asyncio.Semaphore(4)
+
+        async def one(session, q):
+            async with sem:
+                async with session.get(url, headers=headers, params={"q": q},
+                                       timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                    if resp.status != 200:
+                        raise RuntimeError(f"HTTP {resp.status}")
+                    data = await resp.json()
+                    return data.get("jobs", []) if isinstance(data, dict) else []
+
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"User-Agent": "VibeJobHunter/1.0", "Accept": "application/json"}
-                # Himalayas public JSON feed for software/AI roles
-                url = "https://himalayas.app/jobs/api"
-                # 2026-08-18: added the AI chief-of-staff / AI-proficient EA-PA lane
-                # alongside the existing engineer/LLM/ML terms.
-                params = {"q": "AI engineer OR LLM OR machine learning OR AI chief of staff OR AI executive assistant OR AI operations lead OR AI product manager OR chief AI officer OR head of AI OR AI solutions architect OR AI consultant", "limit": 50}
-                async with session.get(url, headers=headers, params=params, timeout=15) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        results = data.get("jobs", data) if isinstance(data, dict) else data
-                        if isinstance(results, list):
-                            for item in results[:50]:
-                                title = item.get("title", "")
-                                company = item.get("companyName", item.get("company", "Remote Co"))
-                                desc = item.get("description", item.get("shortDescription", ""))
-                                job_url = item.get("url", item.get("applyUrl", "https://himalayas.app"))
-                                if title:
-                                    jobs.append({
-                                        "id": f"himalayas_{hash(job_url) % 10000000}",
-                                        "title": title,
-                                        "company": company,
-                                        "location": "Remote / Worldwide",
-                                        "description": f"{str(desc)[:1500]} [Global remote — worldwide candidates welcome via Himalayas]",
-                                        "source": "himalayas",
-                                        "url": job_url,
-                                        "remote": True,
-                                        "remote_allowed": True,
-                                    })
+                batches = await asyncio.gather(*(one(session, q) for q in queries), return_exceptions=True)
+            for batch in batches:
+                if isinstance(batch, Exception):
+                    failed += 1
+                    continue
+                for item in batch:
+                    title = item.get("title", "")
+                    job_url = item.get("applicationLink") or item.get("guid") or ""
+                    if not title or not job_url or job_url in seen:
+                        continue
+                    seen.add(job_url)
+                    # The real restriction, not a blanket "worldwide". Himalayas tags can be wrong (it
+                    # labelled that video job "Mexico only"; the recruiter's own page lists Panama), so
+                    # the description says so and the gates judge the posting text.
+                    where = [str(x) for x in (item.get("locationRestrictions") or []) if x]
+                    location = f"Remote ({', '.join(where)})" if where else "Remote / Worldwide"
+                    tag = (f"[Himalayas location tag: {', '.join(where)} — tags are sometimes wrong; check the employer's page]"
+                           if where else "[Himalayas: no location restriction listed]")
+                    desc = item.get("description") or item.get("excerpt") or ""
+                    jobs.append({
+                        "id": f"himalayas_{hashlib.md5(job_url.encode()).hexdigest()[:12]}",
+                        "title": title,
+                        "company": item.get("companyName") or "Remote Co",
+                        "location": location,
+                        "description": f"{str(desc)[:1500]} {tag}",
+                        "source": "himalayas",
+                        "url": job_url,
+                        "remote": True,
+                        "remote_allowed": True,
+                    })
         except Exception as e:
             logger.warning(f"⚠️ Himalayas failed: {e}")
-        logger.info(f"✅ Himalayas: {len(jobs)} jobs found")
+        logger.info(f"✅ Himalayas: {len(jobs)} jobs found ({len(queries) - failed}/{len(queries)} searches answered)")
         return jobs
 
     # ------------------------------------------------------------------
