@@ -185,6 +185,12 @@ def test_apply_kit_notes_are_never_her_reason():
     assert not s._elena_said_applied([{"body": brief}])
     assert s._rejection_reason([{"body": brief}], "AI Engineer") == ""
     assert s._rejection_reason([{"body": brief}, {"body": hers}], "AI Engineer").startswith("her reason: Not a fit")
+    # 29 Sep: a hand-staged job's "📌 JOB POSTING" note is agent prose — never her reason, never her "applied".
+    staged = ('📌 JOB POSTING: https://www.getonbrd.com/jobs/ops/applied-ai-revops-lead | No cover letter. '
+              'Answer the questions with short, specific examples YOU did. Company actively replying; 39 applicants.')
+    assert s._rejection_reason([{"body": staged}], "RevOps Lead") == ""
+    assert not s._elena_said_applied([{"body": staged}])
+    assert s._rejection_reason([{"body": staged}, {"body": hers}], "RevOps Lead").startswith("her reason: Not a fit")
     # Her own word still counts next to any kit note.
     assert s._elena_said_applied([{"body": brief}, {"body": "i applied manually"}])
     assert s._elena_said_applied([{"body": "I applied on GetOnBoard, 28 Sep 2026."}])

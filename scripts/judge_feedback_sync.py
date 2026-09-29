@@ -82,8 +82,11 @@ MANUAL_APPLY_STAGE = "decisionmakerboughtin"
 # promoting a job: found on a real deal 28 Sep, read as "her reason" (0 ledger entries affected).
 # 28 Sep 2026: "🔎 COMPANY BRIEF" — cto-aipa's Perplexity research on the company, one note per deal. It is web
 # text about the EMPLOYER ("applied AI", "submitted to the SEC"), so it must never read as her words either.
+# 29 Sep 2026: "📌 JOB POSTING" — the note an agent writes when it stages a [HIRING-MANUAL] job by hand
+# (cto-aipa hs-fill-apply-kit.cjs JOB_MARK). Long agent prose ("Answer the questions with short, specific
+# examples…"), so it must never become her reason or her "applied".
 _KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*\[BORDERLINE\]\s*Promoted to I Act TODAY"
-                       r"|🔎\s*COMPANY BRIEF")
+                       r"|🔎\s*COMPANY BRIEF|📌\s*JOB POSTING")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
