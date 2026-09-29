@@ -86,7 +86,10 @@ MANUAL_APPLY_STAGE = "decisionmakerboughtin"
 # (cto-aipa hs-fill-apply-kit.cjs JOB_MARK). Long agent prose ("Answer the questions with short, specific
 # examples…"), so it must never become her reason or her "applied".
 _KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*\[BORDERLINE\]\s*Promoted to I Act TODAY"
-                       r"|🔎\s*COMPANY BRIEF|📌\s*JOB POSTING")
+                       r"|🔎\s*COMPANY BRIEF|📌\s*JOB POSTING"
+                       # 29 Sep 2026: the cto-aipa kit's role-specific interview prep, first-person prose
+                       # ("I haven't done X yet…") that would otherwise read as HER reason on any rejected deal.
+                       r"|🎯\s*ROLE DEFENSE")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"

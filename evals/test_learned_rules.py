@@ -191,6 +191,13 @@ def test_apply_kit_notes_are_never_her_reason():
     assert s._rejection_reason([{"body": staged}], "RevOps Lead") == ""
     assert not s._elena_said_applied([{"body": staged}])
     assert s._rejection_reason([{"body": staged}, {"body": hers}], "RevOps Lead").startswith("her reason: Not a fit")
+    # 29 Sep: the 🎯 ROLE DEFENSE note is first-person prep text ("I haven't done X yet…") — never her reason.
+    role = ('<strong>🎯 ROLE DEFENSE — AI Video Producer @ Acme</strong><p><strong>They ask: Minimum 4 years of '
+            'experience in video production</strong><br>I haven\'t done four years of professional video yet. What I '
+            'have done is direct eight published AI films, and I applied the same bake-off to every engine.</p>')
+    assert s._rejection_reason([{"body": role}], "AI Video Producer") == ""
+    assert not s._elena_said_applied([{"body": role}])
+    assert s._rejection_reason([{"body": role}, {"body": hers}], "AI Video Producer").startswith("her reason: Not a fit")
     # Her own word still counts next to any kit note.
     assert s._elena_said_applied([{"body": brief}, {"body": "i applied manually"}])
     assert s._elena_said_applied([{"body": "I applied on GetOnBoard, 28 Sep 2026."}])
