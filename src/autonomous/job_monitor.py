@@ -282,7 +282,12 @@ class JobMonitor:
             safe_fetch("Wellfound", self._search_wellfound(), 20),
             safe_fetch("WeWorkRemotely", self._search_weworkremotely(), 15),
             safe_fetch("AI-Jobs.net", self._search_aijobs(), 15),
-            safe_fetch("Torre.ai (LATAM)", self._search_torre(), 20),
+            # 2026-09-29: was 20s. Same failure as the ATS sweep above (30 Jul): asyncio.wait_for
+            # DISCARDS everything on timeout. Measured on Oracle: _search_torre returns 610 jobs in
+            # 24-27s (its keyword list grew 16 + 28 Sep), so from 17 Sep Torre — her LATAM-first
+            # source — delivered ~0 per cycle. 90s ≈ 3x the measured run; the gather already waits
+            # up to 150s (AI-Native-Builder), so the cycle is not lengthened.
+            safe_fetch("Torre.ai (LATAM)", self._search_torre(), 90),
             safe_fetch("Himalayas (global)", self._search_himalayas(), 20),
             safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
             safe_fetch("Remotive", self._search_remotive(), 20),
