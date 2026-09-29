@@ -140,10 +140,14 @@ def _borderline_alert(title: str, company: str, location: str, job_url: str, why
         log.debug(f'  borderline alert not sent ({e})')
 
 JOBS_QUERIES = [
+    # 2026-09-29 EDITED IN PLACE, not appended — same 18 queries, same bill. 14 said only "remote",
+    # which on Google means US-remote: of 98 jobs this door parked 27-29 Sep, read in full, 77 were
+    # off-lane and 17 failed the gate (mostly US-only); 1 would have passed. Each now carries
+    # "latin america", like the three that already did. 'remote worldwide' left as it is.
     # Aligned with CAREER_FOCUS: only founding/fractional/AI-builder shapes.
     # NO 'principal', 'VP', 'staff', 'head of X' — those map to Elena's hard-discard filter.
     # 2026-09-16: EXCEPT AI leadership ('head of AI', 'chief AI officer'), which is a lane.
-    'fractional CTO remote',
+    'fractional CTO remote latin america',
     # 2026-09-20 SWAPPED, not appended — these are PAID searches twice a day, so the two
     # generic engineer queries that used to sit here ('AI engineer founding team remote',
     # 'founding engineer AI remote') were paying to generate her rejections: engineer-titled
@@ -152,34 +156,34 @@ JOBS_QUERIES = [
     # Replaced 1:1 with the two shapes her positives actually came from, so the query count
     # and the bill are unchanged. fit_gate now also vetoes those titles by name.
     'AI automation specialist remote latin america',   # AI Automation Specialist @ LanceMart
-    'technical account manager AI automation remote',  # Sr. Technical Account Manager @ Zapier
-    'AI automation lead remote startup',
-    'solutions architect AI startup remote',
+    'technical account manager AI automation remote latin america',  # Sr. Technical Account Manager @ Zapier
+    'AI automation lead remote latin america startup',
+    'solutions architect AI startup remote latin america',
     # 2026-07-30 APPENDED — the AI-automation category (Elena's shipped skill set,
     # $3-6K/mo remote band). Original 5 queries above untouched.
     'AI automation engineer remote latin america',
     'AI agent developer remote worldwide',
-    'n8n automation engineer remote',
-    'AI integration engineer remote contract',
+    'n8n automation engineer remote latin america',
+    'AI integration engineer remote latin america contract',
     # 2026-08-18 APPENDED — AI chief-of-staff / AI-proficient EA-PA lane
     # (wealthy-principal / family-office roles included). Same supply-gap fix
     # as Torre: job_gate.py/fit_gate.py already carve these titles through,
     # they were never being searched for on this source either.
-    'AI chief of staff remote',
-    'AI executive assistant remote',
-    'AI operations lead remote startup',
+    'AI chief of staff remote latin america',
+    'AI executive assistant remote latin america',
+    'AI operations lead remote latin america startup',
     # 2026-09-16 APPENDED — AI product / consulting / leadership lanes
     # (src/core/target_lanes.py). Every query here is a paid search twice a day, so
     # only the four highest-yield shapes are added; the free sources carry the rest.
     'AI product manager remote latin america',
-    'chief AI officer remote startup',
-    'AI solutions consultant remote',
-    'head of AI remote startup',
+    'chief AI officer remote latin america startup',
+    'AI solutions consultant remote latin america',
+    'head of AI remote latin america startup',
     # 2026-09-28 APPENDED — creative AI lane (src/core/target_lanes.py): 8 published AI films
     # and a production pipeline were invisible to her own job search. Two paid shapes only;
     # Remotive and Torre carry the rest for free.
-    'creative technologist generative AI remote',
-    'AI video producer remote',
+    'creative technologist generative AI remote latin america',
+    'AI video producer remote latin america',
 ]
 
 # ─── Remotive: remote-first, REGION-TAGGED board (free API, no key). Its
@@ -355,7 +359,7 @@ def push_crm_event(payload: dict) -> bool:
 # fit_gate.py is stdlib-free, so on that path we load it directly by file (bypassing the
 # src.core package __init__). In the venv (bot, submit path) the normal import just works.
 try:
-    from src.core.fit_gate import iron_clad_fit  # noqa: E402,F401
+    from src.core.fit_gate import iron_clad_fit, title_on_lane  # noqa: E402,F401
 except Exception:
     import importlib.util as _ilu
     from pathlib import Path as _P
@@ -363,6 +367,33 @@ except Exception:
     _fg = _ilu.module_from_spec(_spec)
     _spec.loader.exec_module(_fg)  # type: ignore[union-attr]
     iron_clad_fit = _fg.iron_clad_fit  # noqa: F401
+    title_on_lane = _fg.title_on_lane  # noqa: F401
+
+# The same posting reader the LangGraph path uses (nodes.py → enrich_with_state). Optional:
+# without it this door gates on the search snippet, exactly as before.
+try:
+    from src.scrapers.job_enricher import enrich_with_state as _enrich  # noqa: E402
+except Exception:
+    _enrich = None
+
+
+def _read_full_posting(title: str, job_url: str, desc_full: str):
+    """(text, closed) — the real posting instead of Google's ~180-char snippet.
+
+    Added 2026-09-29. Every in-lane job this door parked 27-29 Sep was judged on a snippet with no
+    location, so it failed "remote" and "LATAM" for lack of words, not for lack of fit. Reuses
+    enrich_with_state, so its guards come along unchanged: single-posting URLs only, never trades
+    down, board/search pages refused, and a page that says it is closed is reported as closed.
+    Only for on-lane titles — the off-lane firehose (77 of 98 that week) costs no fetch. Any
+    failure returns the snippet unchanged: the gate then decides exactly as it did before.
+    """
+    if _enrich is None or not job_url or len(desc_full) >= 1500 or not title_on_lane(title):
+        return desc_full, False
+    try:
+        return _enrich(job_url, desc_full)
+    except Exception as e:
+        log.debug(f'  posting not read ({e}); gating on the snippet')
+        return desc_full, False
 
 # Salary floor (added 2026-07-30). salary_gate.py is deliberately stdlib-only for the
 # same reason fit_gate.py is: this process runs under SYSTEM python3 with no pydantic.
@@ -441,6 +472,15 @@ def ingest_once() -> None:
             # ── IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented
             # roles reach Elena's actionable "I Act TODAY"; the rest are parked in
             # "ignore" so the scraped firehose never floods her view again. ──
+            # 2026-09-29: "desc_full" was Google's snippet for most results — read the posting first.
+            _before = len(desc_full)
+            desc_full, _closed = _read_full_posting(title, job_url, desc_full)
+            if _closed:
+                log.info(f'  skipped (posting closed): {title} @ {company}')
+                continue
+            if len(desc_full) > _before:
+                desc = desc_full[:800]   # HubSpot keeps the real text, not the snippet
+                log.info(f'  read full posting ({_before} → {len(desc_full)} chars): {title} @ {company}')
             fit = iron_clad_fit(title, location, desc_full)   # gate on FULL desc (keywords can sit past 800 chars)
 
             # ── SALARY FLOOR (added 2026-07-30) — REJECT-ONLY ──
