@@ -155,6 +155,10 @@ BLOCKED_SENDER_DOMAINS = (
     "automated@",
     "notifications@",
     "support@" "scalearmycareers.com",
+    # Our OWN domain (Sep 30 2026). The portfolio form mails aipa@ a copy of every CLIENT inquiry
+    # ("[AIdeazz] Inquiry — <name>", From: AIdeazz <aipa@...>). It was read as an employer QUESTION
+    # and became a [HIRING-VJH-LEAD] deal + cover letter. No employer writes from our domain.
+    "@" "aideazz.xyz",
 )
 
 
