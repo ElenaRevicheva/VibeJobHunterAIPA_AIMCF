@@ -89,7 +89,9 @@ _KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*
                        r"|🔎\s*COMPANY BRIEF|📌\s*JOB POSTING"
                        # 29 Sep 2026: the cto-aipa kit's role-specific interview prep, first-person prose
                        # ("I haven't done X yet…") that would otherwise read as HER reason on any rejected deal.
-                       r"|🎯\s*ROLE DEFENSE")
+                       r"|🎯\s*ROLE DEFENSE"
+                       # 1 Oct 2026: the kit's ready-to-paste Comet browser prompt (her details + letter).
+                       r"|📋\s*COMET PROMPT")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
