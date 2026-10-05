@@ -52,47 +52,23 @@ GREENHOUSE_COMPANIES = [
     "moduscreate",    # 11 jobs, nearshore/remote
     "teravision",     # 4 jobs, LATAM nearshore (Venezuela/Colombia)
 
+    # 🎬 a16z Top 100 Consumer AI — added 5 Oct 2026 (Elena's go)
+    "heygen",         # 22 jobs — AI avatar video; creative-AI lane
+
     # ═══════════════════════════════════════════════════════════════
     # 🎯 TOP AI COMPANIES - January 2026 (PRIORITY 1)
     # ═══════════════════════════════════════════════════════════════
 
     # Frontier AI Labs (HIGHEST PRIORITY)
     "anthropic",      # Claude - TOP PRIORITY! ~300 jobs
-    "openai",         # GPT/ChatGPT
-    "deepmind",       # Google DeepMind
-    "meta",           # Meta AI (LLaMA)
     "xai",            # Elon Musk's AI company
-    "google",         # Google AI (Gemini)
-    "microsoft",      # Microsoft AI (Copilot)
     
     # 🆕 HOT AI STARTUPS - Recently Funded (2024-2025)
-    "cognition-labs", # Devin AI - autonomous coding
-    "magic-ai",       # AI coding - $320M raised
-    "poolside",       # AI coding assistant
-    "factory-ai",     # AI coding (Dragonfly)
-    "augment",        # AI coding (ex-Google)
-    "harvey-ai",      # AI for lawyers - $80M
-    "glean",          # AI enterprise search - $200M
-    "sierra-ai",      # AI customer service (Bret Taylor)
-    "writer",         # Enterprise AI writing
-    "groq",           # AI inference chips - FAST!
-    "contextual-ai",  # RAG company (Douwe Kiela)
     "imbue",          # AI reasoning (formerly Generally Intelligent)
-    "langchain",      # AI dev framework - LangSmith
-    "poe",            # AI chat (Quora)
     
     # AI Infrastructure & MLOps
     "databricks",     # Data + AI platform ~700 jobs
-    "scale",          # Scale AI - data labeling
     "labelbox",       # Data labeling for ML
-    "weights-biases", # ML experiment tracking
-    "roboflow",       # Computer vision platform
-    "huggingface",    # ML model hub
-    "replicate",      # ML model deployment
-    "modal",          # Cloud for AI/ML
-    "anyscale",       # Ray - distributed ML
-    "together-ai",    # Open source AI
-    "fireworks-ai",   # AI inference
     "baseten",        # ML deployment
     "pinecone",       # Vector database
     "weaviate",       # Vector database
@@ -189,6 +165,38 @@ GREENHOUSE_COMPANIES = [
     "gusto",          # HR/Payroll
     "rippling",       # HR platform
     "sentry",         # Error tracking
+
+    # ═══════════════════════════════════════════════════════════════
+    # ⚰️ BOARD 404 on 5 Oct 2026 (Greenhouse) — moved here, NOT removed. They sat inside the
+    # [:max_companies=40] slice and wasted fetch slots. Re-probe before moving back up.
+    # ═══════════════════════════════════════════════════════════════
+    "openai",         # GPT/ChatGPT
+    "deepmind",       # Google DeepMind
+    "meta",           # Meta AI (LLaMA)
+    "google",         # Google AI (Gemini)
+    "microsoft",      # Microsoft AI (Copilot)
+    "cognition-labs", # Devin AI - autonomous coding
+    "magic-ai",       # AI coding - $320M raised
+    "poolside",       # AI coding assistant
+    "factory-ai",     # AI coding (Dragonfly)
+    "augment",        # AI coding (ex-Google)
+    "harvey-ai",      # AI for lawyers - $80M
+    "glean",          # AI enterprise search - $200M
+    "sierra-ai",      # AI customer service (Bret Taylor)
+    "writer",         # Enterprise AI writing
+    "groq",           # AI inference chips - FAST!
+    "contextual-ai",  # RAG company (Douwe Kiela)
+    "langchain",      # AI dev framework - LangSmith
+    "poe",            # AI chat (Quora)
+    "scale",          # Scale AI - data labeling
+    "weights-biases", # ML experiment tracking
+    "roboflow",       # Computer vision platform
+    "huggingface",    # ML model hub
+    "replicate",      # ML model deployment
+    "modal",          # Cloud for AI/ML
+    "anyscale",       # Ray - distributed ML
+    "together-ai",    # Open source AI
+    "fireworks-ai",   # AI inference
 ]
 
 LEVER_COMPANIES = [
@@ -289,42 +297,36 @@ ASHBY_COMPANIES = [
     "buffer",         # 2 jobs — fully remote, and Elena already uses their API
 
     # ═══════════════════════════════════════════════════════════════
+    # 🎬 a16z Top 100 Consumer AI (Oct 2026) — added 5 Oct 2026, Elena's go.
+    # Boards probed live 5 Oct; remote lane roles seen (creative-AI / growth / ops).
+    # docs: cto-aipa docs/job-search/2026-10-05_A16Z_TOP100_VJH_FIT.md
+    # ═══════════════════════════════════════════════════════════════
+    "zeely",          # 25 jobs — AI video ads; Remote PM viral video ads, growth/business ops
+    "suno",           # 66 jobs — AI music; remote creative contracts
+    "krea",           # 12 jobs — AI image/video; Creative Lead SF or Remote
+    "openart",        # 28 jobs — AI art; creator/community roles
+    "lovable",        # 78 jobs — AI app builder; product experience / content
+    "gamma",          # 25 jobs — AI presentations
+    "genspark",       # 8 jobs — AI agents; solutions engineer
+
+    # ═══════════════════════════════════════════════════════════════
     # AI/ML Companies (HIGHEST PRIORITY)
     # ═══════════════════════════════════════════════════════════════
     "cohere",         # Enterprise LLMs
-    "adept",          # AI agents
-    "inflection",     # Pi AI
-    "together-ai",    # Open source AI
     "cerebras",       # AI chips/hardware
     "anyscale",       # Ray distributed ML
-    "replicate",      # ML deployment
     "modal",          # AI cloud
     "perplexity",     # AI search
-    "character-ai",   # Character AI
-    "notion-ai",      # Notion AI features
     "dust",           # AI assistants
-    "mem-ai",         # AI notes
-    "clay",           # AI data enrichment
-    "bardeen",        # AI automation
-    "browse-ai",      # AI web scraping
-    "spell",          # AI writing
     
     # ═══════════════════════════════════════════════════════════════
     # YC-backed Startups (Good AI roles)
     # ═══════════════════════════════════════════════════════════════
     "ramp",           # Fintech with AI
-    "brex",           # Corporate cards
     "deel",           # Global payroll
     "vanta",          # Security compliance
     "mercury",        # Banking
-    "gusto",          # HR/Payroll
-    "scale-ai",       # Data labeling
-    "lattice",        # HR platform
-    "gem",            # Recruiting
-    "rippling",       # HR platform
-    "tines",          # Security automation
     "snyk",           # Developer security
-    "contrast",       # App security
     
     # ═══════════════════════════════════════════════════════════════
     # Dev Tools (Good engineering roles)
@@ -362,6 +364,30 @@ ASHBY_COMPANIES = [
     "upstash",        # Serverless Redis/Kafka
     "val-town",       # Cloud functions
     "deno",           # JS runtime
+
+    # ═══════════════════════════════════════════════════════════════
+    # ⚰️ BOARD 404 on 5 Oct 2026 (Ashby) — moved here, NOT removed. They sat inside the
+    # [:max_companies=40] slice and wasted fetch slots. Re-probe before moving back up.
+    # ═══════════════════════════════════════════════════════════════
+    "adept",          # AI agents
+    "inflection",     # Pi AI
+    "together-ai",    # Open source AI
+    "replicate",      # ML deployment
+    "character-ai",   # Character AI
+    "notion-ai",      # Notion AI features
+    "mem-ai",         # AI notes
+    "clay",           # AI data enrichment
+    "bardeen",        # AI automation
+    "browse-ai",      # AI web scraping
+    "spell",          # AI writing
+    "brex",           # Corporate cards
+    "gusto",          # HR/Payroll
+    "scale-ai",       # Data labeling
+    "lattice",        # HR platform
+    "gem",            # Recruiting
+    "rippling",       # HR platform
+    "tines",          # Security automation
+    "contrast",       # App security
 ]
 
 # =====================================
