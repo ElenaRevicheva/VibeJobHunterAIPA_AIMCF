@@ -81,6 +81,27 @@ def test_judge_prompt_formats_and_carries_guards():
         assert guard in rendered, guard
     assert "__LANES__" not in rendered
     assert "hands-on\n   BUILDER" not in rendered
+    # 2026-10-06: no lane may read as secondary (the Shortical "not her primary lanes" veto).
+    assert "ALL of these lanes are EQUAL targets" in rendered
+    assert "are her CORE lanes, not exceptions" not in rendered
+    # 2026-10-06 (review): the executive-support lane Elena kept was still vetoed under
+    # criterion 4 as "primarily administrative". Both halves of the fix must stay in the prompt.
+    assert ("AI-qualified executive support is NOT generic administration: an\n"
+            "   executive assistant or chief of staff whose listing asks for AI tools or automation "
+            "(ChatGPT,\n   Claude, Zapier, Make, n8n, agents) is lane g, even when the role also "
+            "covers inbox, calendar\n   and board materials. Never reject it as \"administrative\"."
+            ) in llm_judge._PROMPT
+    assert ("An executive or personal assistant whose listing asks the assistant to use or build "
+            "AI tools or automations IS this lane, even when the role also covers inbox, calendar "
+            "and travel.") in rendered
+
+
+def test_criterion_4_lane_letter_points_at_executive_support():
+    # Criterion 4 names the executive-support lane by LETTER ("is lane g"). A lane inserted
+    # before it would silently point the judge at another lane; this fails first instead.
+    assert "is lane g," in llm_judge._PROMPT
+    assert "g) AI-QUALIFIED EXECUTIVE SUPPORT" in target_lanes.render_lane_names_for_prompt()
+    assert "   g) AI-QUALIFIED EXECUTIVE SUPPORT — " in llm_judge._PROMPT
 
 
 def test_scoring_prompt_uses_shared_lanes():
@@ -88,6 +109,11 @@ def test_scoring_prompt_uses_shared_lanes():
     src = inspect.getsource(JobMatcher._ai_deep_analysis)
     assert "render_lanes_for_prompt" in src
     assert "Staff/Principal/Lead engineer role" not in src
+    # 2026-10-06: the +20 lane bullet hand-wrote the names and kept the dropped evaluation lane
+    # while omitting creative AI. It now renders them from target_lanes, like the judge.
+    assert "render_lane_names_for_prompt" in src
+    assert "{lane_names}" in src
+    assert "expert AI evaluation" not in src
 
 
 @pytest.mark.parametrize("title", ["Senior Software Engineer (Java)", "VP Sales",
@@ -127,6 +153,66 @@ def test_iron_clad_passes_creative_title_on_a_real_creative_posting(title):
 def test_plain_media_roles_stay_off_lane(title):
     # The creative lane is generative-AI production, not every media job.
     assert not title_on_lane(title), title
+
+
+# 2026-10-06 Professional Outlook p.7 ("Where I fit") — the 17 titles she publishes, copied as
+# written and grouped as she groups them. Kept HERE, not imported from target_lanes, so deleting a
+# title from the registry fails this test instead of silently agreeing with itself. Every title in
+# the registry already runs through the career gate, iron_clad_fit and title_on_lane above.
+OUTLOOK_TITLES = {
+    "AI operations & implementation": (
+        "AI Operations Lead", "AI Implementation Lead", "AI Automation Lead",
+        "AI Workflow Architect", "AI Systems Operator", "Agentic Workflow Designer"),
+    "AI product & transformation": (
+        "AI Product & Automation Lead", "AI Transformation Lead", "AI Innovation Lead",
+        "AI Adoption Lead", "Generative AI Product Lead", "AI Prototyping Lead"),
+    "Creative technology": (
+        "Creative Technologist — GenAI", "Generative AI Producer", "Creative AI Pipeline Builder",
+        "GenAI Production Lead", "AI Innovation Producer"),
+}
+ALL_OUTLOOK_TITLES = [t for ts in OUTLOOK_TITLES.values() for t in ts]
+
+
+def test_outlook_list_is_complete():
+    assert len(ALL_OUTLOOK_TITLES) == 17
+
+
+@pytest.mark.parametrize("title", ALL_OUTLOOK_TITLES)
+def test_every_outlook_title_is_a_lane_title(title):
+    assert title in TITLES, f"Professional Outlook title missing from target_lanes: {title}"
+
+
+@pytest.mark.parametrize("title", OUTLOOK_TITLES["Creative technology"])
+def test_outlook_creative_titles_sit_in_the_creative_lane(title):
+    assert title in CREATIVE_TITLES, title
+
+
+def test_expert_evaluation_lane_is_dropped():
+    # Elena, 6 Oct 2026: dropped. The judge renders LANES, so gone here means gone there.
+    assert not any("EVALUATION" in lane["name"] for lane in target_lanes.LANES)
+    assert "EXPERT AI EVALUATION" not in llm_judge._PROMPT
+    for gone in ("LLM Evaluator", "AI Red Team Specialist", "AI Tutor, Business & Product"):
+        assert gone not in TITLES, gone
+        assert gone not in llm_judge._PROMPT, gone
+    # 2026-10-06 (review): removing the lane alone left the judge approving a $4,000/month eval
+    # gig 3/3 without the feedback block. Criterion 4 now names those gigs.
+    assert ("AI-model evaluation, rating, red-teaming, AI-training or AI-tutoring gigs whose core\n"
+            "   work is grading or teaching a model (Elena dropped that lane)") in llm_judge._PROMPT
+
+
+def test_creative_lane_letter_after_the_drop():
+    # The judge cites lanes by letter ("3h - ..."); dropping the evaluation lane moved creative
+    # from i to h. Nothing parses the letter — this pins what the log lines will now say.
+    assert "   h) CREATIVE AI & GENERATIVE MEDIA SYSTEMS — " in llm_judge._PROMPT
+    assert "i) " not in target_lanes.render_lane_names_for_prompt()
+
+
+def test_outlook_fit_lines_are_her_words():
+    assert target_lanes.OUTLOOK_NOT_MY_FIT == (
+        "Roles whose core value is unaided coding, algorithm drills or live coding — "
+        "or proving the work can be done without AI.")
+    for step in ("business problem", "system design", "deployment", "metrics", "iteration"):
+        assert step in target_lanes.OUTLOOK_GOOD_FIT
 
 
 def test_iron_clad_still_rejects_us_only():

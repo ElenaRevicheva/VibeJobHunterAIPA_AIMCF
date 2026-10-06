@@ -501,11 +501,18 @@ async def outreach_node(state: JobState) -> dict:
         founder_info = await finder.find_founder(state['company'], state['url'])
 
         if not isinstance(founder_info, dict) or not founder_info.get('email'):
-            logger.info(f"[outreach] No founder found for {state['company']}")
+            # 2026-10-06: no contact -> surface to Elena as a lead (human_pending, the existing
+            # LEAD surface), NOT the terminal 'outreach_no_contact' that notify_node drops without a
+            # Telegram or a HubSpot record. find_founder never sets an 'email' key, so EVERY job in
+            # this band lands here. Journal since 1 Sep: the only 3 jobs routed to outreach were
+            # CIO Landing (2 Oct, 59) and Nuro Lead / Senior TPM AI Platform (5 Oct, 59 each, both
+            # UNVERIFIED on-lane passes); each crashed to 'error' and reached her only through the
+            # "Apply FAILED" ping. notify_node keeps the UNVERIFIED label (it reads state['unverified']).
+            logger.info(f"[outreach] No founder contact for {state['company']} -> surfacing as lead")
             return {
                 "outreach_sent": False,
                 "outreach_error": "no founder email found",
-                "status": "outreach_no_contact",
+                "status": "human_pending",
             }
 
         founder_email = founder_info['email']

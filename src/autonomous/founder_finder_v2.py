@@ -18,7 +18,7 @@ import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -39,7 +39,9 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────
 logger = setup_logger(__name__)
 
-FINGERPRINT = "FounderFinderV2_2025-12-20_CACHE_FIX_v3.4"
+# 2026-10-06: bumped for the str company_intel fix, so a deploy can be proven from the journal's
+# "LOADING MODULE" line instead of assumed.
+FINGERPRINT = "FounderFinderV2_2026-10-06_STR_INTEL_FIX_v3.6"
 CACHE_MODEL = "founder_finder_v2"
 
 logger.info(f"🔥 LOADING MODULE: founder_finder_v2 | {FINGERPRINT}")
@@ -284,14 +286,38 @@ class FounderFinderV2:
     # FOUNDER DISCOVERY (CACHE-SAFE - FIXED)
     # ════════════════════════════════════════════════════════════
 
+    @staticmethod
+    def _coerce_company_intel(company_intel: Any) -> Dict[str, Any]:
+        """
+        2026-10-06: find_founder() was typed for a dict, but the LangGraph outreach node
+        (langgraph_pipeline/nodes.py, outreach_node) passes state['url'] — the job POSTING url,
+        a plain str. `company_intel.get("url")` then raised before any lookup ran: journal
+        2 Oct 13:19:01 UTC "[outreach] ERROR CIO Landing", 5 Oct 16:03:59 + 16:04:02 UTC
+        "[outreach] ERROR Nuro", each "'str' object has no attribute 'get'". Those were the only
+        3 jobs routed to outreach since 1 Sep, so every 55-59 job died there.
+
+        A str is kept as TEXT (a summary), never promoted to the company "url": a posting url is a
+        job-board host (jobs.lever.co, boards.greenhouse.io), and handing that to the email search
+        would look up the ATS vendor's staff instead of the hiring company's founders.
+        """
+        if isinstance(company_intel, dict):
+            return company_intel
+        if isinstance(company_intel, str) and company_intel.strip():
+            return {"description": company_intel.strip()}
+        return {}
+
     async def find_founder(
-        self, company_name: str, company_intel: Dict[str, Any]
+        self, company_name: str, company_intel: Union[Dict[str, Any], str, None]
     ) -> Optional[Dict[str, Any]]:
         """
         Find founder info with caching
         
         FIXED: Explicit keyword arguments to avoid signature conflict
+        2026-10-06: company_intel may also be a str (treated as a text summary) or None.
         """
+        _raw_type = type(company_intel).__name__
+        company_intel = self._coerce_company_intel(company_intel)
+        company_url = company_intel.get("url") or ""
         cache_key = f"founder::{company_name.lower().replace(' ', '_')}"
 
         # ─────────────────────────────────────────────────────────
@@ -307,11 +333,20 @@ class FounderFinderV2:
         except Exception as e:
             logger.debug(f"Cache get failed (non-fatal): {e}")
 
+        if not company_url:
+            # 2026-10-06: say so — a skipped email search must not read as "searched, found nobody".
+            # Without this line the only journal trace is the caller's own "no contact" message.
+            # Logged after the cache lookup on purpose: a cache hit runs no search at all.
+            logger.warning(
+                f"[founder] {company_name}: no company url (got {_raw_type}) - "
+                f"email search skipped, result not cached"
+            )
+
         # Fetch from multiple sources
         tasks = [
             self._search_linkedin(company_name),
             self._search_twitter(company_name),
-            self._find_email_pattern(company_name, company_intel.get("url", "")),
+            self._find_email_pattern(company_name, company_url),
             self._check_yc_profile(company_name),
         ]
 
@@ -334,12 +369,17 @@ class FounderFinderV2:
 
         # ─────────────────────────────────────────────────────────
         # FIX v3.4: Use set_data() for arbitrary data caching
+        # 2026-10-06: only when a company url was given. Without one no email search ran, so the
+        # record is partial by construction; caching it under founder::<company> would hand the
+        # orchestrator's find_and_message() — which DOES resolve a url — an email-less record for
+        # the cache's 24h.
         # ─────────────────────────────────────────────────────────
-        try:
-            self.cache.set_data(cache_key, founder_info)
-            logger.debug(f"📦 Cached founder info for {company_name}")
-        except Exception as e:
-            logger.warning(f"Cache set failed (non-fatal): {e}")
+        if company_url:
+            try:
+                self.cache.set_data(cache_key, founder_info)
+                logger.debug(f"📦 Cached founder info for {company_name}")
+            except Exception as e:
+                logger.warning(f"Cache set failed (non-fatal): {e}")
 
         return founder_info
     

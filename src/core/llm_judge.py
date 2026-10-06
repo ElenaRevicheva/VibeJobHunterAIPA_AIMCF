@@ -95,16 +95,51 @@ _MAX_TOKENS = int(os.environ.get("JUDGE_MAX_TOKENS", "300"))
 # here as "not a hands-on builder". Criteria 2, 5 and 7 close the other veto failures
 # seen in production: US Eastern hours read as incompatible with Panama, customers
 # counted as employees, and opinions or guesses about a company used as reasons.
-from .target_lanes import render_lanes_for_prompt  # noqa: E402
+#
+# 2026-10-06: LANE BIAS. The WHO SHE IS text called only product management, solution design,
+# consulting, strategy, automation and leadership her "CORE lanes", and opened by calling her a
+# "product lead and solutions architect". The model read the lanes left out of that sentence as
+# secondary: 'judge VETO (3i - ... creative AI video production, which is not aligned with her
+# primary target lanes.) → discard: Shortical (AI Video Creator / AI Filmmaker)' on 5 Oct — a
+# title lane i named — and lanes d, f, h, i were vetoed as "not AI product management / solutions
+# architecture". Letters are as they were before 6 Oct (d automation, f GEO, h evaluation,
+# i creative). Log evidence: the cto-aipa diagnosis (docs/oracle/2026-10-06_vjh_no_delivery_
+# diagnosis.md) quotes the i line above, and Oracle's serpapi-jobs logs hold '(3d, the role
+# requires advanced n8n experience which may not align with her focus on AI product management
+# and solutions' (1 Oct, AI Automation Engineer - n8n Expert) and '(3h, the role is not
+# primarily focused on AI product management, solutions architecture, or AI leadership.)'
+# (3 Oct, GTM Engineer at Niuro). A grep of those logs found no such line for f; f comes from
+# the diagnosis's summary. Every lane name is now rendered into that sentence, criterion 3 says
+# a job in ANY one lane meets it, and her Professional Outlook's own GOOD FIT / NOT MY FIT
+# lines are shown.
+#
+# 2026-10-06 (review): those changes alone still let criterion 4 veto the executive-support
+# lane Elena kept. Local replay (gpt-4o-mini, synthetic "AI Personal Assistant", USD 3,500,
+# builds GPTs, zaps and agents, with the local feedback block): 0/3 approved, each "4. The role
+# is primarily focused on administrative tasks ...". Criterion 4 now says an assistant whose
+# listing asks for AI tools or automation is lane g. It names the lane by LETTER, so
+# evals/test_target_lanes.py pins "g) AI-QUALIFIED EXECUTIVE SUPPORT": a lane inserted before
+# it fails that test instead of silently pointing the judge at another lane.
+#
+# 2026-10-06 (review): dropping the evaluation lane from LANES did not stop the judge approving
+# those gigs. Local replay, no feedback block, synthetic "AI Evaluation Specialist (contract)"
+# at USD 4,000/month: approved 3/3 both before and after the lane fixes above. The same gig at
+# USD 40/hour for 20 hours/week was vetoed only as "6 The pay is below $3,000" — that is about
+# $3,470 a month, so the right verdict for the wrong reason. Criterion 4 now names evaluation / rating /
+# red-teaming / AI-training gigs. Same replay: 0/3 approved, each citing criterion 4, while an
+# AI Product Manager who owns an eval framework and an AI Automation Lead who sets up eval
+# checks stayed 3/3 approved, with and without the feedback block.
+from .target_lanes import (  # noqa: E402
+    render_fit_for_prompt, render_lane_names_for_prompt, render_lanes_for_prompt)
 
 _PROMPT_TEMPLATE = """You are screening ONE job for Elena Revicheva. Decide whether it deserves HER time.
 
 WHO SHE IS
-- An AI-augmented operator, product lead and solutions architect. Seven years as Deputy CEO
-  and Chief Legal Officer, running large regulated digital-transformation programs at board
-  level. Since May 2025 she has designed, shipped and run twelve live AI systems (agents,
-  automation pipelines, CRM automation, a public AI-visibility API) as the sole architect and
-  operator.
+- An AI-augmented operator, product lead, solutions architect and creative technologist.
+  Seven years as Deputy CEO and Chief Legal Officer, running large regulated
+  digital-transformation programs at board level. Since May 2025 she has designed, shipped and
+  run twelve live AI systems (agents, automation pipelines, CRM automation, a public
+  AI-visibility API) as the sole architect and operator.
 - She is also a creative director of generative media: 8 published AI films made with her own
   automated production pipeline (a bot that directs a dozen image and video models, edits,
   mixes and publishes), and 99 published poems in Russian and English. Creative AI roles that
@@ -119,8 +154,13 @@ WHO SHE IS
   implementation, she owns requirements, architecture, orchestration, evaluation, deployment,
   monitoring and production decisions. A listing that expects or encourages AI tools (Claude,
   Cursor, Copilot, "AI-native", "AI-first") is a POSITIVE signal: that is how she works.
-- So AI product management, solution design, AI consulting, AI strategy and transformation,
-  automation and AI leadership are her CORE lanes, not exceptions to a "builder" rule.
+- So EVERY lane in criterion 3 is a CORE lane, and all of them are EQUAL:
+  __LANE_NAMES__.
+  None is primary or secondary, and none is an exception to a "builder" rule.
+- In her own published words (Professional Outlook, Oct 2026):
+__FIT__
+  NOT MY FIT is the coding disqualifiers of criterion 3 in her own words — never a wider
+  reason to reject.
 - She lives in Panama (Latin America), UTC-5 all year, works fully remote, and needs at least
   $3,000 USD per month.
 
@@ -141,6 +181,9 @@ APPROVE the job ONLY IF ALL of these are true:
 
 3. THE ROLE IS IN ONE OF HER TARGET LANES:
 __LANES__
+   ALL of these lanes are EQUAL targets. A job squarely in ANY ONE of them meets criterion 3.
+   There is no primary lane: "not product management" or "not solutions architecture" is
+   never a reason to reject a job that sits in another lane.
    Judge the WORK the listing describes, not whether the title contains "engineer" or
    "builder". A title from these lanes is a strong fit signal on its own.
    EVERY lane is AI work: a role whose work has no AI, LLM, agent or automation component
@@ -170,9 +213,16 @@ __LANES__
    research); machine-learning ENGINEERING focused on training models; quota-carrying sales
    (account executive, SDR, BDR); recruiting; HR; legal or counsel; finance or accounting;
    generic marketing; developer relations or advocacy; data entry, data labeling or annotation
-   gigs; NON-AI executive leadership (VP Sales, CFO, COO, a "Head of" anything with no AI mandate).
+   gigs; AI-model evaluation, rating, red-teaming, AI-training or AI-tutoring gigs whose core
+   work is grading or teaching a model (Elena dropped that lane); NON-AI executive leadership (VP Sales, CFO, COO, a "Head of" anything with no AI mandate).
    AI LEADERSHIP IS A LANE: Chief AI Officer, Head / VP / Director of AI, AI Transformation
    leaders and similar are NEVER rejected for seniority.
+   The same holds for the other lanes: GEO / AEO / AI search visibility is NOT generic
+   marketing, creative AI production that generates with models is NOT generic video or
+   content work, and AI-qualified executive support is NOT generic administration: an
+   executive assistant or chief of staff whose listing asks for AI tools or automation (ChatGPT,
+   Claude, Zapier, Make, n8n, agents) is lane g, even when the role also covers inbox, calendar
+   and board materials. Never reject it as "administrative".
 
 5. THE EMPLOYER can realistically hire her: startups, scale-ups, product companies, agencies,
    consultancies, fractional or contract engagements.
@@ -204,7 +254,11 @@ Description: {desc}
 Respond with ONLY JSON, nothing else: {{"fit": true or false, "reason": "<criterion number, then one short sentence>"}}"""
 
 # Rendered once at import, so every caller's _PROMPT.format(...) keeps its exact signature.
-_PROMPT = _PROMPT_TEMPLATE.replace("__LANES__", render_lanes_for_prompt(indent="   "))
+# 2026-10-06: three markers now, all rendered from target_lanes.py (each one brace-checked there).
+_PROMPT = (_PROMPT_TEMPLATE
+           .replace("__LANES__", render_lanes_for_prompt(indent="   "))
+           .replace("__LANE_NAMES__", render_lane_names_for_prompt())
+           .replace("__FIT__", render_fit_for_prompt(indent="  ")))
 
 
 def _feedback_block() -> str:

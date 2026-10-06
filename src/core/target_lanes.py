@@ -24,13 +24,26 @@ loads, and that process runs under system python3.
 HOME_TEXT = "Panama (Latin America), UTC-5 all year"
 MIN_PAY_TEXT = "$3,000 USD per month"
 
+# 2026-10-06 Professional Outlook p.7 ("Where I fit") and p.8 — her own published words, copied
+# as written (p.8's sentence minus its "I'm looking for" opener). The judge renders them, so what
+# VJH counts as "her job" is what she tells employers it is. Braces forbidden, same as the lanes:
+# the judge prompt goes through str.format().
+OUTLOOK_LOOKING_FOR = ("a team that wants someone to own the path from an ambiguous problem to a "
+                       "deployed, measurable AI system")
+OUTLOOK_GOOD_FIT = ("business problem → process → system design → AI & tools → implementation → "
+                    "deployment → people → metrics → iteration")
+OUTLOOK_NOT_MY_FIT = ("Roles whose core value is unaided coding, algorithm drills or live coding — "
+                      "or proving the work can be done without AI.")
+
 # Each title is a REAL posting shape. Titles are what the tests push through the
 # gates, so keep them as employers actually write them.
 LANES = (
     {
         "name": "AI PRODUCT & PROGRAM MANAGEMENT",
+        # 2026-10-06: "prototyping" added — the Outlook's AI Prototyping Lead is this lane.
         "work": ("owning AI products, agents or automation platforms end to end — "
-                 "discovery, roadmap, specs, shipping and adoption. No hand-coding required."),
+                 "discovery, prototyping, roadmap, specs, shipping and adoption. No hand-coding "
+                 "required."),
         "titles": (
             "AI Product Manager",
             "Senior AI Product Manager",
@@ -46,6 +59,11 @@ LANES = (
             "AI Delivery Manager",
             "AI Implementation Manager",
             "AI Product Operations Manager",
+            # 2026-10-06 Professional Outlook p.7 ("AI product & transformation") — titles she
+            # publishes as hers that VJH had never listed.
+            "AI Product & Automation Lead",
+            "Generative AI Product Lead",
+            "AI Prototyping Lead",
         ),
     },
     {
@@ -77,9 +95,10 @@ LANES = (
     },
     {
         "name": "AI LEADERSHIP & TRANSFORMATION",
-        "work": ("setting AI strategy and leading AI adoption, transformation and teams at "
-                 "startups, scale-ups or as a fractional leader. Seniority is NOT a reason "
-                 "to reject in this lane — seven years as Deputy CEO is exactly the fit."),
+        # 2026-10-06: "innovation" added — the Outlook's AI Innovation Lead is this lane.
+        "work": ("setting AI strategy and leading AI adoption, innovation, transformation and "
+                 "teams at startups, scale-ups or as a fractional leader. Seniority is NOT a "
+                 "reason to reject in this lane — seven years as Deputy CEO is exactly the fit."),
         "titles": (
             "Chief AI Officer",
             "Fractional Chief AI Officer",
@@ -97,12 +116,16 @@ LANES = (
             "AI Governance Lead",
             "Fractional CTO, AI",
             "Founding AI Lead",
+            "AI Innovation Lead",                 # 2026-10-06 Professional Outlook p.7
         ),
     },
     {
         "name": "AI AUTOMATION & OPERATIONS",
-        "work": ("building and running automations and AI agents with no-code / low-code "
-                 "tools (n8n, Make, Zapier, Clay) and LLMs, and operating AI workflows."),
+        # 2026-10-06: reworded to the Outlook's "AI operations & implementation" lane — designing
+        # and implementing the workflow is the job, not only running it.
+        "work": ("designing, implementing and running AI workflows, automations and agents with "
+                 "no-code / low-code tools (n8n, Make, Zapier, Clay) and LLMs, and operating AI "
+                 "systems in production."),
         "titles": (
             "AI Automation Specialist",
             "AI Automation Manager",
@@ -122,6 +145,13 @@ LANES = (
             # 2026-09-20: same replacement intake, same rule — each traceable to a positive.
             "Business Operations Lead, AI",       # Business Ops & Growth Lead @ Niuro
             "AI Solutions Specialist",
+            # 2026-10-06 Professional Outlook p.7 ("AI operations & implementation") — titles she
+            # publishes as hers that VJH had never listed.
+            "AI Operations Lead",
+            "AI Implementation Lead",
+            "AI Workflow Architect",
+            "AI Systems Operator",
+            "Agentic Workflow Designer",
         ),
     },
     {
@@ -175,9 +205,16 @@ LANES = (
     },
     {
         "name": "AI-QUALIFIED EXECUTIVE SUPPORT",
+        # 2026-10-06: the last sentence is new. Elena kept this lane on 6 Oct, yet the judge
+        # still vetoed it as "4. This role is primarily administrative" — even for
+        # "AI-Forward Executive Assistant to the CEO", a title listed below, when the listing
+        # asked for Zapier/Make automations next to inbox and calendar work. A role that covers
+        # inbox and calendar AND asks for AI tooling is this lane, not the "not" line.
         "work": ("running and automating a founder's or executive's operations with AI tools "
                  "(ChatGPT / Claude, Zapier / Make / n8n, agents, research and reporting "
-                 "automation)."),
+                 "automation). An executive or personal assistant whose listing asks the "
+                 "assistant to use or build AI tools or automations IS this lane, even when the "
+                 "role also covers inbox, calendar and travel."),
         "not": ("generic administrative, secretarial, calendar-only, household, lifestyle or "
                 "travel-concierge assistants with no AI or automation in the work itself."),
         "titles": (
@@ -191,20 +228,10 @@ LANES = (
             "Executive Operations Manager, AI",
         ),
     },
-    {
-        "name": "EXPERT AI EVALUATION & TRAINING (contract)",
-        "work": ("expert-level evaluation, red-teaming and training of AI models and agents in "
-                 "domains she knows: AI systems, automation, product, business and law."),
-        "not": "generic data labeling, annotation or transcription gigs.",
-        "titles": (
-            "AI Evaluation Specialist",
-            "LLM Evaluator",
-            "AI Red Team Specialist",
-            "AI Trainer, Expert Contractor",
-            "AI Quality Reviewer",
-            "AI Tutor, Business & Product",
-        ),
-    },
+    # 2026-10-06 (Elena): the "EXPERT AI EVALUATION & TRAINING (contract)" lane is DROPPED. It
+    # is not in her Professional Outlook, and the judge must not approve those gigs as hers. Its
+    # gate keywords (job_gate / fit_gate) were left alone on purpose: the gates are the RECALL
+    # layer, and the judge, which renders this list, is where an off-lane job is now vetoed.
     {
         # 2026-09-28 (Elena: "Make step 2"). Her creative work was invisible to her own job search:
         # not one creative word in any lane, so VJH never searched for it and the judge would have
@@ -212,7 +239,9 @@ LANES = (
         # production pipeline (atuona.xyz/aifilmstudio), 99 published poems in two languages, a bot
         # that drives a dozen image and video models with an LLM as director. In this field,
         # operating the models IS the production method — nothing to apologise for.
-        # Added LAST so the letters the judge cites for the other lanes (3a..3h) do not shift.
+        # Added LAST so the letters the judge cites for the other lanes do not shift.
+        # 2026-10-06: dropping the evaluation lane moved this one from 3i to 3h. Nothing in the
+        # code parses lane letters (grepped); only old log lines say "3i".
         "name": "CREATIVE AI & GENERATIVE MEDIA SYSTEMS",
         "work": ("designing and running generative image, video and audio production end to end — "
                  "concept and narrative, directing the models, and building the pipeline that takes "
@@ -233,6 +262,10 @@ LANES = (
             "AI Content Production Lead",
             "AI Innovation Producer",
             "Head of Generative AI Content",
+            # 2026-10-06 Professional Outlook p.7 ("Creative technology"), written as she
+            # publishes them. The comma form above stays: employers write both.
+            "Creative Technologist — GenAI",
+            "Creative AI Pipeline Builder",
         ),
     },
 )
@@ -244,17 +277,42 @@ def all_titles():
         yield from lane["titles"]
 
 
+def _letter(i: int) -> str:
+    return chr(ord("a") + i)
+
+
+def _no_braces(text: str) -> str:
+    if "{" in text or "}" in text:
+        raise ValueError("target lane text must not contain braces")
+    return text
+
+
 def render_lanes_for_prompt(indent: str = "   ") -> str:
     """The lane block both LLM prompts embed. Braces are forbidden: the judge's
     prompt is later passed through str.format()."""
     out = []
     for i, lane in enumerate(LANES):
-        letter = chr(ord("a") + i)
-        out.append(f"{indent}{letter}) {lane['name']} — {lane['work']}")
+        out.append(f"{indent}{_letter(i)}) {lane['name']} — {lane['work']}")
         out.append(f"{indent}   Titles include: " + "; ".join(lane["titles"]) + ".")
         if lane.get("not"):
             out.append(f"{indent}   DISQUALIFY the non-AI version: {lane['not']}")
-    text = "\n".join(out)
-    if "{" in text or "}" in text:
-        raise ValueError("target lane text must not contain braces")
-    return text
+    return _no_braces("\n".join(out))
+
+
+def render_lane_names_for_prompt() -> str:
+    """'a) NAME, b) NAME, ...' — the same letters render_lanes_for_prompt prints.
+    2026-10-06: the judge named only some lanes as her "CORE" ones and vetoed the rest as
+    "not aligned with her primary target lanes" (Shortical, 5 Oct). Rendering EVERY name from
+    here means a lane added later is equal in the prompt the day it is added."""
+    return _no_braces(", ".join(f"{_letter(i)}) {lane['name']}" for i, lane in enumerate(LANES)))
+
+
+def render_fit_for_prompt(indent: str = "  ") -> str:
+    """2026-10-06: her Professional Outlook's GOOD FIT / NOT MY FIT lines, for the LLM prompts.
+    "Unaided" is the word that matters, so the text says so: coding THROUGH her AI environment
+    is her work, and the line must never become a wider coding veto than the judge's own."""
+    return _no_braces("\n".join((
+        f"{indent}GOOD FIT — {OUTLOOK_LOOKING_FOR}: {OUTLOOK_GOOD_FIT}.",
+        f"{indent}NOT MY FIT — {OUTLOOK_NOT_MY_FIT}",
+        f"{indent}\"Unaided\" is the word that matters: coding THROUGH her AI environment is her work.",
+    )))

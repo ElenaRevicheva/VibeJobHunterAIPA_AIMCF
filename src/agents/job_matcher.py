@@ -944,8 +944,13 @@ class JobMatcher:
             # are hers. This prompt had said "THREE lanes" since 2026-07-30, never received AI
             # product management (2026-08-05) or AI executive support (2026-08-18), and still
             # paid +15 for Staff/Principal engineer titles — the shape she rejects.
-            from ..core.target_lanes import render_lanes_for_prompt
+            # 2026-10-06: the "+20 target lanes" bullet below hand-wrote the lane names, so when
+            # Elena dropped the evaluation lane on 6 Oct it still paid +20 for it and never named
+            # creative AI — the scorer and the judge disagreeing, the drift this block exists to
+            # prevent. The names are now rendered from target_lanes too, same letters as the judge.
+            from ..core.target_lanes import render_lane_names_for_prompt, render_lanes_for_prompt
             lanes_text = render_lanes_for_prompt(indent="  ")
+            lane_names = render_lane_names_for_prompt()
 
             prompt = f"""Analyze this job posting against Elena's profile. Return a JSON score and reasons.
 
@@ -980,10 +985,9 @@ BASE: 60 (for AI/ML roles) or 50 (for other engineering)
 POSITIVE (add points):
 +25: Founding Engineer / First Engineer / 0-1 role
 +20: AI/ML Product Engineer role
-+20: Squarely in one of her target lanes above — AI product or program management, AI
-     solutions architecture or consulting, AI leadership or transformation, AI automation,
-     AI-augmented building, GEO/AEO, AI-qualified executive support, expert AI evaluation.
-     These are her strongest lanes, not side quests.
++20: Squarely in ANY ONE of her target lanes above —
+     {lane_names}.
+     All are equal; none is a side quest.
 +10: Fully remote AND open to LATAM / worldwide (she can actually hold the job)
 +10: States pay at or above $3,000 USD/month
 +15: YC / Seed / Series A startup

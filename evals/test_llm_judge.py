@@ -79,7 +79,10 @@ from src.utils.llm_chain import PROFILE_SCORING, _KEY_FOR, _key  # noqa: E402
 _AVAILABLE_PROVIDERS = [p for p in PROFILE_SCORING if _key(_KEY_FOR[p])]
 HAS_API_KEY = bool(_AVAILABLE_PROVIDERS)
 
-pytestmark = pytest.mark.skipif(
+# 2026-10-06: was a module-level `pytestmark`, which also skipped the deterministic check of the
+# production judge prompt at the bottom of this file whenever no key was set. Now it marks only
+# the tests that call an LLM; the judge_client fixture skips them as well.
+_needs_llm = pytest.mark.skipif(
     not HAS_API_KEY,
     reason="No LLM provider key found (OpenAI / Gemini / Groq / Grok / Anthropic) — "
            "Layer 4 (LLM judge) requires at least one. Set one in the environment "
@@ -498,6 +501,7 @@ def _engine_routing_bucket(score: float) -> str:
 # Individual case tests — each case gets its own test for clear reporting
 # ─────────────────────────────────────────────────────────────────────────────
 
+@_needs_llm
 @pytest.mark.parametrize("case", JUDGE_CASES, ids=[c["id"] for c in JUDGE_CASES])
 def test_judge_verdict_matches_expected(judge_client, case):
     """
@@ -542,6 +546,7 @@ def test_judge_verdict_matches_expected(judge_client, case):
 # Agreement rate test — the headline metric
 # ─────────────────────────────────────────────────────────────────────────────
 
+@_needs_llm
 def test_overall_agreement_rate(judge_client, deterministic_matcher, judge_profile):
     """
     The LLM judge must agree with the deterministic engine on ≥ 75% of cases.
@@ -645,6 +650,7 @@ def test_overall_agreement_rate(judge_client, deterministic_matcher, judge_profi
 GOLDEN_SET_PATH = Path(__file__).parent / "golden_set.json"
 
 
+@_needs_llm
 def test_golden_set_judge_consistency(judge_client, deterministic_matcher, judge_profile):
     """
     Run the LLM judge against the FULL golden set (22 entries) and report
@@ -718,3 +724,37 @@ def test_golden_set_judge_consistency(judge_client, deterministic_matcher, judge
     # Soft threshold — 70% for the full golden set
     # (some golden set entries are edge cases that legitimately have ambiguous routing)
     assert rate >= 0.70, report
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The PRODUCTION judge prompt (src/core/llm_judge.py) — deterministic, no LLM call (2026-10-06)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# The tests above score a separate career-advisor prompt. This one checks the prompt that
+# actually vetoes jobs in production. On 5 Oct it vetoed "AI Video Creator / AI Filmmaker"
+# (Shortical) as "not aligned with her primary target lanes" — a title its own lane i named —
+# because the text called only some lanes "CORE". Every lane must be named as an equal target,
+# her Professional Outlook's NOT MY FIT line must be there in her words, and no brace may leak
+# in from the rendered text: the prompt goes through str.format().
+
+def test_production_judge_prompt_names_every_lane_and_her_not_my_fit():
+    from string import Formatter
+    from src.core import llm_judge, target_lanes
+
+    rendered = llm_judge._PROMPT.format(feedback="", title="x", company="y",
+                                        location="z", desc="d")
+    for lane in target_lanes.LANES:
+        assert lane["name"] in rendered, lane["name"]
+    assert target_lanes.OUTLOOK_NOT_MY_FIT in rendered
+    assert target_lanes.OUTLOOK_GOOD_FIT in rendered
+    assert "ALL of these lanes are EQUAL targets" in rendered
+    assert "EXPERT AI EVALUATION" not in rendered          # dropped by Elena, 6 Oct 2026
+    for marker in ("__LANES__", "__LANE_NAMES__", "__FIT__"):
+        assert marker not in rendered, marker
+
+    # No braces: the only format fields are the five every caller passes, and after formatting
+    # the only braces left are the JSON answer shape on the last line.
+    fields = {f for _, f, _, _ in Formatter().parse(llm_judge._PROMPT) if f is not None}
+    assert fields == {"feedback", "title", "company", "location", "desc"}
+    body = rendered.rsplit("Respond with ONLY JSON", 1)[0]
+    assert "{" not in body and "}" not in body

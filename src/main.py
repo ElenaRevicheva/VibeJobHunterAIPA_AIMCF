@@ -16,6 +16,10 @@ from pathlib import Path
 # bot TOKEN — ~8,640 lines a day in the systemd journal: half of VJH's journal, and a secret written
 # to a log thousands of times a day. Warnings and errors still log.
 logging.getLogger("httpx").setLevel(logging.WARNING)
+# 2026-10-06: verified from the journal — the last 'api.telegram.org/bot' line is 28 Sep 15:43:26 UTC, the
+# minute the line above shipped (b38836e); 99,017 such lines 1-28 Sep, 0 since. httpcore (httpx's transport)
+# is held at WARNING too, so turning the root up to DEBUG cannot refill the journal with per-request traces.
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 from .core import ProfileManager, get_settings, ApplicationStatus
 from .agents import JobMatcher, ContentGenerator, ApplicationManager

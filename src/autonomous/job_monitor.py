@@ -35,6 +35,38 @@ logger = setup_logger(__name__)
 SEEN_TTL_DAYS = int(__import__('os').getenv("SEEN_TTL_DAYS", "21"))
 
 
+# ─────────────────────────────────────────────────────────
+# HONEST SOURCE RESULT LINE (added 2026-10-06)
+# From 2 Oct 02:56 UTC Torre answered every search with HTTP 400 and the log
+# printed "✅ Torre.ai: 0 jobs found" every hour for four days: `if status != 200:
+# continue` and `except Exception: continue` swallowed the refusals, and the last
+# line could not tell "nothing matched" from "every call failed". Those two must
+# never print the same line. Sources that make several requests count their
+# failures and report through this one function.
+# ─────────────────────────────────────────────────────────
+def _source_result_line(label: str, jobs: int, failed: int, attempted: int,
+                        first_error: str = "", unit: str = "requests") -> tuple:
+    """Return (logging level, message) for a source's final line.
+
+    0 jobs with failures → ❌ at WARNING; some jobs but some failures → ⚠️ at
+    WARNING; no failures → ✅ at INFO (a genuine empty result stays ✅)."""
+    import logging as _logging
+    why = f" ({first_error})" if first_error else ""
+    if failed and jobs == 0:
+        return (_logging.WARNING,
+                f"❌ {label}: 0 jobs — {failed}/{attempted} {unit} failed{why}")
+    if failed:
+        return (_logging.WARNING,
+                f"⚠️ {label}: {jobs} jobs found — {failed}/{attempted} {unit} failed{why}")
+    return (_logging.INFO, f"✅ {label}: {jobs} jobs found")
+
+
+def _http_error(status: int, body: str) -> str:
+    """'HTTP 400 {"meta":...}' — status plus the first 120 chars of the body, one line."""
+    snippet = " ".join((body or "").split())[:120]
+    return f"HTTP {status} {snippet}".strip()
+
+
 class JobMonitor:
     """
     High-signal job discovery with career gating
@@ -171,7 +203,11 @@ class JobMonitor:
             "yc_oss": 0,   # added 2026-07-30
             "getonbrd": 0, # added 2026-08-04 — LATAM-first, Torre-shaped
             "ai_native_builder": 0,  # added 2026-08-29 — curated AI-builder board
+            "puente": 0,   # added 2026-10-06 — LATAM placement network, USD monthly pay
         }
+        # 2026-10-06: per-source failure counts, written by the sources below, so
+        # safe_fetch and the summary can say "❌ … n/m failed" instead of "✅ 0".
+        self._source_health = {}
 
         # ==============================================================
         # 1️⃣ ATS APIs — PRIMARY SOURCE (Greenhouse, Lever, Workable)
@@ -262,11 +298,21 @@ class JobMonitor:
         logger.info("🔍 Fetching from secondary sources...")
         
         # Run secondary sources in parallel with individual timeouts
-        async def safe_fetch(name: str, coro, timeout: int = 15):
+        async def safe_fetch(name: str, coro, timeout: int = 15, key: str = ""):
             """Wrapper to safely fetch with timeout and error handling"""
             try:
                 result = await asyncio.wait_for(coro, timeout=timeout)
-                logger.info(f"   ✅ {name}: {len(result)} jobs")
+                # 2026-10-06: this line printed "✅ Torre.ai (LATAM): 0 jobs" for four
+                # days while every Torre call was HTTP 400. A source that reports
+                # failures (key → self._source_health) gets the honest line instead.
+                health = self._source_health.get(key) if key else None
+                if health and health.get("failed"):
+                    lvl, msg = _source_result_line(
+                        name, len(result), health["failed"], health["attempted"],
+                        health.get("first_error", ""), health.get("unit", "requests"))
+                    logger.log(lvl, f"   {msg}")
+                else:
+                    logger.info(f"   ✅ {name}: {len(result)} jobs")
                 return result
             except asyncio.TimeoutError:
                 logger.warning(f"   ⚠️ {name}: timeout after {timeout}s")
@@ -288,21 +334,34 @@ class JobMonitor:
             # 24-27s (its keyword list grew 16 + 28 Sep), so from 17 Sep Torre — her LATAM-first
             # source — delivered ~0 per cycle. 90s ≈ 3x the measured run; the gather already waits
             # up to 150s (AI-Native-Builder), so the cycle is not lengthened.
-            safe_fetch("Torre.ai (LATAM)", self._search_torre(), 90),
-            safe_fetch("Himalayas (global)", self._search_himalayas(), 40),  # 13 searches, 4 at a time, 8 s cap each
+            # 2026-10-06: Torre refuses VJH's request (HTTP 400 since 2 Oct, see
+            # _search_torre) and now stops after 3 identical refusals, so it ends in
+            # ~1 s. When it answers, 59 sequential searches ≈ 30 s (24-27 s measured
+            # for ~50 on 29 Sep) — a third of this budget, so 90 s stays.
+            safe_fetch("Torre.ai (LATAM)", self._search_torre(), 90, key="torre"),
+            # 2026-10-06: 24 searches, 4 at a time, 8 s cap each — measured 2.1 s live
+            # (all HTTP 200), ~5% of 40 s, so neither the budget nor concurrency moves.
+            safe_fetch("Himalayas (global)", self._search_himalayas(), 40, key="himalayas"),
             safe_fetch("BrightData LinkedIn", self._search_brightdata_linkedin(), 60),
-            safe_fetch("Remotive", self._search_remotive(), 20),
+            # 2026-10-06: ONE feed request per 6 h now (was ~30 per cycle), see _search_remotive.
+            safe_fetch("Remotive", self._search_remotive(), 20, key="remotive"),
             # 2026-08-29: ai-native-builder.com — a CURATED board, not a volume source.
             # Measured on its full 345-posting sitemap: 72.4% of it clears JobGate,
             # against ~5.6% fleet-wide, and it carries ZERO ML-researcher titles.
             # Generous timeout because the FIRST run warms a per-slug disk cache
             # (~150 detail fetches); every later run is served from cache in seconds.
             safe_fetch("AI-Native-Builder", self._search_ai_native_builder(), 150),
+            # 2026-10-06: Puente Talent Partners — LATAM-only placement network, role pay
+            # stated in USD per month on 49 of 53 roles (6 Oct; Elena approved the source
+            # 6 Oct). First run
+            # fetches ~55 role pages 4 at a time; later runs serve them from the
+            # in-process cache, so only the listing page is fetched.
+            safe_fetch("Puente (LATAM placement)", self._search_puente(), 45, key="puente"),
             return_exceptions=True
         )
 
         # Unpack results
-        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs, remotive_jobs, anb_jobs = secondary_results
+        hn_jobs, remoteok_jobs, yc_jobs, wellfound_jobs, wwr_jobs, ai_jobs, torre_jobs, himalayas_jobs, bd_linkedin_jobs, remotive_jobs, anb_jobs, puente_jobs = secondary_results
 
         # Handle any exceptions that slipped through
         for name, jobs in [("hn", hn_jobs), ("remoteok", remoteok_jobs),
@@ -310,7 +369,7 @@ class JobMonitor:
                            ("wwr", wwr_jobs), ("aijobs", ai_jobs),
                            ("torre", torre_jobs), ("himalayas", himalayas_jobs),
                            ("bd_linkedin", bd_linkedin_jobs), ("remotive", remotive_jobs),
-                           ("ai_native_builder", anb_jobs)]:
+                           ("ai_native_builder", anb_jobs), ("puente", puente_jobs)]:
             if isinstance(jobs, Exception):
                 logger.warning(f"   ⚠️ {name} exception: {jobs}")
                 jobs = []
@@ -333,10 +392,18 @@ class JobMonitor:
         logger.info(f"   Wellfound:       {source_counts['wellfound']} jobs")
         logger.info(f"   WeWorkRemotely:  {source_counts['wwr']} jobs")
         logger.info(f"   AI-Jobs.net:     {source_counts['aijobs']} jobs")
-        logger.info(f"   Torre.ai (LATAM):{source_counts['torre']} jobs")
-        logger.info(f"   Himalayas (glbl):{source_counts['himalayas']} jobs")
+        # 2026-10-06: a source whose calls failed says so here too — "0 jobs" alone
+        # read as "nothing matched" for the four days Torre was refusing every call.
+        def _fail_tag(key: str) -> str:
+            h = self._source_health.get(key) or {}
+            if not h.get("failed"):
+                return ""
+            return f"  ❌ {h['failed']}/{h['attempted']} {h.get('unit', 'requests')} failed"
+        logger.info(f"   Torre.ai (LATAM):{source_counts['torre']} jobs{_fail_tag('torre')}")
+        logger.info(f"   Puente (LATAM):  {source_counts.get('puente', 0)} jobs{_fail_tag('puente')}")
+        logger.info(f"   Himalayas (glbl):{source_counts['himalayas']} jobs{_fail_tag('himalayas')}")
         logger.info(f"   BrightData LI:   {source_counts['bd_linkedin']} jobs")
-        logger.info(f"   Remotive:        {source_counts.get('remotive', 0)} jobs")
+        logger.info(f"   Remotive:        {source_counts.get('remotive', 0)} jobs{_fail_tag('remotive')}")
         logger.info(f"   AI-Native-Bldr:  {source_counts.get('ai_native_builder', 0)} jobs")
         logger.info(f"   TOTAL:           {len(all_jobs)} jobs")
         logger.info("=" * 60)
@@ -359,6 +426,7 @@ class JobMonitor:
         _SRC_YIELD_ORDER = (
             "ai_native_builder",   # 72% gate pass, measured 2026-08-30
             "torre",               # the long-standing best converter (LATAM-first)
+            "puente",              # 2026-10-06: LATAM-only placement; measured live 6 Oct: JobGate 23/53 (43%)
             "getonbrd",            # LATAM, carries real salary data
             "remotive",
             "yc_oss",
@@ -628,6 +696,31 @@ class JobMonitor:
             logger.warning(f"⚠️ RemoteOK failed: {e}")
         return jobs
 
+    def _record_health(self, key: str, failed: int, attempted: int,
+                       first_error: str = "", unit: str = "requests") -> None:
+        """2026-10-06: let safe_fetch and the SOURCE SUMMARY see that a source's
+        calls failed, so an empty result is never reported as a clean ✅."""
+        self.__dict__.setdefault("_source_health", {})[key] = {
+            "failed": failed, "attempted": attempted,
+            "first_error": first_error, "unit": unit,
+        }
+
+    # 2026-10-06 — Remotive feed cache. Measured today: the free API IGNORES
+    # `search` — the unfiltered feed and ?search=AI%20automation return the same 18
+    # job ids — and its own notice says "excessive requests (more than 2x per
+    # minute) will be blocked … we advise max. 4 times a day". The old loop sent ~30
+    # identical requests every hourly cycle. One fetch per 6 h, held in-process.
+    _REMOTIVE_TTL_S = 6 * 3600
+    _REMOTIVE_CACHE: Dict[str, Any] = {}
+
+    @staticmethod
+    def _remotive_matches(item: Dict, terms) -> bool:
+        """Case-insensitive partial match over title + description — what Remotive
+        documents its `search` parameter as doing, applied locally (2026-10-06)."""
+        import re as _re
+        blob = f"{item.get('title', '')} {_re.sub(r'<[^>]+>', ' ', item.get('description', '') or '')}".lower()
+        return any(t.lower() in blob for t in terms)
+
     async def _search_remotive(self) -> List[Dict]:
         """Remotive — remote-first, REGION-TAGGED board (free, no key). Its
         candidate_required_location field ('Worldwide' / 'Americas' / 'LATAM' /
@@ -635,6 +728,7 @@ class JobMonitor:
         so remote + LATAM-friendly + AI-augmented roles surface reliably. This is the
         source that found Elena's first real targets (A.Team / EverAI / Miris)."""
         import re as _re
+        import time as _time
         logger.info("🔍 Checking Remotive...")
         jobs: List[Dict] = []
         seen_ids = set()
@@ -658,37 +752,61 @@ class JobMonitor:
                    "AI program manager", "AI transformation", "solutions consultant",
                    # 2026-09-28: creative AI lane (src/core/target_lanes.py) — never searched before.
                    "creative technologist", "generative AI producer", "AI video producer",
-                   "AI filmmaker"]
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {"User-Agent": "VibeJobHunter/1.0"}
-                for q in queries:
-                    try:
-                        url = "https://remotive.com/api/remote-jobs?limit=50&search=" + q.replace(" ", "%20")
-                        async with session.get(url, headers=headers, timeout=15) as resp:
-                            if resp.status != 200:
-                                continue
-                            data = await resp.json()
-                        for item in data.get("jobs", []):
-                            jid = item.get("id")
-                            if jid in seen_ids:
-                                continue
-                            seen_ids.add(jid)
-                            region = (item.get("candidate_required_location") or "Worldwide").strip()
-                            desc = _re.sub(r"<[^>]+>", " ", item.get("description", "") or "")
-                            jobs.append({
-                                "title":       item.get("title", ""),
-                                "company":     item.get("company_name", ""),
-                                "location":    "Remote — " + region,  # guarantees remote + real region tag
-                                "description": desc[:2000],
-                                "source":      "remotive",
-                                "url":         item.get("url", ""),
-                            })
-                    except Exception:
-                        continue
-            logger.info(f"✅ Remotive: {len(jobs)} jobs found")
-        except Exception as e:
-            logger.warning(f"⚠️ Remotive failed: {e}")
+                   "AI filmmaker",
+                   # 2026-10-06: Professional Outlook (Oct 2026, p.7 "Where I fit") titles
+                   # not already covered above, across her three lanes.
+                   "AI implementation lead", "AI workflow architect", "agentic workflow",
+                   "AI systems operator", "AI innovation lead", "generative AI product lead",
+                   "AI prototyping", "creative AI pipeline", "AI product automation",
+                   "AI adoption", "GenAI production"]
+        # 2026-10-06: the terms above are matched LOCALLY against one cached feed
+        # (see _REMOTIVE_CACHE) — the API ignores `search`, and ~30 requests an hour
+        # broke Remotive's published limit of 2 a minute.
+        cache = self._REMOTIVE_CACHE
+        items = cache.get("items")
+        fetched_now = False
+        if items is None or _time.time() - cache.get("at", 0) > self._REMOTIVE_TTL_S:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    headers = {"User-Agent": "VibeJobHunter/1.0"}
+                    async with session.get("https://remotive.com/api/remote-jobs",
+                                           headers=headers, timeout=15) as resp:
+                        if resp.status != 200:
+                            err = _http_error(resp.status, await resp.text())
+                            logger.warning(f"⚠️ Remotive feed: {err}")
+                            self._record_health("remotive", 1, 1, err)
+                            lvl, msg = _source_result_line("Remotive", 0, 1, 1, err)
+                            logger.log(lvl, msg)
+                            return jobs
+                        data = await resp.json(content_type=None)
+                items = (data or {}).get("jobs", []) if isinstance(data, dict) else []
+                cache.update(items=items, at=_time.time())
+                fetched_now = True
+            except Exception as e:
+                err = f"{type(e).__name__}: {str(e)[:120]}"
+                logger.warning(f"⚠️ Remotive feed failed: {err}")
+                self._record_health("remotive", 1, 1, err)
+                lvl, msg = _source_result_line("Remotive", 0, 1, 1, err)
+                logger.log(lvl, msg)
+                return jobs
+        self._record_health("remotive", 0, 1)
+        for item in items:
+            jid = item.get("id")
+            if jid in seen_ids or not self._remotive_matches(item, queries):
+                continue
+            seen_ids.add(jid)
+            region = (item.get("candidate_required_location") or "Worldwide").strip()
+            desc = _re.sub(r"<[^>]+>", " ", item.get("description", "") or "")
+            jobs.append({
+                "title":       item.get("title", ""),
+                "company":     item.get("company_name", ""),
+                "location":    "Remote — " + region,  # guarantees remote + real region tag
+                "description": desc[:2000],
+                "source":      "remotive",
+                "url":         item.get("url", ""),
+            })
+        logger.info(f"✅ Remotive: {len(jobs)} jobs found ({len(jobs)}/{len(items)} feed jobs "
+                    f"match the lane terms; feed {'fetched now' if fetched_now else 'from the 6 h cache'})")
         return jobs
 
     async def _search_ai_native_builder(self) -> List[Dict]:
@@ -1372,6 +1490,79 @@ class JobMonitor:
             return f"Remote — Worldwide / LATAM ({', '.join(locations)})"
         return f"Remote — {', '.join(locations)}"
 
+    # Endpoint moved: torre.ai/api 404s now → search.torre.co. Query AI/dev
+    # skills; Torre is a LATAM-first remote platform, so results are LATAM-friendly.
+    # 2026-07-30: appended AI-automation skills (Torre is the LATAM-first source,
+    # so these terms matter most here). Original 5 kept.
+    # 2026-08-05: AI-leadership and advisory terms added. Unblocking
+    # "Head of AI" at the gate changes nothing if no source is ever
+    # ASKED for it — supply has to be searched before it can be judged.
+    # These titles also serve the fractional/consulting lane.
+    # 2026-10-06: lifted out of the loop unchanged (so tests can read it), minus
+    # "ai evaluation" — Elena dropped the expert-AI-evaluation lane on 6 Oct.
+    _TORRE_KEYWORDS = (
+        "ai engineer", "machine learning", "python developer", "automation engineer", "react developer",
+        "ai automation", "ai agents", "workflow automation", "n8n", "zapier",
+        "prompt engineering", "ai integration", "no-code",
+        "head of ai", "ai consultant", "ai solutions architect",
+        "ai product manager", "ai strategy", "fractional cto",
+        # 2026-08-05: employers who describe the WORK the way
+        # Elena actually works. IgniteTech's board reads "we hire
+        # individuals who already think in agents, not just
+        # prompts" — a company selecting for exactly her operating
+        # style. Its own roles were Java/PMP-gated, but the
+        # PHRASING is the signal: find the ones writing like that
+        # and not demanding an enterprise stack.
+        "ai native", "agent orchestration", "agentic engineer",
+        "ai augmented", "forward deployed",
+        # 2026-08-18: "Chief of Staff @ Pets Table" (a real posting
+        # heavy on AI-driven operational systems + AI marketing
+        # integration) was never fetched — no query asked Torre for
+        # it. Chief-of-Staff / AI-ops-lead / AI-proficient EA-PA
+        # roles fit the same operator-plus-AI-builder profile
+        # (7 yrs C-suite + 12 shipped AI systems), including the
+        # wealthy-principal/family-office EA-PA lane.
+        "ai chief of staff", "chief of staff ai", "ai operations lead",
+        "ai executive assistant", "ai personal assistant",
+        "ai proficient assistant", "ai proficient executive assistant",
+        # 2026-09-16: AI product / consulting / leadership lanes
+        # (src/core/target_lanes.py). Torre converts best of all
+        # sources, so it gets the widest set of these.
+        "chief ai officer", "ai program manager", "technical product manager ai",
+        "ai solutions consultant", "ai transformation", "ai implementation manager",
+        "ai adoption", "ai enablement", "director of ai", "vp of ai",
+        "conversational ai designer", "gtm engineer",
+        # 2026-09-28: creative AI lane — Torre is her best-converting source.
+        "creative technologist", "generative ai producer", "ai video producer",
+        "ai filmmaker", "creative ai", "genai content",
+        # 2026-10-06: Professional Outlook (Oct 2026, p.7 "Where I fit") titles not
+        # already covered above — AI ops & implementation, AI product &
+        # transformation, creative technology.
+        "ai implementation lead", "ai workflow architect", "agentic workflow",
+        "ai systems operator", "ai innovation lead", "generative ai product lead",
+        "ai prototyping", "creative ai pipeline", "ai product automation",
+        "genai production",
+    )
+    _TORRE_SEARCH_URL = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
+    # 2026-10-06 — VJH identifies as itself, deliberately. Since 2 Oct 02:56 UTC
+    # search.torre.co answers 400 {"meta":{"message":"Invalid request"}} to EVERY
+    # body (even {}) unless the User-Agent is Torre's own internal client string;
+    # a browser UA gets 400 and python-requests gets 401. That is an access gate
+    # added on their side, not a changed payload format. Torre's terms (B.6) forbid
+    # "to spider, crawl, or scrape the Content of the Product" and "to interfere
+    # with or circumvent the security features", and torre.ai/robots.txt disallows
+    # /api/. Borrowing their internal client name to get through would be exactly
+    # that, so it is not done here; restoring Torre needs access Torre grants.
+    _TORRE_HEADERS = {"User-Agent": "Mozilla/5.0 (VibeJobHunter)", "Content-Type": "application/json"}
+    # A 4xx is a deterministic refusal: the same request will be refused again.
+    # After this many in a row with nothing answered, stop asking this cycle.
+    _TORRE_FAIL_FAST_AFTER = 3
+
+    @staticmethod
+    def _torre_payload(kw: str) -> Dict:
+        """The opportunity-search body VJH sends (unchanged 2026-10-06 — see _TORRE_HEADERS)."""
+        return {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
+
     async def _search_torre(self) -> List[Dict]:
         """
         Torre.ai — LATAM-focused tech job platform.
@@ -1381,58 +1572,34 @@ class JobMonitor:
         logger.info("🔍 Checking Torre.ai (LATAM)...")
         jobs = []
         seen = set()
+        # 2026-10-06: count every refusal. The old loop did `continue` on a non-200 and
+        # on any exception, so four days of HTTP 400 logged "✅ Torre.ai: 0 jobs found".
+        attempted = failed = answered = refusals_in_a_row = 0
+        first_error = ""
+        keywords = self._TORRE_KEYWORDS
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"User-Agent": "Mozilla/5.0 (VibeJobHunter)", "Content-Type": "application/json"}
-                # Endpoint moved: torre.ai/api 404s now → search.torre.co. Query AI/dev
-                # skills; Torre is a LATAM-first remote platform, so results are LATAM-friendly.
-                # 2026-07-30: appended AI-automation skills (Torre is the LATAM-first source,
-                # so these terms matter most here). Original 5 kept.
-                # 2026-08-05: AI-leadership and advisory terms added. Unblocking
-                # "Head of AI" at the gate changes nothing if no source is ever
-                # ASKED for it — supply has to be searched before it can be judged.
-                # These titles also serve the fractional/consulting lane.
-                for kw in ["ai engineer", "machine learning", "python developer", "automation engineer", "react developer",
-                           "ai automation", "ai agents", "workflow automation", "n8n", "zapier",
-                           "prompt engineering", "ai integration", "no-code",
-                           "head of ai", "ai consultant", "ai solutions architect",
-                           "ai product manager", "ai strategy", "fractional cto",
-                           # 2026-08-05: employers who describe the WORK the way
-                           # Elena actually works. IgniteTech's board reads "we hire
-                           # individuals who already think in agents, not just
-                           # prompts" — a company selecting for exactly her operating
-                           # style. Its own roles were Java/PMP-gated, but the
-                           # PHRASING is the signal: find the ones writing like that
-                           # and not demanding an enterprise stack.
-                           "ai native", "agent orchestration", "agentic engineer",
-                           "ai augmented", "forward deployed",
-                           # 2026-08-18: "Chief of Staff @ Pets Table" (a real posting
-                           # heavy on AI-driven operational systems + AI marketing
-                           # integration) was never fetched — no query asked Torre for
-                           # it. Chief-of-Staff / AI-ops-lead / AI-proficient EA-PA
-                           # roles fit the same operator-plus-AI-builder profile
-                           # (7 yrs C-suite + 12 shipped AI systems), including the
-                           # wealthy-principal/family-office EA-PA lane.
-                           "ai chief of staff", "chief of staff ai", "ai operations lead",
-                           "ai executive assistant", "ai personal assistant",
-                           "ai proficient assistant", "ai proficient executive assistant",
-                           # 2026-09-16: AI product / consulting / leadership lanes
-                           # (src/core/target_lanes.py). Torre converts best of all
-                           # sources, so it gets the widest set of these.
-                           "chief ai officer", "ai program manager", "technical product manager ai",
-                           "ai solutions consultant", "ai transformation", "ai implementation manager",
-                           "ai adoption", "ai enablement", "director of ai", "vp of ai",
-                           "conversational ai designer", "gtm engineer", "ai evaluation",
-                           # 2026-09-28: creative AI lane — Torre is her best-converting source.
-                           "creative technologist", "generative ai producer", "ai video producer",
-                           "ai filmmaker", "creative ai", "genai content"]:
-                    payload = {"and": [{"skill/role": {"text": kw, "experience": "potential-to-develop"}}]}
-                    url = "https://search.torre.co/opportunities/_search/?size=20&lang=en"
+                headers = self._TORRE_HEADERS
+                for kw in keywords:
+                    if not answered and refusals_in_a_row >= self._TORRE_FAIL_FAST_AFTER:
+                        logger.warning(f"   ⚠️ Torre.ai: {refusals_in_a_row} refusals in a row ({first_error}); "
+                                       f"{len(keywords) - attempted} searches not sent this cycle")
+                        break
+                    payload = self._torre_payload(kw)
+                    url = self._TORRE_SEARCH_URL
+                    attempted += 1
                     try:
                         async with session.post(url, json=payload, headers=headers, timeout=15) as resp:
                             if resp.status != 200:
+                                err = _http_error(resp.status, await resp.text())
+                                logger.warning(f"   ⚠️ Torre.ai [{kw}]: {err}")
+                                failed += 1
+                                refusals_in_a_row = refusals_in_a_row + 1 if 400 <= resp.status < 500 else 0
+                                first_error = first_error or err
                                 continue
                             data = await resp.json()
+                        answered += 1
+                        refusals_in_a_row = 0
                         results = data.get("results", []) if isinstance(data, dict) else data
                         for opp in (results or []):
                             if not opp.get("remote"):   # remote-only (honest — don't mislabel on-site as remote)
@@ -1475,11 +1642,22 @@ class JobMonitor:
                                 "url": f"https://torre.ai/jobs/{opp.get('id', '')}" if opp.get("id") else "https://torre.ai",
                                 "remote": True,
                             })
-                    except Exception:
+                    except Exception as e:
+                        # 2026-10-06: was a bare `continue` — a crash looked like "no results".
+                        err = f"{type(e).__name__}: {str(e)[:120]}"
+                        logger.warning(f"   ⚠️ Torre.ai [{kw}]: {err}")
+                        failed += 1
+                        refusals_in_a_row = 0   # a timeout is not a refusal — keep asking
+                        first_error = first_error or err
                         continue
         except Exception as e:
             logger.warning(f"⚠️ Torre.ai failed: {e}")
-        logger.info(f"✅ Torre.ai: {len(jobs)} jobs found")
+            failed += 1
+            attempted = max(attempted, failed)
+            first_error = first_error or f"{type(e).__name__}: {str(e)[:120]}"
+        self._record_health("torre", failed, attempted, first_error)
+        lvl, msg = _source_result_line("Torre.ai", len(jobs), failed, attempted, first_error)
+        logger.log(lvl, msg)
         return jobs
 
     async def _search_himalayas(self) -> List[Dict]:
@@ -1498,12 +1676,21 @@ class JobMonitor:
         queries = (
             "AI automation", "AI solutions architect", "AI product manager", "AI operations",
             "AI consultant", "chief AI officer", "AI chief of staff", "AI executive assistant",
-            "AI evaluation", "generative engine optimization", "AI video producer",
+            # 2026-10-06: "AI evaluation" removed — Elena dropped that lane on 6 Oct.
+            "generative engine optimization", "AI video producer",
             "creative technologist", "generative AI",
+            # 2026-10-06: Professional Outlook (Oct 2026, p.7) titles this list did not
+            # cover yet. 24 searches measured 2.1 s live at 4 concurrent (all HTTP 200).
+            "AI implementation lead", "AI workflow architect", "agentic workflow",
+            "AI systems operator", "AI innovation lead", "generative AI product lead",
+            "AI prototyping", "creative AI pipeline", "AI product automation",
+            "AI transformation", "AI adoption", "GenAI production",
         )
         url = "https://himalayas.app/jobs/api/search"
         headers = {"User-Agent": "VibeJobHunter/1.0", "Accept": "application/json"}
         seen, jobs, failed = set(), [], 0
+        first_error = ""
+        batches = None
         sem = asyncio.Semaphore(4)
 
         async def one(session, q):
@@ -1511,16 +1698,21 @@ class JobMonitor:
                 async with session.get(url, headers=headers, params={"q": q},
                                        timeout=aiohttp.ClientTimeout(total=8)) as resp:
                     if resp.status != 200:
-                        raise RuntimeError(f"HTTP {resp.status}")
+                        # 2026-10-06: carry the body too — a 429 and a 500 need different fixes.
+                        raise RuntimeError(_http_error(resp.status, await resp.text()))
                     data = await resp.json()
                     return data.get("jobs", []) if isinstance(data, dict) else []
 
         try:
             async with aiohttp.ClientSession() as session:
                 batches = await asyncio.gather(*(one(session, q) for q in queries), return_exceptions=True)
-            for batch in batches:
+            for q, batch in zip(queries, batches):
                 if isinstance(batch, Exception):
+                    # 2026-10-06: was counted but never shown — say which search failed and why.
+                    err = str(batch) if isinstance(batch, RuntimeError) else f"{type(batch).__name__}: {str(batch)[:120]}"
+                    logger.warning(f"   ⚠️ Himalayas [{q}]: {err}")
                     failed += 1
+                    first_error = first_error or err
                     continue
                 for item in batch:
                     title = item.get("title", "")
@@ -1549,8 +1741,301 @@ class JobMonitor:
                     })
         except Exception as e:
             logger.warning(f"⚠️ Himalayas failed: {e}")
-        logger.info(f"✅ Himalayas: {len(jobs)} jobs found ({len(queries) - failed}/{len(queries)} searches answered)")
+            # 2026-10-06: count it. If the session died before the searches came back,
+            # none of them was answered; otherwise one batch broke while parsing.
+            failed = len(queries) if batches is None else min(failed + 1, len(queries))
+            first_error = first_error or f"{type(e).__name__}: {str(e)[:120]}"
+        self._record_health("himalayas", failed, len(queries), first_error, unit="searches")
+        lvl, msg = _source_result_line("Himalayas", len(jobs), failed, len(queries), first_error, unit="searches")
+        logger.log(lvl, msg)
         return jobs
+
+    # ------------------------------------------------------------------
+    # Puente Talent Partners (added 2026-10-06)
+    # ------------------------------------------------------------------
+    # A selective placement network that ONLY hires from Latin America into remote
+    # US roles, paid monthly in USD — her exact market, with pay stated on almost
+    # every listing (49/53 on 6 Oct; the rest go through salary_gate as unknown),
+    # so salary_gate can apply the $3,000/mo floor instead of guessing.
+    # Elena approved the source on 6 Oct 2026.
+    #
+    # Checked before building (6 Oct): robots.txt reads "User-Agent: * / Allow: /"
+    # (only /apply/continue is disallowed) and the terms forbid scraping only
+    # "except as permitted by its robots policy". The terms also say "You may not
+    # reproduce or republish substantial portions of the site" — VJH does neither;
+    # it reads the roles for Elena's own search. Never touch /apply/.
+    #
+    # /jobs is server-rendered: each role is <a href="/jobs/<slug>-<id>"> holding a
+    # title, a location ("Latin America · Remote" or a country list) and pay
+    # ("$3,000 - $4,000 / month"). Each role page carries the publisher's own
+    # schema.org JobPosting JSON-LD (description, applicantLocationRequirements,
+    # baseSalary) — read that rather than the hashed CSS-module markup.
+    _PUENTE_BASE = "https://puentetalent.com"
+    _PUENTE_HEADERS = {"User-Agent": "VibeJobHunter/1.0 (personal job search)", "Accept": "text/html"}
+    # Role URL → parsed role page. A role page is fetched ONCE per process; the
+    # listing (re-fetched every cycle) decides which roles are still open.
+    _PUENTE_PAGE_CACHE: Dict[str, Dict] = {}
+    # When a role says "Latin America" but its page could not be read: Puente's own
+    # JSON-LD lists Panama among the 18 countries it places from (verified 6 Oct on
+    # /jobs/ai-operations-lead-2660 and /jobs/chief-of-staff-2663), so say so.
+    _PUENTE_LATAM_FALLBACK = "incl. Panama: Puente places from 18 Latin American countries"
+
+    @staticmethod
+    def _puente_text(fragment: str) -> str:
+        """HTML → readable text with one line per paragraph / bullet."""
+        import html as _html
+        import re as _re
+        s = _re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", fragment or "")
+        s = _re.sub(r"(?i)<li\b[^>]*>", "\n- ", s)
+        s = _re.sub(r"(?i)<br\s*/?>|</(p|li|h[1-6]|div|ul|ol)>", "\n", s)
+        s = _html.unescape(_re.sub(r"<[^>]+>", " ", s))
+        lines = (" ".join(line.split()) for line in s.split("\n"))
+        return "\n".join(line for line in lines if line and line != "-")
+
+    @classmethod
+    def _parse_puente_listing(cls, page: str) -> List[Dict]:
+        """Every role row on puentetalent.com/jobs → {role_id, url, title, location_text, salary_text}."""
+        import html as _html
+        import re as _re
+
+        def span(inner: str, name: str) -> str:
+            # Class names are CSS-module hashed ("JobsExplorer-module__KdFrfW__title");
+            # match only the stable "__title" / "__location" / "__salary" suffix.
+            m = _re.search(r'<span[^>]*class="[^"]*__' + name + r'\b[^"]*"[^>]*>(.*?)</span>', inner, _re.S)
+            return " ".join(_html.unescape(_re.sub(r"<[^>]+>", " ", m.group(1))).split()) if m else ""
+
+        rows, seen_ids = [], set()
+        for m in _re.finditer(r'<a\b[^>]*\bhref="(/jobs/[a-z0-9-]+?-(\d+))"[^>]*>(.*?)</a>', page or "", _re.S | _re.I):
+            path, role_id, inner = m.group(1), m.group(2), m.group(3)
+            title = span(inner, "title")
+            if not title or role_id in seen_ids:
+                continue
+            seen_ids.add(role_id)
+            rows.append({
+                "role_id": role_id,
+                "url": cls._PUENTE_BASE + path,
+                "title": title,
+                "location_text": span(inner, "location"),
+                "salary_text": span(inner, "salary"),
+            })
+        return rows
+
+    @staticmethod
+    def _puente_cut_boilerplate(text: str) -> str:
+        """Drop Puente's own pitch from a role description: everything from the
+        "Why Puente" heading on (the network's stats, its hiring steps, "Apply now").
+
+        2026-10-06: 51 of the 53 live JSON-LD descriptions fetched 6 Oct carried it
+        (the visible page repeats it). It says nothing about the role, yet reads like
+        role facts ("a recruiter interview", "the short skills assessment") to anything
+        that reads the full text. It sat past char 1,500 in all 51, so the LLM judge's
+        window never reached it; iron_clad_fit reads the whole description. Cutting it
+        changed JobGate and iron_clad_fit for 0 of those 53 roles."""
+        cut = (text or "").find("\nWhy Puente\n")
+        # cut > 0, never 0: a description that is ONLY boilerplate stays as it was
+        # rather than becoming "" (an empty description holds the role back).
+        return (text[:cut] if cut > 0 else (text or "")).strip()
+
+    @classmethod
+    def _parse_puente_detail(cls, page: str) -> Dict:
+        """A role page → {description, countries, salary_text, date_posted, employment_type}.
+
+        Reads the page's own schema.org JobPosting JSON-LD; falls back to
+        <section id="description-panel"> if that block is ever missing. Either way the
+        description is cut before "Why Puente" (_puente_cut_boilerplate)."""
+        import re as _re
+        out = {"description": "", "countries": [], "salary_text": "",
+               "date_posted": "", "employment_type": ""}
+        for m in _re.finditer(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', page or "", _re.S):
+            try:
+                data = json.loads(m.group(1))
+            except Exception:
+                continue
+            if isinstance(data, list):
+                nodes = data
+            elif isinstance(data, dict):
+                nodes = data.get("@graph") or [data]
+            else:
+                continue
+            for d in nodes:
+                if not isinstance(d, dict) or d.get("@type") != "JobPosting":
+                    continue
+                out["description"] = cls._puente_cut_boilerplate(cls._puente_text(d.get("description") or ""))
+                out["countries"] = [str(c.get("name")).strip() for c in (d.get("applicantLocationRequirements") or [])
+                                    if isinstance(c, dict) and c.get("name")]
+                out["date_posted"] = str(d.get("datePosted") or "")
+                out["employment_type"] = str(d.get("employmentType") or "")
+                base = d.get("baseSalary") if isinstance(d.get("baseSalary"), dict) else {}
+                val = base.get("value") if isinstance(base.get("value"), dict) else {}
+                try:
+                    lo = float(val["minValue"]) if val.get("minValue") is not None else None
+                    hi = float(val["maxValue"]) if val.get("maxValue") is not None else None
+                except (TypeError, ValueError):
+                    lo = hi = None
+                unit = str(val.get("unitText") or "").lower()
+                if (lo or hi) and unit:
+                    rng = f"${lo:,.0f} - ${hi:,.0f}" if lo and hi and lo != hi else f"${(lo or hi):,.0f}"
+                    out["salary_text"] = f"{rng} / {unit}"
+                return out
+        # Fallback: the visible description tab (<section id="description-panel">),
+        # cut before the same "Why Puente" boilerplate.
+        panel = _re.search(r'(?is)<section\b[^>]*\bid="description-panel"[^>]*>(.*?)</section>', page or "")
+        if panel:
+            out["description"] = cls._puente_cut_boilerplate(cls._puente_text(panel.group(1)))
+        return out
+
+    @classmethod
+    def _puente_location(cls, location_text: str, countries: List[str]) -> str:
+        """Location string the gates can judge.
+
+        The page's own country list (JSON-LD) is the employer's statement, so it is
+        always written out as a roster in parentheses — fit_gate.roster_excludes_home
+        then parks a role whose list omits Panama ("Brazil, Argentina, Colombia,
+        Chile") and passes one that names it."""
+        region = (location_text or "").replace("· Remote", "").replace("·", " ").strip()
+        latam = "latin america" in region.lower()
+        if countries:
+            # 2026-10-06: home country FIRST, the rest of the roster unchanged.
+            # llm_judge.judge_fit shows the judge only location[:80], and Puente's
+            # JSON-LD lists Panama 12th of 18 — on the 53 live roles fetched 6 Oct,
+            # 0 had Panama inside those 80 chars. The judge was reading a roster
+            # without her country: the 28 Sep "LATAM may exclude Panama" veto shape.
+            # Only the order moves; fit_gate reads the whole roster either way, and
+            # a roster without Panama is still written (and parked) as it was.
+            import unicodedata as _ud
+            from src.core.fit_gate import HOME_COUNTRY
+
+            def _fold(s: str) -> str:   # "Panamá" == "panama", as fit_gate compares
+                return "".join(ch for ch in _ud.normalize("NFKD", s or "")
+                               if not _ud.combining(ch)).strip().lower()
+            home = _fold(HOME_COUNTRY)
+            ordered = ([c for c in countries if _fold(c) == home]
+                       + [c for c in countries if _fold(c) != home])
+            roster = ", ".join(ordered)
+            return f"Remote — Latin America ({roster})" if latam else f"Remote ({roster})"
+        if latam:
+            return f"Remote — Latin America ({cls._PUENTE_LATAM_FALLBACK})"
+        if region and region.lower() != "remote":
+            return f"Remote ({region})"
+        return "Remote"
+
+    @classmethod
+    def _puente_job(cls, row: Dict, detail: Dict) -> Dict:
+        """One listing row + its parsed role page → the job dict every source returns."""
+        salary = row.get("salary_text") or detail.get("salary_text") or ""
+        parts = []
+        if salary:
+            # First, so the 4,000-char cut downstream can never drop it; in the shape
+            # salary_gate parses ("$3,000 - $4,000 / month" → ok, "$350 / month" → below).
+            parts.append(f"Salary: {salary} (USD, as listed by Puente).")
+        if detail.get("description"):
+            parts.append(detail["description"])
+        parts.append("[Via Puente Talent Partners, a LATAM-only placement network; "
+                     "the hiring company is not named on the listing.]")
+        return {
+            "id": f"puente_{row['role_id']}",
+            "title": row["title"],
+            "company": "Puente Talent Partners",
+            "location": cls._puente_location(row.get("location_text", ""), detail.get("countries") or []),
+            "salary": salary,
+            "description": "\n\n".join(parts)[:6000],
+            "source": "puente",
+            "url": row["url"],
+            "remote": True,
+            "remote_allowed": True,
+        }
+
+    async def _search_puente(self) -> List[Dict]:
+        """Puente Talent Partners — every open LATAM-remote role, with its full description."""
+        logger.info("🔍 Checking Puente Talent Partners (LATAM placement)...")
+        jobs: List[Dict] = []
+        try:
+            async with aiohttp.ClientSession(headers=self._PUENTE_HEADERS) as session:
+                async with session.get(f"{self._PUENTE_BASE}/jobs",
+                                       timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                    page = await resp.text()
+                    if resp.status != 200:
+                        err = _http_error(resp.status, page)
+                        logger.warning(f"   ⚠️ Puente listing: {err}")
+                        self._record_health("puente", 1, 1, err, unit="listing requests")
+                        lvl, msg = _source_result_line("Puente", 0, 1, 1, err, unit="listing requests")
+                        logger.log(lvl, msg)
+                        return jobs
+                rows = self._parse_puente_listing(page)
+                if not rows:
+                    # A 200 page with no role rows means the layout changed — a failure,
+                    # never "0 jobs found".
+                    err = f"HTTP 200 but 0 role rows parsed from {len(page)} chars (layout changed?)"
+                    self._record_health("puente", 1, 1, err, unit="listing requests")
+                    lvl, msg = _source_result_line("Puente", 0, 1, 1, err, unit="listing requests")
+                    logger.log(lvl, msg)
+                    return jobs
+
+                cache = self._PUENTE_PAGE_CACHE
+                todo = [r for r in rows if r["url"] not in cache]
+                cached = len(rows) - len(todo)
+                sem = asyncio.Semaphore(4)
+                errors: List[str] = []
+
+                async def fetch(row):
+                    async with sem:
+                        try:
+                            async with session.get(row["url"], timeout=aiohttp.ClientTimeout(total=10)) as r:
+                                body = await r.text()
+                                if r.status != 200:
+                                    return row, _http_error(r.status, body)
+                            detail = self._parse_puente_detail(body)
+                            if not detail.get("description"):
+                                return row, "HTTP 200 but no description found on the role page"
+                            cache[row["url"]] = detail   # only successes are cached
+                            return row, ""
+                        except Exception as e:
+                            return row, f"{type(e).__name__}: {str(e)[:120]}"
+
+                for row, err in await asyncio.gather(*(fetch(r) for r in todo)):
+                    if err:
+                        errors.append(err)
+                        if len(errors) <= 5:
+                            logger.warning(f"   ⚠️ Puente role page {row['url']}: {err}")
+        except Exception as e:
+            err = f"{type(e).__name__}: {str(e)[:120]}"
+            logger.warning(f"⚠️ Puente failed: {err}")
+            self._record_health("puente", 1, 1, err, unit="listing requests")
+            lvl, msg = _source_result_line("Puente", 0, 1, 1, err, unit="listing requests")
+            logger.log(lvl, msg)
+            return jobs
+
+        # A role whose page failed is HELD BACK, not sent thin: a title-only job can
+        # be judged on no description, marked seen and buried for 21 days. Failures
+        # are not cached, so it is retried next cycle.
+        by_title: Dict[str, Dict] = {}
+        for row in rows:
+            detail = self._PUENTE_PAGE_CACHE.get(row["url"])
+            if not detail:
+                continue
+            job = self._puente_job(row, detail)
+            # Two open roles can share a title ("GTM Engineer" #2680 at $2-3K and #2637
+            # at $3.5-4.5K on 6 Oct). VJH dedupes dict jobs on company::title, so only
+            # the first would ever be judged — keep the better-paid one explicitly.
+            key = job["title"].strip().lower()
+            prev = by_title.get(key)
+            if prev is None or self._puente_top_pay(job) > self._puente_top_pay(prev):
+                by_title[key] = job
+        jobs = list(by_title.values())
+
+        self._record_health("puente", len(errors), len(todo), errors[0] if errors else "", unit="role pages")
+        lvl, msg = _source_result_line("Puente", len(jobs), len(errors), len(todo),
+                                       errors[0] if errors else "", unit="role pages")
+        logger.log(lvl, f"{msg} — {len(rows)} roles listed, {len(todo) - len(errors)} role pages "
+                        f"fetched, {cached} from cache, {len(errors)} held back for retry")
+        return jobs
+
+    @staticmethod
+    def _puente_top_pay(job: Dict) -> float:
+        """Top of the stated monthly range ("$3,500 - $4,500 / month" → 4500); 0 if none."""
+        import re as _re
+        nums = [float(n.replace(",", "")) for n in _re.findall(r"\$\s?([\d,]+)", job.get("salary") or "")]
+        return max(nums) if nums else 0.0
 
     # ------------------------------------------------------------------
     # Helpers
