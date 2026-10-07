@@ -159,6 +159,10 @@ BLOCKED_SENDER_DOMAINS = (
     # ("[AIdeazz] Inquiry — <name>", From: AIdeazz <aipa@...>). It was read as an employer QUESTION
     # and became a [HIRING-VJH-LEAD] deal + cover letter. No employer writes from our domain.
     "@" "aideazz.xyz",
+    # Boardy (Oct 7 2026, Elena): an AI networking assistant that emails intros from its own domain. Every
+    # intro, "Re:" and calendar invite became a NEW [HIRING-VJH-LEAD] deal + cover letter (17 by 7 Oct), and
+    # reply-radar then re-noted all of them, so the morning brief showed them as "NEW" daily. Not employers.
+    "boardy.ai",
 )
 
 
