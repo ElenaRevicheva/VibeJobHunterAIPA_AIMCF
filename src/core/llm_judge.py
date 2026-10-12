@@ -175,6 +175,10 @@ APPROVE the job ONLY IF ALL of these are true:
      28 Sep 2026: "Senior Solutions Engineer - LATAM" rejected as "LATAM may exclude Panama".)
    - US Eastern or Central working hours (ET, CT, EST, CST, EDT, CDT, UTC-5, UTC-6) are
      COMPATIBLE: Panama is UTC-5. Never reject for requiring US Eastern/Central overlap.
+   - US Mountain or Pacific working hours (MT, PT, MST, MDT, PST, PDT, UTC-7, UTC-8) are ALSO
+     COMPATIBLE: Panama is UTC-5 all year, so Pacific 9:00-17:00 is 11:00-19:00 or 12:00-20:00 in
+     Panama, and "N hours of overlap with Pacific/Mountain time" is easy for her. Never reject for
+     it. (Seen 7 Oct 2026: Epoch AI rejected for "three hours of overlap with Pacific Time".)
    - Reject only when the listing restricts WHERE SHE MAY LIVE (US-only, a residency list of
      countries that excludes Panama, EMEA-only, one other country), or requires working
      hours clearly incompatible with UTC-5 (for example IST or APAC business hours).
