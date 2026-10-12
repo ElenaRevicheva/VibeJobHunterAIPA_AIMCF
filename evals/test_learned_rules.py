@@ -110,6 +110,26 @@ def test_latam_open_listing_overrules_a_location_veto():
     assert latam_veto_is_wrong("AI Automation Lead", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
 
 
+# ── a veto that rests only on US Mountain/Pacific hours is overruled (12 Oct 2026) ──
+def test_us_pacific_hours_overrule_a_location_veto():
+    from src.core.llm_judge import timezone_veto_is_wrong
+    epoch = ("This role is fully remote, and we can offer contracts in many countries, though we require at least "
+             "three hours of overlap in work hours with Pacific Time. We strongly prefer candidates in a North or "
+             "South American time zone, and we require at least 3 hours of overlap with Pacific time (UTC–8).")
+    said = "2 The role requires at least three hours of overlap with Pacific Time, which is incompatible with her UTC-5 schedule."
+    assert timezone_veto_is_wrong(said, "Product Manager, Website", "Remote", epoch)        # Epoch AI, seen 7 + 12 Oct
+    assert timezone_veto_is_wrong("2 Needs overlap with Mountain time (MT) business hours", "AI Lead", "Remote", "")
+    # The veto stands when the reason is really about where she may live...
+    assert not timezone_veto_is_wrong("2 Requires US work authorization and Pacific hours", "PM", "Remote", epoch)
+    assert not timezone_veto_is_wrong("2 Must be located in the Pacific time zone", "PM", "Remote", "")
+    # ...when the posting locks the country or states a range without UTC-5...
+    assert not timezone_veto_is_wrong(said, "PM", "Remote", "Pacific hours. United States only.")
+    assert not timezone_veto_is_wrong(said, "AI/GenAI Engineer", "Remote - Americas",
+                                      "Remote (specific timezone, GMT-08:00 to GMT-06:00).")
+    # ...and when the hours are not US hours at all.
+    assert not timezone_veto_is_wrong("2 Requires IST business hours", "PM", "Remote", "IST hours")
+
+
 def test_a_location_our_adapter_wrote_is_not_the_employer_promising_latam():
     from src.core.llm_judge import latam_veto_is_wrong
     from src.core.fit_gate import is_source_default_location, SOURCE_DEFAULT_MARK

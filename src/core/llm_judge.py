@@ -499,6 +499,37 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
     return True
 
 
+_US_TZ_REASON = re.compile(r"\b(pacific|mountain|pt|mt|pst|pdt|mst|mdt)\b|utc\s*[-–−]\s*[78]\b", re.IGNORECASE)
+_HOURS_REASON = re.compile(r"overlap|hours|time\s*-?\s*zone|schedule", re.IGNORECASE)
+_RESIDENCE_REASON = re.compile(r"resid|citizen|authori[sz]|visa|\bus[- ]only\b|u\.s\.\s*only|united states only|"
+                               r"must (?:be|live)|located in|based in", re.IGNORECASE)
+
+
+def timezone_veto_is_wrong(reason: str, title: str, location: str, desc: str) -> bool:
+    """True when a criterion-2 veto rests only on US Mountain/Pacific working hours.
+
+    Seen 7 Oct 2026: "Epoch AI - Product Manager, Website" (fully remote, "at least 3 hours of overlap
+    with Pacific time") vetoed as "incompatible with her UTC-5 schedule". Panama is UTC-5 all year, so
+    Pacific 9:00-17:00 is 11:00-19:00 there. On 12 Oct the live judge vetoed it again WITH the new
+    Pacific line in the prompt — a prompt could not fix it, so, like the LATAM rule, it is enforced
+    here. The veto stands if the reason also names residence/citizenship/work authorisation, or the
+    posting itself locks the country (the same location check the LATAM overrule uses).
+    """
+    if not (_US_TZ_REASON.search(reason or "") and _HOURS_REASON.search(reason or "")):
+        return False
+    if _RESIDENCE_REASON.search(reason or ""):
+        return False
+    if _COUNTRY_ONLY.search(f"{title or ''}\n{location or ''}\n{desc or ''}"):
+        return False
+    try:
+        from .fit_gate import location_excludes_her
+        if location_excludes_her(title, location, desc):
+            return False
+    except Exception:
+        return False
+    return True
+
+
 _CRIT6_REASON = re.compile(r"^\s*(criterion\s*)?6\b|\bpay\b[^.]{0,40}\bfloor\b", re.IGNORECASE)
 _STATED_PAY = re.compile(
     r"(\$|us\$|usd|eur|€|£|mxn|brl|cop)\s?\d|"
@@ -620,6 +651,10 @@ def judge_fit(title: str, company: str, location: str, desc: str, url: str = Non
         logger.info(f"⚖️ location veto OVERRULED (listing is open to LATAM/Americas, no roster excludes "
                     f"Panama): '{(title or '')[:60]}' @ {(company or '')[:40]} — judge said: {reason[:80]}")
         return True, f"criterion-2 veto overruled — LATAM-open listing ({reason[:70]})"
+    if not fit and _CRIT2_REASON.match(reason) and timezone_veto_is_wrong(reason, title, location, desc):
+        logger.info(f"⚖️ time-zone veto OVERRULED (US Mountain/Pacific hours fit Panama UTC-5): "
+                    f"'{(title or '')[:60]}' @ {(company or '')[:40]} — judge said: {reason[:80]}")
+        return True, f"criterion-2 veto overruled — US time-zone overlap fits UTC-5 ({reason[:60]})"
     if not fit and _CRIT6_REASON.search(reason) and pay_veto_is_wrong(desc):
         logger.info(f"⚖️ pay veto OVERRULED (the listing states no pay): '{(title or '')[:60]}' @ "
                     f"{(company or '')[:40]} — judge said: {reason[:80]}")
