@@ -14,6 +14,7 @@ CHANGES (2024-12-18):
 import asyncio
 import logging
 from datetime import datetime
+from html import escape as _html_escape
 from typing import List, Dict, Any
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -1027,7 +1028,10 @@ class AutonomousOrchestrator:
             responses = await detector.scan_for_responses(hours_back=24)
 
             # Process hot leads (positive responses and questions)
-            hot_leads = [r for r in responses if r.response_type in [ResponseType.POSITIVE, ResponseType.QUESTION]]
+            # 15 Oct 2026: an interview invite WITH a scheduling link was dropped here (0 interview_request rows
+            # ever saved). Narrowed to a real booking link — the phrase-only upgrades were open calls and closed deals.
+            hot_leads = [r for r in responses if r.response_type in [ResponseType.POSITIVE, ResponseType.QUESTION]
+                         or (r.response_type == ResponseType.INTERVIEW_REQUEST and getattr(r, 'booking_link', None))]
 
             if hot_leads:
                 logger.info(f"🔥 Found {len(hot_leads)} hot leads!")
@@ -1048,7 +1052,9 @@ class AutonomousOrchestrator:
                     # auto-replies ("Complete Your Application", "thank you for applying") are
                     # NOT interviews, even when keyword classification misreads them as positive.
                     _txt = (str(lead.subject) + ' ' + str(getattr(lead, 'body_preview', '') or '')).lower()
-                    if any(p in _txt for p in (
+                    # A booking-link interview request skips this: the link is the proof it is not a bare
+                    # auto-reply ("Thank you for your interest… pick a slot: calendly…", HireLatam 23 Apr).
+                    if lead.response_type != ResponseType.INTERVIEW_REQUEST and any(p in _txt for p in (
                         'complete your application', 'thank you for applying', 'thank you for your interest',
                         'thanks for your interest', 'application received', 'we received your application',
                         'received your resume', 'your application has been received', 'application has been received')):
@@ -1072,16 +1078,18 @@ class AutonomousOrchestrator:
                         logger.warning(f"   HubSpot push failed (non-fatal): {e}")
 
                     # Send Telegram alert for interview requests
-                    if self.telegram and lead.response_type == ResponseType.POSITIVE:
+                    if self.telegram and lead.response_type in (ResponseType.POSITIVE, ResponseType.INTERVIEW_REQUEST):
+                        _book = getattr(lead, 'booking_link', None)
+                        _book_line = f"\n<b>👉 BOOK IT:</b> {_html_escape(_book)}\n" if _book else ""
                         alert = f"""🔥🔥🔥 <b>INTERVIEW REQUEST DETECTED!</b>
 
-<b>From:</b> {lead.from_name}
-<b>Company:</b> {lead.company_name or 'Unknown'}
-<b>Subject:</b> {lead.subject}
+<b>From:</b> {_html_escape(str(lead.from_name or ''))}
+<b>Company:</b> {_html_escape(str(lead.company_name or 'Unknown'))}
+<b>Subject:</b> {_html_escape(str(lead.subject or ''))}
+{_book_line}
+<b>AI Analysis:</b> {_html_escape(str(lead.ai_analysis or ''))}
 
-<b>AI Analysis:</b> {lead.ai_analysis}
-
-<b>Action:</b> {lead.suggested_action}
+<b>Action:</b> {_html_escape(str(lead.suggested_action or ''))}
 
 ⚡ <b>RESPOND WITHIN 24 HOURS!</b>"""
                         await self.telegram.send_message(alert)

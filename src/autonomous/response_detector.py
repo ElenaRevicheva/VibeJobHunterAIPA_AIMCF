@@ -85,12 +85,25 @@ INTERVIEW_PHRASES = (
 )
 
 
+# 15 Oct 2026: Elena's OWN scheduler links come back quoted inside client replies (Lead Concierge ends every
+# answer with her Calendly). They are never an employer's booking link.
+_OWN_SCHEDULERS = tuple(h.strip().lower() for h in os.environ.get(
+    "VJH_OWN_SCHEDULER_LINKS", "calendly.com/elena_revicheva,calendly.com/elena-aideazz").split(",") if h.strip())
+
+
 def extract_booking_link(text):
-    """Return the first scheduling URL found in the text, or None."""
+    """Return the first scheduling URL found in the text that is not Elena's own, or None."""
     if not text:
         return None
-    m = BOOKING_LINK_RE.search(text)
-    return m.group(0).rstrip(".,);") if m else None
+    # Only the sender's own words: a link inside the quoted thread ("On … wrote:", "> …") is usually HER
+    # link coming back (Lead Concierge coffee-chat, a $100 diagnostic one-off Calendly), not their invite.
+    text = re.split(r"\n[^\n]{0,4}On [^\n]{0,200}wrote:", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    text = "\n".join(ln for ln in text.split("\n") if not ln.lstrip().startswith(">"))
+    for m in BOOKING_LINK_RE.finditer(text):
+        url = m.group(0).rstrip(".,);")
+        if not any(h in url.lower() for h in _OWN_SCHEDULERS):
+            return url
+    return None
 
 
 def looks_like_interview_request(subject, body):
