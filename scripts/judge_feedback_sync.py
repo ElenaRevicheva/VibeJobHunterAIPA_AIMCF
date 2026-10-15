@@ -259,7 +259,12 @@ _VISION_PROMPT = (
 #   v3 -> v4 (2026-09-27): v3 asked only for DEMANDS, so the reason she actually rejected for
 #   was dropped: micro1's "Location: Remote (US, CA, UK, IE, AU, NZ)" came back as "no prior AI
 #   experience required", and Byldd's "This job post is closed." is not a demand at all.
-_VISION_PROMPT_VERSION = 4
+#   v4 -> v5 (2026-10-15): the READING rule changed, not the prompt. Pursuit (Data & AI Systems
+#   Manager, "Look why" + 2 screenshots): gpt-4o-mini answered NONE for a posting header that says
+#   "New York City" and the NONE was cached forever; the second screenshot ("Tu - Th on site in
+#   Long Island City") was never read because the kit's CV PDFs took the 2 attachment slots.
+#   Now: only her notes' images, up to 4, all readings joined; NONE only when every provider says so.
+_VISION_PROMPT_VERSION = 5
 _SHOT_MAX = 240
 _scope_warned = []
 
@@ -370,7 +375,8 @@ def _vision_openai(ok: str, mime: str, b64: str) -> str:
             out = json.loads(urllib.request.urlopen(req, timeout=60).read())
             return (out["choices"][0]["message"]["content"] or "").strip()
         except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt < 2:
+            # An empty balance is also a 429 ("insufficient_quota") — waiting does not refill it.
+            if e.code == 429 and attempt < 2 and b"insufficient_quota" not in (e.read() or b""):
                 time.sleep(8 * (attempt + 1))
                 continue
             raise
@@ -393,39 +399,47 @@ def _vision_gemini(gk: str, mime: str, b64: str) -> str:
 
 
 def _read_screenshot(key: str, file_ids, cache: dict) -> str:
-    """What the attached screenshot says (location, closed, pay, demands). '' when unavailable."""
+    """What her attached screenshots say (location, closed, pay, demands), every image joined. '' when unavailable.
+
+    She often sends two: the header ("New York City") and the details ("Tu - Th on site") — the
+    reason can be in either, so all of them are read (up to 4), not just the first that answers.
+    """
     import base64
     ok = _read_env_file(REPO / ".env", "OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
     gk = _read_env_file(REPO / ".env", "GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
-    for fid in file_ids[:2]:
+    found = []
+    for fid in list(dict.fromkeys(file_ids))[:4]:
         if fid in cache:                       # already paid for — never re-read
             if cache[fid]:
-                return cache[fid]
+                found.append(cache[fid])
             continue
         if not ok and not gk:
-            return ""
+            break
         raw, mime = _file_bytes(key, fid)
         if not raw:
-            continue                           # e.g. the CV PDF on the same note — try the next file
+            continue                           # not an image (a PDF) — try the next file
         b64 = base64.b64encode(raw).decode()
-        txt, errs = "", []
+        txt, errs, said_none = "", [], False
         for name, fn, k in (("openai", _vision_openai, ok), ("gemini", _vision_gemini, gk)):
             if not k:
                 continue
             try:
                 txt = fn(k, mime, b64)
-                if txt:
-                    break
             except Exception as e:
                 errs.append(f"{name}: {str(e)[:70]}")
-        if not txt:
+                txt = ""
+                continue
+            if txt and not txt.upper().startswith("NONE"):
+                break
+            said_none = said_none or bool(txt)  # one model's NONE is a second opinion's job
+            txt = ""
+        if not txt and not said_none:
             print(f"  screenshot {fid}: vision call failed ({'; '.join(errs)[:160]})")
-            return ""
-        txt = "" if txt.upper().startswith("NONE") else txt[:_SHOT_MAX]
-        cache[fid] = txt
+            continue                           # not cached — the next run tries again
+        cache[fid] = txt[:_SHOT_MAX]
         if txt:
-            return txt
-    return ""
+            found.append(txt[:_SHOT_MAX])
+    return " | ".join(found)
 
 
 # 6 was starving the judge: 13 deals all-time carry a confirmed applied-by-Elena
@@ -665,6 +679,13 @@ def _is_auto_swept(props: dict) -> bool:
         and str(props.get("closed_lost_reason") or "").startswith(_AUTO_SWEEP)
 
 
+def _recent(iso: str, days: int) -> bool:
+    try:
+        return datetime.now(timezone.utc) - datetime.fromisoformat(str(iso).replace("Z", "+00:00")) < timedelta(days=days)
+    except Exception:
+        return False
+
+
 def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
     """Refresh the ledger, fetching notes ONLY for deals that are new or changed."""
     now = datetime.now(timezone.utc).isoformat()
@@ -678,6 +699,10 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
         url = _job_url(p.get("description"))
         if e and e.get("modified") == mod and e.get("stage") == stage:
             ledger[did] = {**e, "url": url or e.get("url")}      # links old entries, no extra call
+            # 15 Oct 2026: a recent rejection with no reason yet gets its notes read again — a screenshot
+            # that failed or was misread once used to stay unread forever (Pursuit), as the deal never changed.
+            if stage in NEGATIVE_STAGES and not e.get("why") and _recent(e.get("first_decided"), days=14):
+                todo.append(did)
             continue
         if e and e.get("stage") == stage:
             first = e.get("first_decided") or mod
@@ -696,7 +721,8 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
             e["applied"] = _elena_said_applied(ns)
             continue
         why = _rejection_reason(ns, e["title"])
-        shots = [f for n in ns for f in n.get("attachments", [])]
+        # Only HER notes' files: the kit attaches the CV PDF to its 🛡️ and ✅ READY notes on every deal.
+        shots = [f for n in ns if not _KIT_NOTE.search(n.get("body") or "") for f in n.get("attachments", [])]
         if shots:
             shot = _read_screenshot(key, shots, shot_cache)
             if shot:
@@ -714,7 +740,9 @@ _LESSON_KINDS = (
     ("location", "A STATED location or eligibility restriction that excludes Panama "
                  "(a listing silent on location is NOT restricted)",
      r"\blocat|\bonly (?:in )?[a-z]+\b|born in|citizen|\busc\b|green card|\bw-?2\b|country|countries|"
-     r"india|philippines|colombia|timezone|time zone|region"),
+     r"india|philippines|colombia|timezone|time zone|region"
+     # 15 Oct 2026 (Pursuit): "must live or work in New York City", "Tu - Th on site" — an office she must attend
+     r"|on.?site|hybrid|in.?office|must (?:live|reside|work|be based)\b|relocat"),
     # 2026-09-28: the label is what the judge READS. "Hand-coding ... required" made it reject the
     # AI Automation / Applied AI roles she applied to as "hands-on coding, not her expertise" —
     # her words were "manual coding required" and "standard CS": coding with AI switched off.
