@@ -91,7 +91,10 @@ _KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*
                        # ("I haven't done X yet…") that would otherwise read as HER reason on any rejected deal.
                        r"|🎯\s*ROLE DEFENSE"
                        # 1 Oct 2026: the kit's ready-to-paste Comet browser prompt (her details + letter).
-                       r"|📋\s*COMET PROMPT")
+                       r"|📋\s*COMET PROMPT"
+                       # 15 Oct 2026: cto-aipa stage-micro1-deals.cjs's form instructions were learned as HER reason
+                       # ("pay below her floor — 8x"; 7 of the 8 were this note).
+                       r"|🚨\s*The form pre-fills")
 
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
@@ -701,7 +704,9 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
             ledger[did] = {**e, "url": url or e.get("url")}      # links old entries, no extra call
             # 15 Oct 2026: a recent rejection with no reason yet gets its notes read again — a screenshot
             # that failed or was misread once used to stay unread forever (Pursuit), as the deal never changed.
-            if stage in NEGATIVE_STAGES and not e.get("why") and _recent(e.get("first_decided"), days=14):
+            # A cached reason that came from an agent's note (now matched by _KIT_NOTE) is re-derived too.
+            if stage in NEGATIVE_STAGES and ((not e.get("why") and _recent(e.get("first_decided"), days=14))
+                                             or _KIT_NOTE.search(e.get("why") or "")):
                 todo.append(did)
             continue
         if e and e.get("stage") == stage:
