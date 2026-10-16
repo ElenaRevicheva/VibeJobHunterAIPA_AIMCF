@@ -34,6 +34,119 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 16 Oct 2026 (Elena): the screens say only what really happens today. Checked on Oracle against the code and the
+# journal; one copy each, shared by the /command and its button. Telegram Markdown v1: no "_" outside backticks.
+# Buttons whose screens showed April data or a fake "0 jobs" (Today, Jobs, Stats, Outreach, Pause, Resume, Status,
+# the "coming soon" CMO ones) are off the menu; their handlers are untouched.
+# ═══════════════════════════════════════════════════════════════════════════
+MENU_TEXT = """📋 *VIBEJOBHUNTER MENU*
+
+💼 *YOUR JOB FLOW — nothing to remember*
+1️⃣ New job → the kit fills the HubSpot deal by itself (company note, CV, letter, Comet prompt) → open 🔥 I act today → apply. The daily apply queue and kit alerts arrive here.
+2️⃣ Interview booked (LinkedIn, WhatsApp, anywhere) → in the *CTO AIPA bot* send `/research_employer <company>` → if the company has an open job deal, deep research on the company + its products is saved on it and the bot confirms when OpenClaw has it (no deal yet: give Claude Code the posting link first)
+3️⃣ In OpenClaw: `/new` → `prep me for <company>` → a mock interview on that company's likely questions, steering clear of what the research says not to claim
+
+Choose an option below:"""
+
+START_TEXT = """🤖 *VibeJobHunter*
+
+I find and screen remote AI jobs every hour and put the good ones in HubSpot 🔥 I act today, where the kit writes your materials. *You apply* — I do not apply or email employers for you.
+
+/menu — your job flow
+/workflow — what runs by itself
+/manual — what is yours
+/help — commands that work"""
+
+WORKFLOW_TEXT = """🔄 *HOW VIBEJOBHUNTER WORKS*
+
+It finds and screens jobs, and the kit writes your materials. *You apply.* It does not apply, fill in forms or email employers for you.
+
+*1️⃣ Finds jobs*: one cycle about every hour
+• Job boards of about 270 companies (Greenhouse, Ashby, Lever, Workable and more), Himalayas, Get on Board, YC OSS, Hacker News, Dice, RemoteOK, WeWorkRemotely, Remotive, Puente, AI-Native-Builder
+• A Google Jobs feed, twice a day
+• Off on purpose: Wellfound, AI-Jobs, YC Work at a Startup, LinkedIn (Bright Data). Torre is failing right now.
+
+*2️⃣ Screens them*
+• Re-reads the live posting and drops it if closed
+• The job must be fully remote, open to LATAM or worldwide, and AI-augmented work, with no posted pay under $3,000/month
+• Scores each job: 60+ goes to your learned rules, then an AI judge · 55–59 is shown as a lead · under 55 is dropped
+
+*3️⃣ Learns from you*: every hour
+It re-reads your decided HubSpot job deals and the reason you gave for each No-fit, including screenshots on the deal. Those reasons become rules and examples for the judge.
+
+*4️⃣ Alerts you here and creates the deal*
+📋 Apply yourself (⚠️ UNVERIFIED when the posting could not be read) → a job deal in HubSpot 🔥 I act today
+
+*5️⃣ The kit fills the deal*: every 10 min, from CTO AIPA
+🔎 company brief · CV shaped to the posting, or your tailored CV with the reason · ✅ cover letter · 🎯 role defense · 🛡️ technical defense · 📋 Comet prompt
+
+*6️⃣ Mornings*
+• 07:55 Panama: closed postings are moved out of 🔥 I act today to Lost
+• 08:15 Panama: the apply queue, sent here only when there are new jobs
+• 08:45 Panama: a kit alert, sent here only if a deal is missing a piece
+
+*7️⃣ Replies*
+Your Zoho and Gmail inboxes are checked in each hourly cycle that finds a new job, looking back 24 hours. A positive reply or a question from an employer goes to HubSpot and is alerted here once. An interview invite with a booking link should do the same; that was added 15 Oct and none has arrived yet.
+
+*👤 Your part*
+Apply from 🔥 I act today → move the deal to ⏳ Sent, or to Lost with a reason. Interview booked anywhere → CTO AIPA bot `/research_employer <company>` → OpenClaw `/new`, then `prep me for <company>`.
+
+*Switched off:* auto-apply, ATS form filling and founder emails. The old follow-up emailer still checks but has nothing to send (last one 24 May)."""
+
+MANUAL_TEXT = """👤 *WHAT YOU DO BY HAND*
+
+The bot finds and screens jobs, and the kit writes your materials on the HubSpot deal. *Applying, replying and booking calls are yours.* Nothing is sent for you.
+
+*Every morning*
+1️⃣ Open HubSpot → 🔥 I act today. When there are new jobs, the 08:15 Panama apply queue here lists them.
+2️⃣ Open a deal and read the 🔎 company brief, 🎯 role defense and 🛡️ technical defense
+3️⃣ Apply on the posting with the CV and ✅ cover letter on the deal. The 📋 Comet prompt is there if you use Comet for the form.
+4️⃣ ⚠️ UNVERIFIED deal: open the link first and check the job is still open
+5️⃣ Move the deal: ⏳ Sent once you have applied, or Lost with one line on why it is not a fit (a screenshot on the deal works too). Within the hour, that reason trains the judge.
+
+*A job you found yourself*
+Give the link to Claude Code and it becomes a deal with the same kit. This bot cannot do that.
+
+*When an employer replies*
+• The alert comes here. You answer and book the call yourself.
+• Whose-turn reminders come at 07:00 Panama in the *CTO AIPA bot*, with a HubSpot task
+
+*Interview booked* (LinkedIn, WhatsApp, email, anywhere)
+1️⃣ *CTO AIPA bot:* `/research_employer <company>` → if the company has an open job deal, the research is saved on it and the bot replies "✅ OpenClaw has it now" (no deal yet: give Claude Code the posting link first)
+2️⃣ *OpenClaw:* `/new` → `prep me for <company>` → a mock interview on that company's likely questions, steering clear of what the research says not to claim. Add `en español` for a Spanish interview.
+3️⃣ After the call, move the deal on in HubSpot"""
+
+HELP_TEXT = """📖 *COMMANDS THAT WORK*
+
+/menu: your 3-step job flow, with buttons
+/workflow: what runs by itself, and what is yours
+/manual: your steps every morning, when a reply comes, and when an interview is booked
+/priority: the YC priority company list. It does not change which jobs reach you. Skip `/priority refresh` and the 🔄 Refresh button on that screen: either freezes the bot for up to 2 minutes.
+/help: this list
+⚠️ The 📘 menu button posts publicly with no preview: LinkedIn and Instagram, plus a Hashnode and dev.to article whenever a CTO update is waiting.
+
+*Arrives here by itself*
+• 📋 Apply yourself / ⚠️ UNVERIFIED: a new job, already a HubSpot deal
+• 08:15 Panama: the apply queue, only when there are new jobs
+• 08:45 Panama: a kit alert, only if a deal is missing a piece
+• Employer replies (positive or a question), once each
+• Daily digest around 15:00 Panama. Ignore its Auto-applied, Outreach and Follow-up lines: those features are off, so they read 0 or show May's applications.
+
+*Not working yet in this bot:* it hears voice notes in English, Spanish or Russian, but every answer, spoken or typed, is English text from old files (Jan–May 2026) or a canned reply. Screenshots get no reply.
+
+*For real answers:* CTO AIPA bot `/research_employer <company>` · OpenClaw `prep me for <company>` (English or Spanish)"""
+
+
+def _menu_keyboard():
+    """Only buttons whose screens are true today (16 Oct 2026)."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔄 How it works", callback_data="workflow"),
+         InlineKeyboardButton("👤 What is mine", callback_data="manual")],
+        [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
+        [InlineKeyboardButton("📘 Post publicly NOW (LinkedIn + IG)", callback_data="post_linkedin")],
+    ])
+
 
 class EnhancedTelegramBot:
     """
@@ -110,211 +223,35 @@ class EnhancedTelegramBot:
     
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Welcome message with main menu"""
-        message = """🤖 *VibeJobHunter Interactive Bot*
+        await update.message.reply_text(START_TEXT, parse_mode='Markdown', reply_markup=_menu_keyboard())
 
-Welcome! I'm your AI job hunting assistant running 24/7.
-
-*🎯 QUICK START:*
-/menu - Open interactive menu
-/workflow - See how the engine works
-/manual - What YOU need to do
-
-*📊 MONITORING:*
-/today - Today's activity summary
-/jobs - Best job matches
-/outreach - Pending messages to send
-
-I'm automatically applying to jobs and finding founders for you!
-"""
-        # Create main menu keyboard
-        keyboard = [
-            [
-                InlineKeyboardButton("📋 Menu", callback_data="menu"),
-                InlineKeyboardButton("🔄 Workflow", callback_data="workflow")
-            ],
-            [
-                InlineKeyboardButton("👤 Manual Steps", callback_data="manual"),
-                InlineKeyboardButton("📊 Today", callback_data="today")
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
-    
     # ═══════════════════════════════════════════════════════════════════════════
     # 🆕 NEW MENU COMMANDS (January 2026 Upgrade)
     # ═══════════════════════════════════════════════════════════════════════════
-    
+
     async def cmd_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Interactive main menu with all options"""
         import logging
         logger = logging.getLogger(__name__)
         logger.info("📋 /menu command received!")
-        
+
         try:
             # 16 Oct 2026 (Elena): everything about jobs lives in THIS bot, whichever agent does the work behind it.
-            message = """📋 *VIBEJOBHUNTER MENU*
-
-💼 *YOUR JOB FLOW — nothing to remember*
-1️⃣ New job → the kit fills the HubSpot deal by itself (company note, CV, letter, Comet prompt) → open 🔥 I act today → apply. The daily apply queue and kit alerts arrive here.
-2️⃣ Interview booked (LinkedIn, WhatsApp, anywhere) → in the *CTO AIPA bot* send `/research_employer <company>` → deep research on the company + its products is saved on the job deal; it confirms when OpenClaw has it
-3️⃣ In OpenClaw: `/new` → `prep me for <company>` → it prepares you from that research, warnings first
-
-Choose an option below:"""
-            
-            keyboard = [
-                # 🎯 JOB HUNTING Section
-                [InlineKeyboardButton("🎯 JOB HUNTING", callback_data="header_job")],
-                [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
-                [
-                    InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
-                    InlineKeyboardButton("📈 Stats", callback_data="stats")
-                ],
-                [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
-                [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
-                
-                # 🚀 AI MARKETING CMO Section
-                [InlineKeyboardButton("🚀 AI MARKETING CMO", callback_data="header_cmo")],
-                [
-                    InlineKeyboardButton("📘 LinkedIn", callback_data="post_linkedin"),
-                    InlineKeyboardButton("📸 Instagram", callback_data="post_instagram")
-                ],
-                [
-                    InlineKeyboardButton("📊 Analytics", callback_data="analytics"),
-                    InlineKeyboardButton("🎯 Campaign", callback_data="campaign")
-                ],
-                [InlineKeyboardButton("🎨 Generate Image", callback_data="generate_image")],
-                
-                # ⚡ SYSTEM Section
-                [InlineKeyboardButton("⚡ SYSTEM", callback_data="header_system")],
-                [
-                    InlineKeyboardButton("🔄 Workflow", callback_data="workflow"),
-                    InlineKeyboardButton("📖 Manual", callback_data="manual")
-                ],
-                [
-                    InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
-                    InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
-                ],
-                [InlineKeyboardButton("⚙️ Status", callback_data="status")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+            await update.message.reply_text(MENU_TEXT, parse_mode='Markdown', reply_markup=_menu_keyboard())
             logger.info("📋 /menu response sent successfully!")
         except Exception as e:
             logger.error(f"❌ /menu command error: {e}", exc_info=True)
-    
+
     async def cmd_workflow(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Visual explanation of how the engine works"""
-        message = """🔄 *HOW VIBEJOBHUNTER WORKS*
+        """How the engine really works today"""
+        keyboard = [[InlineKeyboardButton("👤 What is mine", callback_data="manual")]]
+        await update.message.reply_text(WORKFLOW_TEXT, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
-*Every Hour, The Engine:*
-
-1️⃣ *DISCOVERS JOBS*
-   └─ Scans 7 sources (ATS, YC, RemoteOK, etc.)
-   └─ Checks 200+ AI companies
-   └─ Finds ~30-50 new jobs
-
-2️⃣ *SCORES EACH JOB* (100 points)
-   ├─ AI Product: 25 pts
-   ├─ 0→1 Autonomy: 25 pts
-   ├─ Full-Stack: 20 pts
-   ├─ Business: 15 pts
-   ├─ Bilingual: 5 pts
-   └─ Web3: 10 pts
-   ⭐ YC companies: +15 bonus!
-
-3️⃣ *ROUTES BY SCORE*
-   ├─ ≥60 → 🚀 AUTO-APPLY
-   ├─ 58-59 → 🤝 FOUNDER OUTREACH
-   ├─ 55-57 → 📋 REVIEW QUEUE
-   └─ <55 → ❌ DISCARDED
-
-4️⃣ *FOR AUTO-APPLY JOBS:*
-   ├─ Selects best resume (EN/ES/Founding)
-   ├─ Generates AI cover letter
-   ├─ Fills ATS form (Greenhouse/Lever)
-   ├─ Uploads your resume PDF
-   └─ Handles email verification
-
-5️⃣ *FOR OUTREACH JOBS:*
-   ├─ Finds founder via Hunter.io
-   ├─ Generates warm intro message
-   ├─ Sends email (if verified)
-   └─ 👤 YOU: Send LinkedIn message
-
-*Daily Limits (Safety):*
-├─ Max 5 applications/day
-├─ Max 10 emails/day
-└─ Max 3 emails/hour
-"""
-        keyboard = [[InlineKeyboardButton("👤 What I Do Manually", callback_data="manual")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
-    
     async def cmd_manual(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show what the user needs to do manually"""
-        message = """👤 *WHAT YOU NEED TO DO MANUALLY*
+        keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+        await update.message.reply_text(MANUAL_TEXT, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
-The engine automates 80% of job hunting.
-Here's what ONLY YOU can do:
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*📨 DAILY TASKS (5-10 min)*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1️⃣ *Send LinkedIn Messages*
-   When you see "🤝 LinkedIn Outreach Ready":
-   └─ Copy the message I generate
-   └─ Go to the LinkedIn URL
-   └─ Send the connection request
-   └─ Paste the message as note
-
-2️⃣ *Check Your Email Inbox*
-   └─ Look for interview requests
-   └─ Reply to recruiter questions
-   └─ Schedule calls yourself
-
-3️⃣ *Review Queue* (optional)
-   └─ Use /jobs to see waiting jobs
-   └─ Decide if any deserve manual apply
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*📅 WEEKLY TASKS (30 min)*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-4️⃣ *Check Make.com*
-   └─ Is LinkedIn posting working?
-   └─ https://make.com/en/login
-
-5️⃣ *Review Stats*
-   └─ Use /stats to see metrics
-   └─ Any companies not responding?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*🎤 INTERVIEW PREP (when needed)*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-6️⃣ *Prepare & Show Up*
-   └─ Research the company
-   └─ Prepare your stories
-   └─ Do the actual interview!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*❌ WHAT I CAN'T DO:*
-├─ Send LinkedIn messages (blocked)
-├─ Do your interviews
-├─ Negotiate your salary
-├─ Accept job offers
-└─ Say yes/no to opportunities
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-        keyboard = [[InlineKeyboardButton("📨 Show Pending Outreach", callback_data="outreach")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
-    
     async def cmd_today(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show today's complete activity summary"""
         try:
@@ -487,39 +424,8 @@ You have *{len(outreach)}* message(s) to send:
     
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show detailed help"""
-        message = """
- *VibeJobHunter Command Reference*
+        await update.message.reply_text(HELP_TEXT, parse_mode='Markdown')
 
-*Job Discovery:*
-/jobs - Show top 5 jobs found today
-/companies - List all tracked companies
-
-*Application Management:*
-/apply <company> - Generate resume/cover letter
-/recent - View last 10 applications
-/stats - See your performance metrics
-
-*System Control:*
-/status - Check if system is running
-/pause - Stop autonomous job hunting
-/resume - Restart autonomous job hunting
-
-*Configuration:*
-/keywords <words> - Update search keywords
-  Example: /keywords ML engineer, AI researcher
-
-*Tips:*
-- Jobs are checked hourly automatically
-- High-match jobs (>80%) trigger instant alerts
-- You'll get weekly performance reports
-- All applications are tracked in the database
-
-*Voice & questions:*
-- Send a voice message (needs OPENAI_API_KEY) or type a question
-- Try: "What companies did I apply to today?" for honest answers
-"""
-        await update.message.reply_text(message, parse_mode='Markdown')
-    
     async def cmd_jobs(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show today's top jobs"""
         try:
@@ -1119,118 +1025,20 @@ You have *{len(outreach)}* message(s) to send:
     # ═══════════════════════════════════════════════════════════════════════════
     
     async def _send_menu(self, context, chat_id):
-        """Send menu via callback"""
-        message = """📋 *VIBEJOBHUNTER MENU*
+        """Send menu via callback — the same screen as /menu"""
+        await context.bot.send_message(chat_id, MENU_TEXT, parse_mode='Markdown', reply_markup=_menu_keyboard())
 
-Choose an option below:"""
-        
-        keyboard = [
-            [InlineKeyboardButton("📊 Today's Summary", callback_data="today")],
-            [InlineKeyboardButton("🔄 How It Works", callback_data="workflow")],
-            [InlineKeyboardButton("👤 What I Need To Do", callback_data="manual")],
-            [
-                InlineKeyboardButton("💼 Jobs", callback_data="jobs"),
-                InlineKeyboardButton("📈 Stats", callback_data="stats")
-            ],
-            [InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
-            [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
-            [
-                InlineKeyboardButton("⏸️ Pause", callback_data="pause"),
-                InlineKeyboardButton("▶️ Resume", callback_data="resume_hunting")
-            ],
-            [InlineKeyboardButton("⚙️ System Status", callback_data="status")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
-    
     async def _send_workflow(self, context, chat_id):
-        """Send workflow explanation via callback"""
-        message = """🔄 *HOW VIBEJOBHUNTER WORKS*
-
-*Every Hour, The Engine:*
-
-1️⃣ *DISCOVERS JOBS*
-   └─ Scans 8 sources:
-      ATS APIs, Dice MCP, YC, RemoteOK,
-      Wellfound, WWR, AI Jobs, HN
-   └─ Checks 200+ AI companies
-   └─ Finds ~30-80 new jobs/cycle
-
-2️⃣ *FILTERS & SCORES* (100 points)
-   ├─ Domain-match filter (drops irrelevant)
-   ├─ AI Product: 25 pts
-   ├─ 0→1 Autonomy: 25 pts
-   ├─ Full-Stack: 20 pts
-   ├─ Business: 15 pts
-   ├─ Bilingual: 5 pts
-   └─ Web3: 10 pts
-   ⭐ YC companies: +15 bonus!
-
-3️⃣ *ROUTES BY SCORE*
-   ├─ ≥60 → 🚀 AUTO-APPLY (ATS submit)
-   ├─ 50-59 → 🤝 FOUNDER OUTREACH
-   ├─ 40-49 → 📋 REVIEW QUEUE
-   └─ <40 → ❌ DISCARDED
-
-4️⃣ *FOR AUTO-APPLY:*
-   ├─ Selects best resume
-   ├─ Generates AI cover letter
-   ├─ Fills ATS form
-   └─ Uploads resume PDF
-
-5️⃣ *FOLLOW-UPS & LIMITS:*
-   ├─ Max 2 outreach/day
-   ├─ Auto follow-up after 5 days
-   └─ Max 5 apps/day, 10 emails/day
-"""
-        keyboard = [[InlineKeyboardButton("👤 What I Do Manually", callback_data="manual")],
+        """Send workflow explanation via callback — the same screen as /workflow"""
+        keyboard = [[InlineKeyboardButton("👤 What is mine", callback_data="manual")],
                     [InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
-    
+        await context.bot.send_message(chat_id, WORKFLOW_TEXT, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+
     async def _send_manual(self, context, chat_id):
-        """Send manual tasks via callback"""
-        message = """👤 *WHAT YOU NEED TO DO*
+        """Send manual tasks via callback — the same screen as /manual"""
+        keyboard = [[InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
+        await context.bot.send_message(chat_id, MANUAL_TEXT, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
-*📨 DAILY (5-10 min):*
-
-1️⃣ *Send LinkedIn Messages* (1-2/day)
-   When you see "🤝 Outreach Ready":
-   └─ Copy the message
-   └─ Go to LinkedIn URL
-   └─ Send as connection note
-   └─ Bot caps at 2 outreach/day
-
-2️⃣ *Check Your Email*
-   └─ Reply to recruiters
-   └─ Schedule interviews
-
-3️⃣ *Follow-Up Reminders*
-   └─ Bot notifies you after 5 days
-   └─ Re-send or skip
-
-*📅 WEEKLY (30 min):*
-
-4️⃣ *Check Make.com*
-   └─ Is LinkedIn CMO posting OK?
-
-5️⃣ *Review /stats or /today*
-   └─ Any issues?
-
-*❌ I CAN'T DO (LinkedIn blocks bots):*
-├─ Send LinkedIn messages for you
-├─ Do your interviews
-├─ Negotiate salary
-└─ Accept offers
-"""
-        keyboard = [[InlineKeyboardButton("📨 Pending Outreach", callback_data="outreach")],
-                    [InlineKeyboardButton("📋 Back to Menu", callback_data="menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await context.bot.send_message(chat_id, message, parse_mode='Markdown', reply_markup=reply_markup)
-    
     async def _send_today(self, context, chat_id):
         """Send today's summary via callback"""
         jobs_count = self._count_todays_jobs()
