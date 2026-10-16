@@ -5,9 +5,14 @@ Interactive commands for job hunting control and status
 ADDED: Voice + free-form questions (additive, non-overwriting)
 - Voice messages → transcribed with Whisper → answered from real job data
 - Text questions (e.g. "what companies did I apply to today?") → honest answers
+
+16 Oct 2026 (Elena, bilingual): answers are grounded in her shared memory (telegram_qa_helper.answer_grounded) and
+come back in the language she used; screenshots are read; a voice note in gets a text AND a voice reply, and so does
+a typed message that asks for voice. Only her TELEGRAM_CHAT_ID reaches the bot. Model and user text is sent plain.
 """
 
 import os
+import re
 import asyncio
 import tempfile
 from dotenv import load_dotenv
@@ -63,14 +68,14 @@ WORKFLOW_TEXT = """🔄 *HOW VIBEJOBHUNTER WORKS*
 It finds and screens jobs, and the kit writes your materials. *You apply.* It does not apply, fill in forms or email employers for you.
 
 *1️⃣ Finds jobs*: one cycle about every hour
-• Job boards of about 270 companies (Greenhouse, Ashby, Lever, Workable and more), Himalayas, Get on Board, YC OSS, Hacker News, Dice, RemoteOK, WeWorkRemotely, Remotive, Puente, AI-Native-Builder
-• A Google Jobs feed, twice a day
+• Job boards of 160 companies (Greenhouse, Ashby, Lever, Workable and more), Himalayas, Get on Board, YC OSS, Hacker News, Dice, RemoteOK, WeWorkRemotely, Remotive, Puente, AI-Native-Builder
+• A Google Jobs feed, twice a day. Jobs that pass your rules and the judge go straight into 🔥 I act today with no alert here (the 08:15 queue lists them); borderline ones arrive here as BORDERLINE.
 • Off on purpose: Wellfound, AI-Jobs, YC Work at a Startup, LinkedIn (Bright Data). Torre is failing right now.
 
 *2️⃣ Screens them*
 • Re-reads the live posting and drops it if closed
 • The job must be fully remote, open to LATAM or worldwide, and AI-augmented work, with no posted pay under $3,000/month
-• Scores each job: 60+ goes to your learned rules, then an AI judge · 55–59 is shown as a lead · under 55 is dropped
+• Scores each job: 60+ goes to your learned rules, then an AI judge · 55–59 is shown as a lead · under 55 is dropped. 55–59 leads skip your learned rules and the judge.
 
 *3️⃣ Learns from you*: every hour
 It re-reads your decided HubSpot job deals and the reason you gave for each No-fit, including screenshots on the deal. Those reasons become rules and examples for the judge.
@@ -87,7 +92,10 @@ It re-reads your decided HubSpot job deals and the reason you gave for each No-f
 • 08:45 Panama: a kit alert, sent here only if a deal is missing a piece
 
 *7️⃣ Replies*
-Your Zoho and Gmail inboxes are checked in each hourly cycle that finds a new job, looking back 24 hours. A positive reply or a question from an employer goes to HubSpot and is alerted here once. An interview invite with a booking link should do the same; that was added 15 Oct and none has arrived yet.
+Your Zoho and Gmail inboxes are checked every hourly cycle, looking back 24 hours. A reply the AI reads as positive or a question (sometimes an intro or a newsletter, not only employers) goes to HubSpot and is alerted here once. An interview invite with a booking link should do the same; that was added 15 Oct and none has arrived yet.
+
+*8️⃣ Evenings*
+• 20:00 Panama: a daily public post on LinkedIn and Instagram, written by the AI (a template only if every model fails), posted without a preview
 
 *👤 Your part*
 Apply from 🔥 I act today → move the deal to ⏳ Sent, or to Lost with a reason. Interview booked anywhere → CTO AIPA bot `/research_employer <company>` → OpenClaw `/new`, then `prep me for <company>`.
@@ -122,7 +130,7 @@ HELP_TEXT = """📖 *COMMANDS THAT WORK*
 /menu: your 3-step job flow, with buttons
 /workflow: what runs by itself, and what is yours
 /manual: your steps every morning, when a reply comes, and when an interview is booked
-/priority: the YC priority company list. It does not change which jobs reach you. Skip `/priority refresh` and the 🔄 Refresh button on that screen: either freezes the bot for up to 2 minutes.
+/priority: the YC priority company list. It does not change which jobs reach you. Skip `/priority refresh` and the 🔄 Refresh button on that screen: either freezes the whole bot and the job hunter for up to 2 minutes.
 /help: this list
 ⚠️ The 📘 menu button posts publicly with no preview: LinkedIn and Instagram, plus a Hashnode and dev.to article whenever a CTO update is waiting.
 
@@ -130,12 +138,16 @@ HELP_TEXT = """📖 *COMMANDS THAT WORK*
 • 📋 Apply yourself / ⚠️ UNVERIFIED: a new job, already a HubSpot deal
 • 08:15 Panama: the apply queue, only when there are new jobs
 • 08:45 Panama: a kit alert, only if a deal is missing a piece
-• Employer replies (positive or a question), once each
-• Daily digest around 15:00 Panama. Ignore its Auto-applied, Outreach and Follow-up lines: those features are off, so they read 0 or show May's applications.
+• Replies the AI reads as positive or a question (sometimes an intro or a newsletter, not only employers), once each
+• BORDERLINE jobs from the Google Jobs feed, worth your eyes
+• After each hourly cycle with new jobs: a cycle summary. Its applications and founder outreach lines read 0 because those features are switched off.
+• After 12 empty cycles in a row: an alert that there are 0 new jobs
+• On every restart: "AUTONOMOUS ENGINE STARTED". Its promises are old; this screen says what really runs.
+• Daily digest around 15:00 Panama. Ignore its Auto-applied, Outreach, Follow-up, Warm Intro and Applied Today lines: those features are off, so they read 0, stay empty or show old data.
 
-*Not working yet in this bot:* it hears voice notes in English, Spanish or Russian, but every answer, spoken or typed, is English text from old files (Jan–May 2026) or a canned reply. Screenshots get no reply.
+*Ask about your jobs* by text, voice note or screenshot, in English or Spanish. Answers come from your live HubSpot job deals, your verified facts and your corrections, and the bot says so when it does not know. A voice note gets a text and a voice reply; when you type, ask for voice ("reply with voice", "respóndeme con voz"). A screenshot of a posting gets fit and gaps, an interviewer's question gets an answer from your verified examples, a recruiter's message gets a reply draft. Russian voice notes are answered in English.
 
-*For real answers:* CTO AIPA bot `/research_employer <company>` · OpenClaw `prep me for <company>` (English or Spanish)"""
+*For company research and interview prep:* CTO AIPA bot `/research_employer <company>` · OpenClaw `prep me for <company>` (English or Spanish)"""
 
 
 def _menu_keyboard():
@@ -146,6 +158,124 @@ def _menu_keyboard():
         [InlineKeyboardButton("🎯 Priority Companies", callback_data="priority")],
         [InlineKeyboardButton("📘 Post publicly NOW (LinkedIn + IG)", callback_data="post_linkedin")],
     ])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SAME VOICE RULE in all three bots (Elena, 16 Oct 2026): a voice note in → the answer as text AND a voice note;
+# a typed message that asks for voice (voice / voz / audio / "out loud" / "respóndeme con voz", any language) → text
+# AND voice; otherwise text only. A product term ("voice agent", "agente de voz") is not a request.
+# ═══════════════════════════════════════════════════════════════════════════
+_VOICE_WORDS = re.compile(r"\b(voice|voz|voix|audio|aloud|out\s+loud|голос\w*|вслух|аудио)\b", re.IGNORECASE)
+_VOICE_PRODUCT_TERMS = re.compile(
+    r"\bvoice[\s-]*(agents?|assistants?|ai|bots?|apps?|latency|models?|interfaces?|cloning|actors?|over)\b|"
+    r"\b(agentes?|asistentes?|bots?|modelos?|latencia|interfaz)\s+de\s+voz\b", re.IGNORECASE)
+
+
+def _asks_for_voice(text: str) -> bool:
+    """True when a typed message (or a screenshot caption) asks for the answer by voice."""
+    if not text:
+        return False
+    return bool(_VOICE_WORDS.search(_VOICE_PRODUCT_TERMS.sub(" ", text)))
+
+
+def _for_speech(text: str) -> str:
+    """Port of cto-aipa src/telegram-bot.ts forSpeech: no links, code, Markdown, emoji or /commands; at most 1,500
+    characters, cut on a sentence end found after character 500."""
+    if not text:
+        return ""
+    s = re.sub(r"```[\s\S]*?```", " ", text)
+    s = re.sub(r"https?://\S+", "", s)
+    s = re.sub(r"(?m)^\s*/\w+.*$", "", s)
+    s = s.replace("_", " ")
+    s = re.sub(r"[*`\[\]#>]", "", s)
+    try:
+        import regex  # stdlib re has no \p{Extended_Pictographic}
+        s = regex.sub(r"\p{Extended_Pictographic}|\uFE0F", "", s)
+    except ImportError:
+        s = re.sub("[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F]", "", s)
+    s = "\n".join(l for l in (re.sub(r"[ \t]+", " ", x).strip() for x in s.split("\n")) if l)
+    if len(s) <= 1500:
+        return s
+    cut = s[:1500]
+    end = max(cut.rfind(". "), cut.rfind(".\n"), cut.rfind("! "), cut.rfind("? "), cut.rfind("\n"))
+    return (cut[:end + 1] if end > 500 else cut[:cut.rfind(" ")]).strip()
+
+
+# Whisper verbose_json names the language in English words.
+_WHISPER_LANG = {"spanish": "es", "english": "en", "russian": "ru", "es": "es", "en": "en", "ru": "ru"}
+
+# Screenshot reader (VJH-3): the vision functions of scripts/judge_feedback_sync.py, given this prompt.
+_SCREENSHOT_PROMPT = (
+    "On the FIRST line write exactly one of these labels: TYPE: job posting | TYPE: interviewer question | "
+    "TYPE: recruiter or employer message | TYPE: other "
+    "(interviewer question = a question she must answer: an interview, screening or application-form question). "
+    "Then transcribe ALL the text visible in this screenshot, exactly as written and in its original language, "
+    "keeping the line breaks. Do not summarise, translate or add anything. On the very last line write exactly: "
+    "END OF TEXT")
+_SCREENSHOT_KINDS = ("job posting", "interviewer question", "recruiter or employer message", "other")
+_SCREENSHOT_MAX_BYTES = 6_000_000     # the same cap as judge_feedback_sync._file_bytes
+_JUDGE_SYNC = None
+
+
+def _judge_sync_module():
+    """scripts/judge_feedback_sync.py, loaded once (its main() is guarded; the top level is constants only)."""
+    global _JUDGE_SYNC
+    if _JUDGE_SYNC is None:
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).resolve().parents[2] / "scripts" / "judge_feedback_sync.py"
+        spec = importlib.util.spec_from_file_location("vjh_judge_feedback_sync", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _JUDGE_SYNC = mod
+    return _JUDGE_SYNC
+
+
+def _image_mime(raw: bytes) -> str:
+    """The image signature check of judge_feedback_sync._file_bytes, with the mime taken from the magic bytes."""
+    head = bytes(raw[:12]) if raw else b""
+    if head.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG"):
+        return "image/png"
+    if head.startswith(b"RIFF") and head[8:12] == b"WEBP":
+        return "image/webp"
+    if head.startswith(b"GIF8"):
+        return "image/gif"
+    return ""
+
+
+def _screenshot_kind(label: str) -> str:
+    """The vision model's TYPE label → one of _SCREENSHOT_KINDS, by stem ('TYPE: interview question', 'TYPE: posting',
+    'TYPE: employer message' all count). '' when the label names no kind at all (not a TYPE label)."""
+    label = (label or "").lower()
+    for stems, kind in ((("interview",), "interviewer question"),
+                        (("recruit", "employer"), "recruiter or employer message"),
+                        (("posting", "job", "vacan", "oferta"), "job posting"),
+                        (("question", "screening", "pregunta"), "interviewer question"),
+                        (("message", "mensaje"), "recruiter or employer message"),
+                        (("other", "otro"), "other")):
+        if any(s in label for s in stems):
+            return kind
+    return ""
+
+
+def _split_screenshot_read(txt: str):
+    """(kind, text, cut) from the vision reply. The TYPE line is asked for FIRST, so a long posting cut off at the
+    token limit keeps its type; a TYPE line at the end is accepted too. cut = the 'END OF TEXT' line is missing and
+    no TYPE line closes the read."""
+    lines = (txt or "").strip().splitlines()
+    ended = bool(lines) and re.match(r"^\W*END OF TEXT\W*$", lines[-1].strip(), re.IGNORECASE) is not None
+    if ended:
+        lines = lines[:-1]
+    n = len(lines)
+    for i in list(range(min(3, n))) + list(range(n - 1, max(n - 4, 2), -1)):
+        m = re.match(r"^\W*TYPE\s*:\s*(.+?)\W*$", lines[i], re.IGNORECASE)
+        kind = _screenshot_kind(m.group(1)) if m else ""
+        if kind:
+            body = "\n".join(lines[:i] + lines[i + 1:]).strip()
+            return kind, body, (not ended and i < n - 1)
+    return "other", "\n".join(lines).strip(), not ended
 
 
 class EnhancedTelegramBot:
@@ -190,36 +320,66 @@ class EnhancedTelegramBot:
         self.app = Application.builder().token(token).build()
         self._register_handlers()
     
+    def _chat_lock_filter(self):
+        """ONE chat lock built from TELEGRAM_CHAT_ID (16 Oct 2026): answers now carry her pipeline, screenshots and
+        voice cost money, and the 📘 button posts publicly. A missing or non-numeric id applies NO lock, so she can
+        never be locked out of her own bot."""
+        raw = self.chat_id if self.chat_id not in (None, "") else os.getenv("TELEGRAM_CHAT_ID", "")
+        try:
+            self._allowed_chat_id = int(str(raw).strip())
+        except (TypeError, ValueError):
+            self._allowed_chat_id = None
+            logger.warning("⚠️ TELEGRAM_CHAT_ID is missing or not a number: the VJH bot chat lock is OFF")
+            return None
+        return filters.Chat(chat_id=self._allowed_chat_id)
+
+    def _chat_allowed(self, update) -> bool:
+        """The same lock for updates a filter cannot gate (CallbackQueryHandler takes no filters in PTB 20.7)."""
+        allowed = getattr(self, "_allowed_chat_id", None)
+        if allowed is None:
+            return True
+        chat = getattr(update, "effective_chat", None)
+        return bool(chat) and chat.id == allowed
+
     def _register_handlers(self):
         """Register all command handlers"""
+        lock = self._chat_lock_filter()
+        # CommandHandler's own default is UpdateType.MESSAGES; the lock is added on top of it. No lock → None (default).
+        cmd = (filters.UpdateType.MESSAGES & lock) if lock else None
+
+        def locked(f):
+            return (f & lock) if lock else f
+
         # 🆕 NEW MAIN MENU COMMANDS (January 2026)
-        self.app.add_handler(CommandHandler("menu", self.cmd_menu))
-        self.app.add_handler(CommandHandler("workflow", self.cmd_workflow))
-        self.app.add_handler(CommandHandler("manual", self.cmd_manual))
-        self.app.add_handler(CommandHandler("today", self.cmd_today))
-        self.app.add_handler(CommandHandler("outreach", self.cmd_outreach))
+        self.app.add_handler(CommandHandler("menu", self.cmd_menu, filters=cmd))
+        self.app.add_handler(CommandHandler("workflow", self.cmd_workflow, filters=cmd))
+        self.app.add_handler(CommandHandler("manual", self.cmd_manual, filters=cmd))
+        self.app.add_handler(CommandHandler("today", self.cmd_today, filters=cmd))
+        self.app.add_handler(CommandHandler("outreach", self.cmd_outreach, filters=cmd))
         
         # Original commands
-        self.app.add_handler(CommandHandler("start", self.cmd_start))
-        self.app.add_handler(CommandHandler("help", self.cmd_help))
-        self.app.add_handler(CommandHandler("jobs", self.cmd_jobs))
-        self.app.add_handler(CommandHandler("stats", self.cmd_stats))
-        self.app.add_handler(CommandHandler("apply", self.cmd_apply))
-        self.app.add_handler(CommandHandler("pause", self.cmd_pause))
-        self.app.add_handler(CommandHandler("resume", self.cmd_resume))
-        self.app.add_handler(CommandHandler("keywords", self.cmd_keywords))
-        self.app.add_handler(CommandHandler("companies", self.cmd_companies))
-        self.app.add_handler(CommandHandler("recent", self.cmd_recent))
-        self.app.add_handler(CommandHandler("status", self.cmd_status))
+        self.app.add_handler(CommandHandler("start", self.cmd_start, filters=cmd))
+        self.app.add_handler(CommandHandler("help", self.cmd_help, filters=cmd))
+        self.app.add_handler(CommandHandler("jobs", self.cmd_jobs, filters=cmd))
+        self.app.add_handler(CommandHandler("stats", self.cmd_stats, filters=cmd))
+        self.app.add_handler(CommandHandler("apply", self.cmd_apply, filters=cmd))
+        self.app.add_handler(CommandHandler("pause", self.cmd_pause, filters=cmd))
+        self.app.add_handler(CommandHandler("resume", self.cmd_resume, filters=cmd))
+        self.app.add_handler(CommandHandler("keywords", self.cmd_keywords, filters=cmd))
+        self.app.add_handler(CommandHandler("companies", self.cmd_companies, filters=cmd))
+        self.app.add_handler(CommandHandler("recent", self.cmd_recent, filters=cmd))
+        self.app.add_handler(CommandHandler("status", self.cmd_status, filters=cmd))
         # Priority companies (additive — Feb 2026)
-        self.app.add_handler(CommandHandler("priority", self.cmd_priority))
+        self.app.add_handler(CommandHandler("priority", self.cmd_priority, filters=cmd))
 
-        # Callback query handler for inline buttons
+        # Callback query handler for inline buttons (chat-locked inside handle_callback)
         self.app.add_handler(CallbackQueryHandler(self.handle_callback))
 
         # ADDED: Voice + free-form text (additive — commands unchanged)
-        self.app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
-        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_freeform_text))
+        self.app.add_handler(MessageHandler(locked(filters.VOICE), self.handle_voice))
+        self.app.add_handler(MessageHandler(locked(filters.TEXT & ~filters.COMMAND), self.handle_freeform_text))
+        # ADDED 16 Oct 2026: screenshots (a photo, or an image sent as a file for full resolution)
+        self.app.add_handler(MessageHandler(locked(filters.PHOTO | filters.Document.IMAGE), self.handle_photo))
     
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Welcome message with main menu"""
@@ -809,7 +969,9 @@ You have *{len(outreach)}* message(s) to send:
                 "Return ONLY the translated English text, no explanations.\n\n"
                 f"Original ({source_lang}): {text}"
             )
-            resp = client.chat.completions.create(
+            # off the event loop: the bot shares it with the hourly job hunt (orchestrator.py create_task)
+            resp = await asyncio.to_thread(
+                client.chat.completions.create,
                 model=os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini"),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
@@ -838,44 +1000,53 @@ You have *{len(outreach)}* message(s) to send:
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
                 tmp_path = tmp.name
             await tg_file.download_to_drive(tmp_path)
-            try:
+
+            def _transcribe():
+                # verbose_json: Whisper names the language it heard (16 Oct 2026). Sync SDK → run in a thread,
+                # because the bot shares one event loop with the hourly job hunt. Client built as before (SDK
+                # default timeout and retries), so a long voice note that used to transcribe still does.
                 from openai import OpenAI
                 client = OpenAI(api_key=api_key)
                 with open(tmp_path, "rb") as f:
-                    transcript = client.audio.transcriptions.create(model="whisper-1", file=f)
+                    return client.audio.transcriptions.create(model="whisper-1", file=f,
+                                                              response_format="verbose_json")
+            try:
+                transcript = await asyncio.to_thread(_transcribe)
                 text = transcript.text.strip() if hasattr(transcript, 'text') else str(transcript)
+                heard = str(getattr(transcript, "language", "") or "").strip().lower()
             finally:
                 if tmp_path and os.path.exists(tmp_path):
                     os.unlink(tmp_path)
             if not text:
-                await update.message.reply_text("Couldn't transcribe the voice message. Try typing your question!")
+                await update.message.reply_text("Couldn't transcribe the voice message. Try typing your question! / "
+                                                "No pude transcribir la nota de voz. ¡Escribe tu pregunta!")
                 return
-            lang = self._detect_language(text)
+            # Whisper's language first; the old keyword heuristic when Whisper names none, or names a language
+            # outside es/en/ru (short Spanish notes come back as "galician", "catalan" or "portuguese").
+            lang = _WHISPER_LANG.get(heard) or self._detect_language(text)
             logger.info(f"🎤 Voice transcribed ({lang}): {text[:100]}{'...' if len(text) > 100 else ''}")
 
-            # Normalize ES/RU questions into English, then use the same
-            # honest job-data QA path as text questions.
-            if lang in ("es", "ru"):
-                text_en = await self._translate_to_english(text, lang)
-                # Show both original language and English so you see what
-                # the bot understood and how it normalized it.
-                await update.message.reply_text(
-                    f"📝 I heard (translated from {lang.upper()}):\n{text_en}",
-                    parse_mode="Markdown",
-                )
+            # 16 Oct 2026: Spanish is answered in Spanish (no translation). Russian is still normalised to English,
+            # as before (she works in English and Spanish). The echo is plain text: a "_" or "*" in a transcript
+            # made Markdown fail and she read "Voice transcription failed" for a formatting error.
+            if lang == "ru":
+                question = await self._translate_to_english(text, lang)
+                echo, q_lang = f"📝 I heard (translated from RU):\n{question}", "en"
+            elif lang == "es":
+                question, echo, q_lang = text, f"📝 Escuché:\n{text}", "es"
             else:
-                text_en = text
-                await update.message.reply_text(
-                    f"📝 I heard:\n{text_en}",
-                    parse_mode="Markdown",
-                )
+                question, echo, q_lang = text, f"📝 I heard:\n{text}", ("en" if lang == "en" else None)
+            # _reply_plain splits a long transcript under Telegram's 4,096 cap and never raises (it logs).
+            if not await self._reply_plain(update, echo):
+                logger.warning("Voice echo failed (answering anyway)")
 
-            # Now answer using real job data, same as text questions
-            await self._reply_job_question(update, context, text_en)
+            # Same grounded path as text questions; a voice note in → a voice reply too
+            await self._reply_job_question(update, context, question, speak=True, lang=q_lang)
         except Exception as e:
             logger.warning(f"Voice transcription error: {e}")
             await update.message.reply_text(
-                f"Voice transcription failed. Try typing: \"What companies did I apply to today?\""
+                f"Voice transcription failed. Try typing: \"What companies did I apply to today?\" / "
+                f"No pude transcribir la nota de voz. Escribe, por ejemplo: \"¿A qué empresas apliqué hoy?\""
             )
 
     async def handle_freeform_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -887,18 +1058,145 @@ You have *{len(outreach)}* message(s) to send:
             return
         await self._reply_job_question(update, context, text)
 
-    async def _reply_job_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
-        """Shared: answer job question and reply."""
+    async def _reply_job_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str,
+                                  speak: Optional[bool] = None, lang: Optional[str] = None):
+        """Shared: answer job question and reply.
+
+        16 Oct 2026: the answer is grounded (telegram_qa_helper) and computed in a thread, off the event loop the
+        job hunt shares. It goes out as PLAIN text: a model's stray _ or * made Markdown fail and a canned line
+        replaced the answer. speak=None applies THE SAME VOICE RULE to the text; handle_voice passes True."""
         try:
             from src.notifications.telegram_qa_helper import answer_job_question
             logger.info(f"📝 QA question: {text[:80]}{'...' if len(text) > 80 else ''}")
-            reply = answer_job_question(text)
-            await update.message.reply_text(reply, parse_mode='Markdown')
+            reply = await asyncio.to_thread(answer_job_question, text, lang)
         except Exception as e:
             logger.warning(f"QA reply error: {e}")
-            await update.message.reply_text(
-                "Use /today or /stats for summaries. Or ask: \"What companies did I apply to today?\""
-            )
+            reply = ("Something went wrong answering that. Please ask again in a minute. / "
+                     "Algo falló al responder. Vuelve a preguntar en un minuto.")
+        sent = await self._reply_plain(update, reply)
+        want_voice = _asks_for_voice(text) if speak is None else bool(speak)
+        if sent and want_voice:
+            await self._speak_reply(update, reply)
+
+    async def _reply_plain(self, update: Update, text: str) -> bool:
+        """Send model- or user-written text with NO parse_mode, in pieces under Telegram's 4,096-character cap."""
+        try:
+            text = text or ""
+            for i in range(0, max(len(text), 1), 3900):
+                await update.message.reply_text(text[i:i + 3900] or "…")
+            return True
+        except Exception as e:
+            logger.warning(f"Plain reply failed: {e}")
+            return False
+
+    async def _speak_reply(self, update: Update, text: str):
+        """VJH-4 voice reply: tts-1 / nova / opus — the voice OpenClaw speaks. Called only AFTER the text answer went
+        out and fully inside try/except, so a TTS failure never touches the text. Off switch: VJH_SPEAK_REPLIES=0."""
+        try:
+            if os.getenv("VJH_SPEAK_REPLIES", "1").strip() == "0":
+                return
+            api_key = os.getenv("OPENAI_API_KEY")
+            speech = _for_speech(text)
+            if not api_key or not speech:
+                return
+            from openai import AsyncOpenAI
+            # "async with" closes the client's connection pool after each reply (a long-running process).
+            async with AsyncOpenAI(api_key=api_key, timeout=30, max_retries=1) as client:
+                # The SDK timeout covers the response headers, not the audio body, so the whole call has its own
+                # limit.
+                resp = await asyncio.wait_for(
+                    client.audio.speech.create(model="tts-1", voice="nova", input=speech, response_format="opus"),
+                    timeout=45)
+                audio = getattr(resp, "content", None)
+                if not isinstance(audio, (bytes, bytearray)):
+                    audio = await resp.aread()
+            if not audio:
+                return
+            from telegram import InputFile
+            await update.message.reply_voice(voice=InputFile(bytes(audio), filename="reply.ogg"))
+            logger.info(f"🔊 Voice reply sent ({len(speech)} characters spoken)")
+        except Exception as e:
+            logger.warning(f"🔊 Voice reply failed (the text answer already went out): {e}")
+
+    async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """VJH-3 (16 Oct 2026): a screenshot → its text is read by the vision functions judge_feedback_sync already
+        runs in production → the grounded answer (never the keyword router). Never silent: every failure says so."""
+        msg = update.message
+        if not msg:
+            return
+        caption = (msg.caption or "").strip()
+        try:
+            item = msg.photo[-1] if msg.photo else msg.document
+            if item is None:
+                return
+            if (getattr(item, "file_size", 0) or 0) > _SCREENSHOT_MAX_BYTES:
+                await msg.reply_text("📸 That image is over 6 MB, too big to read. Please send a smaller screenshot. / "
+                                     "La imagen pesa más de 6 MB. Envía una captura más pequeña.")
+                return
+            tg_file = await context.bot.get_file(item.file_id)
+            raw = bytes(await tg_file.download_as_bytearray())
+        except Exception as e:
+            logger.warning(f"📸 Screenshot download failed: {e}")
+            await msg.reply_text("📸 I could not download that image. Please send it again. / "
+                                 "No pude descargar la imagen. Envíala otra vez.")
+            return
+        mime = _image_mime(raw)
+        if not mime or len(raw) > _SCREENSHOT_MAX_BYTES:
+            await msg.reply_text("📸 I can read PNG, JPEG, WebP or GIF screenshots under 6 MB. An iPhone HEIC file: "
+                                 "send it as a photo instead. / Leo capturas PNG, JPEG, WebP o GIF de menos de 6 MB; "
+                                 "un HEIC de iPhone, envíalo como foto.")
+            return
+        read = await self._read_screenshot_text(raw, mime)
+        if not read:
+            await msg.reply_text("📸 I could not read that screenshot just now (the image reader did not answer). "
+                                 "Please try again in a minute. / No pude leer la captura ahora; inténtalo en un minuto.")
+            return
+        kind, extracted, cut = _split_screenshot_read(read)
+        logger.info(f"📸 Screenshot read ({kind}, {len(extracted)} chars{', maybe cut' if cut else ''}); "
+                    f"caption: {caption[:60]}")
+        try:
+            from src.notifications.telegram_qa_helper import answer_screenshot
+            reply = await asyncio.to_thread(answer_screenshot, caption, kind, extracted, cut)
+        except Exception as e:
+            logger.warning(f"📸 Screenshot answer error: {e}")
+            reply = ("Something went wrong answering that screenshot. Please send it again in a minute. / "
+                     "Algo falló al responder la captura. Envíala otra vez en un minuto.")
+        # Only when the read is empty, or short AND cut/unlabelled — a short, correctly read interviewer question
+        # ("Tell me about yourself") gets no note.
+        if msg.photo and (not extracted or (len(extracted) < 80 and (cut or kind == "other"))):
+            reply += ("\n\n(📸 Very little text came through. Telegram shrinks photos; send the screenshot as a "
+                      "file for full resolution. / Llegó muy poco texto: envía la captura como archivo.)")
+        sent = await self._reply_plain(update, reply)
+        if sent and _asks_for_voice(caption):
+            await self._speak_reply(update, reply)
+
+    async def _read_screenshot_text(self, raw: bytes, mime: str) -> str:
+        """OpenAI vision first, Gemini second (judge_feedback_sync._vision_openai / _vision_gemini with this bot's
+        prompt). Both are blocking urllib with retries, so each runs in a thread with an overall limit."""
+        import base64
+        try:
+            jfs = _judge_sync_module()
+        except Exception as e:
+            logger.warning(f"📸 Screenshot reader unavailable: {e}")
+            return ""
+        b64 = base64.b64encode(raw).decode()
+        errs = []
+        for name, fn, key in (("openai", jfs._vision_openai, os.getenv("OPENAI_API_KEY", "")),
+                              ("gemini", jfs._vision_gemini, os.getenv("GEMINI_API_KEY", ""))):
+            if not key:
+                errs.append(f"{name}: no key")
+                continue
+            try:
+                txt = await asyncio.wait_for(
+                    asyncio.to_thread(fn, key, mime, b64, _SCREENSHOT_PROMPT, 1500), timeout=150)
+            except Exception as e:
+                errs.append(f"{name}: {str(e)[:100]}")
+                continue
+            if txt and txt.strip():
+                return txt
+            errs.append(f"{name}: empty")
+        logger.warning(f"📸 Screenshot read failed: {'; '.join(errs)}")
+        return ""
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button clicks"""
@@ -910,6 +1208,9 @@ You have *{len(outreach)}* message(s) to send:
         
         query = update.callback_query
         logger.info(f"🔘 Callback received: {query.data}")
+        if not self._chat_allowed(update):
+            logger.warning(f"🔒 Callback '{query.data}' from another chat ignored (chat lock)")
+            return
         
         try:
             await query.answer()

@@ -450,6 +450,14 @@ class AutonomousOrchestrator:
                             await self.telegram.send_message(alert)
                     except Exception:
                         pass
+
+                # 16 Oct 2026 (Elena): the inbox is checked in EVERY hourly cycle, not only in cycles that found a
+                # job (was 48 of 70). The same STEP 6 block as below; save_response_to_db dedups, so each reply is
+                # alerted once.
+                try:
+                    await self._check_for_responses()
+                except Exception as resp_err:
+                    logger.warning(f"⚠️ Response detection skipped: {resp_err}")
                 return
             
             # ═════════════════════════════════════════════════════

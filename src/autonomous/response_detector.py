@@ -338,7 +338,7 @@ class ResponseDetector:
                 logger.debug("[mail] %s not configured - skipping", mb["name"])
                 continue
             try:
-                conn = imaplib.IMAP4_SSL(mb["host"], mb["port"])
+                conn = imaplib.IMAP4_SSL(mb["host"], mb["port"], timeout=60)  # 16 Oct 2026: never hang the shared loop (bot + CMO)
                 conn.login(user, pwd)
                 opened.append((mb["name"], conn))
                 logger.info("[mail] connected to %s (%s)", mb["name"], user)
@@ -356,7 +356,7 @@ class ResponseDetector:
             return False
         
         try:
-            self.imap_connection = imaplib.IMAP4_SSL("imappro.zoho.com", 993)
+            self.imap_connection = imaplib.IMAP4_SSL("imappro.zoho.com", 993, timeout=60)
             self.imap_connection.login(self.email_address, self.email_password)
             logger.info("✅ Connected to Zoho Mail for response detection")
             return True

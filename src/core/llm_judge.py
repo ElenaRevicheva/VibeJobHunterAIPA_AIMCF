@@ -318,11 +318,12 @@ def _feedback_block() -> str:
         return ""
 
 
-def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> str:
+def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict, max_tokens: int = None) -> str:
+    # max_tokens: optional, for the Telegram Q&A (16 Oct 2026). None = _MAX_TOKENS, so the judge is unchanged.
     payload = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": _MAX_TOKENS, "temperature": 0,
+        "max_tokens": max_tokens or _MAX_TOKENS, "temperature": 0,
     }).encode()
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
     headers.update(extra_headers or {})
@@ -331,7 +332,7 @@ def _post(url: str, key: str, model: str, prompt: str, extra_headers: dict) -> s
     return json.loads(raw)["choices"][0]["message"]["content"]
 
 
-def _post_gemini(key: str, model: str, prompt: str) -> str:
+def _post_gemini(key: str, model: str, prompt: str, max_tokens: int = None) -> str:
     """Gemini speaks a different shape than the OpenAI-compatible providers.
 
     Note there is no thinkingConfig here: gemini-3.5-flash-lite is a PLAIN model
@@ -341,7 +342,7 @@ def _post_gemini(key: str, model: str, prompt: str) -> str:
     """
     payload = json.dumps({
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": _MAX_TOKENS, "temperature": 0},
+        "generationConfig": {"maxOutputTokens": max_tokens or _MAX_TOKENS, "temperature": 0},
     }).encode()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
     req = urllib.request.Request(url, data=payload, method="POST",
@@ -352,11 +353,11 @@ def _post_gemini(key: str, model: str, prompt: str) -> str:
     return parts[0].get("text") or ""
 
 
-def _post_anthropic(key: str, model: str, prompt: str) -> str:
+def _post_anthropic(key: str, model: str, prompt: str, max_tokens: int = None) -> str:
     """Anthropic uses x-api-key and returns content blocks, not choices."""
     payload = json.dumps({
         "model": model,
-        "max_tokens": _MAX_TOKENS,
+        "max_tokens": max_tokens or _MAX_TOKENS,
         "messages": [{"role": "user", "content": prompt}],
     }).encode()
     req = urllib.request.Request(_ANTHROPIC_URL, data=payload, method="POST", headers={
@@ -383,13 +384,16 @@ def _key(name: str) -> str:
         return ""
 
 
-def _call_llm(prompt: str):
+def _call_llm(prompt: str, max_tokens: int = None):
     """
     OpenAI (reliable) → Groq (free).
 
     Returns (text, errors). `errors` records why each provider failed — a missing
     key is as much a reason as an HTTP 400, and both used to vanish into a bare
     `except: pass`. When the judge goes quiet, this is the evidence that says why.
+
+    max_tokens (16 Oct 2026): optional, used by the VJH Telegram Q&A for longer answers.
+    None = _MAX_TOKENS (JUDGE_MAX_TOKENS, 300), so every judge call is byte-identical.
     """
     errors = []
 
@@ -398,7 +402,7 @@ def _call_llm(prompt: str):
         errors.append("openai: no API key configured")
     else:
         try:
-            text = _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {})
+            text = _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {}, max_tokens=max_tokens)
             if text:
                 return text, errors
             errors.append("openai: empty response")
@@ -410,7 +414,7 @@ def _call_llm(prompt: str):
         errors.append("gemini: no API key configured")
     else:
         try:
-            text = _post_gemini(gem, _GEMINI_MODEL, prompt)
+            text = _post_gemini(gem, _GEMINI_MODEL, prompt, max_tokens=max_tokens)
             if text:
                 return text, errors
             errors.append("gemini: empty response")
@@ -422,7 +426,8 @@ def _call_llm(prompt: str):
         errors.append("groq: no API key configured")
     else:
         try:
-            text = _post(_GROQ_URL, gk, groq_model(), prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"})
+            text = _post(_GROQ_URL, gk, groq_model(), prompt, {"User-Agent": "Mozilla/5.0 (VJH judge)"},
+                         max_tokens=max_tokens)
             if text:
                 return text, errors
             errors.append("groq: empty response")
@@ -434,7 +439,7 @@ def _call_llm(prompt: str):
         errors.append("grok: no API key configured")
     else:
         try:
-            text = _post(_XAI_URL, xk, _XAI_MODEL, prompt, {})
+            text = _post(_XAI_URL, xk, _XAI_MODEL, prompt, {}, max_tokens=max_tokens)
             if text:
                 return text, errors
             errors.append("grok: empty response")
@@ -449,7 +454,7 @@ def _call_llm(prompt: str):
         errors.append("claude: no API key configured")
     else:
         try:
-            text = _post_anthropic(ck, _CLAUDE_MODEL, prompt)
+            text = _post_anthropic(ck, _CLAUDE_MODEL, prompt, max_tokens=max_tokens)
             if text:
                 return text, errors
             errors.append("claude: empty response")

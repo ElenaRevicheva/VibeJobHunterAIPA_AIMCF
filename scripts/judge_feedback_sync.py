@@ -359,14 +359,17 @@ def _file_bytes(key: str, file_id: str):
     return raw, "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
 
 
-def _vision_openai(ok: str, mime: str, b64: str) -> str:
+def _vision_openai(ok: str, mime: str, b64: str, prompt: str = None, max_tokens: int = None) -> str:
     """One OpenAI vision read. Retries a 429 — 18 reads were lost to 'Too Many Requests'
     before 27 Sep, and a failed read is never cached, so Byldd's screenshot was simply
-    never read."""
+    never read.
+
+    prompt / max_tokens (16 Oct 2026): optional, for the VJH Telegram bot's screenshot reader.
+    Unset = _VISION_PROMPT and 110, so this script's own call fn(k, mime, b64) is unchanged."""
     payload = json.dumps({
-        "model": _VISION_MODEL, "max_tokens": 110, "temperature": 0,
+        "model": _VISION_MODEL, "max_tokens": max_tokens or 110, "temperature": 0,
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": _VISION_PROMPT},
+            {"type": "text", "text": prompt or _VISION_PROMPT},
             {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
         ]}],
     }).encode()
@@ -385,13 +388,15 @@ def _vision_openai(ok: str, mime: str, b64: str) -> str:
             raise
 
 
-def _vision_gemini(gk: str, mime: str, b64: str) -> str:
-    """Fallback reader, so one provider's quota cannot blind the loop."""
+def _vision_gemini(gk: str, mime: str, b64: str, prompt: str = None, max_tokens: int = None) -> str:
+    """Fallback reader, so one provider's quota cannot blind the loop.
+
+    prompt / max_tokens (16 Oct 2026): optional, as in _vision_openai. Unset = _VISION_PROMPT and 160."""
     model = os.environ.get("GEMINI_JUDGE_MODEL", "").strip() or "gemini-3.5-flash-lite"
     payload = json.dumps({
         "contents": [{"role": "user", "parts": [
-            {"text": _VISION_PROMPT}, {"inline_data": {"mime_type": mime, "data": b64}}]}],
-        "generationConfig": {"maxOutputTokens": 160, "temperature": 0},
+            {"text": prompt or _VISION_PROMPT}, {"inline_data": {"mime_type": mime, "data": b64}}]}],
+        "generationConfig": {"maxOutputTokens": max_tokens or 160, "temperature": 0},
     }).encode()
     req = urllib.request.Request(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gk}",
