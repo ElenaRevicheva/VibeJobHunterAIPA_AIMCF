@@ -152,7 +152,13 @@ I'm automatically applying to jobs and finding founders for you!
         logger.info("📋 /menu command received!")
         
         try:
+            # 16 Oct 2026 (Elena): everything about jobs lives in THIS bot, whichever agent does the work behind it.
             message = """📋 *VIBEJOBHUNTER MENU*
+
+💼 *YOUR JOB FLOW — nothing to remember*
+1️⃣ New job → the kit fills the HubSpot deal by itself (company note, CV, letter, Comet prompt) → open 🔥 I act today → apply. The daily apply queue and kit alerts arrive here.
+2️⃣ Interview booked (LinkedIn, WhatsApp, anywhere) → in the *CTO AIPA bot* send `/research_employer <company>` → deep research on the company + its products is saved on the job deal; it confirms when OpenClaw has it
+3️⃣ In OpenClaw: `/new` → `prep me for <company>` → it prepares you from that research, warnings first
 
 Choose an option below:"""
             
