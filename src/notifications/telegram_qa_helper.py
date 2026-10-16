@@ -491,25 +491,55 @@ def _labelled_row(row: str) -> str:
 def _shared_deals_block(now: Optional[datetime] = None) -> str:
     """Her live job deals from deals/TOOLS.md. Its '#' lines are OpenClaw's agent rules ("RUN that command", voice
     blocks, one mock question per message) — only the line-2 timestamp is kept from them, with the
-    '### Company — Title (stage)' rows and their does/needs lines; stage ids become her labels."""
+    '### Company — Title (stage)' rows and their does/needs lines; stage ids become her labels.
+    The rows are a SELECTION of her deals, never all of them. HubSpot's own per-stage totals are read from header
+    line 2 when it carries them ('<label | stage id> N' after '<ISO>Z · N live job deals' and before 'listed:'), or
+    from a line of their own starting '# HubSpot total'; an older header has none, and then every count says it
+    counts rows only."""
     raw = _read_text(_OPENCLAW_WS / "deals" / "TOOLS.md")
     if not raw.strip():
         return ""
     lines = raw.splitlines()
-    stamp = ""
+    stamp, total_src, listed = "", [], ""
     if len(lines) > 1 and lines[1].startswith("#"):
         m = re.search(r"(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s*·\s*(\d+)\s+live job deals", lines[1])
+        # the stamp's own digits are no total, nor is "— listed: 🔥 I act today 6 of 14"
+        rest, _, listed = (lines[1][m.end():] if m else lines[1]).partition("listed:")
+        if m or "HubSpot total" in rest:            # a line 2 of unknown shape: only an explicit HubSpot total is read
+            total_src.append(rest if m else rest[rest.index("HubSpot total"):])
         if m:
-            stamp = f"Snapshot taken {m.group(1)} (UTC) · {m.group(2)} live job deals."
+            stamp = f"Snapshot taken {m.group(1)} (UTC)."
             taken = _parse_iso(m.group(1))
             now = now or datetime.now(timezone.utc)
             if taken and (now - taken) > timedelta(hours=2):
                 hours = int((now - taken).total_seconds() // 3600)
                 stamp += f" WARNING: this snapshot is {hours} hours old, so the list may be out of date — say so."
-    rows, by_stage = [], {}
+    for ln in lines[2:]:
+        if ln.startswith("### "):
+            break
+        if ln.startswith("# HubSpot total"):        # never OpenClaw's rule lines ("🎙️ Q<n>/<total>", "⏳ Sent 3 times")
+            total_src.append(ln)
+    # 16 Oct 2026: the sheet held the 60 NEWEST deals (6 of her 14 "🔥 I act today") and this block called its lists
+    # "complete". A total now comes only from HubSpot's number in the header, never from counting rows.
+    tokens = {"qualifiedtobuy": ("qualifiedtobuy", "🔥", "I act today"),
+              "presentationscheduled": ("presentationscheduled", "I act this week"),
+              "decisionmakerboughtin": ("decisionmakerboughtin", "⏳", "Sent"),
+              "contractsent": ("contractsent", "💬", "They replied"),
+              "appointmentscheduled": ("appointmentscheduled", "🤖", "AI working")}
+    def alt(ts):
+        return "|".join(rf"\b{re.escape(t)}\b" if t[0].isalnum() else re.escape(t) for t in ts)
+    num = r"(\d{1,3}(?:,\d{3})+|\d+)"
+    totals, src = {}, "\n".join(total_src)
+    for stage, own in tokens.items():
+        others = alt([t for s, ts in tokens.items() if s != stage for t in ts])
+        hit = re.search(rf"(?:{alt(own)})(?:(?!{others})[^\d·|,;\n]){{0,80}}?{num}", src)
+        if hit:
+            totals[stage] = int(hit.group(1).replace(",", ""))
+    rows, by_stage, n_rows = [], {}, 0
     for ln in lines:
         if ln.startswith("### "):
             row = ln[4:].strip()
+            n_rows += 1
             m = re.search(r"\(([a-z]+)\)\s*$", row)
             if m:
                 by_stage.setdefault(m.group(1), []).append(row[:m.start()].rstrip())
@@ -518,16 +548,69 @@ def _shared_deals_block(now: Optional[datetime] = None) -> str:
             rows.append("    " + ln.strip())
     if not rows:
         return ""
+    # cto-aipa reads 🔥 whole, so its "listed:" part carries the 🔥 JOB-deal count ("🔥 I act today 6 of 14", or
+    # "every 🔥 job deal" = the rows); its totals count every deal named HIRING (mock: 15, of them 14 job deals).
+    # "every" is believed only when the rows can back it: the gap fits the deals it says are not job postings.
+    count, fire_st = dict(totals), ("qualifiedtobuy", "presentationscheduled")
+    skipped = re.search(r"besides these, (\d+)", listed)
+    gaps = [totals[s] - len(by_stage.get(s) or []) for s in fire_st if s in totals]
+    every = ("every 🔥 job deal" in listed and min(gaps, default=0) >= 0
+             and sum(gaps) <= int(skipped.group(1) if skipped else 0))
+    for stage, lbl in zip(fire_st, ("I act today", "I act this week")):
+        hit = re.search(rf"{lbl} (\d+) of (\d+)", listed)
+        if stage in totals and hit and int(hit.group(2)) <= totals[stage]:
+            count[stage] = int(hit.group(2))
+        elif stage in totals and every:
+            count[stage] = len(by_stage.get(stage) or [])
     # Counted here, not by the model: a live test listed 4 of the 6 "🔥 I act today" deals when it had to count
     # through 60 rows itself (16 Oct 2026).
-    summary = ["Live deals by stage (complete lists, counted from the rows below):"]
-    for stage in ("qualifiedtobuy", "presentationscheduled", "decisionmakerboughtin", "contractsent", "closedwon"):
-        names = by_stage.get(stage) or []
-        if names:
-            summary.append(f"  {_stage_label(stage)} ({len(names)}): " + "; ".join(names))
-    for stage, names in by_stage.items():
-        if stage == "appointmentscheduled" or stage not in _STAGE_LABELS:
-            summary.append(f"  {_stage_label(stage)}: {len(names)} deals (listed below)")
+    if totals:
+        fire_t, fire_n = count.get("qualifiedtobuy"), len(by_stage.get("qualifiedtobuy") or [])
+        fire = ("every 🔥 I act today deal" if fire_t == fire_n
+                else "🔥 I act today deals first (not all of them are listed here)"
+                if fire_t is not None and fire_t > fire_n else "🔥 I act today deals first")
+        win = re.search(r"in the last (\d+) days", listed)
+        recent = (f"⏳ Sent and 💬 They replied deals that entered that stage in the last {win.group(1)} days" if win
+                  else "recent ⏳ Sent and 💬 They replied deals")
+        hiring = "; HubSpot counts every deal named HIRING, so a few may not be job postings" if "HIRING" in src else ""
+        summary = [f"HubSpot totals by stage (from the sheet header{hiring}): "
+                   + " · ".join(f"{_stage_label(s)}: {n}"
+                                + (f" job deals ({totals[s]} named HIRING)" if totals[s] > n else "")
+                                for s, n in count.items())
+                   + ". Give THESE when she asks how many deals a stage has now, never a count of the rows; for today, "
+                   "this week or any other dates, rule 5 and the HISTORY block still apply.",
+                   f"The {n_rows} rows below are a SELECTION, not every open deal: {fire}, then {recent}, then only "
+                   "some 🤖 AI working, if any. A stage's list is complete only where its line says \"all N listed\"."]
+    else:
+        summary = [f"The {n_rows} rows below are a SELECTION of her deals, NOT every open deal, and this sheet carries "
+                   "no HubSpot totals. A count below counts these rows only: never present it as her total in HubSpot "
+                   "and never call a list complete — say it is what this snapshot lists."]
+    summary.append("A deal missing from these rows can still be open in HubSpot: say it is not in this snapshot, never "
+                   "that she has no such deal.")
+    summary.append("Deals in this snapshot, by stage:")
+    order = ["qualifiedtobuy", "presentationscheduled", "decisionmakerboughtin", "contractsent", "closedwon",
+             "appointmentscheduled"] + [s for s in by_stage if s not in _STAGE_LABELS]
+    for stage in order:
+        names, t = by_stage.get(stage) or [], count.get(stage)
+        if not names and t is None:
+            continue
+        named = stage in _STAGE_LABELS and stage != "appointmentscheduled"
+        tail = (": " + "; ".join(names)) if named and names else (" (listed below)" if names else "")
+        if t is None:
+            line = f"{len(names)} in this snapshot (rows only, not a HubSpot total)"
+        elif len(names) == t:
+            line = f"HubSpot total {t} — all {t} listed" if t else "HubSpot total 0"
+        elif not names:
+            line = f"HubSpot total {t} — none listed here"
+        elif len(names) < t:
+            line = f"HubSpot total {t} — only {len(names)} listed here, NOT the full list"
+        else:
+            line = f"HubSpot total {t}; {len(names)} rows listed (the snapshot may be out of date)"
+        if t is not None and totals[stage] > t:
+            d = totals[stage] - t
+            line += (f" (job deals only: HubSpot has {totals[stage]} deals named HIRING here, {d} of them "
+                     + ("not a job posting)" if d == 1 else "not job postings)"))
+        summary.append(f"  {_stage_label(stage)}: {line}{tail}")
     head = "=== LIVE DEALS: her open HubSpot job deals — the live pipeline (refreshed every 30 min) ==="
     return "\n".join([head] + ([stamp] if stamp else []) + summary + rows)
 
