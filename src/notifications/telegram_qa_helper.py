@@ -461,6 +461,21 @@ def _guess_lang(text: str) -> str:
     return "es" if es > en else "en"
 
 
+def _clear_lang(text: str) -> Optional[str]:
+    """'es' or 'en' only when her words clearly lean one way (2+ markers of one, none of the other); else None."""
+    low = (text or "").lower()
+    if re.search(r"[ñ¿¡]", low):
+        return "es"
+    words = re.findall(r"[a-záéíóúüñ]+", low)
+    es = sum(w in _ES_WORDS for w in words) + 2 * len(re.findall(r"[áéíóú]", low))
+    en = sum(w in _EN_WORDS for w in words)
+    if es >= 2 and en == 0:
+        return "es"
+    if en >= 2 and es == 0:
+        return "en"
+    return None
+
+
 def _stage_label(stage: str) -> str:
     return _STAGE_LABELS.get(stage or "", stage or "?")
 
@@ -775,6 +790,10 @@ def _grounded_prompt(question: str, extra_rules: str = "", lang: Optional[str] =
     data, grounded = _grounded_context()
     # 16 Oct 2026: the DATA is half Spanish, so gpt-4o-mini answered an English question in Spanish (live proof).
     # The reminder sits right before the answer; Whisper's language when known, else "the language of her message".
+    # Typed text: the generic reminder still lost to the Spanish data ("How many … in total?" → Spanish, live 17:55), so a
+    # message whose words clearly lean one way gets the explicit line too; a mixed or unclear one keeps the generic one.
+    if lang not in ("es", "en"):
+        lang = _clear_lang(question)
     if extra_rules and "LANGUAGE for this message" in extra_rules:
         reminder = ""
     elif lang in ("es", "en"):

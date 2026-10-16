@@ -109,7 +109,8 @@ REMINDERS = {None: "Answer in the language HER MESSAGE is written in",
 
 @pytest.mark.parametrize("lang", [None, "es", "en"])
 def test_language_reminder_comes_after_her_message(ws, lang):
-    question = "How many deals do I act on today?"
+    # lang=None takes a MIXED question (no clear lean), so the generic reminder applies; clear ones are tested below.
+    question = "Dirijo los equipos, but how many deals today?" if lang is None else "How many deals do I act on today?"
     prompt, grounded = q._grounded_prompt(question, lang=lang)
     assert grounded is True
     msg = prompt.index("=== HER MESSAGE ===")
@@ -118,6 +119,18 @@ def test_language_reminder_comes_after_her_message(ws, lang):
     assert reminder < prompt.index("Your answer (plain text):")
     assert prompt.count(REMINDERS[lang]) == 1
     assert prompt.index("=== DATA ===") < msg                            # the half-Spanish DATA comes before it
+
+
+@pytest.mark.parametrize("question,expected", [
+    ("How many applications are in ⏳ Sent in total?", "en"),   # answered in Spanish on 16 Oct 17:55 before this rule
+    ("¿Cuántos trabajos tengo en I act today?", "es"),
+    ("cuantas aplicaciones hice hoy", "es"),                   # unaccented Spanish must not be read as English
+])
+def test_a_clearly_typed_language_gets_the_explicit_reminder(ws, question, expected):
+    prompt, _ = q._grounded_prompt(question)
+    tail = prompt[prompt.index("=== HER MESSAGE ==="):]
+    assert REMINDERS[expected] in tail
+    assert REMINDERS[None] not in tail
 
 
 def test_a_screenshot_language_rule_replaces_the_reminder(ws, monkeypatch):
