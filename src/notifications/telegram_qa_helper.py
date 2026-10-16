@@ -688,13 +688,24 @@ def _grounded_context() -> Tuple[str, bool]:
     return note + ("\n" + legacy if legacy else ""), False
 
 
-def _grounded_prompt(question: str, extra_rules: str = "") -> Tuple[str, bool]:
+def _grounded_prompt(question: str, extra_rules: str = "", lang: Optional[str] = None) -> Tuple[str, bool]:
     data, grounded = _grounded_context()
+    # 16 Oct 2026: the DATA is half Spanish, so gpt-4o-mini answered an English question in Spanish (live proof).
+    # The reminder sits right before the answer; Whisper's language when known, else "the language of her message".
+    if extra_rules and "LANGUAGE for this message" in extra_rules:
+        reminder = ""
+    elif lang in ("es", "en"):
+        name = "Spanish" if lang == "es" else "English"
+        reminder = f"\nShe wrote or spoke {name}: answer in {name}."
+    else:
+        reminder = ("\nAnswer in the language HER MESSAGE is written in (English stays English even though much of "
+                    "the DATA is in Spanish).")
     prompt = ("You are the job-search assistant inside Elena Revicheva's VibeJobHunter Telegram bot. "
               "Elena is writing to you herself.\n\n" + _GROUNDED_RULES
               + ("\n" + extra_rules.strip() if extra_rules and extra_rules.strip() else "")
               + "\n\n=== DATA ===\n" + data
               + "\n\n=== HER MESSAGE ===\n" + (question or "").strip()
+              + "\n" + reminder
               + "\n\nYour answer (plain text):")
     return prompt, grounded
 
@@ -709,7 +720,7 @@ def answer_grounded(question: str, extra_rules: str = "", max_tokens: int = _QA_
                     lang: Optional[str] = None) -> str:
     """One grounded answer: her shared memory + the rules above, through llm_judge._call_llm.
     Synchronous (urllib) — callers on the bot's event loop must run it with asyncio.to_thread."""
-    prompt, grounded = _grounded_prompt(question, extra_rules)
+    prompt, grounded = _grounded_prompt(question, extra_rules, lang)
     try:
         try:
             from ..core.llm_judge import _call_llm
