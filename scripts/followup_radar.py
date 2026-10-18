@@ -67,7 +67,10 @@ CLEAN_AFTER_DAYS = int(os.environ.get("RADAR_CLEAN_AFTER_DAYS", "30"))
 # beside the dead recruiters she was pruning. Offering a one-tap clear on a
 # fresh thread is inviting exactly that misfire. It still appears in the radar --
 # it simply has no button.
-MIN_CLEARABLE_DAYS = int(os.environ.get("RADAR_MIN_CLEARABLE_DAYS", "7"))
+# 18 Oct 2026, Elena: "the radar stays on actual fresh stuff, but I should have a tappable option to clean it".
+# Default 0 = every listed thread can be cleaned. A mistaken clean of a live thread no longer sticks: new mail
+# makes it live again (is_hidden `last`). Raise the env value to bring the old guard back.
+MIN_CLEARABLE_DAYS = int(os.environ.get("RADAR_MIN_CLEARABLE_DAYS", "0"))
 
 
 def load_dismissed():
@@ -79,13 +82,23 @@ def load_dismissed():
         return {}
 
 
-def is_hidden(key, dismissed, now):
-    """Hidden from the RADAR entirely. Only a dismissal does this."""
+def is_hidden(key, dismissed, now, last=None):
+    """Hidden from the RADAR entirely. Only a dismissal does this.
+
+    `last` = the thread's newest mail. A Clean covers the thread as it was when she tapped: mail that arrives
+    after it makes the thread live again (Elena, 18 Oct 2026: "the radar stays on actual fresh stuff").
+    """
     rec = dismissed.get(key)
     if not rec:
         return False
     if rec.get("kind") == "kept":
         return False  # kept = still mine, keep showing it
+    if last is not None:
+        try:
+            if last > datetime.fromisoformat(str(rec.get("at", "")).replace("Z", "+00:00")):
+                return False  # new mail since the Clean
+        except Exception:
+            pass
     until = rec.get("until")
     if not until:
         return True  # permanently dismissed
@@ -112,6 +125,61 @@ def is_kept(key, dismissed, now):
         return now < datetime.fromisoformat(until)
     except Exception:
         return False
+
+
+def button_key(t):
+    """The name the Telegram Clean / Keep buttons give this thread.
+
+    cto-aipa src/radar-cleanup.ts parses THIS digest's text and writes the ledger
+    under "<who>|<subject as printed here>" (radarItemKey), plus a bare "<who>".
+    The digest only ever looked up its own subject-only key, so a tap never
+    reached it: Elena cleaned an intro thread on 13 Oct and it
+    was back on the card every morning (18 Oct), while the buttons -- which do
+    read their own rows -- saw nothing open and posted no keyboard at all.
+    Mirrors radarItemKey exactly. The bare "<who>" row is deliberately NOT
+    honoured here: it would hide every future thread from that sender, including
+    a real reply from someone she once cleaned.
+    """
+    who = (t.get("who") or "").replace("<", "").replace(">", "").strip()
+    who = re.sub(r"[.,;:]+$", "", who).lower()
+    subj = re.sub(r'^["“]|["”]$', "", (t.get("subject") or "")[:70].strip())
+    subj = re.sub(r"\s+", " ", subj.strip().lower())[:80]
+    return f"{who}|{subj}"
+
+
+def radar_rows_and_keyboard(owed_by_you, owed_by_them, dismissed, now, pid):
+    """The proposal rows and the card's keyboard, in the CARD's own order.
+
+    The bot resolves a tap `rdrone:<pid>:<n>` as proposal.items[n] after lining the
+    proposal up with the printed card. Rows used to be re-sorted by age and to skip
+    threads under 7 days, so n could point at a DIFFERENT thread than the button's
+    label (18 Oct 2026 review). Now row n == the n-th printed thread, every one.
+    """
+    allrows = []
+    for lane, rows in (("them", owed_by_you), ("you", owed_by_them)):
+        for age, t, key in rows[:12]:  # the same 12 per lane the card prints
+            allrows.append({
+                "key": key, "who": t["who"], "subject": t["subject"][:90], "age": age, "lane": lane,
+                "last": max(d for d in (t["in"], t["out"]) if d is not None).isoformat(),
+                "clearable": age >= MIN_CLEARABLE_DAYS,
+                # A thread she has explicitly kept is never proposed again while the keep is live.
+                "stale": age >= CLEAN_AFTER_DAYS
+                and not is_kept(key, dismissed, now)
+                and not is_kept(button_key(t), dismissed, now),
+            })
+    if not allrows:
+        return allrows, None
+    keyboard = []
+    for n, it in enumerate(allrows):
+        if not it["clearable"]:
+            continue
+        who = it["who"].split("@")[0][:18]
+        dom = it["who"].split("@")[-1][:14]
+        keyboard.append([{"text": "🧹 " + str(it["age"]) + "d  " + who + "@" + dom,
+                          "callback_data": "rdrone:" + pid + ":" + str(n)}])
+    keyboard.append([{"text": "🧹 Clear all", "callback_data": "rdrclean:" + pid},
+                     {"text": "Keep all", "callback_data": "rdrkeep:" + pid}])
+    return allrows, {"inline_keyboard": keyboard}
 
 # A conversation only counts once both sides have spoken. These senders never
 # speak -- they announce. Counting them would bury the real threads.
@@ -225,7 +293,9 @@ def build(inbox, sent, mine):
         if not addr or NOISE_SENDER.search(addr) or addr in mine:
             continue
         t = threads[key]
-        t["subject"] = t["subject"] or decode(r["subject"])
+        # One line: a folded Subject header kept its "\r\n " and printed as two card lines, so the buttons named
+        # the thread by the first line and the digest by both (18 Oct 2026 review: 47 such rows in a week).
+        t["subject"] = t["subject"] or " ".join(decode(r["subject"]).split())
         if t["in"] is None or r["date"] > t["in"]:
             t["in"] = r["date"]
             t["who"] = addr
@@ -408,7 +478,8 @@ def main():
     for key, t in threads.items():
         if t["in"] is None or t["out"] is None:
             continue  # one-sided: never a real conversation
-        if is_hidden(key, dismissed, now):
+        last = max(d for d in (t["in"], t["out"]) if d is not None)
+        if is_hidden(key, dismissed, now, last) or is_hidden(button_key(t), dismissed, now, last):
             hidden += 1
             continue  # she has already said this one is done
         if t["out"] > t["in"]:
@@ -471,65 +542,29 @@ def main():
         # POSSIBLE. Elena knows a contact has vanished long before a day counter
         # agrees, and a cleaner that refuses to clear what she can plainly see is
         # dead just sends her back to doing it by hand.
-        allrows = []
-        for lane, rows in (("them", owed_by_you), ("you", owed_by_them)):
-            for age, t, key in rows[:12]:
-                if age < MIN_CLEARABLE_DAYS:
-                    continue  # too fresh to be a cleanup candidate -- listed, not clearable
-                allrows.append({"key": key, "who": t["who"],
-                                "subject": t["subject"][:90], "age": age, "lane": lane,
-                                # A thread she has explicitly kept is never proposed
-                                # again while the keep is live -- but it stays listed.
-                                "stale": age >= CLEAN_AFTER_DAYS
-                                and not is_kept(key, dismissed, now)})
-        allrows.sort(key=lambda x: x["age"], reverse=True)
+        pid = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+        allrows, keyboard = radar_rows_and_keyboard(owed_by_you, owed_by_them, dismissed, now, pid)
         stale = [r for r in allrows if r["stale"]]
-
+        try:
+            # Written EVERY run, empty included: a proposal left over from an older card made the bot
+            # match today's thread to a cleaned one from the same sender and offer no button (18 Oct 2026).
+            os.makedirs(RADAR_DIR, exist_ok=True)
+            with open(PROPOSAL_PATH, "w", encoding="utf-8") as fh:
+                json.dump({"id": pid, "created": now.isoformat(), "items": allrows}, fh, indent=2)
+        except Exception as e:
+            print("  ! could not write proposal: " + type(e).__name__, file=sys.stderr)
+            keyboard = None
         markup = None
-        if allrows:
-            pid = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
-            try:
-                os.makedirs(RADAR_DIR, exist_ok=True)
-                with open(PROPOSAL_PATH, "w", encoding="utf-8") as fh:
-                    # EVERY listed thread is written, not only the stale ones, so
-                    # "Show all" can offer any of them without a second run.
-                    json.dump({"id": pid, "created": now.isoformat(), "items": allrows},
-                              fh, indent=2)
-            except Exception as e:
-                print("  ! could not write proposal: " + type(e).__name__, file=sys.stderr)
-                allrows = []
-        if allrows:
+        if keyboard:
             if stale:
                 report += (
                     "\n\n\U0001F9F9 " + str(len(stale))
                     + " thread(s) silent " + str(CLEAN_AFTER_DAYS) + "d+ look dead."
-                    + "\nTap one to clear it — or Show all to prune anything here."
+                    + "\nTap a thread to clear it. New mail brings it back."
                 )
             else:
-                report += "\n\n\U0001F9F9 Nothing looks dead by age. Show all to prune by hand."
-            # One button per thread. The threshold decides what is PROPOSED, never
-            # what is POSSIBLE -- she knows a contact has vanished long before a
-            # day counter agrees.
-            rows = []
-            for n, it in enumerate(allrows):
-                if not it["stale"]:
-                    continue
-                who = it["who"].split("@")[0][:18]
-                dom = it["who"].split("@")[-1][:14]
-                rows.append([{
-                    "text": "🧹 " + str(it["age"]) + "d  " + who + "@" + dom,
-                    "callback_data": "rdrone:" + pid + ":" + str(n),
-                }])
-            tail = []
-            if len(allrows) > len(stale):
-                tail.append({"text": "📋 Show all " + str(len(allrows)),
-                             "callback_data": "rdrall:" + pid})
-            if stale:
-                tail.append({"text": "🧹 Clear " + str(len(stale)),
-                             "callback_data": "rdrclean:" + pid})
-            tail.append({"text": "Keep all", "callback_data": "rdrkeep:" + pid})
-            rows.append(tail)
-            markup = json.dumps({"inline_keyboard": rows})
+                report += "\n\n\U0001F9F9 Tap a thread to clear it. New mail brings it back."
+            markup = json.dumps(keyboard)
 
         text = "📡 Follow-up radar\n\n" + report
         payload = {"chat_id": chat, "text": text[:3900], "disable_web_page_preview": "true"}
@@ -541,7 +576,21 @@ def main():
                 f"https://api.telegram.org/bot{tok}/sendMessage", data=body
             )
             with urllib.request.urlopen(req, timeout=30) as r:
-                print(f"  telegram: HTTP {r.status}")
+                mid = None
+                try:
+                    mid = (json.loads(r.read().decode("utf-8")).get("result") or {}).get("message_id")
+                except Exception:
+                    pass
+                print(f"  telegram: HTTP {r.status}" + (f" message_id={mid}" if mid else ""))
+            if markup and mid:
+                # The card carries its own complete keyboard. Stamp it as today's buttons so the bot's 7:15 job
+                # (radarButtonsSentToday) stands down instead of editing keyboards onto older cards (18 Oct 2026).
+                try:
+                    with open(os.path.join(RADAR_DIR, "radar-buttons-sent.json"), "w", encoding="utf-8") as fh:
+                        json.dump({"date": now.strftime("%Y-%m-%d"), "at": now.isoformat(),
+                                   "message_ids": [mid]}, fh, indent=2)
+                except Exception as e:
+                    print("  ! could not stamp buttons-sent: " + type(e).__name__, file=sys.stderr)
         except Exception as e:
             print(f"  ! telegram failed: {type(e).__name__}", file=sys.stderr)
 
