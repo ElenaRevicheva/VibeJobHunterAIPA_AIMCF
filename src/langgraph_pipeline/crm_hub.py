@@ -35,8 +35,15 @@ def push_application_to_crm(
     notes: str = "",
     score: float = 0.0,
     source_prefix: str = "HIRING-VJH-LEAD",
+    answer: dict = None,
 ) -> bool:
-    """POST the job application to CTO AIPA CRM hub. Returns True on success."""
+    """POST the job application to CTO AIPA CRM hub. Returns True on success.
+
+    answer (added 18 Oct 2026, optional): a dict the caller passes in to receive cto-aipa's parsed JSON
+    answer on a 2xx ({"ok", "hubspot": {"dealId"}, "duplicate", "decided", "stage", "dealId"}). notify_node
+    needs the deal id to put the ⏳ / ❌ buttons on the alert. Left as None, nothing is read: every
+    existing caller behaves exactly as before.
+    """
     secret = (os.environ.get("OUTREACH_SECRET") or "").strip()
     if not secret:
         logger.debug("[crm_hub] OUTREACH_SECRET not set — skipping CRM push")
@@ -91,6 +98,13 @@ def push_application_to_crm(
             ok = 200 <= resp.status < 300
             if ok:
                 logger.info(f"[crm_hub] HubSpot hiring deal posted: {job_title} @ {company}")
+                if answer is not None:
+                    try:
+                        parsed = json.loads(resp.read().decode("utf-8", "replace") or "{}")
+                        if isinstance(parsed, dict):
+                            answer.update(parsed)
+                    except Exception:
+                        pass        # an unreadable answer only means: no deal id, so no buttons
             else:
                 logger.warning(f"[crm_hub] CRM push returned {resp.status}")
             return ok

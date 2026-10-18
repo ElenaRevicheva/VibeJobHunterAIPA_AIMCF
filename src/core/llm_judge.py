@@ -474,7 +474,18 @@ _COUNTRY_ONLY = re.compile(
     r"bolivia|paraguay|dominican|usa|united states|canada)\b[^.\n]{0,12}\bonly\b", re.IGNORECASE)
 
 
-def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
+# 2026-10-18: the LATAM overrule answers ONE question — is Panama inside LATAM? A veto about WHERE THE WORK
+# HAPPENS (travel, on-site, office, hybrid, relocation, commute, not fully remote) is a different question,
+# and in the 12-17 Oct overrides the judge was right on both such vetoes that reached HubSpot, and Elena
+# rejected both: Niuro FDE ("requires travel to the US"; posting: "Able to travel to the US for up to two
+# weeks") and Pursuit ("does not specify that it is fully remote"; posting: "Tu - Th on site").
+# The veto stands only when the POSTING itself says so too. _RESIDENCE_REASON is deliberately NOT used:
+# "based in" / "located in" is the unreliable country-claim wording this overrule exists to correct.
+_WORKPLACE_REASON = re.compile(r"\b(?:travel|on.?site|in.?office|hybrid|relocat|commut|fully remote)", re.IGNORECASE)
+_WORKPLACE_IN_POSTING = re.compile(r"\b(?:travel|on.?site|hybrid|in.?office|relocat)", re.IGNORECASE)
+
+
+def latam_veto_is_wrong(title: str, location: str, desc: str, reason: str = "") -> bool:
     """True when a criterion-2 (location) veto contradicts criterion 2 itself.
 
     Seen in production 28 Sep 2026: "Senior Solutions Engineer - LATAM @ Fin" vetoed as "LATAM may
@@ -482,6 +493,9 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
     "Panama is in Latin America" line. A prompt could not fix it, so the criterion is enforced here.
     A listing open to LATAM / the Americas / worldwide includes her UNLESS it also names a country list
     or a single country that excludes Panama — fit_gate's rosters, or "Colombia only".
+
+    `reason` (optional, 18 Oct 2026): the judge's own reason. A travel / on-site / office / hybrid /
+    relocation / commute / "fully remote" veto is kept when the posting states it too. Empty = as before.
     """
     try:
         from .fit_gate import is_source_default_location
@@ -500,6 +514,11 @@ def latam_veto_is_wrong(title: str, location: str, desc: str) -> bool:
         if location_excludes_her(title, location, desc):
             return False
     except Exception:
+        return False
+    if reason and _WORKPLACE_REASON.search(reason) and \
+            _WORKPLACE_IN_POSTING.search(f"{title or ''}\n{location or ''}\n{desc or ''}"):
+        logger.info(f"⚖️ location veto KEPT (the judge cites travel/on-site/office and the posting states it): "
+                    f"'{(title or '')[:60]}' — judge said: {reason[:80]}")
         return False
     return True
 
@@ -652,7 +671,7 @@ def judge_fit(title: str, company: str, location: str, desc: str, url: str = Non
                        f"for '{(title or '')[:60]}': {str(e)[:100]}")
         return True, f"{JUDGE_UNAVAILABLE}: JSON parse failed"
     fit, reason = bool(result.get("fit", True)), str(result.get("reason", ""))[:120]
-    if not fit and _CRIT2_REASON.match(reason) and latam_veto_is_wrong(title, location, desc):
+    if not fit and _CRIT2_REASON.match(reason) and latam_veto_is_wrong(title, location, desc, reason):
         logger.info(f"⚖️ location veto OVERRULED (listing is open to LATAM/Americas, no roster excludes "
                     f"Panama): '{(title or '')[:60]}' @ {(company or '')[:40]} — judge said: {reason[:80]}")
         return True, f"criterion-2 veto overruled — LATAM-open listing ({reason[:70]})"

@@ -594,6 +594,21 @@ def discard_node(state: JobState) -> dict:
     }
 
 
+def _alert_deal_id(answer) -> str:
+    """The HubSpot deal id in cto-aipa's /api/crm-event answer, for the alert's ⏳ / ❌ buttons (18 Oct 2026).
+
+    '' (no buttons) unless cto-aipa said ok:true and named a deal, and Elena has not already decided that
+    deal (a re-sighted job she closed or applied to keeps its stage; a button must not reopen it).
+    """
+    if not isinstance(answer, dict) or answer.get("ok") is not True:
+        return ""
+    if answer.get("decided") is True:
+        return ""
+    hs = answer.get("hubspot") if isinstance(answer.get("hubspot"), dict) else {}
+    deal = str(answer.get("dealId") or hs.get("dealId") or "").strip()
+    return deal if deal.isascii() and deal.isdigit() else ""
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # NODE 7: notify_node
 # Sends a Telegram message for the job result. Terminal for all active routes.
@@ -674,6 +689,7 @@ async def notify_node(state: JobState) -> dict:
             return {"telegram_sent": False, "status": state.get("status", "completed")}
 
         await telegram.send_message(msg)
+        _alert_msg_id = getattr(telegram, "last_message_id", None)   # for the ⏳ / ❌ buttons below
 
         # Push to HubSpot Hiring Pipeline
         if status in ("applied", "outreach_sent", "human_pending", "outreach_drafted"):
@@ -700,6 +716,7 @@ async def notify_node(state: JobState) -> dict:
                             "BEFORE spending time on it.\n"
                             f"{state.get('gate_reason', '')}\n\n"
                         ) + crm_notes
+                    _crm_answer = {}
                     push_application_to_crm(
                         job_title=title,
                         company=company,
@@ -708,7 +725,14 @@ async def notify_node(state: JobState) -> dict:
                         source="vjh_review",
                         notes=crm_notes,
                         source_prefix=_prefix,
+                        answer=_crm_answer,
                     )
+                    # 18 Oct 2026 (Elena): "⏳ I applied" / "❌ Not a fit" under the alert just sent. The text
+                    # is not touched; no deal id (cto-aipa timed out, refused, or she already decided) = no buttons.
+                    _deal = _alert_deal_id(_crm_answer)
+                    if _deal and _alert_msg_id:
+                        _btn = await telegram.add_alert_buttons(_alert_msg_id, _deal)
+                        logger.info(f"[notify] alert buttons {'added' if _btn else 'NOT added'}: {company} — {title}")
                 else:
                     push_application_to_crm(
                         job_title=title,

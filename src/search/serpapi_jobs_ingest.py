@@ -97,6 +97,9 @@ STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
 #   * with TELEGRAM_* unset it silently does nothing.
 TELEGRAM_BOT_TOKEN = _env.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID   = _env.get('TELEGRAM_CHAT_ID')   or os.environ.get('TELEGRAM_CHAT_ID', '')
+# 2026-10-18: a parked job is judged for the alert only when its posting was read. In the 12-17 Oct log
+# the snippet was 112-174 chars and every one of the 49 postings read was 1,520+ (WON 5,683, Scale Army 7,118).
+BORDERLINE_MIN_POSTING_CHARS = 600
 
 
 def _borderline_check(title: str, company: str, location: str, desc: str):
@@ -108,6 +111,13 @@ def _borderline_check(title: str, company: str, location: str, desc: str):
     try:
         from src.core.llm_judge import judge_fit
         ok, why = judge_fit(title, company, location, desc)
+        # 2026-10-18: a "yes" that CODE made by overruling the judge's own "no" (llm_judge: "criterion-2 /
+        # criterion-6 veto overruled") is not the judge disagreeing with the gate — two checks said no.
+        # 13 of the 27 BORDERLINE alerts 12-17 Oct were exactly that (FullStack, Startup Alliance…), and
+        # the overruled veto meant no other criterion — coding included — had been judged at all.
+        if ok and 'veto overruled' in str(why):
+            log.info(f'  no BORDERLINE alert — the judge said no, code overruled it ({str(why)[:90]}): {title}')
+            return False, ''
         if ok and not str(why).startswith('JUDGE UNAVAILABLE'):
             return True, str(why)
     except Exception as e:
@@ -806,8 +816,14 @@ def ingest_once() -> None:
             # Reads `fit`; never reassigns it. See _borderline_check above for why.
             # Not for a job her lessons or the judge just vetoed — asking again would only
             # produce the contradiction the borderline alert exists to report.
+            # 2026-10-18 (Elena: "VJH reads carefully and thoughtfully job descriptions themselves"): only a
+            # posting that was actually READ is judged here. The alert was calibrated on full postings, but 15
+            # of the 27 alerts 12-17 Oct were judged on Google's ~150-char snippet, where a judge told that
+            # silence is no reason to reject approves almost anything. Snippet-only jobs stay parked, unalerted.
             borderline, borderline_why = (False, '')
-            if not fit and not veto_note:
+            if not fit and not veto_note and len(desc_full) < BORDERLINE_MIN_POSTING_CHARS:
+                log.info(f'  no BORDERLINE check — posting not read ({len(desc_full)} chars): {title} @ {company}')
+            if not fit and not veto_note and len(desc_full) >= BORDERLINE_MIN_POSTING_CHARS:
                 borderline, borderline_why = _borderline_check(title, company, location, desc_full)
                 if borderline:
                     log.info(f'  BORDERLINE (gate NO / judge YES) -> alerting: {title} @ {company}')

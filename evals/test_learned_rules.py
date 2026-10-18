@@ -110,6 +110,45 @@ def test_latam_open_listing_overrules_a_location_veto():
     assert latam_veto_is_wrong("AI Automation Lead", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
 
 
+# ── a travel / on-site veto the POSTING backs is not overruled (18 Oct 2026) ──
+def test_judge_keeps_a_travel_or_onsite_veto_the_posting_states(monkeypatch):
+    """Niuro FDE and Pursuit, 14 Oct: the judge's location veto was right, code overruled it, Elena rejected
+    both. Stubbed model, no network: the veto now stands when the posting states it, and only then."""
+    from src.core import llm_judge
+    said = {}
+    monkeypatch.setattr(llm_judge, "_key", lambda name: "")
+    monkeypatch.setattr(llm_judge, "_feedback_block", lambda: "")
+    monkeypatch.setattr(llm_judge, "_call_llm",
+                        lambda p: ('{"fit": false, "reason": "%s"}' % said["reason"], []))
+
+    def judge(reason, title, location, desc):
+        said["reason"] = reason
+        return llm_judge.judge_fit(title, "Niuro", location, desc)
+
+    niuro = ("Remote from any country in Latin America. You bring 5+ years in software or integration "
+             "engineering. Able to travel to the US for up to two weeks (B1/B2 visa).")
+    travel = "2. The listing requires travel to the US, which is incompatible with her remote work."
+    assert judge(travel, "Senior Forward Deployed Engineer", "Remote - LATAM", niuro) == (False, travel)
+    pursuit = "Open to the Americas. Hybrid workspace: Tu - Th on site in Long Island City."
+    not_remote = "2 The listing does not specify that it is fully remote."
+    assert judge(not_remote, "Data & AI Systems Manager", "Remote - Americas", pursuit) == (False, not_remote)
+    # The same reasons on a posting that says NOTHING about travel or an office: still overruled, as before.
+    plain = "Remote from any country in Latin America. You design agent workflows."
+    ok, why = judge(travel, "Senior Forward Deployed Engineer", "Remote - LATAM", plain)
+    assert ok and why.startswith("criterion-2 veto overruled")
+    # The country-claim veto the overrule exists for (Fin, 28 Sep) is still overruled.
+    ok, why = judge("2 LATAM may exclude Panama", "Senior Solutions Engineer- LATAM", "", "")
+    assert ok and why.startswith("criterion-2 veto overruled")
+    # "based in" / "located in" is NOT travel or an office (_RESIDENCE_REASON is deliberately not used): a
+    # country claim like the one on "GTM Engineer at Niuro" — which she SENT — stays overruled, even when the
+    # posting happens to mention travel.
+    ok, why = judge("2 The role is based in specific LATAM countries, excluding Panama", "GTM Engineer",
+                    "Remote - LATAM", "Remote from any country in LATAM. Occasional travel to team offsites.")
+    assert ok and why.startswith("criterion-2 veto overruled")
+    # Default reason="" keeps every earlier call exactly as it was.
+    assert llm_judge.latam_veto_is_wrong("Senior Forward Deployed Engineer", "Remote - LATAM", niuro)
+
+
 # ── a veto that rests only on US Mountain/Pacific hours is overruled (12 Oct 2026) ──
 def test_us_pacific_hours_overrule_a_location_veto():
     from src.core.llm_judge import timezone_veto_is_wrong

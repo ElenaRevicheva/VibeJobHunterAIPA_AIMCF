@@ -489,6 +489,19 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
         'staff engineer', 'staff product engineer', 'staff software', 'principal engineer',
         'senior software engineer', 'backend engineer', 'frontend engineer',
         'full stack', 'full-stack', 'fullstack'))
+    # 2026-10-18: "5+ years in software or integration engineering" (Niuro Forward Deployed Engineer, which
+    # Elena rejected 17 Oct) matched none of the phrases above — they all say "years OF …". A word order needs a
+    # pattern, not a substring, so this is its own search. It does not match "years in software sales and
+    # business development". It is BROADER than the Niuro wording: any "N years (of experience) in software
+    # development / engineering" is heavy, even "2+ years" and even when "or technical consulting" follows —
+    # so such a posting is parked on the feed and dropped on the LangGraph path (a gate NO there has no
+    # BORDERLINE alert). Pending Elena's yes; if she says no, narrow it to the "in software or <word>
+    # engineering" form. Measured on the 297 recorded postings: 3 hits — HireHawk and Niuro FDE (both
+    # rejected by her, the only two decisions it flips) and one undecided Niuro role the gate already parked;
+    # 0 of the postings she applied to or sent (47 postings / 48 ledger decisions, two counts).
+    heavy = heavy or bool(re.search(
+        r"years?\s+(?:of\s+experience\s+)?in\s+software(?:\s+or\s+\w+)?\s+(?:engineering|development)\b",
+        heavy_blob, re.I))
 
     # ── WRONG KIND OF "AUTOMATION" (added 2026-07-30) ────────────────────────
     # Broadening the search terms to Elena's AI-automation lane also pulled in

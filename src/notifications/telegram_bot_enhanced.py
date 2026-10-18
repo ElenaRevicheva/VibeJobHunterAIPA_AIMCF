@@ -232,6 +232,83 @@ def _judge_sync_module():
     return _JUDGE_SYNC
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# One-tap job-alert buttons (18 Oct 2026, Elena: "⏳ I applied" / "❌ Not a fit").
+# telegram_notifier.add_alert_buttons puts them under a "📋 Apply yourself" / "⚠️ UNVERIFIED" alert, carrying the
+# HubSpot deal id. HubSpot is reached the way this bot already reaches it for screenshots: judge_feedback_sync's
+# _hubspot_key + _hs, the key and call the hourly learner uses. No new endpoint, service or dependency.
+# ⏳ writes "Applied (via VJH alert button, <date>)" (the learner reads "Applied" on a ⏳ Sent deal as HER
+# application) and moves the deal to ⏳ Sent. ❌ asks for one line and writes HER words, nothing else, as the note,
+# so judge_feedback_sync._rejection_reason reads it as "her reason"; then the deal goes to ❌ No fit.
+# A stage moves only out of an open column, read from HubSpot at tap time: a second tap changes nothing.
+# ═══════════════════════════════════════════════════════════════════════════
+_ALERT_SENT, _ALERT_LOST = "decisionmakerboughtin", "closedlost"
+_ALERT_OPEN = ("appointmentscheduled", "qualifiedtobuy", "presentationscheduled")
+_ALERT_LABEL = {"appointmentscheduled": "🤖 AI working", "qualifiedtobuy": "🔥 I act today",
+                "presentationscheduled": "⚡ I act this week", "decisionmakerboughtin": "⏳ Sent",
+                "contractsent": "💬 They replied", "closedwon": "✅ Won", "closedlost": "❌ No fit"}
+_NOFIT_PLAIN_WINDOW_S = 15 * 60       # her next plain message is the reason for 15 minutes
+_NOFIT_REPLY_WINDOW_S = 24 * 3600     # a reply to the question itself counts for a day
+_NOFIT_CANCEL = ("cancel", "cancelar")
+_NOFIT_MAX = 1500
+
+
+def _alert_hs(path: str, body=None) -> dict:
+    jfs = _judge_sync_module()
+    key = jfs._hubspot_key()
+    if not key:
+        raise RuntimeError("no HubSpot key")
+    return jfs._hs(key, path, body, timeout=20)
+
+
+_LEARNER_NOTE_CAP = 8                 # judge_feedback_sync._fetch_notes_batch reads `to[:8]` notes per deal
+
+
+def _alert_deal(deal: str) -> tuple:
+    """(stage, deal name, notes on the deal) read from HubSpot NOW, never from the alert, which may be days old.
+    The note count rides on the same GET: the ❌ question must not promise "VJH learns from it" on a deal whose
+    notes already fill the learner's per-deal cap."""
+    res = _alert_hs(f"/crm/v3/objects/deals/{deal}?properties=dealstage,dealname&associations=notes")
+    props = res.get("properties") or {}
+    notes = {str(r.get("id")) for r in (((res.get("associations") or {}).get("notes") or {}).get("results") or [])
+             if isinstance(r, dict) and r.get("id")}
+    return props.get("dealstage") or "", re.sub(r"^\[[^\]]*\]\s*", "", props.get("dealname") or ""), len(notes)
+
+
+def _alert_write(deal: str, note: str, stage: Optional[str]) -> str:
+    """The note first, then the stage, so a deal in ❌ No fit always carries her reason.
+    'ok' | 'note_only' (HubSpot refused the stage move); raises when the note itself failed (nothing written)."""
+    from datetime import timezone as _tz
+    _alert_hs("/crm/v3/objects/notes", {
+        "properties": {"hs_note_body": note,
+                       "hs_timestamp": datetime.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")},
+        "associations": [{"to": {"id": deal},
+                          "types": [{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 214}]}]})
+    if not stage:
+        return "ok"
+    try:
+        res = _alert_hs("/crm/v3/objects/deals/batch/update",
+                        {"inputs": [{"id": deal, "properties": {"dealstage": stage}}]})
+    except Exception as e:
+        logger.warning(f"🔘 alert button: note saved, stage move refused ({str(e)[:120]})")
+        return "note_only"
+    if isinstance(res, dict) and res.get("errors"):          # a 207 multi-status is not an HTTP error
+        logger.warning(f"🔘 alert button: note saved, stage move refused ({str(res['errors'])[:120]})")
+        return "note_only"
+    return "ok"
+
+
+def _panama_today() -> str:
+    from datetime import timezone as _tz
+    return datetime.now(_tz(timedelta(hours=-5))).strftime("%Y-%m-%d")       # Panama has no DST
+
+
+def _hs_problem(e: Exception, nothing: str = "Nothing changed.", retry: str = "Try again in a minute.") -> str:
+    if getattr(e, "code", None) == 404:
+        return f"⚠️ This deal is no longer in HubSpot. {nothing}"
+    return f"⚠️ HubSpot could not be reached or refused the change. {nothing} {retry}"
+
+
 def _image_mime(raw: bytes) -> str:
     """The image signature check of judge_feedback_sync._file_bytes, with the mime taken from the magic bytes."""
     head = bytes(raw[:12]) if raw else b""
@@ -1305,6 +1382,8 @@ You have *{len(outreach)}* message(s) to send:
         text = (update.message.text or "").strip()
         if not text:
             return
+        if await self._take_nofit_reason(update, context, text):     # 18 Oct 2026: the ❌ button's question
+            return
         await self._reply_job_question(update, context, text)
 
     async def _reply_job_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str,
@@ -1617,6 +1696,10 @@ You have *{len(outreach)}* message(s) to send:
             elif query.data == "save_materials":
                 await query.edit_message_text("💾 Materials saved!")
             
+            # 18 Oct 2026: ⏳ I applied / ❌ Not a fit under a job alert (prefixes: telegram_notifier.ALERT_CB_*)
+            elif query.data.startswith(("vjh_ap:", "vjh_nf:")):
+                await self._alert_button(query, context)
+
             else:
                 logger.warning(f"⚠️ Unknown callback: {query.data}")
                 
@@ -1627,6 +1710,155 @@ You have *{len(outreach)}* message(s) to send:
             except:
                 pass
     
+    # ── 18 Oct 2026: the two job-alert buttons (module notes above _ALERT_SENT) ──────────────────────────────
+    def _nofit_waiting(self) -> dict:
+        """{chat id: {deal id: the ❌ question waiting for her reason}}. One per deal, so ❌ on two alerts keeps
+        both. In memory: a restart forgets an unanswered question."""
+        return self.__dict__.setdefault("_nofit_waiting_by_chat", {})
+
+    async def _drop_alert_buttons(self, context, chat_id, message_id):
+        """The buttons leave the alert once the deal has moved; the alert's text stays as it was."""
+        if not message_id:
+            return
+        try:
+            await context.bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
+        except Exception as e:
+            logger.info(f"🔘 alert buttons left in place ({str(e)[:80]})")
+
+    async def _alert_button(self, query, context):
+        """⏳ I applied → note + ⏳ Sent at once. ❌ Not a fit → ask for her line (ForceReply), saved by
+        _take_nofit_reason. callback_data = prefix + HubSpot deal id (telegram_notifier.alert_button_rows)."""
+        from src.notifications.telegram_notifier import ALERT_CB_APPLIED
+        chat_id = query.message.chat_id
+        alert_id = query.message.message_id
+        applied = query.data.startswith(ALERT_CB_APPLIED)
+        deal = query.data.split(":", 1)[1]
+        if not (deal.isascii() and deal.isdigit()):
+            await context.bot.send_message(chat_id, "This button carries no deal id. Nothing changed.")
+            return
+        if applied:      # ⏳ withdraws an open ❌ question on the same job, so it cannot swallow her next message
+            self._nofit_waiting().get(chat_id, {}).pop(deal, None)
+        try:
+            stage, name, n_notes = await asyncio.to_thread(_alert_deal, deal)
+        except Exception as e:
+            logger.warning(f"🔘 alert button: HubSpot read failed ({str(e)[:120]})")
+            await context.bot.send_message(chat_id, _hs_problem(e))
+            return
+        name = name or "this job"
+        target = _ALERT_SENT if applied else _ALERT_LOST
+        if stage == target:
+            await self._drop_alert_buttons(context, chat_id, alert_id)
+            await context.bot.send_message(
+                chat_id, f"{'⏳ Already in Sent' if applied else '❌ Already in No fit'}. Nothing changed: {name}")
+            return
+        if stage not in _ALERT_OPEN:
+            await context.bot.send_message(
+                chat_id, f"Left as it is: {name} is in {_ALERT_LABEL.get(stage, stage or 'an unknown stage')}. "
+                         f"Move it in HubSpot if you mean to.")
+            return
+        if applied:
+            try:
+                result = await asyncio.to_thread(
+                    _alert_write, deal, f"Applied (via VJH alert button, {_panama_today()})", _ALERT_SENT)
+            except Exception as e:
+                logger.warning(f"🔘 ⏳ button: HubSpot write failed ({str(e)[:120]})")
+                await context.bot.send_message(chat_id, _hs_problem(e))
+                return
+            if result == "ok":
+                logger.info(f"🔘 ⏳ moved to Sent: {name}")
+                await self._drop_alert_buttons(context, chat_id, alert_id)
+                await context.bot.send_message(chat_id, f"⏳ moved to Sent: {name}")
+            else:
+                await context.bot.send_message(
+                    chat_id, f"⚠️ Note saved, but HubSpot did not move the deal. Move {name} to ⏳ Sent by hand.")
+            return
+        from telegram import ForceReply
+        goes = ("It goes on the HubSpot deal and VJH learns from it." if n_notes < _LEARNER_NOTE_CAP else
+                f"It goes on the HubSpot deal. This deal already has {n_notes} notes and VJH's learner reads only "
+                f"{_LEARNER_NOTE_CAP} per deal, so it may not see this one.")
+        ask = await context.bot.send_message(
+            chat_id,
+            f"❌ Not a fit: {name}\nWhy? Reply with one line in your own words. {goes} "
+            f"Type cancel to keep the job open.",
+            reply_markup=ForceReply(input_field_placeholder="Why it is not a fit"))
+        import time as _time
+        self._nofit_waiting().setdefault(chat_id, {})[deal] = {
+            "deal": deal, "name": name, "alert_id": alert_id,
+            "ask_id": getattr(ask, "message_id", None), "at": _time.monotonic()}
+
+    async def _take_nofit_reason(self, update, context, text: str) -> bool:
+        """After ❌: her reply to the question (24 h) or to its alert (15 min), or her next plain text in this chat
+        while exactly one ❌ question is under 15 min old, is the reason for THAT job.
+        True = handled here. False = an ordinary message, which goes to the Q&A exactly as before."""
+        chat = getattr(update, "effective_chat", None)
+        chat_id = chat.id if chat else None
+        waiting = (self.__dict__.get("_nofit_waiting_by_chat") or {}).get(chat_id)
+        if not waiting:
+            return False
+        import time as _time
+        now = _time.monotonic()
+        for d in [d for d, q in waiting.items() if now - q["at"] > _NOFIT_REPLY_WINDOW_S]:
+            waiting.pop(d, None)
+        fresh = [q for q in waiting.values() if now - q["at"] <= _NOFIT_PLAIN_WINDOW_S]
+        reply_to = getattr(update.message, "reply_to_message", None)
+        if reply_to is not None:
+            rid = getattr(reply_to, "message_id", None)
+            p = next((q for q in waiting.values() if q.get("ask_id") is not None and q["ask_id"] == rid), None) \
+                or next((q for q in fresh if q.get("alert_id") is not None and q["alert_id"] == rid), None)
+        else:
+            if len(fresh) > 1:          # which job? Ask, keep both open, save nothing
+                await self._reply_plain(update, "Two or more jobs are waiting for a reason: "
+                                                + "; ".join(q["name"] for q in fresh)
+                                                + ". Swipe-reply to the question of the job you mean. Nothing saved.")
+                return True
+            p = fresh[0] if fresh else None
+        if not p:
+            return False
+        waiting.pop(p["deal"], None)
+        reason = (text or "").strip()[:_NOFIT_MAX]
+        if reason.lower().strip(" .!") in _NOFIT_CANCEL:
+            await self._reply_plain(update, f"Kept open. Nothing changed: {p['name']}")
+            return True
+        try:
+            stage, name, _n = await asyncio.to_thread(_alert_deal, p["deal"])
+        except Exception as e:
+            logger.warning(f"🔘 ❌ reason: HubSpot read failed ({str(e)[:120]})")
+            if getattr(e, "code", None) != 404:
+                waiting[p["deal"]] = {**p, "at": _time.monotonic()}     # the same line can simply be sent again
+            await self._reply_plain(update, _hs_problem(e, "Nothing saved.", "Send the reason again in a minute."))
+            return True
+        name = name or p["name"]
+        if stage != _ALERT_LOST and stage not in _ALERT_OPEN:
+            await self._reply_plain(update, f"Left as it is: {name} is in "
+                                            f"{_ALERT_LABEL.get(stage, stage or 'an unknown stage')}. Nothing saved.")
+            return True
+        import html as _html
+        note = _html.escape(reason, quote=False)
+        try:
+            result = await asyncio.to_thread(_alert_write, p["deal"], note,
+                                             _ALERT_LOST if stage in _ALERT_OPEN else None)
+        except Exception as e:
+            logger.warning(f"🔘 ❌ reason: HubSpot write failed ({str(e)[:120]})")
+            waiting[p["deal"]] = {**p, "at": _time.monotonic()}
+            await self._reply_plain(update, _hs_problem(e, "Nothing saved.", "Send the reason again in a minute."))
+            return True
+        lines = [f"❌ saved: {reason}"]
+        if result == "ok":
+            logger.info(f"🔘 ❌ moved to No fit with her reason: {name}")
+            lines.append(f"Moved to No fit: {name}" if stage in _ALERT_OPEN else f"Already in No fit: {name}")
+            await self._drop_alert_buttons(context, chat_id, p.get("alert_id"))
+        else:
+            lines.append(f"⚠️ HubSpot did not move the deal. Move {name} to ❌ No fit by hand.")
+        try:
+            jfs = _judge_sync_module()
+            if not jfs._rejection_reason([{"body": note}], jfs._clean_title(name)):
+                lines.append("VJH's learner will skip this one (it needs three words or more, and not a pasted "
+                             "posting). Add a sentence on the deal if it matters.")
+        except Exception:
+            pass
+        await self._reply_plain(update, "\n".join(lines))
+        return True
+
     # ═══════════════════════════════════════════════════════════════════════════
     # CALLBACK HELPER METHODS - Send messages directly via bot
     # ═══════════════════════════════════════════════════════════════════════════

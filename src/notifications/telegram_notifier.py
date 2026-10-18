@@ -22,6 +22,24 @@ from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# ── One-tap job-alert buttons (18 Oct 2026, Elena) ──────────────────────────
+# The bot side (telegram_bot_enhanced.handle_callback) reads the same two prefixes. Telegram caps
+# callback_data at 64 BYTES, so a button carries the HubSpot deal id (digits) and never a name.
+ALERT_CB_APPLIED = "vjh_ap:"
+ALERT_CB_NOFIT = "vjh_nf:"
+_CALLBACK_MAX_BYTES = 64
+
+
+def alert_button_rows(deal_id) -> list:
+    """[[(label, callback_data), …]] for a job alert, or [] when there is no usable deal id."""
+    deal = str(deal_id or "").strip()
+    if not (deal.isascii() and deal.isdigit()):
+        return []
+    row = [("⏳ I applied", ALERT_CB_APPLIED + deal), ("❌ Not a fit", ALERT_CB_NOFIT + deal)]
+    if any(len(data.encode("utf-8")) > _CALLBACK_MAX_BYTES for _, data in row):
+        return []
+    return [row]
+
 
 class TelegramNotifier:
     """
@@ -92,12 +110,16 @@ class TelegramNotifier:
             return False
         
         try:
+            self.last_message_id = None
             # Use async version of send_message
-            await self.bot.send_message(
+            sent = await self.bot.send_message(
                 chat_id=self.chat_id,
                 text=text,
                 parse_mode=parse_mode
             )
+            # 18 Oct 2026: kept so a job alert can get its ⏳ / ❌ buttons once the deal id is known
+            # (add_alert_buttons). The return value is unchanged.
+            self.last_message_id = getattr(sent, "message_id", None)
             self.sent_today += 1
             logger.info(f"📱 Telegram notification sent ({self.sent_today} today)")
             return True
@@ -106,6 +128,27 @@ class TelegramNotifier:
             logger.error(f"Failed to send Telegram message: {e}")
             return False
     
+    async def add_alert_buttons(self, message_id, deal_id) -> bool:
+        """Put "⏳ I applied" / "❌ Not a fit" under a job alert that is already sent (18 Oct 2026, Elena).
+
+        The text of the alert is not touched: only its reply markup is set. The buttons carry the HubSpot deal
+        id and nothing else; the VJH bot (telegram_bot_enhanced.handle_callback) moves that deal. No deal id,
+        no message id, or a callback longer than Telegram's 64 bytes: no buttons, False.
+        """
+        rows = alert_button_rows(deal_id)
+        if not self.enabled or not message_id or not rows:
+            return False
+        try:
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            markup = InlineKeyboardMarkup([[InlineKeyboardButton(label, callback_data=data) for label, data in row]
+                                           for row in rows])
+            await self.bot.edit_message_reply_markup(chat_id=self.chat_id, message_id=message_id,
+                                                     reply_markup=markup)
+            return True
+        except Exception as e:
+            logger.warning(f"Alert buttons not added: {e}")
+            return False
+
     async def send_notification(self, text: str) -> bool:
         """
         ✅ PHASE 2.5 FIX: Compatibility alias for send_notification

@@ -96,6 +96,12 @@ _KIT_NOTE = re.compile(r"🛡️\s*TECHNICAL DEFENSE|✅\s*READY TO SEND|🟡\s*
                        # ("pay below her floor — 8x"; 7 of the 8 were this note).
                        r"|🚨\s*The form pre-fills")
 
+# 18 Oct 2026: the "⏳ I applied" alert button's stamp (telegram_bot_enhanced). On a ⏳ Sent deal it IS her
+# application, so _elena_said_applied must keep counting it — which is why it is NOT in _KIT_NOTE. But it is no
+# reason: once that deal goes to ❌ No fit (rejected / ghosted), this oldest note would win "her reason" and hide
+# whatever she writes later. _rejection_reason alone skips it, and only when it is the whole note.
+_ALERT_APPLIED_STAMP = re.compile(r"\s*Applied \(via VJH alert button, \d{4}-\d{2}-\d{2}\)\s*")
+
 _BOT_NOTE_TEMPLATE = re.compile(
     r"manual apply required.*?(?:you submit\.?|apply page)"
     r"|vjh found this[^.]*\.?"
@@ -167,7 +173,23 @@ def _elena_said_applied(notes) -> bool:
 # seen in production: (1) notes that are just the posting re-pasted (Mercor's
 # "Enterprise AI Interface Specialist Save Mercor connects ..."), (2) notes that are
 # a bare source URL. Both are stripped or dropped below.
-_REASON_MAX = 160
+#
+# 2026-10-18 — her notes are KEPT whole. 160 chars cut the evidence she wrote down: 12 cached reasons sat
+# exactly at the limit, among them the two of 17 Oct — in Niuro FDE's 1,197-char note "5+ years in software or
+# integration engineering" starts at char 734 and "travel to the US" at 1,097; Upgrade's note with the office
+# list is 1,323. 1500 keeps both whole. Two readers stay bounded on purpose:
+#   * her LESSONS and RULES read only the first _LESSON_REASON_MAX (160) chars — her verdict comes first and
+#     the rest is usually a pasted posting or an assistant's analysis; letting it in (measured on the real
+#     ledger) added a false "posting was closed" and "pay below her floor" lesson quoting that pasted text;
+#   * the judge PROMPT shows at most _PROMPT_REASON_MAX (400) chars of her words per rejected example
+#     (screenshot reading unchanged), so the prompt grows by a bounded amount, not by whole pasted postings;
+#     a "the posting says:" line (pasted text, not her words) keeps the old 160 there.
+# Stored whole is not learned whole: text past those slices reaches no model prompt. Niuro FDE's years and
+# travel evidence is enforced in code (llm_judge travel veto, fit_gate years pattern), not learned from her note.
+_REASON_MAX = 1500
+_LESSON_REASON_MAX = 160          # the old limit: lessons, rules and the re-read check below use it
+_PROMPT_REASON_MAX = 400
+_POSTING_SAYS = "the posting says: "   # _rejection_reason's label for a pasted posting (_prompt_why)
 _NAV_NOISE = re.compile(
     r"torre (?:leads? |lead |redirected )?(?:to |here)?\s*(?:linkedin(?: post)?)?"
     r"|look at the image|look -|seems like it is",
@@ -201,6 +223,8 @@ def _rejection_reason(notes, title: str) -> str:
         if _KIT_NOTE.search(n.get("body") or ""):
             continue
         human = re.sub(r"<[^>]+>", " ", n.get("body") or "")
+        if _ALERT_APPLIED_STAMP.fullmatch(human):
+            continue                                          # the ⏳ button's stamp, not a reason (see above)
         human = _BOT_NOTE_TEMPLATE.sub(" ", human)
         human = re.sub(r"https?://\S+", " ", human)          # source links carry no taste
         human = re.sub(r"&[a-z]+;", " ", human)              # &amp; etc from HubSpot HTML
@@ -711,7 +735,8 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
             # that failed or was misread once used to stay unread forever (Pursuit), as the deal never changed.
             # A cached reason that came from an agent's note (now matched by _KIT_NOTE) is re-derived too.
             if stage in NEGATIVE_STAGES and ((not e.get("why") and _recent(e.get("first_decided"), days=14))
-                                             or _KIT_NOTE.search(e.get("why") or "")):
+                                             or _KIT_NOTE.search(e.get("why") or "")
+                                             or _cut_at_old_limit(e)):
                 todo.append(did)
             continue
         if e and e.get("stage") == stage:
@@ -727,6 +752,10 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
     shots_read = 0
     for did in todo:
         e, ns = ledger[did], notes.get(did, [])
+        # 18 Oct 2026: a cached reason came from a note, so NO notes back means the fetch failed
+        # (_fetch_notes_batch returns [] on any HubSpot error) — keep the reason, no stamp, retry next run.
+        if not ns and e.get("why"):
+            continue
         if e["stage"] == MANUAL_APPLY_STAGE:
             e["applied"] = _elena_said_applied(ns)
             continue
@@ -739,7 +768,19 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
                 shots_read += 1
                 why = f"{why}; her screenshot shows: {shot}" if why else f"her screenshot shows: {shot}"
         e["why"] = why
+        e["reason_max"] = _REASON_MAX     # read at this limit — _cut_at_old_limit never re-reads it again
     return ledger, len(todo), shots_read
+
+
+def _cut_at_old_limit(e: dict) -> bool:
+    """A cached reason that was cut at an older, shorter _REASON_MAX: read its notes again, once (18 Oct 2026).
+
+    Same refresh path as the 15 Oct _KIT_NOTE re-derivation. Her words are compared, not the whole `why`
+    (a screenshot reading may follow them). The stamp set above makes it one-time even for a note that
+    really is 159-160 chars long."""
+    her, _shot = _split_why(e.get("why") or "")
+    read_at = int(e.get("reason_max") or _LESSON_REASON_MAX)      # unstamped = cut at the old 160
+    return read_at < _REASON_MAX and len(her) >= read_at - 2       # -2: the cut's strip / trailing ";"
 
 
 # ── from her reasons to lessons and rules ─────────────────────────────────────
@@ -837,6 +878,7 @@ def _build_lessons_and_rules(ledger: dict) -> tuple:
     with_reason = 0
     for e in sorted(negs, key=lambda x: x.get("modified", ""), reverse=True):
         her, shot = _split_why(e.get("why", ""))
+        her = her[:_LESSON_REASON_MAX].strip()   # her verdict, not the posting pasted after it (see _REASON_MAX)
         c = _norm_company(e["company"])
         recent = e.get("first_decided", "") >= cutoff
         if c and recent and not e["company"].startswith(("—", "-")) \
@@ -980,9 +1022,26 @@ def _pick_examples(ledger: dict) -> tuple:
                 continue
             if not _is_usable_title(e["title"]) or e["title"].lower() in seen:
                 continue
-            negatives.append(f"{e['title']} — {e['why']}" if e.get("why") else e["title"])
+            negatives.append(f"{e['title']} — {_prompt_why(e['why'])}" if e.get("why") else e["title"])
             seen.add(e["title"].lower())
     return positives, negatives
+
+
+def _prompt_why(why: str) -> str:
+    """The reason as the judge prompt shows it: her words up to _PROMPT_REASON_MAX, the screenshot reading whole.
+    Any reason read at the old 160-char limit is returned unchanged (18 Oct 2026).
+
+    A "the posting says:" line is pasted posting text, not her words, and cto-aipa's queue-feedback.ts matches
+    such a line WHOLE (it splits on "— her reason:" only), so it keeps the old 160 chars of text."""
+    i = why.find("her screenshot shows:")
+    head, tail = (why, "") if i == -1 else (why[:i], why[i:])
+    cap = _PROMPT_REASON_MAX
+    if head.startswith(_POSTING_SAYS):
+        cap = len(_POSTING_SAYS) + _LESSON_REASON_MAX
+    if len(head.rstrip(" ;")) <= cap:              # the "; " before a screenshot reading is not her words
+        return why
+    return head[:cap].rstrip(" ;") + "…" + (f"; {tail}" if tail else "")
+
 
 
 def main() -> int:

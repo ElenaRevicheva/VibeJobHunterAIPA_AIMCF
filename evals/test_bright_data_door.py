@@ -421,12 +421,16 @@ def test_blank_company_still_gets_the_borderline_alert(ingest, monkeypatch):
     # 6 Oct review: the Telegram alert needs no company and was the only way such a job reached
     # Elena ("Hire Overseas hiring Product Manager in Latin America" was alerted twice). The skip sits
     # after it, so the alert fires exactly as before; only the CRM pushes are skipped.
+    # 18 Oct: only a posting that was READ is judged for the alert (BORDERLINE_MIN_POSTING_CHARS), so the
+    # job carries a read posting here, not the 13-char "Remote, LATAM" snippet stand-in.
     run, pushes = ingest
     alerts = []
     monkeypatch.setattr(door, "_borderline_check", lambda *a, **k: (True, "x"))
     monkeypatch.setattr(door, "_borderline_alert", lambda *a, **k: alerts.append(a))
-    text = run([_job("Hire Overseas hiring Product Manager in Latin America", "",
-                     url="https://www.linkedin.com/jobs/view/1")], fit=False)
+    job = _job("Hire Overseas hiring Product Manager in Latin America", "", url="https://www.linkedin.com/jobs/view/1")
+    job["description"] = "Remote, LATAM. " + "The full posting as read from the page, every requirement included. " * 10
+    assert len(job["description"]) >= door.BORDERLINE_MIN_POSTING_CHARS
+    text = run([job], fit=False)
     assert len(alerts) == 1 and alerts[0][0] == "Hire Overseas hiring Product Manager in Latin America"
     assert pushes == []
     assert "parked, skipped: no company: Hire Overseas hiring Product Manager in Latin America" in text
