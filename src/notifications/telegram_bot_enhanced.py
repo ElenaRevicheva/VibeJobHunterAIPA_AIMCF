@@ -9,6 +9,7 @@ ADDED: Voice + free-form questions (additive, non-overwriting)
 16 Oct 2026 (Elena, bilingual): answers are grounded in her shared memory (telegram_qa_helper.answer_grounded) and
 come back in the language she used; screenshots are read; a voice note in gets a text AND a voice reply, and so does
 a typed message that asks for voice. Only her TELEGRAM_CHAT_ID reaches the bot. Model and user text is sent plain.
+PDF and Word .docx documents are read from their text layer and answered the same way (handle_document).
 """
 
 import os
@@ -145,7 +146,7 @@ HELP_TEXT = """📖 *COMMANDS THAT WORK*
 • On every restart: "AUTONOMOUS ENGINE STARTED". Its promises are old; this screen says what really runs.
 • Daily digest around 15:00 Panama. Ignore its Auto-applied, Outreach, Follow-up, Warm Intro and Applied Today lines: those features are off, so they read 0, stay empty or show old data.
 
-*Ask about your jobs* by text, voice note or screenshot, in English or Spanish. Answers come from your live HubSpot job deals, your verified facts and your corrections, and the bot says so when it does not know. A voice note gets a text and a voice reply; when you type, ask for voice ("reply with voice", "respóndeme con voz"). A screenshot of a posting gets fit and gaps, an interviewer's question gets an answer from your verified examples, a recruiter's message gets a reply draft. Russian voice notes are answered in English.
+*Ask about your jobs* by text, voice note, screenshot or document (PDF or Word .docx), in English or Spanish. Answers come from your live HubSpot job deals, your verified facts and your corrections, and the bot says so when it does not know. A voice note gets a text and a voice reply; when you type, ask for voice ("reply with voice", "respóndeme con voz"). A screenshot of a posting gets fit and gaps, an interviewer's question gets an answer from your verified examples, a recruiter's message gets a reply draft. A PDF or Word document is read the same way, and a contract, NDA or offer gets its key terms, dates, money and the clauses to check (a reading aid, not legal advice). A scan with no text layer, a password-protected file or an old .doc is not guessed at: the bot says so and what to send instead. Russian voice notes are answered in English.
 
 *For company research and interview prep:* CTO AIPA bot `/research_employer <company>` · OpenClaw `prep me for <company>` (English or Spanish)"""
 
@@ -278,6 +279,250 @@ def _split_screenshot_read(txt: str):
     return "other", "\n".join(lines).strip(), not ended
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Documents (16 Oct 2026, Elena: "like Chalán in Pitz"): a PDF or Word .docx is read from its TEXT LAYER with the
+# libraries already in the venv (PyPDF2 3.0.1, python-docx 1.2.0), in a thread, and answered like a screenshot. A scan
+# with no text layer, a password, a file over 20 MB or another type gets an honest line, never a guess.
+# ═══════════════════════════════════════════════════════════════════════════
+_DOC_MAX_BYTES = 20_000_000       # Telegram's getFile limit for bots
+_DOC_MAX_CHARS = 15_000           # text kept for the answer; the rest is cut and the reply says so
+_DOC_MAX_PAGES = 40               # PDF pages read at most
+_DOC_MIN_TEXT = 30                # fewer readable characters than this = no text layer (a scan, photos)
+_DOCX_MAX_UNZIPPED = 200_000_000  # a .docx's parts together, uncompressed: python-docx loads every part into memory
+_PDF_MIME = "application/pdf"
+_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_MC_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+
+
+def _document_gate(filename: str, mime: str) -> str:
+    """Before downloading: 'read' (a PDF or .docx by name or mime, or a file with no extension: its bytes decide),
+    'doc' (an old Word .doc) or 'other' (another type by name, e.g. .xlsx)."""
+    ext = os.path.splitext(filename or "")[1].lower()
+    mime = (mime or "").lower()
+    if ext in (".pdf", ".docx") or mime in (_PDF_MIME, _DOCX_MIME):
+        return "read"
+    if ext == ".doc" or mime == "application/msword":
+        return "doc"
+    return "other" if ext else "read"
+
+
+def _document_format(raw: bytes) -> str:
+    """'pdf' | 'docx' | 'ole' (an old Word .doc, or any password-protected Office file) | '' — from the bytes, never
+    from the name or the mime type the phone attached."""
+    head = bytes(raw[:1024]) if raw else b""
+    if b"%PDF-" in head:
+        return "pdf"
+    if head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "ole"
+    if head.startswith(b"PK\x03\x04"):
+        import io
+        import zipfile
+        try:
+            with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                return "docx" if "word/document.xml" in z.namelist() else ""
+        except Exception:
+            return ""
+    return ""
+
+
+def _pdf_text(raw: bytes) -> dict:
+    """PyPDF2: the text of the first _DOC_MAX_PAGES pages, stopping once _DOC_MAX_CHARS are read. A PDF that opens
+    with an empty password (copy-restricted only) is read; any other encryption is 'locked'. AES needs PyCryptodome,
+    which Oracle's venv does not have: PyPDF2 then raises DependencyError — when opening an AES-256 file, or on every
+    page of an AES-128 one — and that is 'locked' too, never 'damaged' or 'a scan'. A page whose extraction raised is
+    counted apart from a page with no text ('failed_pages'), so a reader error is never reported as a scan."""
+    from io import BytesIO
+    from PyPDF2 import PdfReader
+    try:
+        from PyPDF2.errors import DependencyError
+    except ImportError:                   # an older PyPDF2 without it: nothing of that type is ever raised
+        class DependencyError(Exception):
+            pass
+    try:
+        reader = PdfReader(BytesIO(raw))
+    except DependencyError:               # AES-256 and no crypto library in the venv
+        return {"status": "locked"}
+    if reader.is_encrypted:
+        try:
+            opened = reader.decrypt("")
+        except Exception:                 # e.g. AES with no crypto library in the venv
+            opened = 0
+        if not opened:
+            return {"status": "locked"}
+    total = len(reader.pages)
+    parts, chars, read, empty, failed = [], 0, 0, 0, 0
+    for i in range(min(total, _DOC_MAX_PAGES)):
+        read += 1
+        try:
+            t = (reader.pages[i].extract_text() or "").strip()
+        except DependencyError:           # AES-128 opened with the empty password, but its text needs PyCryptodome
+            return {"status": "locked"}
+        except Exception as e:
+            logger.info(f"📄 PDF page {i + 1} text could not be extracted: {str(e)[:120]}")
+            failed += 1
+            continue
+        if len(re.sub(r"\s+", "", t)) < 3:
+            empty += 1
+            continue
+        parts.append(t)
+        chars += len(t)
+        if chars > _DOC_MAX_CHARS:
+            break
+    return {"status": "ok", "text": "\n\n".join(parts), "pages": total, "pages_read": read, "empty_pages": empty,
+            "failed_pages": failed}
+
+
+def _docx_text(raw: bytes) -> dict:
+    """python-docx: every paragraph in reading order — body, tables, content controls, text boxes and tracked
+    insertions (deleted text and a text box's duplicate fallback copy are skipped). Headers and footers are left out."""
+    import io
+    import zipfile
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        # python-docx loads EVERY part into memory, so the whole package is capped, not only the text part
+        if (sum(i.file_size for i in z.infolist()) > _DOCX_MAX_UNZIPPED
+                or z.getinfo("word/document.xml").file_size > 50_000_000):
+            raise ValueError("the .docx is too large uncompressed (a zip bomb, or huge embedded media)")
+    import docx
+    body = docx.Document(io.BytesIO(raw)).element.body
+    lines, chars = [], 0
+    for p in body.iter(_W + "p"):
+        if next(p.iterancestors(_MC_FALLBACK), None) is not None:
+            continue
+        bits = []
+        for el in p.iter(_W + "t", _W + "tab", _W + "br", _W + "cr"):
+            # only this paragraph's own runs: not a tab stop in its properties, not a text box's paragraph inside it
+            if el.getparent().tag != _W + "r" or next(el.iterancestors(_W + "p"), None) is not p:
+                continue
+            bits.append((el.text or "") if el.tag == _W + "t" else ("\t" if el.tag == _W + "tab" else "\n"))
+        line = "".join(bits).strip()
+        if line:
+            lines.append(line)
+            chars += len(line) + 1
+            if chars > _DOC_MAX_CHARS:
+                break
+    return {"status": "ok", "text": "\n".join(lines)}
+
+
+def _read_document(raw: bytes) -> dict:
+    """{status, fmt, text, cut, cut_at, pages, pages_read, empty_pages, failed_pages}. status: ok | no_text | locked |
+    unreadable | no_reader (PyPDF2 / python-docx missing here) | doc (an old .doc or a password-protected Word file) |
+    other (not a PDF or Word file). Blocking: run it in a thread."""
+    fmt = _document_format(raw)
+    res = {"status": "ok", "fmt": fmt, "text": "", "cut": False, "cut_at": "", "pages": 0, "pages_read": 0,
+           "empty_pages": 0, "failed_pages": 0}
+    if fmt not in ("pdf", "docx"):
+        res["status"] = "doc" if fmt == "ole" else "other"
+        return res
+    try:
+        res.update(_pdf_text(raw) if fmt == "pdf" else _docx_text(raw))
+    except ImportError as e:                       # the reader library is missing here: never blame the file
+        logger.warning(f"📄 No {fmt} reader installed: {e}")
+        res["status"] = "no_reader"
+    except Exception as e:
+        logger.warning(f"📄 {fmt} could not be opened: {str(e)[:160]}")
+        res["status"] = "unreadable"
+    if res["status"] != "ok":
+        return res
+    text = (res["text"] or "").strip()
+    if len(re.sub(r"\s+", "", text)) < _DOC_MIN_TEXT:
+        # pages the reader failed on are not "a scan": with no text read, that is an unreadable file
+        res.update(status="unreadable" if res.get("failed_pages") else "no_text", text="")
+        return res
+    if len(text) > _DOC_MAX_CHARS:
+        text = text[:_DOC_MAX_CHARS]
+        space = text.rfind(" ")
+        text, res["cut_at"] = (text[:space] if space > _DOC_MAX_CHARS - 200 else text), "chars"
+    elif res["pages_read"] < res["pages"]:
+        res["cut_at"] = "pages"
+    res.update(text=text, cut=bool(res["cut_at"]))
+    return res
+
+
+def _document_problem_reply(status: str, label: str, label_es: str, ext: str = "", pages: int = 0,
+                            pages_read: int = 0) -> str:
+    """The honest line for a document the bot did not read: what happened and what to send instead. It never says
+    anything about the content."""
+    if status == "no_text":
+        if pages and pages > pages_read:
+            where = f"the first {pages_read} of its {pages} pages have"
+        elif pages:
+            where = f"its {pages} page has" if pages == 1 else f"its {pages} pages have"
+        else:
+            where = "it has"
+        return (f"📄 I opened {label}, but {where} no text I can read: it looks like a scan or photos saved as a "
+                "document. I will not guess what it says. Send screenshots of the pages as photos and I will read "
+                f"them. / Abrí {label_es}, pero no tiene texto que pueda leer: parece un escaneo o fotos guardadas "
+                "como documento. No voy a adivinar su contenido. Envía capturas de las páginas como fotos y las leo.")
+    # a file NAMED .pdf/.docx whose bytes are not one must not be called "a .pdf file"
+    kind = f"a {ext} file" if ext and ext not in (".pdf", ".docx") else "not a real PDF or Word file"
+    # any old Office binary (or a password-protected Office file) looks the same: say Word only when named Word
+    word = ext in (".doc", ".docx")
+    ole_en = ("an old Word .doc file or a password-protected Word file" if word else
+              "an old Office file (.doc, .xls, .ppt) or a password-protected Office file")
+    ole_es = "un Word .doc antiguo o un Word con contraseña" if word else         "un archivo de Office antiguo (.doc, .xls, .ppt) o un archivo de Office con contraseña"
+    return {
+        "too_big": (f"📄 {label} is over 20 MB. Telegram does not let a bot download files that big, so I did not "
+                    "read it. Send a smaller file or screenshots of the pages that matter. / "
+                    f"{label_es} pesa más de 20 MB: Telegram no deja que un bot descargue archivos tan grandes, así "
+                    "que no lo leí. Envía uno más pequeño o capturas de las páginas importantes."),
+        "doc": (f"📄 {label} is {ole_en}. I read only PDF and Word "
+                ".docx without a password, so I did not read it and I will not guess what it says. Save it as .docx "
+                f"or PDF and send it again. / {label_es} es {ole_es}. Solo leo "
+                "PDF y Word .docx sin contraseña, así que no lo leí y no voy a adivinar su contenido. Guárdalo como "
+                ".docx o PDF y envíalo otra vez."),
+        "other": (f"📄 I read PDF and Word .docx documents, screenshots and photos. {label} is {kind}, so I "
+                  "did not read it and I will not guess what it says. Send it as a PDF or .docx, or as a screenshot. "
+                  f"/ Leo documentos PDF y Word .docx, capturas y fotos. {label_es} es otro tipo de archivo, así que "
+                  "no lo leí y no voy a adivinar su contenido. Envíalo como PDF o .docx, o como captura."),
+        "locked": (f"📄 {label} is password-protected or encrypted, so I could not open it and I will not guess what "
+                   "it says. Send a copy without the password, or screenshots of the pages. / "
+                   f"{label_es} tiene contraseña o está cifrado: no pude abrirlo y no voy a adivinar su contenido. "
+                   "Envía una copia sin contraseña o capturas de las páginas."),
+        "timeout": (f"📄 Reading {label} took too long, so I stopped. I will not guess what it says. Send a smaller "
+                    "file or screenshots of the pages that matter. / "
+                    f"Leer {label_es} tardó demasiado y paré. No voy a adivinar su contenido. Envía un archivo más "
+                    "pequeño o capturas de las páginas importantes."),
+        "download": (f"📄 I could not download {label}. Please send it again. / "
+                     f"No pude descargar {label_es}. Envíalo otra vez."),
+        "no_reader": (f"📄 I cannot read {label} right now: the reader for this file type is missing on the server. "
+                      "The file is not the problem, and I will not guess what it says. Send it as a PDF or as "
+                      f"screenshots. / No puedo leer {label_es} ahora: falta el lector de este tipo de archivo en el "
+                      "servidor. El archivo no tiene la culpa y no voy a adivinar su contenido. Envíalo como PDF o "
+                      "como capturas."),
+    }.get(status, (f"📄 I could not read {label}: the file looks damaged, or it is not a real PDF or Word file. I "
+                   "will not guess what it says. Export it again as PDF, or send screenshots of the pages. / "
+                   f"No pude leer {label_es}: el archivo parece dañado o no es un PDF o Word real. No voy a adivinar "
+                   "su contenido. Expórtalo otra vez como PDF o envía capturas de las páginas."))
+
+
+def _document_notes(res: dict, label: str) -> str:
+    """Notes the bot adds to the answer itself, so a cut or a scanned page is never left to the model to mention."""
+    notes = []
+    if res.get("cut"):
+        if res.get("cut_at") == "pages":
+            part = f"the first {res['pages_read']} of its {res['pages']} pages"
+        elif res.get("pages", 0) > res.get("pages_read", 0):
+            part = f"the first {_DOC_MAX_CHARS:,} characters, from {res['pages_read']} of its {res['pages']} pages"
+        else:
+            part = f"the first {_DOC_MAX_CHARS:,} characters"
+        notes.append(f"(📄 I read only the first part of {label}: {part}. The rest is not in this answer. / "
+                     "Leí solo la primera parte del documento; el resto no está en esta respuesta.)")
+    if res.get("empty_pages"):
+        verb = "has" if res["empty_pages"] == 1 else "have"
+        notes.append(f"(📄 {res['empty_pages']} of the {res['pages_read']} pages I read {verb} no readable text (blank, "
+                     "or scans or images), so what they show is not in this answer. Send them as screenshots if they "
+                     f"matter. / {res['empty_pages']} de las páginas leídas no tienen texto legible (en blanco, o "
+                     "escaneos); envíalas como capturas si importan.)")
+    if res.get("failed_pages"):
+        verb = "was" if res["failed_pages"] == 1 else "were"
+        notes.append(f"(📄 {res['failed_pages']} of the {res['pages_read']} pages I read {verb} not readable: the PDF "
+                     "reader failed on them, so what they show is not in this answer. Send them as screenshots if "
+                     f"they matter. / {res['failed_pages']} de las páginas leídas no se pudieron leer (falló el lector "
+                     "de PDF); envíalas como capturas si importan.)")
+    return ("\n\n" + "\n\n".join(notes)) if notes else ""
+
+
 class EnhancedTelegramBot:
     """
     Interactive Telegram bot for VibeJobHunter
@@ -380,6 +625,10 @@ class EnhancedTelegramBot:
         self.app.add_handler(MessageHandler(locked(filters.TEXT & ~filters.COMMAND), self.handle_freeform_text))
         # ADDED 16 Oct 2026: screenshots (a photo, or an image sent as a file for full resolution)
         self.app.add_handler(MessageHandler(locked(filters.PHOTO | filters.Document.IMAGE), self.handle_photo))
+        # ADDED 16 Oct 2026: PDF and Word .docx documents; any other file gets an honest "not read" line instead of
+        # silence. After the screenshot handler, so an image sent as a file still goes to handle_photo.
+        self.app.add_handler(MessageHandler(
+            locked(filters.Document.ALL & ~filters.Document.IMAGE & ~filters.ANIMATION), self.handle_document))
     
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Welcome message with main menu"""
@@ -1197,6 +1446,63 @@ You have *{len(outreach)}* message(s) to send:
             errs.append(f"{name}: empty")
         logger.warning(f"📸 Screenshot read failed: {'; '.join(errs)}")
         return ""
+
+    async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """16 Oct 2026 (Elena: "like Chalán in Pitz"): a PDF or Word .docx → its text layer is read here (PyPDF2 /
+        python-docx, in a thread) → the same grounded answer as a screenshot (answer_document). Never silent, never a
+        guess: a scan with no text layer, a password, a file over 20 MB or another type (.doc, .xlsx…) each get an
+        honest line. An image sent as a file never reaches here: handle_photo is registered first."""
+        msg = update.message
+        if not msg or not msg.document:
+            return
+        doc = msg.document
+        caption = (msg.caption or "").strip()
+        file_name = doc.file_name or ""
+        ext = os.path.splitext(file_name)[1].lower()
+        name = re.sub(r'[\r\n"]+', " ", file_name).strip()[:80]           # only for showing it
+        label, label_es = (f'"{name}"', f'"{name}"') if name else ("that file", "ese archivo")
+        gate = _document_gate(file_name, doc.mime_type or "")
+        if gate != "read":
+            await self._reply_plain(update, _document_problem_reply(gate, label, label_es, ext))
+            return
+        if (doc.file_size or 0) > _DOC_MAX_BYTES:
+            await self._reply_plain(update, _document_problem_reply("too_big", label, label_es, ext))
+            return
+        try:
+            tg_file = await context.bot.get_file(doc.file_id)
+            raw = bytes(await tg_file.download_as_bytearray())
+        except Exception as e:
+            logger.warning(f"📄 Document download failed: {e}")
+            await self._reply_plain(update, _document_problem_reply("download", label, label_es, ext))
+            return
+        try:
+            res = await asyncio.wait_for(asyncio.to_thread(_read_document, raw), timeout=90)
+        except asyncio.TimeoutError:
+            res = {"status": "timeout"}
+        except Exception as e:
+            logger.warning(f"📄 Document read error: {e}")
+            res = {"status": "unreadable"}
+        if res.get("status") != "ok":
+            logger.info(f"📄 Document not read: {res.get('status')} ({ext or 'no extension'}, {len(raw)} bytes)")
+            await self._reply_plain(update, _document_problem_reply(
+                res.get("status", ""), label, label_es, ext, res.get("pages", 0), res.get("pages_read", 0)))
+            return
+        try:
+            from src.notifications.telegram_qa_helper import answer_document, _document_kind
+            kind = _document_kind(res["text"], file_name)
+            what = (f"a PDF, {res['pages']} page{'s' if res['pages'] != 1 else ''}" if res["fmt"] == "pdf"
+                    else "a Word .docx") + (f', file name "{name}"' if name else "")
+            logger.info(f"📄 Document read ({res['fmt']}, {kind}, {len(res['text'])} chars"
+                        f"{', cut' if res['cut'] else ''}); caption: {caption[:60]}")
+            reply = await asyncio.to_thread(answer_document, caption, kind, res["text"], res["cut"], what)
+        except Exception as e:
+            logger.warning(f"📄 Document answer error: {e}")
+            reply = ("Something went wrong answering that document. Please send it again in a minute. / "
+                     "Algo falló al responder el documento. Envíalo otra vez en un minuto.")
+        reply += _document_notes(res, label)
+        sent = await self._reply_plain(update, reply)
+        if sent and _asks_for_voice(caption):
+            await self._speak_reply(update, reply)
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button clicks"""
