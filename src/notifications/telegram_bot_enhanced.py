@@ -10,12 +10,20 @@ ADDED: Voice + free-form questions (additive, non-overwriting)
 come back in the language she used; screenshots are read; a voice note in gets a text AND a voice reply, and so does
 a typed message that asks for voice. Only her TELEGRAM_CHAT_ID reaches the bot. Model and user text is sent plain.
 PDF and Word .docx documents are read from their text layer and answered the same way (handle_document).
+18 Oct 2026: a request for a PDF or Word file (EN/ES, typed or spoken) gets the answer AND the file, drawn by cto-aipa's
+shared renderer; "letter for <company>" sends that deal's ✅ letter note word for word (_reply_with_document).
+19 Oct 2026: the document desk — an explicit request rule (_doc_request), HTML as a third format, a fit document as the
+deal's own kit notes word for word, a client quote from her catalog word for word, and every model-written document
+held to her sources in code (telegram_qa_helper.gate_document).
 """
 
 import os
 import re
 import asyncio
 import tempfile
+import shutil
+import subprocess
+import sys
 from dotenv import load_dotenv
 load_dotenv()
 from datetime import datetime, timedelta
@@ -200,6 +208,869 @@ def _for_speech(text: str) -> str:
     cut = s[:1500]
     end = max(cut.rfind(". "), cut.rfind(".\n"), cut.rfind("! "), cut.rfind("? "), cut.rfind("\n"))
     return (cut[:end + 1] if end > 500 else cut[:cut.rfind(" ")]).strip()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# A DOCUMENT ON REQUEST (18 Oct 2026, Elena: "make bots recognise and create pdfs and word out of the task I send by
+# voice or text in eng or esp"). THE RECOGNISER — 19 Oct 2026: the SAME rule as CTO AIPA's live desk, ported line by
+# line from cto-aipa src/telegram-bot.ts (documentTask / documentRequestIn, 6582fe58), so both bots answer one message
+# the same way. VJH's own earlier rule (four rounds of blocklists) missed her own "hazme en Word la carta para Pitz" and
+# fired on "Haz clic en el PDF", "Crea una carpeta para los PDF", "Escribe 'urgente' en el asunto del correo con el PDF".
+# The rule, in CTO's words:
+#   · the request sits in ONE line — the whole message, or its first or last line (greeting / thanks lines aside); the
+#     last line counts only when the first is not her own question, it is no posting line ("To apply…") and nothing
+#     before it introduces someone else's text ("Esto dice el reclutador:", "Hi Elena,");
+#   · a request VERB OPENS that line — before it only fillers ("Hola, …", "Ok, ahora …", "please", "VJH,"), "Para
+#     <cliente>:" and an asking form ("¿me puedes…", "can you…", "necesito que me…", "I need you to…");
+#   · and it GOVERNS a document kind or a format: between them only the words of its noun phrase (articles, the format,
+#     a size, a tone, "please", a day) — so "hazme en Word la carta", "dame en PDF la evaluación" are requests, and
+#     "haz CLIC en el PDF", "crea una CARPETA para los PDF" are not; after the kind only its format, a name, a
+#     preposition or a word describing it ("la cotización BUTTON", "el informe RESPONSIVE", "una carta DEL BANCO" are not);
+#   · a weak verb ("dame / mándame / necesito / quiero / I need") asks for a file only with its format said, and never
+#     for "la / the / mi" one that exists; an infinitive only after "¿puedes / can you"; a bare plural ("create reports")
+#     is a duty, never a request;
+#   · not a request: a question (ending in "?" without "can you / ¿me puedes…"), a reminder or task, a note to herself,
+#     "never mind / nah / olvídalo", later or not now ("next week", "cuando tenga el precio", "solo aquí en el chat"), a
+#     document that exists ("…ya está enviada", "…que hiciste ayer"), a change to one ("…más corta", "…de nuevo" =
+#     again), talk about the feature ("…every Monday", "can we…"), code talk ("Make the quote button work").
+# Lower recall is bought for precision, as in CTO ("evaluación en PDF para Pitz" with no verb is chat).
+# VJH keeps, beside CTO's rule: a message that is ONLY a format ("PDF", "en Word por favor", "pásamelo a Word") files
+# the answer she got last (VJH's own follow-up), and three precision guards — a message greeting Elena by name is
+# someone else's, an English "quote" with no client, service or format is a citation, and résumé / summary / brief
+# count as a document only with a format said ("hazme un resumen de la semana" stays a chat answer).
+# ═══════════════════════════════════════════════════════════════════════════
+_DOC_FOLD = str.maketrans("áéíóúü", "aeiouu")
+_DOC_FMT_TOKENS = {"pdf": "pdf", "word": "docx", "docx": "docx", "html": "html"}
+# a message made only of these words and a format is "that answer as a file" ("PDF", "en Word por favor", "pásamelo").
+# 19 Oct review: "por" is no bare word ("Gracias por el PDF!" re-filed the last answer): "por favor" is folded to
+# "porfa" first (_doc_bare_tokens), and "gracias por / thanks for …" is never a request.
+_DOC_BARE_WORDS = frozenset("""please pls thanks thank you gracias in as into to a an the en como un una el la
+lo al de del of it this that these those esto eso ese este also too tambien y and or o file archivo format formato
+version copy copia doc document documento your tu last ultima ultimo answer respuesta reply previous anterior mensaje
+message now ahora can could puedes podrias me mi i want need quiero necesito quisiera would like get have same mismo
+misma one ms microsoft send give make create generate export convert turn save put print haz hazme hazlo hazla
+hazmelo hazmela crea creame genera generame exporta convierte conviertelo conviertela pasa pasalo pasala pasamelo
+pasamela pon ponlo ponla ponmelo ponmela dame damelo damela envia enviame enviamelo manda mandame mandamelo version
+otra vez again ok okay sí si yes ya pasas mandas envias das pones haces conviertes porfa urgente urgent asap over
+back quick rapido pero but mejor better instead rather page pagina""".split())
+_DOC_LABEL_RE = re.compile(r"^\s*(?:format|formato|file|archivo|type|tipo|cv|resume)\s*:")
+_DOC_BARE_OWNED = re.compile(r"\b(?:of\s+(?:the|this|that|my|your)|del|de\s+(?:la|el|ese|esa|este|esta|mi|tu))\s+"
+                             r"(?:ms\s+)?(?:pdf|word|docx|html)\b")
+# a message written TO Elena by someone else (pasted): it opens by greeting her ("Hi Elena, … send me a PDF…")
+_DOC_TO_ELENA = re.compile(
+    r"^[\W_]*(?:(?:hi|hello|hey|dear|hola|buen[oa]s(?:\s+(?:dias|tardes|noches))?|estimad[oa]|querid[oa]|"
+    r"good\s+(?:morning|afternoon|evening))[\s,!.:;-]+)?(?:ms\.?\s+|sra\.?\s+|senora\s+)?elena\b")
+# her own services by name (an English "quote" of one of them is a client quote, not a citation)
+_DOC_HER_SERVICE = re.compile(
+    r"\b(?:diagnostic\w*|diagnostico|blueprint|analisis\s+profundo|full\s+analysis|auditoria\s+(?:web|tecnica)|"
+    r"web\s+audit|informe\s+tecnico\s+preliminar|preliminary(?:\s+technical)?\s+web\s+audit|preliminar|"
+    r"ai\s+growth\s+operator|plan\s+de\s+implementacion|implementation\s+plan)\b")
+# The document kinds, in EN / ES (folded) — VJH's downstream vocabulary (_doc_kind_asked, _doc_two_kinds).
+_DOC_KIND_NOUNS = (
+    ("quote", r"cotizacion(?:es)?|presupuestos?|quotes?|quotations?|estimates?"),
+    ("proposal", r"propuestas?(?:\s+comercial(?:es)?)?|proposals?"),
+    ("evaluation", r"evaluacion(?:es)?|evaluations?|assessments?|scorecards?|defensas?|defen[cs]es?|"
+                   r"requisito\s+por\s+requisito|requirement\s+by\s+requirement"),
+    ("letter", r"cover\s+letters?|(?<!offer )letters?|cartas?(?!\s+(?:de\s+)?oferta)(?:\s+de\s+(?:presentacion|motivacion))?"),
+    # 19 Oct review: "interview questions / preguntas de entrevista / mock interview" are chat practice (the grounded
+    # Q&A reads the mock-interview sheet), never a prep file — "Hazme preguntas de entrevista para Pitz" asks to be asked
+    ("prep", r"interview\s+prep(?:aration)?(?:\s+(?:sheets?|docs?|documents?|notes))?|prep\s+sheets?|cheat\s*sheets?|"
+             r"preparacion(?:es)?(?:\s+(?:de|para)\s+(?:la\s+|una\s+)?entrevistas?)?"),
+    ("presentation", r"presentacion(?:es)?|presentations?|pitch\s+decks?|decks?|slides|diapositivas"),
+    ("promo", r"promocion(?:es)?|promos?|promotions?|flyers?|folletos?|brochures?|landing(?:\s+pages?)?|"
+              r"paginas?\s+(?:web|html|de\s+aterrizaje)|web\s*pages?"),
+    ("analysis", r"analisis|analys[ie]s|estudios?\s+de\s+mercado|market\s+(?:analysis|research|study)"),
+    ("onepager", r"one[\s-]?pagers?|resumen(?:es)?\s+ejecutivos?|executive\s+summar(?:y|ies)|fichas?"),
+    ("report", r"informes?|reportes?|reports?|resumen(?:es)?|summar(?:y|ies)|briefs?"),
+    ("answer", r"documento|document|doc"),
+)
+
+# ── the port (cto-aipa src/telegram-bot.ts 9652-10167). \p{L} = [^\W\d_]; \p{L}\p{N}_ = \w. ──────────────────────────
+_DL = r"[^\W\d_]"                                    # a letter, any script
+_DNB = r"(?<!\w)"
+_DNA = r"(?!\w)"
+_DUP = "A-ZÀ-ÖØ-ÞА-ЯЁ"                               # \p{Lu}
+_DLOW = "a-zß-öø-ÿа-яё"                              # \p{Ll}
+_DOC_PDF = r"(?:pdf|p\.\s?d\.\s?f\.?|pe\s+de\s+efe|пдф)"
+_DOC_WORD = r"(?:docx|ms[\s-]?word|word|ворд" + _DL + r"*)"
+_DOC_HTML = r"(?:html?|хтмл)"
+_DOC_FMT = f"(?:{_DOC_PDF}|{_DOC_WORD}|{_DOC_HTML})"
+# The kinds, CTO's order (the earliest one in the line decides; on a tie, the first here). Beside CTO's words: VJH's
+# kit names (scorecard, the role / technical defence), prep and cheat sheets, a market study, a web page — and
+# résumé / summary / brief as "report_fmt", a document only when a format is said as the output.
+_DOC_KINDS = [
+    ("prep", r"(?:preparaci[oó]n\s+(?:para|de)\s+(?:la\s+|una\s+)?entrevista|gu[ií]a\s+(?:para|de)\s+(?:la\s+)?entrevista|"
+             r"interview\s+prep(?:aration)?(?:\s+(?:sheets?|docs?|notes))?|prep\s+sheets?|cheat\s*sheets?|подготовк"
+             + _DL + r"*\s+к\s+(?:интервью|собеседовани" + _DL + r"*))"),
+    ("answer", r"(?:respuestas?\s+(?:a|de|para)\s+(?:la\s+|el\s+|las\s+)?(?:solicitud|aplicaci[oó]n|postulaci[oó]n|formulario|"
+               r"preguntas)|(?:application|form)\s+answers?|answers?\s+(?:to|for)\s+(?:the\s+)?(?:application|form|questions)|"
+               r"ответ" + _DL + r"*\s+на\s+вопрос" + _DL + r"*)"),
+    ("letter", r"(?:carta(?!\s+(?:de\s+)?oferta)(?:\s+de\s+(?:presentaci[oó]n|motivaci[oó]n))?|cover\s+letter|(?<!offer )letter|"
+               r"сопроводительн" + _DL + r"*\s+письм" + _DL + r"*|письм" + _DL + r"*)"),
+    ("quote", r"(?:cotizaci[oó]n(?:es)?|presupuestos?|quotes?|quotations?|estimates?|смет" + _DL + r"*)"),
+    ("proposal", r"(?:propuestas?(?:\s+comercial(?:es)?)?|proposals?|коммерческ" + _DL + r"*\s+предложени" + _DL
+                 + r"*|предложени" + _DL + r"*)"),
+    ("evaluation", r"(?:evaluaci[oó]n(?:es)?|valoraci[oó]n(?:es)?|evaluations?|assessments?|scorecards?|"
+                   r"defensas?\s+(?:del\s+rol|t[eé]cnicas?)|(?:role|technical)\s+defen[cs]es?|оценк" + _DL + r"*)"),
+    ("report", r"(?:informes?|reportes?|reports?|отч[её]т" + _DL + r"*|доклад" + _DL + r"*)"),
+    ("presentation", r"(?:presentaci[oó]n(?:es)?|presentations?|pitch\s+decks?|decks?|slides|diapositivas|презентаци"
+                     + _DL + r"*)"),
+    ("analysis", r"(?:an[aá]lisis|analysis|analyses|estudios?\s+de\s+mercado|market\s+(?:research|study)|анализ" + _DL + r"*)"),
+    ("promo", r"(?:promoci[oó]n(?:es)?|promos?|promotions?|landing(?:\s+page)?s?|p[aá]gina\s+de\s+aterrizaje|"
+              r"p[aá]ginas?\s+(?:web|html)|web\s*pages?|flyers?|folletos?|brochures?|промо" + _DL + r"*|лендинг" + _DL + r"*)"),
+    ("other", r"(?:one[\s-]?pagers?|resumen\s+ejecutivo|executive\s+summary|ficha(?:\s+t[eé]cnica)?|documento|document|"
+              r"документ)"),
+    ("report_fmt", r"(?:res[uú]men(?:es)?|summar(?:y|ies)|briefs?)"),
+    ("cv", r"(?:cv|curr[ií]cul(?:um|o)(?:\s+vitae)?|r[eé]sum[eé]|resume|hoja\s+de\s+vida)"),
+]
+# The deal's kit documents — the cover letter, the evaluation (role / technical defence), interview prep, the CV — EXIST
+# on her job deal, and VJH files them word for word. So "mándame LA carta para Pitz en Word", "send me THE evaluation for
+# the Rwazi role in Word" ask for a file here, where CTO's weak-verb rule ("la / the" = one that exists → chat) would
+# answer in chat. The one deliberate difference from CTO's rule; the format must still be said.
+_DOC_KIT_KINDS = frozenset(("letter", "evaluation", "prep", "cv"))
+_DOC_KIND_ANY = "(?:" + "|".join(p for _k, p in _DOC_KINDS) + ")"
+_DOC_HTML_KINDS = frozenset(("presentation", "promo"))
+# The format said AS THE OUTPUT: "en PDF", "as a Word doc", "un PDF", "PDF file", "cotización PDF", "PDF y Word", or
+# alone at the end ("…, PDF por favor"). "the PDF reader" or "why the PDF export failed" ask for no file. (CTO's sixth
+# alternative, a lookbehind of variable width, is _DOC_FMT_CHAIN below: "en PDF y Word".)
+_DOC_AS_OUTPUT = re.compile("|".join([
+    _DNB + r"(?:en|in|as|como|to|into|formato|format|в|во|на)\s+(?:(?:ms|formato|format|формате)\s+)?" + _DOC_FMT + _DNA,
+    r"(?<![\w./\\-])" + _DOC_FMT + r"\s+(?:file|doc|document|version|format|formato|archivo|documento|versi[oó]n|файл"
+    + _DL + r"*|документ" + _DL + r"*|" + _DOC_KIND_ANY + ")" + _DNA,
+    r"\(\s*" + _DOC_FMT + r"(?:\s*(?:y|and|or|o|\+|/|,)\s*" + _DOC_FMT + r")?\s*\)",
+    _DNB + _DOC_KIND_ANY + r"\s+(?:(?:en|in|в)\s+)?" + _DOC_FMT + _DNA,
+    r"(?<![\w./\\-])" + _DOC_FMT + r"\s*(?:y|and|or|o|и|или|\+|/|&|,)\s*" + _DOC_FMT + _DNA,
+    r"(?:^|[,;:.!—–-]\s*)" + _DOC_FMT + r"(?:\s+(?:por favor|please|pls|пожалуйста))?\s*[.!]*\s*$",
+    r"^\s*" + _DOC_FMT + r"\s*[:—–-]",
+    _DNB + r"(?:un|una|a|an)\s+" + _DOC_FMT + _DNA,
+]), re.I)
+_DOC_FMT_CHAIN = re.compile(r"\s*(?:y|and|or|o|и|или|\+|/|&|,)\s*" + _DOC_FMT + _DNA, re.I)
+_DOC_FMT_END = re.compile(_DOC_FMT + r"$", re.I)
+_DOC_VERB = re.compile(
+    _DNB + r"(?:haz(?:me|melo|nos)?|h[aá]zmel[oa]|hacer(?:me|lo|melo)?|h[aá]game|haga|hagas|haces|har[ií]as|"
+    r"crea(?:r|me|rme|melo|s)?|cr[eé]ame(?:lo)?|prepar(?:a|ar|ame|arme|amelo|as|es)|prep[aá]r[ae]me(?:lo)?|"
+    r"genera(?:r|me|rme)?|gen[eé]r[ae]me(?:lo)?|generes|escrib(?:e|ir|eme|irme|as)|escr[ií]b[ae]me(?:lo)?|"
+    r"redact(?:a|ar|ame|arme|as|es)|red[aá]ct[ae]me(?:lo)?|elabor(?:a|ar|ame|arme|as|es)|elab[oó]r[ae]me(?:lo)?|"
+    r"arm(?:a|ar|ame|arme|es|as)|escribes|generas|[aá]rmame(?:lo)?|m[aá]ndame(?:lo)?|mandar(?:me)?|mandes|mandas|"
+    r"env[ií]ame(?:lo)?|enviar(?:me)?|env[ií]es|env[ií]as|p[aá]same(?:l[oa])?|dame|darme|crees|necesito|quiero|quisiera|"
+    r"make(?!\s+sure)|"
+    r"create|write|draft|prepare|generate|build|produce|compose|put\s+together|turn\s+(?:it|this|that)\s+into|give\s+me|"
+    r"send\s+me|i\s+need|i\s+want|i'd\s+like|сделай" + _DL + r"*|сделать|создай" + _DL + r"*|создать|напиши" + _DL
+    + r"*|написать|подготовь" + _DL + r"*|подготовить|составь" + _DL + r"*|составить|сгенерируй" + _DL + r"*|сформируй"
+    + _DL + r"*|оформи" + _DL + r"*|пришли|скинь|нуж(?:ен|на|но)|хочу)" + _DNA, re.I)
+# A question ABOUT documents ("how do I make a PDF report?") is answered, not built; a Trello task or reminder that
+# mentions one ("crea una tarea: enviar la cotización en PDF a Pitz") stays a task.
+_DOC_QUESTION = re.compile(
+    r"^\s*¿?\s*(?:how|why|what(?:'s|\s+is|\s+are)|where|did|does|do\s+you\s+have|have\s+you|has|is|are|was|were|c[oó]mo|"
+    r"por\s*qu[eé]|qu[eé]\s+(?:es|son)|d[oó]nde|hiciste|has\s+hecho|ya\s+(?:hiciste|tienes)|как|почему|зачем|где|"
+    r"что\s+такое|ты\s+сделал" + _DL + r"*)" + _DNA, re.I)
+_DOC_NOT_A_FILE = re.compile(
+    _DNB + r"(?:trello|tareas?|tasks?|recu[eé]rdame|remind\s+me|reminders?|recordatorios?|задач" + _DL + r"*|напомни"
+    + _DL + r"*|карточк" + _DL + r"*)" + _DNA, re.I)
+_DOC_CARD = re.compile(_DNB + r"(?:cards?|tarjetas?)(?!\s+de\s+(?:cr[eé]dito|d[eé]bito))" + _DNA, re.I)
+_DOC_CARD_PAY = re.compile(r"(?:by|con|with|por|via|v[ií]a|credit|debit|en|de)\s+$", re.I)   # "pay by card"
+_DOC_NOTE_TO_SELF = re.compile(
+    r"^\s*(?:recuerda|recordar|acu[eé]rdate|no\s+olvides|remember|don'?t\s+forget|запомни|не\s+забудь)(?!\w)", re.I)
+# Before the verb only: greetings and fillers (and the bot's own name, as CTO's has "cto / aipa"; voice fillers "eh /
+# pues / um"), "Para <cliente>:" and an asking form.
+_DOC_LEAD = re.compile(
+    r"^[\s¿¡\"“«(]*(?:(?:hola|hi|hello|hey|oye|ok|okay|okey|vale|bueno|mira|buenas|buenos\s+d[ií]as|buenas\s+(?:tardes|"
+    r"noches)|good\s+(?:morning|afternoon|evening)|porfa|por\s+favor|please|pls|cto|aipa|vjh|vibejobhunter|bot|eh|ehm|"
+    r"em|pues|um|uh|ahora|now|tambi[eé]n|also|entonces|so|perfecto|perfect|genial|great|gracias|thanks|thank\s+you|"
+    r"listo|este(?=\s*,)|привет|пожалуйста|слушай|теперь)[\s,!.:;—–-]+)*", re.I)    # held-out p8d: "este, hazme…"
+_DOC_FOR_PREFIX = re.compile(r"^(?:para|for|для)\s+((?:[^\s,:;.!?]+\s+){0,4}[^\s,:;.!?]+)\s*[,:;—–-]\s*", re.I)
+_DOC_ASK = re.compile(
+    r"^(?:¿\s*)?(?:(?:(?:me|nos)\s+)?(?:puedes|podr[ií]as|pod[eé]s|puede|podr[ií]a)\s+(?:(?:por\s+favor|porfa)\s+)?|"
+    r"si\s+(?:puedes|puede)\s+|(?:can|could|would|will)\s+you\s+(?:please\s+)?|if\s+you\s+can\s+(?:please\s+)?|"
+    r"(?:necesito|quiero|quisiera)\s+que\s+|i\s+(?:need|want|would\s+like|'d\s+like)\s+you\s+to\s+|help\s+me\s+(?:to\s+)?|"
+    r"ay[uú]dame\s+a\s+|let'?s\s+|(?:ты\s+)?(?:можешь|можете|сможешь|сможете)\s+(?:мне\s+)?|не\s+мог" + _DL
+    + r"*\s+бы\s+(?:ты\s+|вы\s+)?(?:мне\s+)?)?(?:(?:me|nos)\s+)?$", re.I)
+_DOC_POSTING_LINE = re.compile(
+    r"(?<!" + _DL + r")(?:to\s+apply|apply\s+(?:now|here|at|via|by|through)|para\s+(?:postular|aplicar|postularte|"
+    r"aplicar\s+al?)|post[uú]late|send\s+(?:us\s+)?your\s+(?:cv|resume|r[eé]sum[eé])|env[ií]a(?:nos)?\s+tu\s+(?:cv|"
+    r"hoja\s+de\s+vida|curr[ií]culum))(?!" + _DL + r")|[\w.+-]+@[\w-]+\.[\w.]+", re.I)
+_DOC_GREETING_LINE = re.compile(
+    r"^[\s¡¿]*(?:(?:hola|hi|hello|hey|oye|buenas|buenos\s+d[ií]as|buenas\s+(?:tardes|noches)|good\s+(?:morning|"
+    r"afternoon|evening)|gracias|muchas\s+gracias|thanks|thank\s+you|thx|saludos|un\s+abrazo|bye|chao|ok|okay|привет|"
+    r"спасибо)[\s,!.¡?]*)+$", re.I)
+# Between a request verb and the kind it asks for there is only that noun phrase.
+_DOC_NP_WORDS = frozenset((
+    "un una unos unas el la los las lo a an the some another otra otro otras otros my mi mis tu tus your su sus our "
+    "nuestra nuestro this that these those esta este esa ese estas estos esas esos me te le les nos se you us it de del of "
+    "con with en in as como para for por y and o or pdf word docx html htm ms formato format file archivo documento doc "
+    "version "
+    "versión please pls porfa favor ahora now ya quick quickly rápido rápida new nueva nuevo nuevas nuevos short corta "
+    "corto breve brief simple sencilla sencillo formal full completa completo detailed detallada detallado professional "
+    "profesional pequeña pequeño small little one-page página page hoja commercial comercial técnica técnico technical "
+    "clara claro clear bonita bonito nice good buena bueno buen final updated actualizada actualizado мне нам новую новый "
+    "новое короткую краткую короткий краткий urgente urgentemente pronto hoy mañana today tomorrow tonight asap lunes "
+    "martes miércoles jueves viernes sábado domingo monday tuesday wednesday thursday friday saturday sunday by up dos "
+    "tres cuatro cinco two three four five сегодня завтра срочно").split())
+# English noun modifiers, allowed between the verb and the kind only ("a WEEKLY report", "an INVESTOR deck")
+_DOC_PRE_MODS = frozenset((
+    "weekly monthly quarterly annual yearly daily market sales marketing investor investors client customer business "
+    "project status progress competitor competitors competition company product products service services bilingual "
+    "executive pitch strategy growth seo geo aeo audit ai visibility website site web one-page two-page follow-up "
+    "partnership collaboration pricing price cost budget").split())
+# Code talk: with no format said, "THE report" plus a word of code names a part of a system, not a document to write.
+_DOC_CODE_TALK = re.compile(
+    r"(?<!" + _DL + r")(?:headers?|footers?|navbars?|sidebars?|hero\s+section|cabeceras?|encabezados?|pie\s+de\s+p[aá]gina|"
+    r"cron(?:job)?s?|endpoints?|apis?|scripts?|functions?|funci[oó]n|funciones|modules?|m[oó]dulos?|pipelines?|"
+    r"webhooks?|deploy" + _DL + r"*|despliegue|desplegar|repos?|repositor" + _DL + r"*|database|base\s+de\s+datos|db|"
+    r"schema|esquema|servers?|servidor(?:es)?|pm2|components?|componentes?|commits?|branch|rama|merge|bugs?|refactor"
+    + _DL + r"*|typescript|javascript|python|node|npm|css|frontend|backend|buttons?|bot[oó]n|botones|templates?|"
+    r"plantillas?|generators?|generador(?:es)?|layers?|capa|flows?|workflows?|scenarios?|escenarios?|lambda|c[oó]digo|"
+    r"code|tests?|unit\s+tests?|logs?|ui|ux|queue|cola|cach[eé]|config" + _DL + r"*|env|variables?)(?!" + _DL + r")",
+    re.I)
+_DOC_INDEFINITE = frozenset("un una unos unas a an another otra otro otras otros some new nueva nuevo nuevas nuevos".split())
+_DOC_NUMERAL = re.compile(r"^(?:\d+(?:-" + _DL + r"+)?|dos|tres|cuatro|cinco|two|three|four|five)$")
+_DOC_DEFINITE = frozenset("el la los las lo the my mi mis tu tus your su sus our nuestra nuestro this that these those "
+                          "esta este esa ese estas estos esas esos".split())
+_DOC_WEAK_VERB = re.compile(
+    r"^(?:dame|darme|dar|m[aá]ndame(?:lo)?|mandar(?:me)?|mandes|mandas|env[ií]ame(?:lo)?|enviar(?:me)?|env[ií]es|p[aá]same(?:l[oa])?|"
+    r"env[ií]as|necesito|quiero|quisiera|give\s+me|send\s+me|i\s+need|i\s+want|i'd\s+like|пришли|скинь|нуж(?:ен|на|но)|"
+    r"хочу)$", re.I)
+_DOC_INFINITIVE = re.compile(
+    r"^(?:(?:hacer|crear|preparar|generar|escribir|redactar|elaborar|armar|mandar|enviar|dar)(?:me|lo|la|nos|melo|mela)?|"
+    r"сделать|создать|написать|подготовить|составить|прислать)$", re.I)
+_DOC_HELPER_BEFORE = re.compile(
+    r"(?:^|[\s¿,])(?:puedes|podr[ií]as|pod[eé]s|podr[ií]a|puede|ayudas\s+a|ay[uú]dame\s+a|can\s+you|could\s+you|"
+    r"would\s+you|will\s+you|help\s+me(?:\s+to)?|you\s+to|можешь|можете|сможешь|сможете|помоги)\s+"
+    r"(?:(?:me|te|nos|please|por\s+favor)\s+)?$", re.I)
+_DOC_EDIT_AFTER = re.compile(
+    r"^\s*,?\s*(?:m[aá]s|menos|more|less|mejor|peor|better|worse|shorter|longer|bigger|smaller|clearer|simpler|nicer|"
+    r"cleaner|again|de\s+nuevo|otra\s+vez|nuevamente|igual|the\s+same|look|looks|sound|seem|be|fit|se\s+vea|quede|"
+    r"luzca|короче|длиннее|лучше|снова|ещё\s+раз)(?!" + _DL + r")", re.I)
+_DOC_AFTER_OK = frozenset((
+    "para por for sobre about acerca regarding re on de del of con with en in as como que that which who y and o or u e "
+    "ni nor to al a per so plus versus vs desde me te le nos les you it о об обо про для по на в во с со и или к у "
+    "mensual semanal trimestral anual diario diaria monthly weekly quarterly yearly annual daily personalizada "
+    "personalizado personalized personalised ejecutiva ejecutivo executive larga largo long extensa extenso informal "
+    "bilingüe bilingual atractiva atractivo persuasiva persuasivo convincente visual creativa creativo impactante moderna "
+    "moderno elegante inicial preliminar oficial general comparativa comparativo competitiva competitivo estratégica "
+    "estratégico financiera financiero objetiva objetivo honesta honesto honest interna interno externa externo dirigida "
+    "dirigido addressed tailored adaptada adaptado aimed enfocada enfocado centrada centrado focused basada basado based "
+    "lista listo ready explaining explicando showing mostrando summarizing summarising resumiendo highlighting destacando "
+    "resaltando covering cubriendo comparing comparando outlining describing describiendo detailing detallando listing "
+    "including incluyendo presenting presentando introducing thanking agradeciendo offering ofreciendo proposing "
+    "proponiendo asking pidiendo telling diciendo contando recommending recomendando analyzing analysing analizando "
+    "evaluating evaluando targeting dirigida real").split())
+# VJH: how the kit's evaluation is asked for, right after the kind ("evaluación requisito por requisito", "step by step")
+_DOC_AFTER_PHRASE = re.compile(r"\s*(?:requisito\s+por\s+requisito|requirement\s+by\s+requirement|punto\s+por\s+punto|"
+                               r"point\s+by\s+point|paso\s+a\s+paso|step\s+by\s+step)(?!\w)", re.I)
+# VJH: "Can you make one-pagers, or only PDFs?" asks what the bot can do (an alternative question), not for a file
+_DOC_OR_ONLY = re.compile(r"(?<!\w)(?:or|o)\s+(?:only|just|simply|solo|s[oó]lo|solamente|nada\s+m[aá]s)(?!\w)[^?]*\?\s*$",
+                          re.I)
+_DOC_CONTAINER_OF = re.compile(
+    r"(?:^|\s)(?:p[aá]gina|page|hoja|formato|format|plantilla|template)\s+(?:de|del|of|para|for)"
+    r"(?:\s+(?:el|la|los|las|the|un|una|a|an|mi|my))?\s*$", re.I)
+_DOC_AFTER_REFUSE = re.compile(
+    r"^\s*(?:(?:de|of)\s+(?:recomendaci[oó]n|referencia|recommendation|reference)\s+)?(?:from(?!" + _DL + r")|от(?!" + _DL
+    + r")|(?:de|del)\s+(?:(?:mi|mis|el|la|los|las|un|una|su|sus|tu|tus|nuestr[oa]s?)\s+)?(?:banco|plomer[oa]|pintor[a]?|"
+    r"m[eé]dic[oa]|doctor[a]?|dentista|abogad[oa]|notari[oa]|contador[a]?|caser[oa]|arrendador[a]?|due[nñ][oa]|"
+    r"propietari[oa]|exjef[ea]|ex\s+jef[ea]|jef[ea]|escuela|colegio|universidad|embajada|consulado|gobierno|ministerio|"
+    r"migraci[oó]n|seguro|aseguradora|hospital|dise[nñ]ador[a]?|proveedor[a]?|arquitect[oa]|electricista|mec[aá]nic[oa]|"
+    r"carpinter[oa]|vecin[oa]|profesor[a]?|maestr[oa]|empleador[a]?|landlord|laboratorio|sangre|orina|heces)(?!" + _DL
+    + r"))", re.I)
+# She says not as a file, or not now, or takes it back ("nah", "never mind", "olvídalo"), or puts it off.
+_DOC_NOT_NOW = re.compile(
+    _DNB + r"(?:(?:just\s+)?tell\s+me\s+(?:here|in\s+(?:the\s+)?chat)|d[ií]melo\s+(?:aqu[ií]|ac[aá]|por\s+aqu[ií])|"
+    r"in\s+your\s+head|en\s+tu\s+cabeza|de\s+cabeza|mentally|mentalmente|nah|never\s*mind|forget\s+it|olv[ií]dalo|"
+    # held-out p8b: "…, bueno no, déjalo" — "déjalo" ending the message or right after "no", "scratch that"
+    r"(?:no,?\s+|mejor\s+)d[eé]jalo|d[eé]jalo(?:\s+as[ií])?(?=\s*[.!]*\s*$)|scratch\s+that|forget\s+about\s+it|"
+    r"don'?t\s+bother|skip\s+it|"
+    r"mejor\s+(?:no|nada)|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|el\s+pr[oó]ximo\s+(?:lunes|"
+    r"martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|el\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|"
+    r"domingo)\s+que\s+viene|(?:once|when|as\s+soon\s+as|after)\s+i\s+(?:have|get|know|hear|talk|speak|receive)|"
+    r"(?:cuando|en\s+cuanto|apenas|una\s+vez\s+que)\s+(?:tenga|sepa|reciba|hable|me\s+(?:digan|confirmen|respondan|"
+    r"manden|pasen))|despu[eé]s\s+de\s+que|after\s+(?:the|our|my)\s+(?:call|meeting)|despu[eé]s\s+de\s+(?:la|nuestra|mi)\s+"
+    r"(?:llamada|reuni[oó]n)|solo\s+aqu[ií]|aqu[ií]\s+(?:mismo\s+)?en\s+el\s+chat|en\s+el\s+chat|por\s+(?:el\s+)?chat|"
+    r"in\s+(?:the\s+)?chat|here\s+in\s+(?:the\s+)?chat|just\s+here|no\s+file|without\s+a\s+file|sin\s+(?:archivo|"
+    r"documento)|not\s+now|ahora\s+no|todav[ií]a\s+no|a[uú]n\s+no|not\s+yet|next\s+(?:week|month|year)|"
+    r"la\s+pr[oó]xima\s+semana|la\s+semana\s+(?:que\s+viene|pr[oó]xima)|el\s+pr[oó]ximo\s+mes|el\s+mes\s+que\s+viene|"
+    r"alg[uú]n\s+d[ií]a|someday|some\s+day|one\s+day|later|m[aá]s\s+tarde|не\s+сейчас|потом|позже)" + _DNA, re.I)
+_DOC_COMPLAINT = re.compile(
+    r"(?<!" + _DL + r")(?:otra\s+vez|cada\s+vez|siempre|nunca|always|never|every\s+time|again|una\s+y\s+otra)(?!" + _DL
+    + r")", re.I)
+_DOC_YOU_DO = re.compile(r"^(?:mandas|env[ií]as|haces|das|escribes|generas|creas|preparas)$", re.I)
+# The first line introduces someone else's text, so the last line is theirs, not her request.
+_DOC_INTRO_OTHER = re.compile(
+    r":\s*$|(?<!" + _DL + r")(?:escribi[oó]|escribe|dice|dijo|dicen|wrote|writes|says|said|puso)(?=\s*(?:[:\"“«]|$))|"
+    r"(?<!" + _DL + r")(?:(?:este|ese|esta|esa|su|el|this|that|his|her|their|the)\s+(?:mensaje|message|correo|email|"
+    r"e-mail|mail|whatsapp|texto|text)|qu[eé]\s+(?:opinas|te\s+parece|piensas)|what\s+do\s+you\s+think|opinas|reenv"
+    + _DL + r"*|forward" + _DL + r"*|resp[oó]nde" + _DL + r"*|contest[aá]" + _DL + r"*|reply|respond)(?!" + _DL + r")|"
+    r"^[\s¡¿]*(?:hola|hi|hello|hey|dear|estimad[ao]|querid[ao]|buenas|buenos\s+d[ií]as|buenas\s+(?:tardes|noches))"
+    r"[\s,]+elena(?!" + _DL + r")", re.I)
+_DOC_POLITE = re.compile(
+    r"^\s*¿?\s*(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?|(?:me\s+|nos\s+)?(?:puedes|podr[ií]as|pod[eé]s)\s+|"
+    r"me\s+(?:haces|har[ií]as|preparas|preparar[ií]as|creas|escribes|redactas|armas|generas|elaboras|mandas|env[ií]as|"
+    r"das)" + _DNA + r"|(?:ты\s+)?(?:можешь|можете|сможешь|сможете)\s+|не\s+мог" + _DL + r"*\s+бы\s+)", re.I)
+_DOC_NOT_FMT = re.compile(
+    _DNB + r"(?:no|not|ni|nor|не|без)\s+(?:(?:en|in|as|como|a|an|un|una|el|la|в|во|на)\s+){0,2}"
+    r"(?:(?:ms|formato|format|формате)\s+)?" + _DOC_FMT + _DNA, re.I)
+_DOC_FMT_LEAD = re.compile(
+    r"^\s*,?\s*(?:(?:en|in|as|como|to|into|formato|format|в|во|на|un|una|a|an|el|la|the)\s+){0,3}"
+    r"(?:(?:ms|formato|format|формате)\s+)?" + _DOC_FMT + r"(?:\s*(?:y|and|or|o|и|или|\+|/|&|,)\s*(?:(?:en|in|as|a|an|un|"
+    r"una)\s+)?" + _DOC_FMT + r")*(?:\s+(?:file|doc|document|version|archivo|documento|versi[oó]n|файл" + _DL
+    + r"*|документ" + _DL + r"*))?" + _DNA, re.I)
+_DOC_FMT_AFTER_KIND = re.compile(r"\s+(?:en|in|as|como|в|во)\s+(?:(?:ms|formato|format|формате)\s+)?" + _DOC_FMT + _DNA,
+                                 re.I)
+# 19 Oct review (fix 8): a format with "el / the / ese / mi" right in front of it names a file that already EXISTS.
+# After a place word ("EN EL Word", "IN THE PDF", "AL PDF", "DEL PDF") it is a place: what she asks is done inside that
+# file ("Escribe en el Word mi teléfono"), and a kind written as its complement ("en el PDF DE LA CARTA") is part of
+# that place. With no place word ("haz el PDF de la carta más bonito", "make the PDF version shorter") it is the thing
+# being changed. Either way it is never the verb's object, and never an output phrase ("the PDF version"), except in
+# two shapes where it is the FORMAT of a document the line asks for: next to that document's kind ("hazme la carta para
+# Pitz en el Word", "hazme en el Word la carta para Pitz"), or written "el PDF de la carta" with no place word ("Hazme
+# el PDF de la carta para Pitz") — the kind then decides, and the checks after it (an edit, an existing file, a word
+# that does not describe it) still apply.
+_DOC_FMT_DEF_BEFORE = re.compile(
+    r"(?:^|[\s,(¿¡\"“«])(?:el|la|lo|los|las|the|this|that|these|those|ese|esa|este|esta|esos|esas|estos|estas|mi|mis|"
+    r"my|tu|tus|your|su|sus|our|nuestro|nuestra)\s+$", re.I)
+_DOC_FMT_PLACE_BEFORE = re.compile(
+    r"(?:^|[\s,(¿¡\"“«])(?:(?:en|in|into|inside|on|onto|to|a|de|of|from|desde|dentro\s+de|within|at)\s+(?:el|la|lo|los|"
+    r"las|the|this|that|ese|esa|este|esta|mi|my|tu|your|su|our|nuestro|nuestra)|al|del)\s+$", re.I)
+_DOC_FMT_OF_KIND = re.compile(
+    r"\s+(?:(?:file|doc|document|version|archivo|documento|versi[oó]n)\s+)?(?:de|del|of)\s+(?:(?:la|el|las|los|the|this|"
+    r"esta|este|esa|ese|mi|my|tu|your)\s+)?(?=" + _DOC_KIND_ANY + _DNA + ")", re.I)
+# What follows the kind says the document already exists: "…para Pitz no llegó", "…que hiciste ayer", "…you made".
+_DOC_EXISTS_AFTER = re.compile(
+    r"^\s*(?:(?:no|not|не|nunca|never|still|todav[ií]a|a[uú]n|already|уже)\s+)?(?:ya|est[aá]n?|estaba|fue|fueron|era|"
+    r"lleg[oó]|llegaron|sali[oó]|qued[oó]|tiene|ten[ií]a|sigue|parece|enviad[oa]s?|mandad[oa]s?|rechazad[oa]s?|"
+    r"aprobad[oa]s?|was|were|is|are|got|has|had|failed|fails|rejected|looks|seems|came|arrived|went|did|does|doesn't|"
+    r"didn't|isn't|wasn't|был" + _DL + r"*|пришл" + _DL + r"*|отправлен" + _DL + r"*|отклон[её]н" + _DL + r"*|выглядит|"
+    r"(?:que|that|which)\s+(?:me\s+|te\s+|ya\s+)?(?:hiciste|hicimos|hice|preparaste|creaste|escribiste|mandaste|enviaste|"
+    r"redactaste|generaste|mand[eé]|envi[eé])|(?:(?:that|which)\s+)?(?:you|we|i)\s+(?:made|wrote|created|prepared|sent|"
+    r"did|generated|drafted)|(?:который|которую|которое|что)\s+(?:ты|вы|я)\s+(?:сделал|написал|прислал|подготовил|"
+    r"отправил)" + _DL + r"*)" + _DNA, re.I)
+# Talk about the feature, in the request's own clause: "…in PDF automatically every Monday", "can we / podemos …".
+_DOC_META = re.compile(
+    _DNB + r"(?:automatically|autom[aá]ticamente|автоматически|every\s+(?:day|week|month|morning|evening|monday|tuesday|"
+    r"wednesday|thursday|friday|saturday|sunday)|cada\s+(?:d[ií]a|semana|mes|ma[nñ]ana|tarde|lunes|martes|mi[eé]rcoles|"
+    r"jueves|viernes|s[aá]bado|domingo)|todos\s+los\s+(?:d[ií]as|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados|"
+    r"domingos)|кажд" + _DL + r"*|еженедельн" + _DL + r"*|ежедневн" + _DL + r"*|can\s+we|could\s+we|podemos|"
+    r"podr[ií]amos|можем|можно\s+ли)" + _DNA, re.I)
+_DOC_FILLER = frozenset((
+    "una uno unos unas los las del por para con que favor porfa hola gracias puedes podrias podrías me mi the for and "
+    "with please thanks hello this that can you could would мне для или пожалуйста привет спасибо можешь").split())
+# A company name as she says it: capitalised words, Spanish joiners allowed ("Clínica de la Mujer").
+_DOC_NAME = (f"[{_DUP}0-9][\\w&'’.\\-]*(?:\\s+(?:(?:de|del|la|las|los|&)\\s+)?[{_DUP}0-9][\\w&'’.\\-]*){{0,4}}")
+_DOC_FOR_LEAD = re.compile(
+    r"^\s*,?\s*(?:para|for|для|de|del|of|at|to|al|a)\s+(?:(?:the|la|el|los|las|mi|my|a|an|un|una|nuestr[oa]|our)\s+)*"
+    r"(?:(?:empresa|compa[nñ][ií]a|company|cliente|client|cl[ií]nica|clinic|team|equipo|startup|puesto|role|компании|"
+    r"клиента)\s+(?:(?:de|of|at|en)\s+)?)?" + _DOC_NAME + r"(?:\s+(?:team|equipo))?")
+_DOC_NAME_STOP = frozenset((
+    "pdf word docx doc html htm ms elena revicheva aideazz cto aipa vjh openclaw espaluz vibejobhunter atuona hubspot "
+    "telegram trello cursor claude chatgpt gemini whatsapp linkedin google i ok ai ia seo geo aeo cv hola hello hi hey "
+    "please gracias thanks english spanish russian espanol ingles ruso enero febrero marzo abril mayo junio julio agosto "
+    "septiembre setiembre octubre noviembre diciembre january february march april may june july august september "
+    "october november december lunes martes miercoles jueves viernes sabado domingo monday tuesday wednesday thursday "
+    "friday saturday sunday api apis url sql json crm erp ux ui llm llms rag mcp sdk").split())
+# AIdeazz's own offer and product names are never a company (CTO also reads the catalog's titles: written out here, so
+# the recogniser reads no file while she waits).
+_DOC_OWN_NAMES = [re.compile(re.escape(n).replace(r"\ ", r"\s+"), re.I) for n in sorted({
+    "Quick AI Growth Operator Diagnostic", "Diagnóstico rápido AI Growth Operator", "Preliminary technical web audit",
+    "Informe técnico preliminar (web)", "Implementation blueprint (full analysis)",
+    "Análisis profundo + plan de implementación", "AI Growth Operators", "AI Growth Operator", "Growth Operators",
+    "Growth Operator", "AI Visibility Audit API", "AI Visibility Audit", "Identity Audit", "AI Ops Wiki", "Audit API",
+    "AIdeazz AI Lab", "AIdeazz", "EspaLuz", "VibeJobHunter", "VibeJob Hunter", "CTO AIPA", "OpenClaw",
+    "ATUONA AI Film Studio", "ATUONA", "WHITESPACE", "ALGOM Alpha"}, key=len, reverse=True)]
+_DOC_GEO = frozenset(("panama", "panama city", "ciudad de panama", "republica de panama", "colombia", "costa rica",
+                      "mexico", "latam", "latinoamerica", "america latina", "latin america", "usa", "eeuu",
+                      "estados unidos", "united states", "espana", "spain", "europa", "europe", "miami", "bogota",
+                      "medellin", "chiriqui", "boquete", "coronado", "venezuela", "peru", "chile", "argentina",
+                      "ecuador", "rusia", "russia"))
+_DOC_SUBJ = re.compile(
+    _DNB + r"(?:[Pp]ara|[Ff]or|[Дд]ля|al|[Ss]obre|[Aa]bout|[Aa]cerca\s+de|[Rr]egarding|[Tt]o|a|[Dd]irigid[oa]s?\s+a|"
+    r"[Aa]ddressed\s+to|(?:[Pp]uesto|[Rr]ol|[Vv]acante|[Pp]osici[oó]n|[Cc]argo)\s+en|(?:[Rr]ole|[Jj]ob|[Pp]osition|"
+    r"[Oo]pening)\s+(?:at|with|in))\s+(?:(?:[Tt]he|la|el|los|las|a|an|una|un|mi|my|nuestr[oa]|our|su|sus|their)\s+)*"
+    r"(?:(?:empresa|compa[nñ][ií]a|company|cliente|client|cl[ií]nica|clinic|team|equipo|startup|negocio|business|marca|"
+    r"brand|puesto|role|vacante|job|компании|клиента)\s+(?:(?:de|of|at|en)\s+)?)?(" + _DOC_NAME + ")")
+_DOC_SUBJ_WEAK = re.compile(
+    _DNB + r"(?:the|el|la|al|my|mi)\s+(" + _DOC_NAME + f")(?:\\s+[{_DLOW}](?:{_DL}|-)*){{0,2}}"
+    r"\s+(?:job|role|position|posting|opening|vacancy|interview|offer)(?!" + _DL + r")|" + _DNB
+    + r"(?:en|at|with|con)\s+(?:(?:la|el|the)\s+)?(" + _DOC_NAME + ")")
+_DOC_SUBJ_OF = re.compile(
+    r"^\s*,?\s*(?:de|del|of)\s+(?:(?:the|la|el|los|las|mi|my|su)\s+)*(?:(?:empresa|compa[nñ][ií]a|company|cliente|"
+    r"client|cl[ií]nica|clinic|negocio|business|marca|brand)\s+(?:(?:de|of)\s+)?)?(" + _DOC_NAME + ")")
+_DOC_REF_BEFORE = re.compile(
+    r"(?<!" + _DL + r")(?:como|igual\s+(?:que|a)|parecid[oa]s?\s+a|similar(?:es)?\s+(?:a|to)|like|same\s+as|based\s+on|"
+    r"basad[oa]s?\s+en|tomando\s+como|que\s+(?:hicimos|hice|hiciste|mandamos|mand[eé]|mandaste|enviamos|envi[eé]|"
+    r"enviaste|preparamos|preparaste)|(?:we|i|you)\s+(?:did|made|sent|wrote|prepared)|anterior|previous|"
+    r"last\s+(?:one|time)|the\s+other|del\s+otro|de\s+la\s+otra)(?!" + _DL + r")", re.I)
+_DOC_ROLE_HEADS = None    # filled below (folded)
+_DOC_ROLE_WORDS = None
+
+
+def _doc_fold_name(s: str) -> str:
+    """CTO docFold: accents off (NFD), lower case."""
+    import unicodedata
+    return re.sub(r"[̀-ͯ]", "", unicodedata.normalize("NFD", s or "")).lower()
+
+
+_DOC_ROLE_HEADS = frozenset(_doc_fold_name(w) for w in (
+    "engineer engineers ingeniero ingeniera ingenieros lead leads manager managers gerente director directora head "
+    "developer developers desarrollador desarrolladora specialist especialista analyst analista architect arquitecto "
+    "arquitecta consultant consultor consultora designer diseñador diseñadora coordinator coordinador coordinadora "
+    "associate assistant asistente officer intern writer redactor redactora creator creador creadora trainer tutor "
+    "expert experto experta strategist estratega generalist builder scientist científico científica researcher "
+    "investigador investigadora sdet").split())
+_DOC_ROLE_WORDS = frozenset(_doc_fold_name(w) for w in (
+    "operations ops operaciones automation automatización growth product producto data datos ml ai ia software senior sr "
+    "junior jr remote remoto remota staff principal founding fullstack full-stack backend frontend marketing sales ventas "
+    "customer success solutions soluciones support soporte prompt llm machine learning research technical técnico "
+    "técnica tech it qa devops cloud security seguridad mobile web video content contenido community social media "
+    "project proyecto program programa mid level ii iii chief executive ejecutivo ejecutiva vp").split())
+_DOC_KIND_ONLY = re.compile("^" + _DOC_KIND_ANY + "$", re.I)
+
+
+def _doc_clean_name(raw: str) -> str:
+    """CTO docCleanName: "Pitz's PDF" → "Pitz"; '' when nothing name-like is left."""
+    def bad(w):
+        return (re.sub(r"[^\w&]+|_", "", _doc_fold_name(w)) in _DOC_NAME_STOP
+                or re.fullmatch(r"(?:de|del|la|las|los|&)", w, re.I) is not None or bool(_DOC_KIND_ONLY.match(w)))
+    toks = re.sub(r"[.'’-]+$", "", re.sub(r"['’]s\b", "", raw or "", flags=re.I)).split()
+    while toks and bad(toks[0]):
+        toks.pop(0)
+    while toks and bad(toks[-1]):
+        toks.pop()
+    name = re.sub(r"[.'’-]+$", "", " ".join(toks))
+    return name if re.search(_DL + "{2,}", name) else ""
+
+
+def _doc_company_name(raw: str) -> str:
+    """CTO docCompanyName: a role title dropped from the end ("Clara AI Operations Lead" → "Clara"); never a place."""
+    toks = _doc_clean_name(raw).split()
+
+    def key(w):
+        return re.sub(r"[^\w-]+|_", "", _doc_fold_name(w))
+    if toks and key(toks[-1]) in _DOC_ROLE_HEADS:
+        toks.pop()
+        while toks and (key(toks[-1]) in _DOC_ROLE_WORDS or key(toks[-1]) in _DOC_ROLE_HEADS):
+            toks.pop()
+    n = _doc_clean_name(" ".join(toks))
+    return n if n and re.sub(r"[^\w]+|_", " ", _doc_fold_name(n)).strip() not in _DOC_GEO else ""
+
+
+def _doc_strip_lead(t: str) -> str:
+    """CTO: t.replace(DOC_LEAD, '').replace(DOC_FOR_PREFIX, '').replace(DOC_LEAD, '')."""
+    return _DOC_LEAD.sub("", _DOC_FOR_PREFIX.sub("", _DOC_LEAD.sub("", t, 1), 1), 1)
+
+
+def _doc_subject(t: str, kind_end: int) -> str:
+    """CTO docSubject: the ONE company the document is for ("Para <X>:" first, else a name after "para / for / sobre /
+    about / de" past the kind, never one given as a reference — "como la que hicimos para Mundo Dental"); ''."""
+    s = t
+    for rx in _DOC_OWN_NAMES:
+        s = rx.sub(lambda m: "·" * len(m.group(0)), s)             # same length: kind_end stays valid
+    pre = _DOC_FOR_PREFIX.match(_DOC_LEAD.sub("", s, 1))
+    if pre:
+        m = re.search(_DOC_NAME, pre.group(1))
+        n = _doc_company_name(m.group(0)) if m else ""
+        if n:
+            return n
+    tail = s[kind_end:]
+    stop = re.search(r"[.!?;\n]\s", tail)
+    if stop:
+        tail = tail[:stop.start()]
+    lead = tail
+    for _i in range(3):
+        lead = _DOC_FMT_LEAD.sub("", lead, 1)
+    of = _DOC_SUBJ_OF.match(lead)
+    if of:
+        n = _doc_company_name(of.group(1))
+        if n:
+            return n
+    cands = sorted([(m.start(), m.group(1)) for m in re.finditer(r"[«\"“]([^»\"”\n]{2,60})[»\"”]", tail)]
+                   + [(m.start(), m.group(1)) for m in _DOC_SUBJ.finditer(tail)])
+
+    def weak():
+        return sorted((m.start(), m.group(1) or m.group(2)) for m in _DOC_SUBJ_WEAK.finditer(tail))
+    for lst in ([cands, weak()] if cands else [weak()]):
+        for at, name in lst:
+            rest = tail[tail.find(name, at) + len(name):]
+            if re.match(r"\s+(?:job|role|position|opening|vacancy|puesto|vacante|cargo|posici[oó]n)\s+(?:at|with|in|en|"
+                        f"con)\\s+[{_DUP}]", rest):
+                continue
+            if re.match(r"\s+(?:case|cases|caso|casos|example|ejemplo|study|estudio|model|modelo|template|plantilla)(?!"
+                        + _DL + ")", rest, re.I):
+                continue
+            before = tail[:at]
+            frm = max([before.rfind(","), before.rfind(";"), before.rfind(":")]
+                      + [m.end() - 1 for m in re.finditer(r"\s(?:pero|but|sino|y\s+no)\s", before, re.I)])
+            if _DOC_REF_BEFORE.search(before[frm + 1:]):
+                continue
+            n = _doc_company_name(name)
+            if n:
+                return n
+    return ""
+
+
+def _doc_outputs(t: str) -> List[tuple]:
+    """CTO DOC_AS_OUTPUT_G matches as (start, end, text): the formats said as the output, and a format chained after
+    one ("en PDF y Word")."""
+    outs = []
+    for m in _DOC_AS_OUTPUT.finditer(t):
+        outs.append((m.start(), m.end(), m.group(0)))
+        end = m.end()
+        while _DOC_FMT_END.search(t[:end]):
+            c = _DOC_FMT_CHAIN.match(t, end)
+            if not c:
+                break
+            outs.append((c.start(), c.end(), c.group(0)))
+            end = c.end()
+    return outs
+
+
+def _doc_without_outputs(t: str) -> str:
+    """t with every output phrase blanked (CTO: scope.replace(DOC_AS_OUTPUT_G, ' '))."""
+    out, pos = [], 0
+    for a, b, _x in sorted(_doc_outputs(t)):
+        if a >= pos:
+            out += [t[pos:a], " "]
+            pos = b
+    return "".join(out) + t[pos:]
+
+
+def _doc_ref_formats(t: str, t_pos: str, outs: List[tuple], kinds: List[tuple]) -> tuple:
+    """Fix 8 (see _DOC_FMT_DEF_BEFORE): the formats written with "el / the …" in front. → (outs without them, plus
+    the ones that are a document's format; the starts of the format words that are never the verb's object; the starts
+    of the kind words that are part of a place, "en el PDF DE LA CARTA")."""
+    keep, skip, part_of = [], {}, set()
+    for m in re.finditer(_DNB + _DOC_FMT + _DNA, t_pos, re.I):
+        pre = t_pos[:m.start()]
+        place = bool(_DOC_FMT_PLACE_BEFORE.search(pre))
+        if not place and not _DOC_FMT_DEF_BEFORE.search(pre):
+            continue
+        skip[m.start()] = m.end()
+        of = _DOC_FMT_OF_KIND.match(t_pos, m.end())
+        if of:
+            if place:
+                part_of.update(h[0] for h in kinds if h[0] == of.end())
+            else:
+                keep.append((m.start(), m.end(), m.group(0)))
+            continue
+        before = any(h[3] <= m.start() and not re.search(r"[.;:!?]", t[h[3]:m.start()]) for h in kinds)
+        nxt = next((h for h in kinds if h[0] >= m.end()), None)
+        gap = [w for w in re.split(r"[\s,]+", t[m.end():nxt[0]].lower()) if w] if nxt else None
+        if before or (gap is not None and not re.search(r"[.;:!?]", t[m.end():nxt[0]]) and len(gap) <= 4
+                      and all(w in _DOC_NP_WORDS and w not in ("de", "del", "of") for w in gap)):
+            keep.append((m.start(), m.end(), m.group(0)))
+    if skip:
+        outs = [o for o in outs if not any(o[0] < b and o[1] > a for a, b in skip.items())] + keep
+    return outs, set(skip), part_of
+
+
+def _doc_not_a_file(t: str) -> bool:
+    """A Trello task, a reminder, a card (never "pay by card")."""
+    return bool(_DOC_NOT_A_FILE.search(t)) or any(not _DOC_CARD_PAY.search(t[:m.start()]) for m in _DOC_CARD.finditer(t))
+
+
+def _doc_request_in(t: str, whole: str) -> Optional[dict]:
+    """CTO documentRequestIn: one line → {kind (CTO's), formats, fmt_said, word, kword, subject} or None. word = the
+    kind or format word the verb governs; kword = the kind's own word ('' when a format stands alone: "un PDF")."""
+    if not t or _DOC_QUESTION.match(t) or _doc_not_a_file(t) or _DOC_NOTE_TO_SELF.match(t) or _DOC_NOT_NOW.search(t):
+        return None
+    if re.search(r"\?\s*$", t) and not _DOC_POLITE.match(_doc_strip_lead(t)):
+        return None
+    t_pos = _DOC_NOT_FMT.sub(lambda m: " " * len(m.group(0)), t)      # same length: indices stay valid
+    outs = _doc_outputs(t_pos)
+    hits = []                                     # (at, order, kind, end, word, the kind's own word)
+    for order, (k, rx) in enumerate(_DOC_KINDS):
+        for m in re.finditer(_DNB + rx + _DNA, t, re.I):
+            hits.append((m.start(), order, k, m.end(), m.group(0), m.group(0)))
+    hits.sort(key=lambda h: (h[0], h[1]))
+    outs, ref_fmts, in_place = _doc_ref_formats(t, t_pos, outs, hits)      # fix 8: "en el PDF", "the PDF version"
+    # "un resumen" is a file only with its format said
+    hits = [(h[0], h[1], "report" if h[2] == "report_fmt" else h[2]) + h[3:] for h in hits
+            if h[0] not in in_place and (h[2] != "report_fmt" or outs)]
+    for m in re.finditer(_DNB + _DOC_FMT + _DNA, t_pos, re.I):
+        at = m.start()
+        if at in ref_fmts:
+            continue                                                 # an existing file, never the verb's object
+        nxt = next((h for h in hits if h[0] > at and h[1] < 99 and not re.search(r"[.;:!?]", t[at:h[0]])), None)
+        hits.append((at, 99, nxt[2] if nxt else "other", m.end(), m.group(0), nxt[4] if nxt else ""))
+    if not hits:
+        return None
+    hits.sort(key=lambda h: (h[0], h[1]))
+
+    def verb_ok(v) -> bool:
+        at = v.start()
+        if not _DOC_ASK.match(_doc_strip_lead(t[:at])):
+            return False
+        if _DOC_YOU_DO.match(v.group(0)) and _DOC_COMPLAINT.search(t):
+            return False                     # "Me mandas una cotización mal hecha OTRA VEZ": a complaint
+        return not (_DOC_INFINITIVE.match(v.group(0)) and not _DOC_HELPER_BEFORE.search(t[max(0, at - 60):at]))
+    verbs = [v for v in _DOC_VERB.finditer(t) if verb_ok(v)]
+
+    def governed(h) -> bool:
+        for v in verbs:
+            if v.end() > h[0]:
+                continue
+            between = t[v.end():h[0]]
+            if re.search(r"[.;:!?¿¡]", between) or _DOC_CONTAINER_OF.search(between):
+                continue
+            words = [w for w in (re.sub(r"[»\"”')]+$", "", re.sub(r"^[«\"“'(]+", "", x))
+                                 for x in re.split(r"[\s,]+", between.lower())) if w]
+            if len(words) > 5 or not all(w in _DOC_NP_WORDS or w in _DOC_PRE_MODS or re.fullmatch(r"\d+(?:-" + _DL + r"+)?", w)
+                                         for w in words):
+                continue
+            if any(w == "favor" and (i == 0 or words[i - 1] != "por") for i, w in enumerate(words)):
+                continue                     # "Hazme UN FAVOR, la propuesta…"
+            if any(w == "nuevo" and i > 0 and words[i - 1] == "de" for i, w in enumerate(words)):
+                continue                     # "Mándame DE NUEVO la propuesta": again, not new
+            indefinite = any(w in _DOC_INDEFINITE for w in words)
+            definite = any(w in _DOC_DEFINITE for w in words)
+            if (_DOC_WEAK_VERB.match(re.sub(r"\s+", " ", v.group(0))) and ((not indefinite and definite) or not outs)
+                    and not (outs and h[1] < 99 and h[2] in _DOC_KIT_KINDS)):
+                continue                     # a weak verb: a NEW document with its format said (or a kit document)
+            if (h[2] not in ("answer", "prep", "other") and re.search(r"s$", h[4], re.I) and not indefinite
+                    and not definite and not any(_DOC_NUMERAL.match(w) for w in words)):
+                continue                     # a bare plural: a duty ("create reports"), never a request
+            return True
+        return False
+    kind_head = re.compile(r"\s+" + _DOC_KIND_ANY + _DNA, re.I)
+
+    def headed(h) -> bool:
+        rest = t[h[3]:]
+        for _i in range(3):
+            rest = _DOC_FMT_LEAD.sub("", rest, 1)
+            k = kind_head.match(rest)
+            if k:
+                rest = rest[k.end():]
+        if _DOC_AFTER_REFUSE.match(rest) or _DOC_AFTER_REFUSE.match(_DOC_FMT_AFTER_KIND.sub("", rest)):
+            return False
+        if _DOC_AFTER_PHRASE.match(rest):
+            return True                      # VJH: "una evaluación REQUISITO POR REQUISITO de la vacante…"
+        wm = re.match(r"\s*(\S+)", rest)
+        w = wm.group(1) if wm else ""
+        if not w or (re.match(r"[^\w]|_", w) and not re.match(r"[«\"“'(]" + _DL, w)):
+            return True                      # the end, punctuation, a sign
+        word = re.sub(r"(?:[^\w'’-]|_)+$", "", re.sub(r"^[«\"“'(]+", "", w))
+        if word[:1].isupper():
+            return True                      # a name
+        low = word.lower()
+        return low in _DOC_AFTER_OK or (low in _DOC_NP_WORDS and not re.fullmatch(
+            r"p[aá]gina|page|hoja|formato|format|file|archivo|documento|doc", low))
+    hit = next((h for h in hits if governed(h) and headed(h)), None)
+    if not hit:
+        return None
+    at, order, kind, end, word, kword = hit
+    tail = t[end:]
+    after = tail
+    for _i in range(3):
+        after = _DOC_FOR_LEAD.sub("", _DOC_FMT_LEAD.sub("", after, 1), 1)
+    if _DOC_EXISTS_AFTER.match(after) or _DOC_EDIT_AFTER.match(after):
+        return None
+    # "Write a letter? Nah, a WhatsApp is enough": a "?" right after the document asks, unless an asking form opens it
+    if re.match(r"\s*\?", after) and not _DOC_POLITE.match(_doc_strip_lead(t)):
+        return None
+    cut = re.search(r"[:.;!?]|\s(?:about|sobre|con|with|including|incluyendo|о|об|про)\s", tail, re.I)
+    if _DOC_META.search(t[:end] + (tail[:cut.start()] if cut else tail)):
+        return None
+    said = " ".join(x for _a, _b, x in outs)
+    formats = []
+    if re.search(_DNB + _DOC_PDF, said, re.I):
+        formats.append("pdf")
+    if re.search(_DNB + _DOC_WORD + _DNA, said, re.I):
+        formats.append("docx")
+    if re.search(_DNB + _DOC_HTML + _DNA, said, re.I):
+        formats.append("html")
+    fmt_said = bool(formats)
+    if not fmt_said:
+        formats.append("html" if kind in _DOC_HTML_KINDS else "pdf")
+    scope = whole if len(whole) <= 400 else t
+    subject = _doc_subject(t, end)
+    rest = _DOC_VERB.sub(" ", re.sub(_DNB + _DOC_KIND_ANY + _DNA, " ", _doc_without_outputs(scope), flags=re.I))
+    substance = len([w for w in re.findall(_DL + "{3,}", rest) if w.lower() not in _DOC_FILLER])
+    own_named = any(rx.search(scope) for rx in _DOC_OWN_NAMES)
+    # "Make the report" and nothing else — no format, no company, no content — points at a thing that exists
+    before = t[:at].split()
+    article = (before[-1] if before else "").lower()
+    if not fmt_said and article in _DOC_DEFINITE and substance < 2 and not subject and not own_named:
+        return None
+    np_ = [w.lower() for w in before[-4:]]
+    # "Make the (sales) report for the API work", "Haz la cotización del bot": code talk, not a document to write
+    if ((not fmt_said or order == 99) and any(w in _DOC_DEFINITE for w in np_)
+            and not any(w in _DOC_INDEFINITE for w in np_) and _DOC_CODE_TALK.search(t)):
+        return None
+    return {"kind": kind, "formats": tuple(formats), "fmt_said": fmt_said, "word": word, "kword": kword,
+            "subject": subject}
+
+
+def _doc_task(text: str) -> Optional[dict]:
+    """CTO documentTask: the request line — the whole message, or its first or last line (greeting / thanks lines
+    aside; the last only when the first is not her question, it is no posting line and nothing before it introduces
+    someone else's text) → {…, "line"} or None."""
+    raw = (text or "").strip()
+    if not raw or len(raw) > 4000 or raw.startswith("/"):
+        return None
+    lines = [ln.strip() for ln in re.split(r"\r?\n", raw) if ln.strip() and not _DOC_GREETING_LINE.match(ln.strip())]
+    if not lines:
+        return None
+    first, last = lines[0], lines[-1]
+    pasted = any(_DOC_INTRO_OTHER.search(ln) for ln in lines[:-1]) or bool(re.match(r"[\"“«'‘]", last))
+    areas = [first] + ([last] if len(lines) > 1 and not re.search(r"\?\s*$", first) and not _DOC_POSTING_LINE.search(last)
+                       and not pasted else [])
+    whole = re.sub(r"\s+", " ", raw)
+    for area in areas:
+        line = re.sub(r"\s+", " ", area)
+        r = _doc_request_in(line, whole)
+        if r:
+            return {**r, "line": line}
+    return None
+
+
+def _doc_bare_tokens(folded: str) -> List[str]:
+    """The words of a folded message for the bare test ("es urgente", "esta respuesta" carry no task)."""
+    s = re.sub(r"\b(?:es|it's|its|it\s+is)\s+(?:urgente|urgent)\b", " ", folded)
+    s = re.sub(r"\bpor\s+favor\b", "porfa", s)
+    s = re.sub(r"\b(?:esta|esa)\s+(respuesta)\b", r"\1", s)
+    return re.findall(r"[a-z0-9ñ']+", s)
+
+
+def _doc_quote_client(raw: str) -> bool:
+    """English "quote" is a client quote only with a client after "for": a name ("for Café Luna") or a business ("for
+    the gym") — never "a quote from Steve Jobs", "a quote about resilience" or "a quote for my LinkedIn post"."""
+    m = re.search(r"\b(?:quotes?|quotations?)\b(?P<t>.*)$", raw or "", re.I | re.S)
+    if not m:
+        return False
+    return bool(re.match(
+        r"[^.?!]{0,40}?\bfor\s+(?:the\s+|a\s+|an\s+|my\s+client\s+|our\s+client\s+)?(?:[A-ZÁÉÍÓÚÑ0-9]|"
+        r"(?:dental\s+|vet\s+|beauty\s+|yoga\s+|law\s+)?(?:clinics?|gym|restaurant|hotel|caf[eé]|bakery|studio|spa|"
+        r"shop|store|school|academy|salon|office|firm|agency|client|customer|dentist|doctor|practice|business|startup|"
+        r"pharmacy|hostel|bar|boutique|realtor|real\s+estate)\b)", m.group("t")))
+
+
+_DOC_ONEPAGER_WORD = re.compile(r"one[\s-]?pager|resumen\s+ejecutivo|executive\s+summary|ficha", re.I)
+
+
+def _doc_request(text: str) -> Optional[dict]:
+    """{formats, kind, sentence, raw, bare} when her message asks for a file (CTO's rule, above); else None. kind is
+    VJH's word (quote, proposal, evaluation, letter, prep, presentation, promo, analysis, onepager, report, answer), or
+    None when the object is only a format ("hazme un PDF")."""
+    if not text or not text.strip():
+        return None
+    folded = text.lower().translate(_DOC_FOLD)
+    if _DOC_TO_ELENA.match(folded):
+        return None                           # someone else's message to her ("Hi Elena, … send me a PDF…")
+    toks = _doc_bare_tokens(folded)
+    # fix 8 (held-out p8): "Make a copy OF THE Word file" — a format owned by "of the / del / de la" is a file that
+    # exists, never "make it a file" ("ponlo en el Word", "pásalo al PDF" still are)
+    if (toks and len(toks) <= 12 and any(t in _DOC_FMT_TOKENS for t in toks) and not _DOC_LABEL_RE.match(folded)
+            and all(t in _DOC_BARE_WORDS or t in _DOC_FMT_TOKENS for t in toks)
+            and not _DOC_BARE_OWNED.search(folded)):
+        fmts = tuple(dict.fromkeys(_DOC_FMT_TOKENS[t] for t in toks if t in _DOC_FMT_TOKENS))
+        return {"formats": fmts, "kind": None, "sentence": text.strip().lower(), "raw": text.strip(), "bare": True}
+    task = _doc_task(text)
+    if not task:
+        return None
+    line = task["line"]
+    kind = task["kind"]
+    if _DOC_OR_ONLY.search(line):
+        return None                           # "…, or only plain text?": what the bot can do, not a file
+    if kind == "quote" and re.fullmatch(r"quotes?|quotations?", task["kword"], re.I) and not task["fmt_said"] and not (
+            _DOC_HER_SERVICE.search(line.lower().translate(_DOC_FOLD)) or _doc_quote_client(line)):
+        return None                           # "Write a quote for my LinkedIn post": a citation
+    if kind == "cv":
+        kind = "answer"                       # the CV refusal (_DOC_CV_ASK_RE): the kit's CV lives on the deal
+    if kind == "other":                       # "hazme un PDF con…": the format alone is the object → None
+        kind = None if not task["kword"] else "onepager" if _DOC_ONEPAGER_WORD.search(task["kword"]) else "answer"
+    return {"formats": task["formats"], "kind": kind, "sentence": line.lower(), "raw": line, "bare": False}
+
+
+def _document_formats(text: str) -> tuple:
+    """('pdf',) / ('docx',) / ('html',) / ('pdf', 'docx') … when a typed or spoken message asks for a file; () when
+    not."""
+    req = _doc_request(text)
+    return req["formats"] if req else ()
+
+
+def _asks_for_document(text: str) -> bool:
+    return bool(_doc_request(text))
+
+
+def _doc_fold(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").lower().translate(_DOC_FOLD)).strip()
+
+
+_DOC_COVER_RE = re.compile(r"\b(?:cover|motivation)\s+letter|\bcarta\s+de\s+(?:presentacion|motivacion)")
+# 18 Oct review: a CV is the apply kit's posting-shaped one on the deal, never model-written here. Only when the CV is
+# the thing she asks to have made ("hazme mi CV en Word", "write my CV for Pitz in PDF", "CV for Pitz as PDF"); a
+# request that only mentions one ("a document of the jobs where my CV was sent") is not. "resumen" is a summary.
+_DOC_CV_ASK_RE = re.compile(
+    r"(?:\b(?:make|write|draft|create|build|prepare|update|tailor|send|give|get|haz|escribe|redacta|crea|prepara|arma|"
+    r"actualiza|adapta|envia|manda|pasa|da)(?:me|melo|mela)?\s+(?:me\s+)?|^\s*)"
+    r"(?:(?:a|an|my|mi|un|el|the|new|nuevo|tailored|updated|actualizado)\s+)*"
+    r"(?:cv|curriculum(?:\s+vitae)?|curriculo|resume|hoja\s+de\s+vida)\b")
+# 19 Oct (rule 2): a document about HER FIT for a job is never written here — it is the deal's own kit notes. Decided
+# by STRUCTURE, whatever the document's noun (review blocker: "how well I match Pitz", "mis fortalezas frente a lo que
+# pide Pitz", "a presentation pitching me to Pitz", "carta … por qué encajo en el puesto" all reached the model):
+# a live job-deal company named anywhere (_doc_companies), or her fit words next to a job or a company (_doc_fit).
+_DOC_FIT_HER = re.compile(
+    r"\b(?:(?:mi|my)\s+(?:encaje|fit|candidatura|candidacy|application|postulacion)|encaj\w*|"
+    r"(?:i|i'm|i\s+am|me|my\s+profile|mi\s+perfil|soy)\s+(?:\w+\s+){0,3}?(?:match\w*|right\s+for|(?:a\s+)?(?:good\s+|"
+    r"great\s+|strong\s+|perfect\s+)?fit)\b|am\s+i\s+a\s+(?:\w+\s+)?fit|is\s+(?:this|it)\s+a\s+(?:\w+\s+)?fit|"
+    r"cumplo|do\s+i\s+meet|i\s+meet|(?:am\s+i|i'm|i\s+am)\s+(?:\w+\s+)?qualified|qualify|candidat\w*|hire\s+me|"
+    r"hiring\s+me|pitch(?:ing)?\s+me|sell(?:ing)?\s+me|vendeme|venderme|"
+    r"por\s+que\s+(?:yo|a\s+mi|me\s+contrat\w*|contratarme|deberian)|why\s+(?:me|i\s+should|i'm|i\s+am|"
+    r"should\s+\w+\s+hire)|(?:mis|my)\s+(?:fortalezas|strengths|debilidades|weaknesses|gaps|brechas))\b")
+# what a job asks ("los requisitos", "lo que pide Pitz"): a fit document next to a job, or next to her and a company
+_DOC_FIT_REQ = re.compile(
+    r"\b(?:requisitos?|requirements?|requerimientos|criterios\s+de\s+la\s+oferta|(?:lo\s+que|what)\s+(?:\w+\s+){0,2}?"
+    r"(?:pide|piden|busca|buscan|necesita|necesitan|asks?|wants?|needs?|(?:is|are)\s+looking))\b")
+# fit words that speak of a hiring decision by themselves ("¿por qué encajo?", "hire me"): a fit document even with no
+# job or company named — then she is asked which job
+_DOC_FIT_SELF = re.compile(
+    r"\b(?:encaj\w*|cumplo|do\s+i\s+meet|i\s+meet|am\s+i\s+a\s+fit|hire\s+me|hiring\s+me|pitch(?:ing)?\s+me|"
+    r"sell(?:ing)?\s+me|vendeme|venderme|(?:mi|my)\s+(?:encaje|fit|candidatura|candidacy)|why\s+me|por\s+que\s+yo)\b")
+# her in the first person, without a fit word ("sobre mí", "my experience"): a fit document only next to a job
+_DOC_FIT_ME = re.compile(
+    r"\b(?:sobre\s+mi|about\s+me|(?:mi|my|mis)\s+(?:perfil|profile|experiencia|experience|cv|background|trayectoria|"
+    r"habilidades|skills|logros|achievements)|fortalezas|strengths)\b")
+_DOC_FIT_JOB = re.compile(
+    r"\b(?:(?:el|la|un|una|the|a|this|that|este|esta|ese|esa)\s+(?:puesto|vacante|cargo|role|position|job|opening|"
+    r"vacancy|oferta|posting|trabajo|empleo)|(?:puesto|vacante|cargo|rol|role|position|job|opening)\s+"
+    r"(?:en|de|at|with|in|of)|reclutador\w*|recruiters?|hiring\s+managers?|entrevistador\w*|interviewers?)\b")
+# a fit document about an interview ("…the Pitz interview questions and my answers"): the prep kit, not the evaluation
+_DOC_FIT_INTERVIEW = re.compile(r"\b(?:entrevistas?|interviews?|mock|preguntas|questions)\b")
+
+
+def _doc_kind_asked(text: str) -> str:
+    """The kind of the document noun she used first (quote, proposal, evaluation, letter, prep, presentation, promo,
+    analysis, onepager, report), else answer."""
+    low, best = _doc_fold(text), ("answer", 10 ** 9)
+    for kind, pat in _DOC_KIND_NOUNS:
+        if kind == "answer":
+            continue
+        m = re.search(r"\b(?:" + pat + r")(?![\w-])", low)
+        if m and m.start() < best[1]:
+            best = (kind, m.start())
+    return best[0]
+
+
+def _doc_two_kinds(sentence: str) -> bool:
+    """Two documents asked in one message ("la carta para Pitz en PDF y la cotización para El Faro en Word")."""
+    low = _doc_fold(sentence)
+    hits = [(m.start(), m.end(), k) for k, p in _DOC_KIND_NOUNS if k not in ("answer", "report")
+            for m in re.finditer(r"\b(?:" + p + r")(?![\w-])", low)]
+    hits.sort()
+    for (a1, e1, k1), (a2, _e2, k2) in zip(hits, hits[1:]):
+        between = low[e1:a2]
+        # "…la cotización con el diagnóstico y el análisis profundo": the second noun is what the first one holds
+        if re.search(r"\b(?:con|with|del|de\s+(?:la|las|los|el)|of\s+the|sobre|about|incluyendo|including|que\s+incluya|"
+                     r"that\s+includes)\b", between):
+            continue
+        if k1 != k2 and re.search(r"\b(?:y|and|e|plus|tambien|also)\s+(?:el|la|los|las|un|una|the|a|an|my|mi)\s+\S*$",
+                                  between + " "):
+            return True
+    return False
+
+
+def _doc_lang_asked(text: str) -> Optional[str]:
+    """'en' / 'es' only when she names the document's language ("in English", "en español")."""
+    m = re.search(r"\b(?:in|en)\s+(english|ingles|spanish|espa[nñ]ol|castellano)\b", _doc_fold(text))
+    return None if not m else ("en" if m.group(1) in ("english", "ingles") else "es")
 
 
 # Whisper verbose_json names the language in English words.
@@ -598,6 +1469,734 @@ def _document_notes(res: dict, label: str) -> str:
                      f"they matter. / {res['failed_pages']} de las páginas leídas no se pudieron leer (falló el lector "
                      "de PDF); envíalas como capturas si importan.)")
     return ("\n\n" + "\n\n".join(notes)) if notes else ""
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE FILE ITSELF (18 Oct 2026). Drawn by cto-aipa's shared renderer, run in place (~/cto-aipa/scripts/
+# build-lane-cv.cjs --text=<spec> --format=pdf|docx): one renderer for every bot, with its checks — a character the
+# font cannot draw stops it, words in == words drawn (PDF) / written and read back by python-docx (DOCX), at most 20
+# pages, bracketed placeholders listed. Word goes through the renderer's own docx mode too (python-docx in this venv,
+# run by the renderer with -I), so a .docx gets exactly the same parsing and checks as the PDF instead of a second
+# parser here. Blocking: callers run these in a thread. A temp folder per file, removed before returning.
+# "letter for <company>" reads the deal's own ✅ letter note with hs-deal-prep.cjs (read-only, never rewritten).
+# Nothing is uploaded: VJH has no file-upload path to HubSpot (crm_hub → /api/crm-event carries no file). cto-aipa
+# has one (scripts/hs-files.cjs uploadOutreachFile + addNoteAttachments, `files` scope; hs-attach-deal-files.cjs
+# --deal=<id>), but calling it from VJH would be a new HubSpot write path: only with Elena's go-ahead.
+# ═══════════════════════════════════════════════════════════════════════════
+_DOC_RENDER_TIMEOUT_S = 90
+_DOC_PREP_TIMEOUT_S = 60
+_DOC_FILE_MAX = 45_000_000            # under Telegram's 50 MB for a bot's document
+_DOC_LAST_WINDOW_S = 6 * 3600         # a bare "PDF" turns the answer of the last 6 hours into a file
+_DOC_READY_MARK = "✅ READY TO SEND — cover letter"      # cto-aipa hs-fill-apply-kit.cjs READY_MARK
+_DOC_ACTING = ("qualifiedtobuy", "presentationscheduled")
+# Marks that carry a verdict. The renderer refuses only some of them and drops the rest as emoji with ok:true
+# (★★★★☆ printed as nothing, 18 Oct review): VJH refuses the whole set before rendering.
+_DOC_VERDICT_MARKS = re.compile(
+    "[☐-☒✅✓-✘❌❎⛔⭕★☆⭐➕➖⬆⬇⬛⬜"
+    "\U0001F44D\U0001F44E\U0001F534\U0001F535\U0001F53A\U0001F53B\U0001F4C8\U0001F4C9\U0001F5F4-\U0001F5F8\U0001F6AB"
+    "\U0001F7E0-\U0001F7EB]")
+_DOC_PREP_HEAD = re.compile(
+    "^===== (DEAL: .*|📌 JOB POSTING|🔎 COMPANY BRIEF|🎯 ROLE DEFENSE.*|🛡️? TECHNICAL DEFENSE|✉️? LETTER|"
+    "📝 NOTE|🎤 THIS COMPANY'S LIKELY QUESTIONS.*|✅ VERIFIED EXAMPLES.*|✅ EJEMPLOS VERIFICADOS.*|NO DEEP-DIVE.*|"
+    "READ-PROOF.*)$")
+_DOC_NOTE_LABELS = ("📌 JOB POSTING", "🔎 COMPANY BRIEF", "✉", "🎯 ROLE DEFENSE", "🛡", "📝 NOTE")
+_DOC_QUESTIONS_LABEL = "🎤 THIS COMPANY'S LIKELY QUESTIONS"
+_DOC_ROLE_STOP = _DOC_BARE_WORDS | frozenset("""cover letter carta presentacion para for pdf word docx html deal job role
+puesto trabajo empresa company compania hiring vjh lead la los las the de del en with con about sobre at al hazme haz make
+create write redacta redactame prepara preparame genera generame dame send me enviame mandame quiero necesito want need
+english ingles spanish espanol castellano por favor please evaluacion evaluation assessment scorecard defensa defense
+defence prep preparacion entrevista interview sheet cheat questions preguntas mock requisito requisitos requirement
+requirements encaje fit vacante vacancy opening posting oferta analisis analysis informe report resumen summary
+one pager propuesta proposal cotizacion quote presentation promo cumplo meet qualify candidata candidate por each
+que encajo encajaria why should hire hiring how match matches ejecutivo executive perfil profile promocion promotion
+presentacion pager fortalezas strengths frente pide piden busca buscan comparando comparing experiencia experience
+right pitching pitch mis sobre about well tan bien explicando explaining reclutador recruiter mi my me""".split())
+# the renderer's kinds (build-lane-cv.cjs TEXT_KINDS); the bot's own kinds map onto them
+_DOC_RENDER_KIND = {"analysis": "report", "presentation": "other", "promo": "other", "onepager": "other"}
+_DOC_FMT_NAME = {"pdf": "PDF", "docx": "Word", "html": "HTML"}
+_DOC_FMT_LABEL = {"pdf": "PDF", "docx": "Word (.docx)", "html": "HTML page (opens in any browser)"}
+# the example in "which role?" names what she asked for
+_DOC_EXAMPLE_WORD = {"letter": ("letter", "carta"), "evaluation": ("evaluation", "evaluación"),
+                     "prep": ("interview prep", "preparación de entrevista"), "quote": ("quote", "cotización"),
+                     "proposal": ("proposal", "propuesta"), "analysis": ("analysis", "análisis"),
+                     "presentation": ("presentation", "presentación"), "promo": ("promotion", "promoción"),
+                     "onepager": ("one-pager", "one-pager"), "report": ("report", "informe"),
+                     "answer": ("document", "documento")}
+# Rule 2 (19 Oct 2026): a document about HER FIT is the deal's own reviewed kit notes, word for word, never written here.
+# Each kind names the notes it files, in this order; the 🎤 likely questions (from the 🔎 deep-dive) close a prep sheet.
+_DOC_KIT_PARTS = {"evaluation": ("🎯 ROLE DEFENSE", "🛡"), "prep": ("🔎 COMPANY BRIEF", "🎯 ROLE DEFENSE", "🛡")}
+_DOC_KIT_NAMES = {"🎯 ROLE DEFENSE": ("🎯 role defense", "🎯 defensa del rol"),
+                  "🛡": ("🛡️ technical defense", "🛡️ defensa técnica"),
+                  "🔎 COMPANY BRIEF": ("🔎 company brief", "🔎 resumen de la empresa")}
+
+
+def _cto_aipa_dir() -> str:
+    try:
+        from src.notifications.telegram_qa_helper import _cto_aipa_dir as qa_dir
+        return str(qa_dir())
+    except Exception:
+        return os.getenv("VJH_CTO_AIPA_DIR") or os.path.join(os.path.expanduser("~"), "cto-aipa")
+
+
+def _doc_env() -> dict:
+    """A small environment for the node scripts: no API keys of this bot leave it. The renderer finds its libraries and
+    fonts by the kit's own folders; hs-deal-prep reads cto-aipa's own .env for its HubSpot key (hs-env.cjs)."""
+    home = os.path.expanduser("~")
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": home, "LANG": "C.UTF-8"}
+    for k in ("SYSTEMROOT", "SystemRoot", "TEMP", "TMP"):        # Windows needs these to start node at all
+        if os.environ.get(k):
+            env[k] = os.environ[k]
+    deps, fonts = os.path.join(home, "cv-build-deps", "node_modules"), os.path.join(home, "cv-build-fonts")
+    if os.path.isdir(deps):
+        env["NODE_PATH"] = deps
+    if os.path.isdir(fonts):
+        env["CV_FONT_DIR"] = fonts
+    if sys.executable:
+        env["VJH_PYTHON"] = sys.executable                         # this venv has python-docx (the renderer's docx)
+    return env
+
+
+def _node_bin() -> str:
+    return shutil.which("node") or "/usr/bin/node"
+
+
+def _renderer_script() -> str:
+    return os.path.join(_cto_aipa_dir(), "scripts", "build-lane-cv.cjs")
+
+
+def _renderer_ready(script: Optional[str] = None, fmt: Optional[str] = None) -> bool:
+    """True only when the renderer on disk HAS text mode. An older build-lane-cv.cjs ignores --text and rebuilds every
+    lane CV in docs/applications/cv-by-lane instead (Oracle's copy on 18 Oct is that one): never run it then.
+    fmt="html": the text mode must also have its HTML branch (19 Oct; a text-mode renderer without it refuses html)."""
+    script = script or _renderer_script()
+    try:
+        with open(script, "r", encoding="utf-8", errors="replace") as f:
+            src = f.read(400_000)
+    except OSError:
+        return False
+    ready = "const TEXT_MODE" in src and "async function buildText(" in src
+    return ready and ("function textHtml(" in src if fmt == "html" else True)
+
+
+def _doc_clean_error(err: str) -> str:
+    """The renderer's own refusal line ("text: …"), else the first error line, without file paths."""
+    lines = [ln.strip() for ln in (err or "").strip().splitlines() if ln.strip()]
+    lines = ([ln for ln in lines if ln.startswith("text:")] or [ln for ln in lines if "rror" in ln] or lines)[:1]
+    return re.sub(r"(?:(?<=[\s(\"'])|^)(?:[A-Za-z]:)?[\\/][^\s:'\"]*[\\/][^\s:'\")]*", "<file>",
+                  lines[-1] if lines else "")[:160]
+
+
+def _render_document(spec: dict, fmt: str, base: str) -> dict:
+    """{ok, bytes, name, placeholders, emoji_dropped, pages} or {ok: False, problem, detail}. problem: no_renderer |
+    no_html | no_libs | refused | timeout | no_file. The file is read back and checked (%PDF- / a zip / <!doctype
+    html>) before it counts as made."""
+    script = _renderer_script()
+    if fmt not in ("pdf", "docx", "html") or not _renderer_ready(script):
+        return {"ok": False, "problem": "no_renderer", "detail": ""}
+    if fmt == "html" and not _renderer_ready(script, "html"):
+        return {"ok": False, "problem": "no_html", "detail": ""}
+    tmp = tempfile.mkdtemp(prefix="vjh-doc-")
+    try:
+        spec_path = os.path.join(tmp, "spec.json")
+        with open(spec_path, "w", encoding="utf-8") as f:
+            json.dump({k: v for k, v in spec.items() if k != "out"}, f, ensure_ascii=False)
+        out = os.path.join(tmp, f"{base}.{fmt}")
+        try:
+            r = subprocess.run([_node_bin(), script, f"--text={spec_path}", f"--format={fmt}", f"--out={out}"],
+                               cwd=_cto_aipa_dir(), env=_doc_env(), capture_output=True, timeout=_DOC_RENDER_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "problem": "timeout", "detail": ""}
+        except OSError as e:                                        # no node on this machine
+            return {"ok": False, "problem": "no_libs", "detail": str(e)[:120]}
+        stdout = (r.stdout or b"").decode("utf-8", "replace") if isinstance(r.stdout, bytes) else (r.stdout or "")
+        stderr = (r.stderr or b"").decode("utf-8", "replace") if isinstance(r.stderr, bytes) else (r.stderr or "")
+        try:
+            res = json.loads(stdout.strip().splitlines()[-1]) if stdout.strip() else {}
+        except ValueError:
+            res = {}
+        if r.returncode != 0 or not res.get("ok"):
+            detail = stderr or stdout
+            problem = "no_libs" if re.search(r"Cannot find module|ENOENT", detail) else "refused"
+            return {"ok": False, "problem": problem, "detail": detail}
+        try:
+            with open(out, "rb") as f:
+                data = f.read(_DOC_FILE_MAX + 1)
+        except OSError:
+            return {"ok": False, "problem": "no_file", "detail": ""}
+        magic = {"pdf": b"%PDF-", "docx": b"PK\x03\x04", "html": b"<!doctype html>"}[fmt]
+        if not data[:len(magic)].lower().startswith(magic.lower()) or len(data) > _DOC_FILE_MAX:
+            return {"ok": False, "problem": "no_file", "detail": ""}
+        return {"ok": True, "bytes": data, "name": f"{base}.{fmt}", "pages": res.get("pages"),
+                "placeholders": [p for p in (res.get("placeholders") or []) if isinstance(p, str)],
+                "emoji_dropped": int(res.get("emoji_dropped") or 0)}
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _placeholders(text: str) -> List[str]:
+    """The renderer's rule, for the text when no file was made: [precio] / [date] are listed; [ ] / [x] (checkboxes)
+    and [1] / [2,3] (citations) are not."""
+    seen = []
+    for p in re.findall(r"\[[^\[\]\n]{1,300}\]", text or ""):
+        if re.fullmatch(r"\[\s*[xX]?\s*\]", p) or re.fullmatch(r"\[\d+([,–-]\d+)*\]", p) or p in seen:
+            continue
+        seen.append(p)
+    return seen
+
+
+def _doc_file_base(*parts: str) -> str:
+    """ASCII file name from the parts: 'Cover_Letter_Elena_Revicheva_Developer_Mid_Pitz'."""
+    import unicodedata
+    s = "_".join(p for p in parts if p)
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^A-Za-z0-9-]+", "_", s).strip("_-")
+    return (s[:90].rstrip("_") or "Documento")
+
+
+def _run_deal_prep(company: str, role: str = "") -> str:
+    """cto-aipa scripts/hs-deal-prep.cjs --company (READ-ONLY: it only reads HubSpot). stdout, or '' when it cannot run."""
+    script = os.path.join(_cto_aipa_dir(), "scripts", "hs-deal-prep.cjs")
+    if not os.path.isfile(script):
+        return ""
+    args = [_node_bin(), script, f"--company={company}"] + ([f"--role={role}"] if role else [])
+    try:
+        r = subprocess.run(args, cwd=_cto_aipa_dir(), env=_doc_env(), capture_output=True,
+                           timeout=_DOC_PREP_TIMEOUT_S)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        logger.warning(f"📄 hs-deal-prep did not run: {str(e)[:120]}")
+        return ""
+    out = (r.stdout or b"").decode("utf-8", "replace") if isinstance(r.stdout, bytes) else (r.stdout or "")
+    if r.returncode != 0:
+        err = (r.stderr or b"").decode("utf-8", "replace") if isinstance(r.stderr, bytes) else (r.stderr or "")
+        logger.warning(f"📄 hs-deal-prep failed: {_doc_clean_error(err)}")
+        return ""
+    return out
+
+
+def _parse_deal_prep(out: str) -> dict:
+    """hs-deal-prep's printout → {status: ok | none | not_job | unavailable, listed: [(name, stage, id)], name, stage,
+    id, sections: [(label, text)], questions: [str]}. Only the deal's notes are sections: the mock-interview blocks after
+    them (verified examples, READ-PROOF / NO DEEP-DIVE orders) are left out. questions = the "🎤 THIS COMPANY'S LIKELY
+    QUESTIONS" lines hs-deal-prep copies from the deal's 🔎 deep-dive note (for an interview prep sheet)."""
+    res = {"status": "unavailable", "listed": [], "name": "", "stage": "", "id": "", "sections": [], "questions": []}
+    if not (out or "").strip():
+        return res
+    if re.search(r"^No \[HIRING-", out, re.M):
+        res["status"] = "none"
+        return res
+    if re.search(r"^Deal \S+ is not a job deal", out, re.M):
+        res["status"] = "not_job"
+        return res
+    label, body = None, []
+
+    def close():
+        if label and label.startswith(_DOC_NOTE_LABELS):
+            res["sections"].append((label, "\n".join(body).strip()))
+        elif label and label.startswith(_DOC_QUESTIONS_LABEL):
+            res["questions"] = [ln.strip() for ln in body if re.match(r"^\s*\d{1,2}\.\s+\S", ln)]
+    for ln in out.splitlines():
+        m = re.match(r"^\s+· (.+) \[([a-z]+)\] id=(\d+)\s*$", ln)
+        if m and label is None:
+            res["listed"].append((m.group(1).strip(), m.group(2), m.group(3)))
+            continue
+        h = _DOC_PREP_HEAD.match(ln)
+        if h:
+            close()
+            label, body = h.group(1), []
+            if label.startswith("DEAL: "):
+                res["name"] = label[6:].strip()
+            continue
+        if label and label.startswith("DEAL: ") and not res["id"]:
+            s = re.match(r"^stage: (\S+) · created: .* · id: (\d+)", ln)
+            if s:
+                res["stage"], res["id"] = s.group(1), s.group(2)
+                continue
+        body.append(ln)
+    close()
+    if res["name"]:
+        res["status"] = "ok"
+    return res
+
+
+def _deal_letter(prep: dict) -> dict:
+    """The deal's ✅ READY TO SEND letter, word for word, without its heading, the Apply line and the CV line.
+    {status: ok | none | several | cut | short, text}. Never repaired, never rewritten."""
+    found = [t for _l, t in prep.get("sections") or [] if t.lstrip().startswith(_DOC_READY_MARK)]
+    if not found:
+        return {"status": "none", "text": ""}
+    if len(found) > 1:
+        return {"status": "several", "text": ""}
+    body = found[0].strip()
+    if body.endswith("…[cut]"):
+        return {"status": "cut", "text": ""}
+    lines = [ln.strip() for ln in body.split("\n")][1:]           # the heading (with "Apply: …" glued to it)
+    lines = [ln for ln in lines if ln and not ln.startswith("Apply: ")]
+    while lines and re.search(r"attached to this note|superseded", lines[-1], re.I):
+        lines.pop()
+    text = "\n".join(lines)
+    if len(text.split()) < 40:
+        return {"status": "short", "text": ""}
+    return {"status": "ok", "text": text}
+
+
+def _deal_kit(prep: dict, kind: str) -> dict:
+    """The deal's reviewed kit notes for a fit document (rule 2, 19 Oct 2026), word for word: evaluation → 🎯 ROLE
+    DEFENSE + 🛡️ TECHNICAL DEFENSE; prep → 🔎 COMPANY BRIEF + both, then the 🎤 likely questions from the deep-dive.
+    {status: ok | none | several | cut, parts: [(label, text)], missing: [label], several: label}. A note's own title
+    line ("🎯 ROLE DEFENSE — <deal> 📱 👉 APPLY HERE · letter: the ✅ READY TO SEND note …") is navigation, not content:
+    it is left out like the letter's heading (it also carries a ✅ the PDF font cannot draw). Nothing else is touched."""
+    parts, missing = [], []
+    for want in _DOC_KIT_PARTS[kind]:
+        found = [t for label, t in prep.get("sections") or [] if label.startswith(want)]
+        if not found:
+            missing.append(want)
+            continue
+        if len(found) > 1:
+            return {"status": "several", "parts": [], "missing": [], "several": want}
+        body = found[0].strip()
+        if body.endswith("…[cut]"):
+            return {"status": "cut", "parts": [], "missing": [], "several": ""}
+        lines = body.split("\n")
+        title = re.sub(r"^[^\w]+", "", lines[0]).upper()
+        if want != "🔎 COMPANY BRIEF" and title.startswith(("ROLE DEFENSE", "TECHNICAL DEFENSE")):
+            lines = lines[1:]
+        text = "\n".join(lines).strip()
+        if text:
+            parts.append((want, text))
+    if not any(w in ("🎯 ROLE DEFENSE", "🛡") for w, _t in parts):
+        return {"status": "none", "parts": [], "missing": missing, "several": ""}
+    if kind == "prep" and prep.get("questions"):
+        parts.append((_DOC_QUESTIONS_LABEL, "\n".join(prep["questions"])))
+    return {"status": "ok", "parts": parts, "missing": missing, "several": ""}
+
+
+def _kit_markdown(parts: List[tuple], lang: str) -> str:
+    """The kit notes for the renderer: one heading per note (the bot's label), then the note's own lines unchanged."""
+    out = []
+    for want, text in parts:
+        if want == _DOC_QUESTIONS_LABEL:
+            head = ("🎤 Likely questions (from the 🔎 deep-dive)" if lang != "es" else
+                    "🎤 Preguntas probables (del 🔎 deep-dive)")
+        else:
+            head = re.sub(r"[^\W\d_]", lambda c: c.group(0).upper(), _DOC_KIT_NAMES[want][1 if lang == "es" else 0],
+                          count=1)                                   # "🎯 defensa del rol" → "🎯 Defensa del rol"
+        out += [f"## {head}", "", text, ""]
+    return "\n".join(out).strip()
+
+
+def _letter_markdown(text: str) -> str:
+    """One letter line = one paragraph; a short sign-off line ending with "," keeps her name right under it."""
+    lines = [ln for ln in text.split("\n") if ln.strip()]
+    out = []
+    for i, ln in enumerate(lines):
+        out.append(ln)
+        if i < len(lines) - 1:
+            keep = ln.rstrip().endswith(",") and len(ln) <= 40 and i >= len(lines) - 4
+            out.append("" if not keep else None)
+    return "\n".join(x for x in out if x is not None)
+
+
+def _doc_markdown(body: str, kind: str) -> str:
+    """The model's plain text for the renderer, words unchanged: a short line of its own ending with ":" (a section
+    title) becomes a heading. A letter is left as it is ("Estimado cliente:" is a salutation), and so are a deal's kit
+    notes (evaluation, prep: already laid out by _kit_markdown, never re-shaped)."""
+    if kind in ("letter", "evaluation", "prep"):
+        return body
+    lines = body.split("\n")
+    out = []
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        nxt = next((x.strip() for x in lines[i + 1:] if x.strip()), "")
+        if (s.endswith(":") and 3 <= len(s) <= 70 and nxt and not re.match(r"^(?:[-*•>#]|\d{1,3}[.)])", s)
+                and "[" not in s):
+            out.append("### " + s)
+        else:
+            out.append(ln)
+    return "\n".join(out)
+
+
+def _deal_title(name: str) -> str:
+    """'[HIRING-VJH-LEAD] Developer Mid @ Pitz' → 'Developer Mid @ Pitz'."""
+    return re.sub(r"^\s*\[[^\]]*\]\s*", "", name or "").strip()
+
+
+def _snapshot_companies() -> List[str]:
+    """Companies in her live-deals snapshot (OpenClaw deals/TOOLS.md, '### Company — Title (stage)' rows)."""
+    try:
+        from src.notifications import telegram_qa_helper as q
+        raw = q._read_text(q._OPENCLAW_WS / "deals" / "TOOLS.md")
+    except Exception:
+        return []
+    names = []
+    for ln in raw.splitlines():
+        if ln.startswith("### "):
+            # fix 8 (held-out p8): "Addi @ Addi", "WON @ Won.Ai" — each side of the "@" is the company's name
+            for co in ln[4:].split(" — ")[0].split(" @ "):
+                co = co.strip()
+                if len(co) >= 3 and co not in names:
+                    names.append(co)
+    return names
+
+
+_DOC_CO_PREP = (r"(?:for|para|about|sobre|de|del|at|en|with|con|a|al|to)\s+(?:the\s+company\s+|(?:la\s+)?empresa\s+|"
+                r"(?:el\s+)?deal\s+(?:de\s+)?)?")
+
+
+# 19 Oct review (fix 8, wrong deal): "una propuesta para Clara Dental", "para la doctora Clara Pérez" went to the Clara
+# JOB deal. A snapshot company is the one she means only when it stands alone: never right after a person's title or a
+# kind of business ("la doctora Clara", "la clínica Clara"), never the start of a longer capitalised name ("Clara
+# Dental", "Clara Pérez"). A role title, a format or a company suffix after it is fine ("Pitz Data Engineer", "Puente
+# Talent Partners RevOps", "Pitz Inc").
+_DOC_CO_TITLE_BEFORE = re.compile(
+    r"(?:^|[\s,(])(?:doctor[a]?|dra?\.?|se[nñ]or[a]?|sra?\.?|srta\.?|don|do[nñ]a|lic\.?|licenciad[oa]|ing\.?|"
+    r"ingenier[oa]|prof\.?|profesor[a]?|mr\.?|mrs\.?|ms\.?|miss|dear|estimad[oa]|querid[oa]|client[ea]|clienta|"
+    r"cl[ií]nica|clinic|consultorio|[oó]ptica|farmacia|restaurante|restaurant|hotel|spa|sal[oó]n|gimnasio|gym|"
+    r"veterinaria|panader[ií]a|tienda|store|caf[eé]|academia|escuela|colegio|school|bufete|despacho|marca|brand|"
+    r"amig[oa]|herman[oa]|hija|mam[aá]|madre|vecin[oa])\s+$", re.I)
+_DOC_CO_SUFFIX = frozenset("inc llc ltd sa s.a sas srl corp co gmbh plc ag bv".split())
+
+
+def _doc_co_alone(text: str, start: int, end: int) -> bool:
+    """Fix 8: the company at text[start:end] stands alone (see _DOC_CO_TITLE_BEFORE)."""
+    if _DOC_CO_TITLE_BEFORE.search(text[:start]):
+        return False
+    nxt = re.match(r"[ \t]+([A-ZÁÉÍÓÚÑ][\w&'’.-]*)", text[end:])
+    if not nxt:
+        return True
+    w = _doc_fold_name(nxt.group(1)).strip(".'’-")
+    return (w in _DOC_NOT_COMPANY or w in _DOC_ROLE_HEADS or w in _DOC_ROLE_WORDS or w in _DOC_CO_SUFFIX
+            or w in _DOC_FMT_TOKENS)
+
+
+def _doc_companies(text: str, prep: bool = False) -> List[str]:
+    """The live job-deal companies (her snapshot) her message names: after a preposition ("para Pitz", "de pitz" —
+    any case, a voice note is lower-case), or anywhere when written with a capital and not as the message's first word
+    ("…con lo que busca Pitz"). prep=True: only after a preposition. A name inside another one ("Pitz" in "Pitz Labs")
+    counts once, as the longer. A common word that is also a company ("Clara" / "una propuesta clara", "WITHIN" /
+    "within a week") counts only in those two forms. Fix 8: and only standing alone (_doc_co_alone)."""
+    text = text or ""
+    low = text.lower().translate(_DOC_FOLD)            # the same length as text: positions line up
+    lead = len(text) - len(text.lstrip(" ¿¡\"'("))
+    hits = []
+    for c in _snapshot_companies():
+        fc = re.escape(_doc_fold(c)).replace(r"\ ", r"\s+")
+        found = False
+        for m in re.finditer(r"(?<![\w])" + fc + r"(?![\w])", low):
+            if not _doc_co_alone(text, m.start(), m.end()):
+                continue
+            if re.search(r"\b" + _DOC_CO_PREP + r"$", low[:m.start()]) or (
+                    not prep and m.start() > lead and text[m.start()].isupper()):
+                found = True
+                break
+        if found and c not in hits:
+            hits.append(c)
+    return [c for c in hits if not any(c != o and _doc_fold(c) in _doc_fold(o) for o in hits)]
+
+
+def _named_company(text: str) -> Optional[str]:
+    """The ONE live-deal company she names right after a preposition ("for Pitz", "para Pitz", "de Pitz"); None when
+    none or two."""
+    hits = _doc_companies(text, prep=True)
+    return hits[0] if len(hits) == 1 else None
+
+
+# capitalised words after a preposition that name no company: her own products, a role, a place, a format, a month
+_DOC_NOT_COMPANY = frozenset(_doc_fold("""pdf word html docx ms microsoft ia ai cv elena revicheva aideazz espaluz
+vibejobhunter vjh cto aipa openclaw atuona whitespace algom atlas audit api growth operator chief head senior junior
+lead director manager engineer developer program product project business remote sdet qa revops sales marketing data
+software fullstack full frontend backend operations ops vp ceo coo cfo cmo staff principal specialist analyst
+consultant account customer technical solutions automation forward mid panamá panama bogotá bogota colombia latam
+latinoamérica latinoamerica méxico mexico usa eeuu lima perú peru chile argentina brasil brazil costa rica europa europe
+españa espana spain miami linkedin instagram telegram whatsapp hubspot google zapier make n8n python javascript
+typescript node react enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre january
+february march april may june july august september october november december lunes martes miércoles jueves viernes
+sábado domingo monday tuesday wednesday thursday friday saturday sunday english inglés spanish español""").split())
+
+
+def _doc_caps(text: str) -> List[str]:
+    """Capitalised names right after a preposition ("…para Acme Labs", "…at Clara", "…de Acme Labs") that are not
+    her own products, a role, a place, a format or a month: the companies of a request whose company is not in her
+    snapshot. In the order written."""
+    out = []
+    for c in re.finditer(r"\b(?:for|para|at|en|con|with|de|del|to|al|a|vs\.?|versus)\s+(?:the\s+company\s+|"
+                         r"(?:la\s+)?empresa\s+)?([A-ZÁÉÍÓÚÑ0-9][\w&'+-]*(?:\.\w+)*(?:\s+(?:de\s+|del\s+|&\s+)?"
+                         r"[A-ZÁÉÍÓÚÑ0-9][\w&'+-]*(?:\.\w+)*){0,3})", text or ""):
+        name = c.group(1).strip(" .'-")
+        if _doc_fold(name.split()[0]) in _DOC_NOT_COMPANY or name in out:
+            continue
+        out.append(name[:60])
+    return out
+
+
+def _doc_fit(text: str, kind: str, cos: List[str], caps: List[str]) -> bool:
+    """Rule 2, by structure: is this a document about HER FIT for a job? A live job-deal company named anywhere; an
+    interview prep; an evaluation of her or of a job; her fit words ("encajo", "match", "right for", "hire me",
+    "mis fortalezas frente a lo que pide…") next to a job or a company; a hiring fit word on its own ("¿por qué
+    encajo?"); or "sobre mí / my experience" next to a job. Whatever the document's noun."""
+    if cos or kind == "prep":
+        return True
+    low = _doc_fold(text)
+    her, req, me, job = (_DOC_FIT_HER.search(low), _DOC_FIT_REQ.search(low), _DOC_FIT_ME.search(low),
+                         _DOC_FIT_JOB.search(low))
+    if kind == "evaluation":
+        return bool(her or req or me or job)
+    return bool((her and (job or caps)) or _DOC_FIT_SELF.search(low) or (me and (job or (req and caps)))
+                or (req and job))
+
+
+# fix 8 (wrong deal): a CLIENT kind names a live job-deal company — it is about that job only with a job or fit word
+_DOC_CLIENT_KINDS = frozenset(("proposal", "promo", "onepager", "presentation"))
+_DOC_JOB_WORD = re.compile(
+    r"\b(?:puesto|vacante|cargo|rol|role|position|job|empleo|trabajo|opening|vacancy|posting|aplicacion|application|"
+    r"postulacion|candidatura|candidacy|entrevista\w*|interview\w*|recruiter\w*|reclutador\w*|hiring|contratacion|"
+    r"contratarme|hire)\b|\b(?:de|sobre|about)\s+(?:mi|me|myself)\b(?!\s+(?:parte|lado|cuenta|empresa|negocio|"
+    r"cliente|clienta|company|business|client))")
+
+
+def _doc_job_words(text: str) -> bool:
+    """Fix 8: her message speaks of a job (a job word, or her fit / her profile / what a job asks)."""
+    low = _doc_fold(text)
+    return bool(_DOC_JOB_WORD.search(low) or _DOC_FIT_HER.search(low) or _DOC_FIT_SELF.search(low)
+                or _DOC_FIT_ME.search(low) or _DOC_FIT_REQ.search(low) or _DOC_FIT_JOB.search(low))
+
+
+def _doc_fit_question(question: str) -> bool:
+    """A chat question about HER FIT for a job ("¿Encajo en la vacante de Pitz?", "Should I apply to Clara?",
+    "¿Cumplo los requisitos?"): its answer is a fit evaluation written in the chat, never filed (19 Oct review)."""
+    low = _doc_fold(question)
+    # fix 8 (review: "¿Qué opinas de la vacante de Pitz?" → "PDF" filed "Eres una candidata muy fuerte para Pitz"):
+    # a question that names one of her live job deals is about that job, whatever it asks ("Háblame de Pitz", "Vale la
+    # pena Pitz?", "Analiza la oferta de Clara") — its answer reads her fit, and a fit document is only the deal's kit
+    if _doc_companies(question):
+        return True
+    job = _DOC_FIT_JOB.search(low)
+    return bool(_DOC_FIT_HER.search(low) or _DOC_FIT_SELF.search(low) or (_DOC_FIT_REQ.search(low) and job)
+                or (_DOC_FIT_ME.search(low) and job) or (job and re.search(
+                    r"\b(?:aplic\w*|apply\w*|postul\w*|estoy|soy|tengo|deberia|should\s+i|am\s+i|do\s+i|me\s+conviene|"
+                    r"worth|opinas|piensas|te\s+parece|think|thoughts|vale\s+la\s+pena|merece\s+la\s+pena|hablame|"
+                    r"cuentame|tell\s+me\s+about|analiza\w*|analy[sz]e\w*|evalua\w*|evaluate\w*|assess\w*|review\w*|"
+                    r"revisa\w*|recomiendas|recommend\w*|chances?|posibilidades|probabilidad\w*)\b", low)))
+
+
+def _letter_company(text: str) -> Optional[str]:
+    """The company of "letter for X" / "carta (de presentación) para X": a live-deal company she names, else the words
+    after the preposition (up to 4, until a format word or punctuation)."""
+    low = _doc_fold(text)
+    m = re.search(r"\b(cover\s+letter|(?<!offer )letter|carta(?:\s+de\s+presentacion)?)(?!\s+(?:de\s+)?oferta)\b"
+                  r"(?P<rest>[^.!?\n]{0,90})", low)
+    if not m:
+        return None
+    named = _named_company(text)
+    if named:
+        return named
+    preps = r"for|to|para|al|a" + (r"|de|del" if m.group(1) in ("cover letter", "carta de presentacion") else "")
+    c = re.search(rf"\b(?:{preps})\s+(?P<co>.+)", m.group("rest"))
+    if not c:
+        return None
+    words = []
+    for w in re.findall(r"[\w&'.+-]+|[,;:]", c.group("co")):
+        if w in (",", ";", ":") or w in ("in", "as", "en", "como", "y", "and", "please", "por", "pdf", "word", "docx",
+                                         "ms", "microsoft", "que", "that", "with", "con", "now", "ahora", "hoy",
+                                         "today", "formato", "format", "file", "archivo"):
+            break
+        words.append(w)
+        if len(words) == 4:
+            break
+    while words and words[0] in ("la", "el", "los", "las", "the", "a", "an", "empresa", "company", "compania", "deal",
+                                 "de", "del", "puesto", "role", "job", "trabajo", "vacante"):
+        words.pop(0)
+    co = " ".join(words).strip(" .'-")
+    if len(co) < 2 or co in ("me", "mi", "mí", "it", "him", "her", "them", "elena", "you", "ti", "ella", "ellos"):
+        return None
+    return co[:60]
+
+
+def _role_words(text: str, company: str) -> str:
+    """Her words beyond the request and the company — the role, when one company has several job deals."""
+    co = set(re.findall(r"\w+", _doc_fold(company)))
+    words = [w for w in re.findall(r"[a-z0-9ñ]+", _doc_fold(text))
+             if len(w) > 2 and w not in co and w not in _DOC_ROLE_STOP and w not in _DOC_FMT_TOKENS]
+    return " ".join(words)[:80]
+
+
+def _is_bare_doc_request(text: str) -> bool:
+    """Only "make it a file" ("PDF", "send me that as a Word file", "hazme un PDF de eso"): no task of its own, so the
+    file is the answer she just got."""
+    toks = _doc_bare_tokens(_doc_fold(text))
+    return bool(toks) and all(t in _DOC_BARE_WORDS or t in _DOC_FMT_TOKENS for t in toks)
+
+
+# Lines the bot writes itself around a document: (English, Spanish), in the language she wrote in.
+_DOC_SAY = {
+    "no_renderer": ("📄 No file this time: the document renderer (cto-aipa build-lane-cv.cjs, text mode) is not on this "
+                    "server yet{extra}.",
+                    "📄 Esta vez sin archivo: el generador de documentos (build-lane-cv.cjs de cto-aipa, modo texto) "
+                    "todavía no está en este servidor{extra}."),
+    "no_renderer_extra": (" — the text above is the whole document", " — el texto de arriba es el documento completo"),
+    "marks": ("📄 No {fmt} file: the text uses marks the file's font cannot draw ({marks}), and leaving them out could "
+              "erase a verdict. Ask again with \"in PDF\" in the same message and I will write them in words.",
+              "📄 Sin archivo {fmt}: el texto usa marcas que la fuente del archivo no puede dibujar ({marks}) y quitarlas "
+              "podría borrar un veredicto. Pídelo otra vez con \"en PDF\" en el mismo mensaje y lo escribo con palabras."),
+    # 18 Oct review: no model rewrites a letter or a last answer, so asking again with "PDF" alone changes nothing
+    "marks_letter": ("📄 No {fmt} file: the letter note itself contains marks the file's font cannot draw ({marks}). "
+                     "I never edit a letter: change the note in HubSpot, then ask again.",
+                     "📄 Sin archivo {fmt}: la nota de la carta contiene marcas que la fuente del archivo no puede dibujar "
+                     "({marks}). Nunca edito una carta: cambia la nota en HubSpot y pídelo otra vez."),
+    "marks_last": ("📄 No {fmt} file: your last answer uses marks the file's font cannot draw ({marks}), and leaving "
+                   "them out could erase a verdict. Send the question itself again with \"in PDF\" in the same message: "
+                   "a document answer writes them in words.",
+                   "📄 Sin archivo {fmt}: tu última respuesta usa marcas que la fuente del archivo no puede dibujar "
+                   "({marks}) y quitarlas podría borrar un veredicto. Envía la pregunta misma otra vez con \"en PDF\" en "
+                   "el mismo mensaje: la respuesta como documento las escribe con palabras."),
+    "cv": ("📄 I do not write CVs here. The CV for a job is the posting-shaped one the apply kit builds on that job's "
+           "HubSpot deal (the 🛡️ note); open it there. Nothing was made.",
+           "📄 Aquí no escribo CVs. El CV para un empleo es el que el kit arma a la medida de la oferta en el deal de "
+           "HubSpot (la nota 🛡️); ábrelo allí. No hice nada."),
+    "cover_which": ("✉️ Which job? A cover letter comes word for word from that job deal's ✅ note: say \"cover letter "
+                    "for <company> in PDF\". I do not write cover letters myself.",
+                    "✉️ ¿Para qué empleo? La carta de presentación sale palabra por palabra de la nota ✅ de ese deal: "
+                    "dime \"carta de presentación para <empresa> en PDF\". No escribo cartas de presentación por mi "
+                    "cuenta."),
+    "refused": ("📄 No {fmt} file: the renderer refused it ({why}). Nothing was saved.",
+                "📄 Sin archivo {fmt}: el generador lo rechazó ({why}). No se guardó nada."),
+    "no_libs": ("📄 No {fmt} file: the renderer is here but its libraries or fonts are missing ({why}).",
+                "📄 Sin archivo {fmt}: el generador está, pero faltan sus librerías o fuentes ({why})."),
+    "timeout": ("📄 No {fmt} file: the renderer took too long, so I stopped.",
+                "📄 Sin archivo {fmt}: el generador tardó demasiado y paré."),
+    "no_file": ("📄 No {fmt} file: the renderer finished but no valid file came out, so I sent nothing.",
+                "📄 Sin archivo {fmt}: el generador terminó pero no salió un archivo válido, así que no envié nada."),
+    "no_last": ("📄 I have no recent answer to turn into a file (nothing asked in the last 6 hours, or the bot restarted). "
+                "Send the task itself with \"in PDF\" or \"in Word\".",
+                "📄 No tengo una respuesta reciente para convertir en archivo (nada en las últimas 6 horas, o el bot se "
+                "reinició). Envíame la tarea misma con \"en PDF\" o \"en Word\"."),
+    "from_last": ("📄 Your last answer as a file{q}.", "📄 Tu última respuesta como archivo{q}."),
+    "fill": ("To fill in before you send it: {items}", "Por completar antes de enviarlo: {items}"),
+    "emoji": ("{n} emoji left out of the file (its font cannot draw them).",
+              "{n} emojis quedaron fuera del archivo (su fuente no los dibuja)."),
+    "deal_used": ("{n} job deals match \"{co}\"; I used {deal}.", "{n} deals de empleo coinciden con \"{co}\"; usé {deal}."),
+    "not_attached": ("Not attached in HubSpot: VJH cannot upload files there{why}.",
+                     "No lo adjunté en HubSpot: VJH no puede subir archivos allí{why}."),
+    "not_attached_letter": (" (the letter note itself is already on the deal)", " (la nota de la carta ya está en el deal)"),
+    "letter_ok": ("✉️ The ✅ cover letter on {deal} ({stage}), word for word as it is in HubSpot.",
+                  "✉️ La carta ✅ del deal {deal} ({stage}), palabra por palabra como está en HubSpot."),
+    "letter_en_only": ("", "La carta está en inglés, como la escribió el kit; no traduzco cartas."),
+    "letter_lang": ("✉️ The ✅ letter on {deal} is in {have}, and I do not translate letters, so I made no file.",
+                    "✉️ La carta ✅ del deal {deal} está en {have} y no traduzco cartas, así que no hice el archivo."),
+    "no_deal": ("✉️ No job deal in HubSpot matches \"{co}\", so there is no letter to put in a file. I do not write "
+                "cover letters myself.",
+                "✉️ Ningún deal de empleo en HubSpot coincide con \"{co}\", así que no hay carta para el archivo. No "
+                "escribo cartas de presentación por mi cuenta."),
+    "deal_unavailable": ("✉️ I could not read the HubSpot deals just now (cto-aipa hs-deal-prep did not answer). Nothing "
+                         "was made; ask again in a minute.",
+                         "✉️ No pude leer los deals de HubSpot ahora (hs-deal-prep de cto-aipa no respondió). No hice "
+                         "nada; pídelo otra vez en un minuto."),
+    "wrong_co": ("✉️ \"{co}\" matches {deal} by its role, not its company, so I made no file. Name the company.",
+                 "✉️ \"{co}\" coincide con {deal} por el puesto, no por la empresa, así que no hice el archivo. Dime la "
+                 "empresa."),
+    "pick_role": ("✉️ {n} 🔥 job deals at {co}: {names}. Say which role, for example \"{doc} for {co} {role} in PDF\". "
+                  "Nothing was made.",
+                  "✉️ {n} deals 🔥 de empleo en {co}: {names}. Dime qué puesto, por ejemplo \"{doc} para {co} {role} en "
+                  "PDF\". No hice nada."),
+    "no_letter": ("✉️ {deal} has no ✅ READY TO SEND letter yet. The apply kit writes one for 🔥 I act today deals every "
+                  "10 minutes; I do not write cover letters myself.",
+                  "✉️ {deal} todavía no tiene la carta ✅ READY TO SEND. El kit la escribe cada 10 minutos para los deals "
+                  "en 🔥 I act today; yo no escribo cartas de presentación por mi cuenta."),
+    "several": ("✉️ {deal} carries {n} ✅ letters and I cannot tell which one is current, so I made no file.",
+                "✉️ {deal} tiene {n} cartas ✅ y no sé cuál es la vigente, así que no hice el archivo."),
+    "cut": ("✉️ The ✅ letter on {deal} is longer than the deal reader returns, so I made no file rather than a cut one.",
+            "✉️ La carta ✅ de {deal} es más larga de lo que devuelve el lector del deal: no hago un archivo cortado."),
+    "short": ("✉️ The ✅ note on {deal} holds too little text to be the letter, so I made no file.",
+              "✉️ La nota ✅ de {deal} tiene muy poco texto para ser la carta, así que no hice el archivo."),
+    # 19 Oct 2026: fit documents (rule 2), two documents at once, HTML, the honesty gate, a swipe-reply to an older answer
+    "two_docs": ("📄 One document per message, please: this one asks for two, and I would make only the first. Send "
+                 "them one at a time.",
+                 "📄 Un documento por mensaje, por favor: este pide dos y solo haría el primero. Envíamelos uno por uno."),
+    "kit_which": ("🎯 Which job? An evaluation or interview prep is that job deal's own kit notes (🎯 role defense, 🛡️ "
+                  "technical defense), word for word: say \"evaluation for <company> in PDF\". I never evaluate your fit "
+                  "myself. A posting that is not a deal yet: stage it first, and the apply kit writes those notes.",
+                  "🎯 ¿Para qué empleo? Una evaluación o una preparación de entrevista son las notas del kit de ese deal "
+                  "(🎯 defensa del rol, 🛡️ defensa técnica), palabra por palabra: dime \"evaluación para <empresa> en "
+                  "PDF\". Nunca evalúo tu encaje por mi cuenta. Si la oferta aún no es un deal, primero hay que crearlo y "
+                  "el kit escribe esas notas."),
+    "kit_no_deal": ("🎯 No job deal in HubSpot matches \"{co}\", so there are no kit notes to put in a file. I never "
+                    "evaluate your fit myself.",
+                    "🎯 Ningún deal de empleo en HubSpot coincide con \"{co}\", así que no hay notas del kit para el "
+                    "archivo. Nunca evalúo tu encaje por mi cuenta."),
+    "kit_none": ("🎯 {deal} has no 🎯 role defense or 🛡️ technical defense note yet. The apply kit writes them for 🔥 I "
+                 "act today deals; I never evaluate your fit myself, so I made no file.",
+                 "🎯 {deal} todavía no tiene la nota 🎯 de defensa del rol ni la 🛡️ de defensa técnica. El kit las escribe "
+                 "para los deals en 🔥 I act today; nunca evalúo tu encaje por mi cuenta, así que no hice el archivo."),
+    "kit_several": ("🎯 {deal} carries more than one {note} note and I cannot tell which one is current, so I made no "
+                    "file.",
+                    "🎯 {deal} tiene más de una nota {note} y no sé cuál es la vigente, así que no hice el archivo."),
+    "kit_cut": ("🎯 A kit note on {deal} is longer than the deal reader returns, so I made no file rather than a cut one.",
+                "🎯 Una nota del kit de {deal} es más larga de lo que devuelve el lector del deal: no hago un archivo "
+                "cortado."),
+    "kit_ok": ("🎯 {what} — {deal} ({stage}): the kit's {notes} notes, word for word as they are in HubSpot. Nothing was "
+               "evaluated again.",
+               "🎯 {what} — {deal} ({stage}): las notas {notes} del kit, palabra por palabra como están en HubSpot. No "
+               "evalué nada de nuevo."),
+    "kit_missing": ("This deal has no {notes} note, so it is not in the file.",
+                    "Este deal no tiene la nota {notes}, así que no está en el archivo."),
+    "kit_en_only": ("", "Las notas están en inglés, como las escribió el kit; no las traduzco."),
+    "marks_kit": ("📄 No {fmt} file: the kit notes themselves contain marks the file's font cannot draw ({marks}). I "
+                  "never edit them: ask for it \"in HTML\" (a browser draws them) or change the note in HubSpot.",
+                  "📄 Sin archivo {fmt}: las notas del kit contienen marcas que la fuente del archivo no puede dibujar "
+                  "({marks}). Nunca las edito: pídelo \"en HTML\" (un navegador las dibuja) o cambia la nota en HubSpot."),
+    "no_html": ("📄 No HTML file: the renderer on this server has no HTML mode yet. Ask for PDF or Word.",
+                "📄 Sin archivo HTML: el generador de este servidor todavía no tiene modo HTML. Pídelo en PDF o Word."),
+    "gated": ("Left blank because no source holds it (your verified facts, your request, your offers): {items}",
+              "Lo dejé en blanco porque ninguna fuente lo respalda (tus datos verificados, tu pedido, tus ofertas): "
+              "{items}"),
+    "quote_ok": ("📄 Quote from your published catalog, word for word (titles, prices, descriptions); no model wrote it.",
+                 "📄 Cotización con tu catálogo publicado, palabra por palabra (títulos, precios, descripciones); ningún "
+                 "modelo la escribió."),
+    "from_reply": ("📄 The message you replied to, as a file.", "📄 El mensaje al que respondiste, como archivo."),
+    # 19 Oct review: two job deals in one request (the wrong deal was filed); a fit answer asked "as a file"
+    "which_co": ("📄 This names {cos}: which one is it for? Ask again naming only one company. Nothing was made.",
+                 "📄 Esto nombra {cos}: ¿para cuál es? Pídelo otra vez nombrando solo una empresa. No hice nada."),
+    "job_or_client": ("📄 {co} is one of your job deals. For that job, the document is its kit, word for word: say "
+                      "\"evaluation for {co} in PDF\" (or \"interview prep\"). If this one is for a client or another "
+                      "company with that name, write its full name (\"Clara Dental\", \"the clinic …\"). Nothing was made.",
+                      "📄 {co} es uno de tus deals de empleo. Para ese empleo, el documento es su kit, palabra por palabra: "
+                      "dime \"evaluación para {co} en PDF\" (o \"preparación de entrevista\"). Si este es para un cliente "
+                      "u otra empresa con ese nombre, escribe su nombre completo (\"Clara Dental\", \"la clínica …\"). "
+                      "No hice nada."),
+    "kit_last": ("🎯 That answer is about your fit for a job, and I never file a fit evaluation written in the chat: a "
+                 "fit document is that job deal's own kit notes (🎯 role defense, 🛡️ technical defense), word for word. "
+                 "Say \"evaluation for <company> in PDF\". Nothing was made.",
+                 "🎯 Esa respuesta trata de tu encaje en un empleo, y nunca archivo una evaluación de encaje escrita en el "
+                 "chat: un documento de encaje son las notas del kit de ese deal (🎯 defensa del rol, 🛡️ defensa "
+                 "técnica), palabra por palabra. Dime \"evaluación para <empresa> en PDF\". No hice nada."),
+}
+
+
+def _doc_say(lang: str, key: str, **kw) -> str:
+    en, es = _DOC_SAY[key]
+    return (es if lang == "es" else en).format(**kw)
+
+
+def _doc_why(lang: str, detail: str) -> str:
+    """The renderer's refusal in plain words."""
+    d = detail or ""
+    es = lang == "es"
+    if "tables are not supported" in d:
+        return "tiene una tabla; el archivo usa líneas numeradas" if es else "it has a table; the file takes numbered lines"
+    if "no glyph" in d:
+        chars = ", ".join(re.findall(r'U\+[0-9A-F]{4,6} "[^"]*"', d)[:6])
+        return (f"caracteres que su fuente no dibuja: {chars}" if es else f"characters its font cannot draw: {chars}")
+    if "over the 20-page cap" in d or re.search(r"\d+ pages — over", d):
+        return "más de 20 páginas" if es else "over 20 pages"
+    if "python-docx" in d:
+        return "Word necesita python-docx, que falta aquí; pide PDF" if es else "Word needs python-docx, missing here; ask for PDF"
+    mod = re.search(r"Cannot find module '([^']+)'", d)
+    if mod:
+        return f"falta {mod.group(1)}" if es else f"{mod.group(1)} is missing"
+    if "ENOENT" in d:
+        return "falta un archivo de fuente" if es else "a font file is missing"
+    if "pass/fail marks" in d:
+        return "marcas de sí/no que su fuente no dibuja" if es else "yes/no marks its font cannot draw"
+    return _doc_clean_error(d) or ("sin motivo" if es else "no reason given")
 
 
 class EnhancedTelegramBot:
@@ -1382,7 +2981,14 @@ You have *{len(outreach)}* message(s) to send:
         text = (update.message.text or "").strip()
         if not text:
             return
-        if await self._take_nofit_reason(update, context, text):     # 18 Oct 2026: the ❌ button's question
+        # 18 Oct 2026: a file request while a ❌ question waits is never the No-fit reason (it would move the deal to No
+        # fit with "PDF" or "hazme la cotización en Word" as her reason). A swipe-reply to the question is always a
+        # reason. 19 Oct: any other text within 15 minutes of ❌ IS the reason unless it is an explicit request by the
+        # rule of _doc_request (a request verb opening the message with a document or format as its object, or a
+        # message that is only a format) — so a short reason with no verb ("Cover letter in Word, on-site, no thanks",
+        # "Reporte semanal en PDF, nada de IA") is saved, as before the document feature.
+        doc_ask = (_asks_for_document(text) and getattr(update.message, "reply_to_message", None) is None)
+        if not doc_ask and await self._take_nofit_reason(update, context, text):     # 18 Oct 2026: the ❌ question
             return
         await self._reply_job_question(update, context, text)
 
@@ -1392,7 +2998,13 @@ You have *{len(outreach)}* message(s) to send:
 
         16 Oct 2026: the answer is grounded (telegram_qa_helper) and computed in a thread, off the event loop the
         job hunt shares. It goes out as PLAIN text: a model's stray _ or * made Markdown fail and a canned line
-        replaced the answer. speak=None applies THE SAME VOICE RULE to the text; handle_voice passes True."""
+        replaced the answer. speak=None applies THE SAME VOICE RULE to the text; handle_voice passes True.
+        18 Oct 2026: a request for a PDF or Word file goes to _reply_with_document; every other message takes exactly
+        the path below (its answer is also kept in memory, for a bare "PDF" that may follow)."""
+        formats = _document_formats(text)
+        if formats:
+            await self._reply_with_document(update, context, text, formats, speak=speak, lang=lang)
+            return
         try:
             from src.notifications.telegram_qa_helper import answer_job_question
             logger.info(f"📝 QA question: {text[:80]}{'...' if len(text) > 80 else ''}")
@@ -1402,6 +3014,8 @@ You have *{len(outreach)}* message(s) to send:
             reply = ("Something went wrong answering that. Please ask again in a minute. / "
                      "Algo falló al responder. Vuelve a preguntar en un minuto.")
         sent = await self._reply_plain(update, reply)
+        if sent:
+            self._remember_answer(update, text, reply)
         want_voice = _asks_for_voice(text) if speak is None else bool(speak)
         if sent and want_voice:
             await self._speak_reply(update, reply)
@@ -1445,6 +3059,439 @@ You have *{len(outreach)}* message(s) to send:
             logger.info(f"🔊 Voice reply sent ({len(speech)} characters spoken)")
         except Exception as e:
             logger.warning(f"🔊 Voice reply failed (the text answer already went out): {e}")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # A DOCUMENT ON REQUEST (18 Oct 2026) — the recogniser is _document_formats, the file is _render_document.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _remember_answer(self, update, question: str, answer: str, doc: Optional[dict] = None, src: str = ""):
+        """The last real answer in this chat, in memory only (a restart forgets it): a bare "PDF" / "en Word" right
+        after it turns THAT answer into a file without asking any model again. Canned lines are never kept.
+        doc = {title, kind, base} when the answer was itself a document (so "y en Word" keeps its title and kind).
+        src = what was answered when it was a screenshot or a document she sent ("job posting", "contract"…)."""
+        try:
+            from src.notifications.telegram_qa_helper import is_canned_reply
+            if is_canned_reply(answer):
+                self._forget_answer(update)        # 19 Oct: a canned line also drops the OLDER answer ("PDF" next
+                return                             # gets "no recent answer", never an older, unrelated file)
+            import time as _time
+            chat = getattr(update, "effective_chat", None)
+            self.__dict__.setdefault("_last_answers", {})[chat.id if chat else None] = {
+                "q": (question or "").strip()[:300], "a": answer, "at": _time.monotonic(), "doc": doc or {},
+                "src": src or ""}
+        except Exception as e:
+            logger.debug(f"📄 last answer not kept: {e}")
+
+    def _forget_answer(self, update):
+        """A request that made no file drops the remembered answer: a "PDF" / "en Word" right after it then gets the
+        honest "no recent answer" line, never an older, unrelated answer as the file (18 Oct review)."""
+        chat = getattr(update, "effective_chat", None)
+        (self.__dict__.get("_last_answers") or {}).pop(chat.id if chat else None, None)
+
+    def _last_answer(self, update) -> Optional[dict]:
+        import time as _time
+        chat = getattr(update, "effective_chat", None)
+        last = (self.__dict__.get("_last_answers") or {}).get(chat.id if chat else None)
+        return last if last and _time.monotonic() - last["at"] <= _DOC_LAST_WINDOW_S else None
+
+    async def _doc_no_file(self, update, line: str) -> bool:
+        """No file: say why, and drop the remembered answer so "PDF" next never files an older, unrelated one (18 Oct
+        review). True, for the callers that report "handled"."""
+        self._forget_answer(update)
+        await self._reply_plain(update, line)
+        return True
+
+    def _replied_bot_text(self, update) -> str:
+        """The text of the bot message she swipe-replied to, else '' (19 Oct review: "PDF" as a reply to an OLDER
+        answer filed her LAST one)."""
+        r = getattr(getattr(update, "message", None), "reply_to_message", None)
+        text = getattr(r, "text", None)
+        return text.strip() if isinstance(text, str) and getattr(getattr(r, "from_user", None), "is_bot", False) else ""
+
+    async def _reply_with_document(self, update, context, text: str, formats: tuple, speak: Optional[bool] = None,
+                                   lang: Optional[str] = None):
+        """A request for a PDF / Word / HTML file. The text has one of five sources, never a sixth:
+        · "letter for <company>" → that job deal's ✅ cover letter note, read-only, word for word (no model call);
+        · a document about her FIT for a job, whatever its noun (an evaluation, interview prep, a report, one-pager,
+          presentation, promotion or proposal for a live job deal, "por qué encajo", "pitch me to…") → that job deal's
+          own reviewed kit notes, word for word (no model call) — rule 2, decided by structure (_doc_fit);
+        · a client quote → her published catalog word for word, her client, her terms (no model call);
+        · only "make it a file" ("PDF", "en Word", "send me that as a PDF") → the answer she got last, or the bot
+          message she swipe-replied to (no model call), held to her sources like any model text;
+        · any other task (an analysis, proposal, one-pager, presentation, promotion, report…) → the grounded answer
+          with the document rules (one call, the usual model chain; never a job deal's notes), held to her sources by
+          gate_document, shown in the chat first, then drawn into the file.
+        The file goes back to this chat only and is uploaded nowhere."""
+        from src.notifications import telegram_qa_helper as qa
+        want_voice = _asks_for_voice(text) if speak is None else bool(speak)
+        say = lang if lang in ("es", "en") else qa._guess_lang(text)
+        req = _doc_request(text) or {}
+        kind = req.get("kind") or _doc_kind_asked(req.get("sentence") or text)
+        if kind == "answer":
+            kind = _doc_kind_asked(text)
+        ask_lang = _doc_lang_asked(text)
+        ready = await asyncio.to_thread(_renderer_ready)
+        low = _doc_fold(text)
+        logger.info(f"📄 Document request ({'+'.join(formats)}, {kind}{'' if ready else ', renderer NOT installed'})")
+        if kind == "answer" and _DOC_CV_ASK_RE.search(low):                 # the kit's CV lives on the deal
+            await self._doc_no_file(update, _doc_say(say, "cv"))
+            return
+        if _doc_two_kinds(req.get("sentence") or text):
+            await self._doc_no_file(update, _doc_say(say, "two_docs"))
+            return
+        if req.get("bare") or _is_bare_doc_request(text):
+            await self._file_last_answer(update, text, formats, say, lang, want_voice, ready)
+            return
+        # the live-deal snapshot is a file read: off the event loop, like every other blocking step here. Companies are
+        # taken from HER request sentence, never from a posting she pasted under it.
+        sentence = req.get("raw") or text
+        cos = await asyncio.to_thread(_doc_companies, sentence)
+        if len(cos) > 1:
+            # 19 Oct review: "…para Pitz, la de Clara ya la tengo" filed Clara's prep — two job deals named: ask
+            await self._doc_no_file(update, _doc_say(say, "which_co", cos=" / ".join(cos)))
+            return
+        caps = [c for c in _doc_caps(sentence) if not cos or _doc_fold(c) not in _doc_fold(cos[0])]
+        if cos and kind in _DOC_CLIENT_KINDS and not _doc_job_words(text):
+            # fix 8 (wrong deal): "una propuesta para Clara" names a job deal but asks for a client document — which?
+            await self._doc_no_file(update, _doc_say(say, "job_or_client", co=cos[0]))
+            return
+        fit = _doc_fit(text, kind, cos, caps)
+        if kind == "evaluation" and not fit:
+            kind = "analysis"                 # an evaluation of something else (a market, an idea): written, then gated
+        if kind == "quote":
+            pass                              # her catalog, word for word: no model, no fit claim possible
+        elif kind == "letter":
+            company = cos[0] if cos else (caps[0] if fit and len(caps) == 1 else
+                                          None if fit else await asyncio.to_thread(_letter_company, sentence))
+            if fit and not cos and len(caps) > 1:
+                await self._doc_no_file(update, _doc_say(say, "which_co", cos=" / ".join(caps)))
+                return
+            if not company and (fit or _DOC_COVER_RE.search(low)):
+                await self._doc_no_file(update, _doc_say(say, "cover_which"))   # never model-written
+                return
+            if company:
+                if not ready:
+                    await self._doc_no_file(update, _doc_say(say, "no_renderer", extra=""))
+                    return
+                if await self._send_deal_letter(update, text, company, formats, say, ask_lang, want_voice):
+                    return
+                if fit:                       # her fit, and no job deal holds a letter: never written here
+                    await self._doc_no_file(update, _doc_say(say, "no_deal", co=company))
+                    return
+            # no job deal at that company, and no fit or cover letter: a letter to a client, written below
+        elif fit:
+            company = cos[0] if cos else (caps[0] if len(caps) == 1 else None)
+            if not cos and len(caps) > 1:
+                await self._doc_no_file(update, _doc_say(say, "which_co", cos=" / ".join(caps)))
+            elif not company:
+                await self._doc_no_file(update, _doc_say(say, "kit_which"))
+            elif not ready:
+                await self._doc_no_file(update, _doc_say(say, "no_renderer", extra=""))
+            else:
+                kit = "prep" if kind == "prep" or _DOC_FIT_INTERVIEW.search(low) else "evaluation"
+                await self._send_deal_kit(update, text, company, kit, formats, say, want_voice)
+            return
+        today = _panama_today()
+        notes, replaced = [], []
+        if kind == "quote":
+            # a client quote is her catalog word for word (no model): titles, prices, descriptions, her terms or blanks
+            dlang = qa._doc_lang_of(text, lang, ask_lang)
+            title, body, qnotes = await asyncio.to_thread(qa.quote_document, text, dlang, today)
+            notes = [_doc_say(say, "quote_ok")] + qnotes
+        else:
+            # A task of its own: never a job deal's notes (rule 2 sent every job deal above), never their needs lines
+            label = " and ".join(_DOC_FMT_LABEL[f] for f in formats)
+            try:
+                answer = await asyncio.to_thread(qa.answer_document_request, text, kind, lang, ask_lang, "", label)
+            except Exception as e:
+                logger.warning(f"📄 Document answer error: {e}")
+                answer = ("Something went wrong answering that. Please ask again in a minute. / "
+                          "Algo falló al responder. Vuelve a preguntar en un minuto.")
+            if qa.is_canned_reply(answer):             # no model answered: that line is no document
+                self._forget_answer(update)            # and "PDF" next must not file an older answer (19 Oct proof)
+                sent = await self._reply_plain(update, answer)
+                if sent and want_voice:
+                    await self._speak_reply(update, answer)
+                return
+            dlang = qa._guess_lang(answer)
+            title, body = qa.split_document_title(answer, kind, ask_lang or dlang)
+            # THE HONESTY LINE, in code: what no source holds becomes a visible blank, a fit claim is dropped
+            sources = await asyncio.to_thread(qa._gate_sources)
+            title, rep_t = qa.gate_document(title, text, "", dlang, today, sources, kind)
+            body, rep_b = qa.gate_document(body, text, "", dlang, today, sources, kind)
+            title = title or qa._DOCREQ_TITLES.get(kind, qa._DOCREQ_TITLES["answer"])[1 if dlang == "es" else 0]
+            replaced = list(dict.fromkeys(rep_t + rep_b))
+            if replaced:
+                items = "; ".join(f"\"{r[:60]}\"" for r in replaced[:8]) + (" …" if len(replaced) > 8 else "")
+                notes.append(_doc_say(say, "gated", items=items))
+        word = qa._DOCREQ_TITLES.get(kind, qa._DOCREQ_TITLES["answer"])[1 if dlang == "es" else 0]
+        base = _doc_file_base(word, today)
+        sent = await self._reply_plain(update, f"📄 {title}\n\n{body}")
+        if sent:
+            self._remember_answer(update, text, body, doc={"title": title, "kind": kind, "base": base})
+        if not ready:
+            items = _placeholders(f"{title}\n{body}")
+            lines = [_doc_say(say, "no_renderer", extra=_doc_say(say, "no_renderer_extra"))]
+            lines += [_doc_say(say, "fill", items=", ".join(items))] if items else []
+            await self._reply_plain(update, "\n".join(lines + notes))
+        else:
+            spec = {"kind": _DOC_RENDER_KIND.get(kind, kind), "lang": dlang, "title": title,
+                    "text": _doc_markdown(body, kind)}
+            await self._deliver_documents(update, spec, formats, say, [], base, notes)
+        if sent and want_voice:
+            await self._speak_reply(update, body)
+
+    async def _file_last_answer(self, update, text: str, formats: tuple, say: str, lang: Optional[str],
+                                want_voice: bool, ready: bool):
+        """Only "make it a file": the answer she got last — or, when she swipe-replies to an OLDER bot message, that
+        message — drawn into the file with no model call. A letter, kit notes and a quote are filed as they are (built
+        from HubSpot notes and her catalog); any other text (a chat, screenshot or document answer, a swipe-replied
+        message) was written by a model, so it passes gate_document first (19 Oct review blocker: "PDF" filed "cumples
+        con todos los requisitos … 12 años liderando un equipo de 40 ingenieros" word for word). An answer about her FIT
+        for a job, or about a job posting she sent, is never filed: a fit document is only the deal's kit notes."""
+        from src.notifications import telegram_qa_helper as qa
+        last = self._last_answer(update)
+        replied = self._replied_bot_text(update)
+        if replied and not (last and (last["a"].strip() in replied or replied in last["a"])):
+            last = None if qa.is_canned_reply(replied) else {"q": "", "a": replied, "doc": {}, "from_reply": True}
+        if lang not in ("es", "en"):
+            say = qa._clear_lang(text) or qa._guess_lang((last or {}).get("q") or (last or {}).get("a") or text)
+        if not last:
+            await self._reply_plain(update, _doc_say(say, "no_last"))
+            return
+        body, blang, doc = last["a"], qa._guess_lang(last["a"]), last.get("doc") or {}
+        dkind = doc.get("kind") or "answer"
+        notes = []
+        if dkind not in ("letter", "evaluation", "prep", "quote"):
+            fit_q = await asyncio.to_thread(_doc_fit_question, last.get("q") or "")   # the snapshot is a file read
+            if last.get("src") == "job posting" or fit_q:
+                await self._doc_no_file(update, _doc_say(say, "kit_last"))
+                return
+            sources = await asyncio.to_thread(qa._gate_sources)
+            body, replaced = qa.gate_document(body, last.get("q") or "", "", blang, _panama_today(), sources,
+                                              dkind if dkind != "answer" else "")
+            if not body.strip():
+                await self._doc_no_file(update, _doc_say(say, "kit_last"))
+                return
+            if replaced:
+                items = "; ".join(f"\"{r[:60]}\"" for r in replaced[:8]) + (" …" if len(replaced) > 8 else "")
+                notes.append(_doc_say(say, "gated", items=items))
+        if not ready:
+            await self._reply_plain(update, _doc_say(say, "no_renderer", extra=""))
+            return
+        spec = {"kind": _DOC_RENDER_KIND.get(dkind, dkind), "lang": blang, "text": _doc_markdown(body, dkind),
+                "title": doc.get("title") or qa._DOCREQ_TITLES["answer"][1 if blang == "es" else 0]}
+        q_line = ""
+        if last["q"]:
+            q_line = f' ("{last["q"][:80]}{"…" if len(last["q"]) > 80 else ""}")'
+            if not doc:
+                spec["subtitle"] = last["q"][:200]
+        head = [_doc_say(say, "from_reply") if last.get("from_reply") else _doc_say(say, "from_last", q=q_line)]
+        base = doc.get("base") or _doc_file_base("Respuesta" if blang == "es" else "Answer", "Elena_Revicheva",
+                                                 _panama_today())
+        marks_key = ("marks_letter" if dkind == "letter" else "marks_kit" if dkind in ("evaluation", "prep")
+                     else "marks_last")
+        await self._deliver_documents(update, spec, formats, say, head, base, notes, marks_key=marks_key)
+        if want_voice:
+            await self._speak_reply(update, head[0])
+
+    def _deal_match_lines(self, say: str, prep: dict, company: str, letter: bool) -> List[str]:
+        """One job deal matched → it says the file is NOT on that deal (VJH has no file-upload path to HubSpot).
+        Two or more → which one was used. None → nothing."""
+        n = len(prep.get("listed") or []) or (1 if prep.get("status") == "ok" else 0)
+        if n == 1:
+            return [_doc_say(say, "not_attached", why=_doc_say(say, "not_attached_letter") if letter else "")]
+        if n > 1:
+            return [_doc_say(say, "deal_used", n=n, co=company, deal=_deal_title(prep.get("name", "")))]
+        return []
+
+    async def _job_deal_for(self, update, text: str, company: str, say: str, doc: str = "letter") -> Optional[dict]:
+        """hs-deal-prep (read-only) for the job deal she names, with her role words (one company can carry several job
+        deals: Puente has seven). The parsed printout when it can be used, or {status: none | not_job}; None when an
+        honest line already went out instead: HubSpot unreadable, a deal that shares only the role's words, or two or
+        more 🔥 deals at that company that her words do not tell apart (19 Oct review: an evaluation for Puente's
+        Chief of Staff role was built from its RevOps deal, and Clara SDET prep from the Growth Automation deal)."""
+        role = _role_words(text, company)
+        prep = _parse_deal_prep(await asyncio.to_thread(_run_deal_prep, company, role))
+        if prep["status"] == "unavailable":
+            await self._doc_no_file(update, _doc_say(say, "deal_unavailable"))
+            return None
+        if prep["status"] != "ok":
+            return prep
+        deal = _deal_title(prep["name"])
+        co_part = deal.rpartition(" @ ")[2] or deal
+        if not set(re.findall(r"\w+", _doc_fold(company))) <= set(re.findall(r"\w+", _doc_fold(co_part))):
+            await self._doc_no_file(update, _doc_say(say, "wrong_co", co=company, deal=deal))
+            return None
+        acting = [d for d in prep["listed"] if d[1] in _DOC_ACTING]
+        if len(acting) > 1:
+            def hits(name):
+                title = _doc_fold(_deal_title(name))
+                return sum(1 for w in role.split() if w in title)
+            best = max(hits(d[0]) for d in acting) if role else 0
+            top = [d for d in acting if best > 0 and hits(d[0]) == best]
+            if len(top) != 1 or top[0][2] != prep["id"]:
+                names = "; ".join(_deal_title(d[0]) for d in acting[:6])
+                example = _deal_title(acting[0][0]).rpartition(" @ ")[0] or "<role>"
+                word = _DOC_EXAMPLE_WORD.get(doc, _DOC_EXAMPLE_WORD["letter"])[1 if say == "es" else 0]
+                await self._doc_no_file(update, _doc_say(say, "pick_role", n=len(acting), co=co_part, names=names,
+                                                         role=example, doc=word))
+                return None
+        return prep
+
+    async def _send_deal_letter(self, update, text: str, company: str, formats: tuple, say: str,
+                                ask_lang: Optional[str], want_voice: bool) -> bool:
+        """"letter for <company>" → the deal's own ✅ cover letter note (hs-deal-prep.cjs, read-only), word for word.
+        No ✅ note, two notes, a cut note, a role that only shares the word, or two 🔥 deals at that company and no
+        role to tell them apart → an honest line and no file. A cover letter is never written or translated here.
+        False = no job deal at that company and she did not say "cover letter / carta de presentación": a letter to
+        a client, which the caller writes like any other task. True = handled here."""
+        from src.notifications import telegram_qa_helper as qa
+        prep = await self._job_deal_for(update, text, company, say, "letter")
+        if prep is None:
+            return True
+        if prep["status"] != "ok":
+            if not _DOC_COVER_RE.search(_doc_fold(text)):
+                return False
+            return await self._doc_no_file(update, _doc_say(say, "no_deal", co=company))
+        deal = _deal_title(prep["name"])
+        letter = _deal_letter(prep)
+        if letter["status"] != "ok":
+            n = sum(1 for _l, t in prep["sections"] if t.lstrip().startswith(_DOC_READY_MARK))
+            key = {"none": "no_letter", "several": "several", "cut": "cut"}.get(letter["status"], "short")
+            return await self._doc_no_file(update, _doc_say(say, key, deal=deal, n=n))
+        llang = qa._guess_lang(letter["text"])
+        if ask_lang and ask_lang != llang:
+            have = {"es": ("Spanish", "español"), "en": ("English", "inglés")}[llang][1 if say == "es" else 0]
+            return await self._doc_no_file(update, _doc_say(say, "letter_lang", deal=deal, have=have))
+        stage = _ALERT_LABEL.get(prep["stage"], prep["stage"] or "?")
+        head = [_doc_say(say, "letter_ok", deal=deal, stage=stage)]
+        if say == "es" and llang == "en":
+            head.append(_doc_say(say, "letter_en_only"))
+        spec = {"kind": "letter", "lang": llang, "text": _letter_markdown(letter["text"]),
+                "title": f"{'Carta de presentación' if llang == 'es' else 'Cover letter'} — Elena Revicheva — {deal}"}
+        role_t, _, co_t = deal.rpartition(" @ ")
+        base = _doc_file_base("Cover_Letter_Elena_Revicheva", role_t or deal, co_t)
+        await self._deliver_documents(update, spec, formats, say, head,
+                                      base, self._deal_match_lines(say, prep, company, letter=True),
+                                      marks_key="marks_letter")
+        # the letter is now her last answer: "y en Word también" files THIS letter, word for word, with no model
+        self._remember_answer(update, text, spec["text"], doc={"title": spec["title"], "kind": "letter", "base": base})
+        if want_voice:
+            await self._speak_reply(update, head[0])
+        return True
+
+    async def _send_deal_kit(self, update, text: str, company: str, kind: str, formats: tuple, say: str,
+                             want_voice: bool):
+        """A fit document (rule 2, 19 Oct 2026): the job deal's own reviewed kit notes, word for word — never a fresh
+        evaluation of her fit. "evaluación / requisito por requisito / my fit for <company>" → 🎯 ROLE DEFENSE + 🛡️
+        TECHNICAL DEFENSE; interview prep → 🔎 COMPANY BRIEF + both + the 🎤 likely questions of the deep-dive. A deal
+        with neither defense note, two of one, or a cut note → an honest line and no file. Notes are never translated:
+        the bot's own lines are in her language."""
+        from src.notifications import telegram_qa_helper as qa
+        prep = await self._job_deal_for(update, text, company, say, kind)
+        if prep is None:
+            return
+        if prep["status"] != "ok":
+            await self._doc_no_file(update, _doc_say(say, "kit_no_deal", co=company))
+            return
+        deal = _deal_title(prep["name"])
+        found = _deal_kit(prep, kind)
+        es = say == "es"
+        if found["status"] != "ok":
+            note = _DOC_KIT_NAMES.get(found.get("several") or "", ("", ""))[1 if es else 0]
+            key = {"none": "kit_none", "several": "kit_several", "cut": "kit_cut"}[found["status"]]
+            await self._doc_no_file(update, _doc_say(say, key, deal=deal, note=note))
+            return
+        # the notes' own language — not the posting's requirements they quote ("(because: …)", "They ask: …")
+        klang = qa._guess_lang("\n".join(ln for _w, t in found["parts"] for ln in t.split("\n")
+                                         if not re.search(r"\(because:|They ask:", ln)))
+        what = {"evaluation": ("Evaluation", "Evaluación"), "prep": ("Interview prep", "Preparación de entrevista")}[
+            kind][1 if es else 0]
+        used = ", ".join(_DOC_KIT_NAMES[w][1 if es else 0] for w, _t in found["parts"] if w in _DOC_KIT_NAMES)
+        stage = _ALERT_LABEL.get(prep["stage"], prep["stage"] or "?")
+        head = [_doc_say(say, "kit_ok", what=what, deal=deal, stage=stage, notes=used)]
+        missing = [_DOC_KIT_NAMES[w][1 if es else 0] for w in found["missing"]]
+        if missing:
+            head.append(_doc_say(say, "kit_missing", notes=", ".join(missing)))
+        if es and klang == "en":
+            head.append(_doc_say(say, "kit_en_only"))
+        spec = {"kind": kind, "lang": klang, "title": f"{what} — {deal}",
+                "subtitle": ("Notas del kit en HubSpot, palabra por palabra — no es una evaluación nueva" if es else
+                             "The kit's notes in HubSpot, word for word — not a new evaluation"),
+                "text": _kit_markdown(found["parts"], say)}
+        role_t, _, co_t = deal.rpartition(" @ ")
+        word = {"evaluation": ("Evaluation", "Evaluacion"), "prep": ("Interview_prep", "Preparacion_entrevista")}[kind]
+        base = _doc_file_base(word[1 if es else 0], role_t or deal, co_t)
+        await self._deliver_documents(update, spec, formats, say, head, base,
+                                      self._deal_match_lines(say, prep, company, letter=False), marks_key="marks_kit")
+        self._remember_answer(update, text, spec["text"], doc={"title": spec["title"], "kind": kind, "base": base})
+        if want_voice:
+            await self._speak_reply(update, head[0])
+
+    async def _deliver_documents(self, update, spec: dict, formats: tuple, say: str, head: List[str], base: str,
+                                 notes: Optional[List[str]] = None, marks_key: str = "marks") -> int:
+        """Render each format (in a thread), send the files to THIS chat as documents, then one status: what to fill
+        in, emoji left out, any refusal, the deal lines. Returns how many files went out. marks_key: the refusal line
+        for verdict marks — "marks" only where a model writes the text (asking again rewrites them in words),
+        "marks_letter" / "marks_last" / "marks_kit" where nothing rewrites it. HTML is never refused for a mark: a
+        browser draws it (the renderer keeps them in HTML)."""
+        if not self._chat_allowed(update):                # the handlers are locked; this is the same lock once more
+            return 0
+        marks = sorted(set(_DOC_VERDICT_MARKS.findall(" ".join(str(spec.get(k) or "")
+                                                                for k in ("title", "subtitle", "text")))))
+        lines, files, places, dropped = [], [], [], 0
+        blocked = [f for f in formats if f != "html"] if marks else []
+        if blocked:
+            lines.append(_doc_say(say, marks_key, fmt=" / ".join(_DOC_FMT_NAME[f] for f in blocked),
+                                  marks=" ".join(marks)))
+        for fmt in [f for f in formats if f not in blocked]:
+            fname = _DOC_FMT_NAME[fmt]
+            try:
+                res = await asyncio.wait_for(asyncio.to_thread(_render_document, spec, fmt, base),
+                                             timeout=_DOC_RENDER_TIMEOUT_S + 30)
+            except asyncio.TimeoutError:
+                res = {"ok": False, "problem": "timeout", "detail": ""}
+            except Exception as e:
+                res = {"ok": False, "problem": "refused", "detail": str(e)}
+            if not res.get("ok"):
+                logger.warning(f"📄 {fname} not made: {res.get('problem')} {_doc_clean_error(res.get('detail', ''))}")
+                if res.get("problem") == "no_renderer":
+                    lines.append(_doc_say(say, "no_renderer", extra=""))
+                elif res.get("problem") == "no_html":
+                    lines.append(_doc_say(say, "no_html"))
+                else:
+                    lines.append(_doc_say(say, res.get("problem", "refused"), fmt=fname,
+                                          why=_doc_why(say, res.get("detail", ""))))
+                continue
+            files.append((res["name"], res["bytes"]))
+            places += [p for p in res["placeholders"] if p not in places]
+            dropped = max(dropped, res["emoji_dropped"])
+        if places:
+            lines.append(_doc_say(say, "fill", items=", ".join(places)))
+        if dropped:
+            lines.append(_doc_say(say, "emoji", n=dropped))
+        lines += [ln for ln in (notes or []) if ln]
+        if files:                                         # "your letter / your last answer as a file" only with a file
+            lines = list(head) + lines
+        status = "\n".join(ln for ln in lines if ln)
+        from telegram import InputFile
+        sent_files = 0
+        for i, (name, data) in enumerate(files):
+            cap = status if (i == len(files) - 1 and status and len(status) <= 1000) else None
+            try:
+                await update.message.reply_document(document=InputFile(data, filename=name), caption=cap)
+                sent_files += 1
+                logger.info(f"📄 Document sent: {name} ({len(data)} bytes)")
+                if cap:
+                    status = ""
+            except Exception as e:
+                logger.warning(f"📄 Sending {name} failed: {e}")
+                status = (status + "\n" if status else "") + (
+                    f"📄 No pude enviar {name} por Telegram." if say == "es" else f"📄 Telegram did not take {name}.")
+        if status:
+            await self._reply_plain(update, status)
+        return sent_files
 
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """VJH-3 (16 Oct 2026): a screenshot → its text is read by the vision functions judge_feedback_sync already
@@ -1495,6 +3542,8 @@ You have *{len(outreach)}* message(s) to send:
             reply += ("\n\n(📸 Very little text came through. Telegram shrinks photos; send the screenshot as a "
                       "file for full resolution. / Llegó muy poco texto: envía la captura como archivo.)")
         sent = await self._reply_plain(update, reply)
+        if sent:                                                   # 18 Oct 2026: "PDF" next makes it a file
+            self._remember_answer(update, caption, reply, src=kind)  # (never a posting's fit answer: 19 Oct review)
         if sent and _asks_for_voice(caption):
             await self._speak_reply(update, reply)
 
@@ -1566,6 +3615,7 @@ You have *{len(outreach)}* message(s) to send:
             await self._reply_plain(update, _document_problem_reply(
                 res.get("status", ""), label, label_es, ext, res.get("pages", 0), res.get("pages_read", 0)))
             return
+        kind = "other"
         try:
             from src.notifications.telegram_qa_helper import answer_document, _document_kind
             kind = _document_kind(res["text"], file_name)
@@ -1580,6 +3630,8 @@ You have *{len(outreach)}* message(s) to send:
                      "Algo falló al responder el documento. Envíalo otra vez en un minuto.")
         reply += _document_notes(res, label)
         sent = await self._reply_plain(update, reply)
+        if sent:                                                   # 18 Oct 2026: "PDF" next makes it a file
+            self._remember_answer(update, caption, reply, src=kind)
         if sent and _asks_for_voice(caption):
             await self._speak_reply(update, reply)
 
