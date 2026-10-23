@@ -26,9 +26,35 @@ from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_M
 from dataclasses import dataclass
 import imaplib
 import email
-from email.header import decode_header
+from email.header import decode_header, make_header
 
 logger = logging.getLogger(__name__)
+
+
+def _header_text(raw) -> str:
+    """A header in its own charset, every encoded piece joined (23 Oct 2026).
+
+    It used to keep only decode_header()[0] and decode it as UTF-8 with errors='ignore': Pitz's Outlook mail
+    (Windows-1252) became the HubSpot deal "Envo de caso prctico  Proceso de seleccin".
+    """
+    if not raw:
+        return ""
+    try:
+        return str(make_header(decode_header(raw)))
+    except Exception:
+        return str(raw)
+
+
+def _payload_text(part) -> str:
+    """A body part decoded with the charset it declares (same 23 Oct bug as _header_text)."""
+    payload = part.get_payload(decode=True)
+    if not payload:
+        return ""
+    charset = part.get_content_charset() or "utf-8"
+    try:
+        return payload.decode(charset, errors="replace")
+    except LookupError:                       # an unknown charset name
+        return payload.decode("utf-8", errors="replace")
 
 # ── Circuit breaker for the Claude primary (28 Sep 2026) ─────────────────────
 # Anthropic credits have been at zero since 17 Aug; every classification still tried Claude Sonnet
@@ -561,16 +587,10 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
     def _parse_email(self, msg) -> Tuple[str, str, str, datetime]:
         """Extract email components"""
         # Get subject
-        subject = ""
-        raw_subject = msg.get("Subject", "")
-        if raw_subject:
-            decoded = decode_header(raw_subject)
-            subject = decoded[0][0]
-            if isinstance(subject, bytes):
-                subject = subject.decode('utf-8', errors='ignore')
-        
+        subject = _header_text(msg.get("Subject", ""))
+
         # Get from
-        from_raw = msg.get("From", "")
+        from_raw = _header_text(msg.get("From", ""))
         from_name = from_raw
         from_email = ""
         email_match = re.search(r'<([^>]+)>', from_raw)
@@ -586,19 +606,16 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             for part in msg.walk():
                 content_type = part.get_content_type()
                 if content_type == "text/plain":
-                    payload = part.get_payload(decode=True)
-                    if payload:
-                        body = payload.decode('utf-8', errors='ignore')
+                    text = _payload_text(part)
+                    if text:
+                        body = text
                         break
                 elif content_type == "text/html" and not body:
-                    payload = part.get_payload(decode=True)
-                    if payload:
-                        html = payload.decode('utf-8', errors='ignore')
+                    html = _payload_text(part)
+                    if html:
                         body = re.sub(r'<[^>]+>', ' ', html)  # Strip HTML
         else:
-            payload = msg.get_payload(decode=True)
-            if payload:
-                body = payload.decode('utf-8', errors='ignore')
+            body = _payload_text(msg)
         
         # Get date
         date_str = msg.get("Date", "")
