@@ -2912,9 +2912,10 @@ You have *{len(outreach)}* message(s) to send:
         if not update.message or not update.message.voice:
             return
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        groq_key = os.getenv("GROQ_API_KEY")
+        if not api_key and not groq_key:
             await update.message.reply_text(
-                "🎤 Voice works! Add OPENAI_API_KEY to .env for transcription. "
+                "🎤 Voice works! Add GROQ_API_KEY or OPENAI_API_KEY to .env for transcription. "
                 "Or type your question — I answer job questions from real data."
             )
             return
@@ -2930,11 +2931,24 @@ You have *{len(outreach)}* message(s) to send:
                 # verbose_json: Whisper names the language it heard (16 Oct 2026). Sync SDK → run in a thread,
                 # because the bot shares one event loop with the hourly job hunt. Client built as before (SDK
                 # default timeout and retries), so a long voice note that used to transcribe still does.
+                # 23 Oct 2026: Groq Whisper first, OpenAI as the backup. It was OpenAI only, and when OpenAI ran out of
+                # credits (429 insufficient_quota) every voice note failed. Groq speaks the same API and also names
+                # the language in verbose_json. Same order as CTO AIPA, EspaLuz and OpenClaw.
                 from openai import OpenAI
-                client = OpenAI(api_key=api_key)
-                with open(tmp_path, "rb") as f:
-                    return client.audio.transcriptions.create(model="whisper-1", file=f,
-                                                              response_format="verbose_json")
+                last_err = None
+                for key, base, model in ((groq_key, "https://api.groq.com/openai/v1", "whisper-large-v3-turbo"),
+                                         (api_key, None, "whisper-1")):
+                    if not key:
+                        continue
+                    try:
+                        client = OpenAI(api_key=key, base_url=base) if base else OpenAI(api_key=key)
+                        with open(tmp_path, "rb") as f:
+                            return client.audio.transcriptions.create(model=model, file=f,
+                                                                      response_format="verbose_json")
+                    except Exception as e:
+                        last_err = e
+                        logger.warning(f"🎤 transcription via {base or 'openai'} failed: {str(e)[:120]}")
+                raise last_err or RuntimeError("no transcription provider")
             try:
                 transcript = await asyncio.to_thread(_transcribe)
                 text = transcript.text.strip() if hasattr(transcript, 'text') else str(transcript)
