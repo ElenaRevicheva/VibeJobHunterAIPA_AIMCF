@@ -77,6 +77,12 @@ class _Search:
         return {"organic": self.organic}
 
 
+@pytest.fixture(autouse=True)
+def fresh_board_memory(monkeypatch, tmp_path):
+    monkeypatch.setattr(door, "BOARDS_FILE", tmp_path / "origin_boards.json")
+    monkeypatch.setattr(door, "_boards_cache", None)
+
+
 @pytest.fixture
 def bd(monkeypatch):
     monkeypatch.setattr(door, "BRIGHTDATA_API_TOKEN", "t")
@@ -305,3 +311,55 @@ def test_the_origin_is_remembered_so_it_is_not_a_second_deal(ingest, tmp_path):
     seen = door.load_seen()
     assert door.job_id({"title": ORIGIN_TITLE, "company_name": "CI&T", "location": ""}) in seen
     assert door.job_id(_copy()) in seen
+
+
+# ─── the board memory: a company's board, learned once, used free ───
+
+def test_a_board_result_teaches_the_companys_board(bd, boards, monkeypatch):
+    # 24 Oct, live on Oracle: the same search answered the Lever posting on one run and nothing on the
+    # next (Bright Data empty body). A board learned from ANY earlier result makes the next copy of
+    # that company's job resolvable without a search at all.
+    table, calls = boards
+    table[("lever", "ciandt")] = [(ORIGIN_TITLE, LEVER)]
+    door._remember_board("CI&T", "https://jobs.lever.co/ciandt/09ffa3a5")
+    s = _Search()                                                   # would answer nothing
+    monkeypatch.setattr(door, "_bd_search", s)
+    assert door._find_origin(COPY_TITLE, "CI&T") == (LEVER, ORIGIN_TITLE)
+    assert s.calls == [] and calls == [("lever", "ciandt")]         # no paid search
+
+
+def test_the_memory_works_without_bright_data(boards, monkeypatch):
+    table, _ = boards
+    table[("lever", "ciandt")] = [(ORIGIN_TITLE, LEVER)]
+    door._remember_board("Ciandt", LEVER)                           # "CI&T" and "Ciandt" differ; keys do not
+    monkeypatch.setattr(door, "BRIGHTDATA_API_TOKEN", "")
+    assert door._find_origin(COPY_TITLE, "Ciandt") == (LEVER, ORIGIN_TITLE)
+    assert door._find_origin(COPY_TITLE, "CI&T") is None            # a different key, nothing learned
+
+
+def test_the_search_itself_teaches_boards(bd, boards, monkeypatch):
+    monkeypatch.setattr(door, "_bd_search", _Search([{"title": "CI&T", "link": "https://jobs.lever.co/ciandt"}]))
+    assert door._find_origin(COPY_TITLE, "CI&T") is None            # empty board table: nothing found
+    assert door._known_boards("CI&T") == [("lever", "ciandt")]      # but the board is now known
+
+
+def test_google_results_teach_boards_and_the_memory_persists(monkeypatch, tmp_path):
+    monkeypatch.setattr(door, "BRIGHTDATA_API_TOKEN", "t")
+    monkeypatch.setattr(door, "BRIGHTDATA_ZONE", "z")
+    monkeypatch.setattr(door, "_bd_search", lambda label, url: {"organic": [
+        {"title": "Agentic AI Engineer at CodeRoad", "link": "https://job-boards.greenhouse.io/coderoad/jobs/4414020009"},
+        {"title": COPY_TITLE, "link": DAILYREMOTE},
+    ]})
+    jobs = door.fetch_google_jobs("q")
+    assert [j["company_name"] for j in jobs] == ["CodeRoad", "CI&T"]
+    assert door._known_boards("CodeRoad") == [("greenhouse", "coderoad")]
+    assert door._known_boards("CI&T") == []                          # an aggregator teaches nothing
+    door._save_boards()
+    monkeypatch.setattr(door, "_boards_cache", None)                 # a new process
+    assert door._known_boards("CodeRoad") == [("greenhouse", "coderoad")]
+    assert "coderoad" in (tmp_path / "origin_boards.json").read_text()
+
+
+def test_a_broken_memory_file_is_empty_not_a_crash(tmp_path):
+    (tmp_path / "origin_boards.json").write_text("{not json")
+    assert door._known_boards("CodeRoad") == []

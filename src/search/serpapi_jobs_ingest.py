@@ -144,6 +144,47 @@ def _board_slug(link: str):
     return None
 
 
+_boards_cache = None
+
+
+def _load_boards() -> dict:
+    global _boards_cache
+    if _boards_cache is None:
+        try:
+            _boards_cache = json.loads(BOARDS_FILE.read_text(encoding='utf-8')) if BOARDS_FILE.exists() else {}
+        except Exception:
+            _boards_cache = {}
+    return _boards_cache
+
+
+def _save_boards() -> None:
+    if _boards_cache is not None:
+        try:
+            BOARDS_FILE.write_text(json.dumps(_boards_cache, indent=1, sort_keys=True), encoding='utf-8')
+        except Exception as e:
+            log.debug(f'origin boards not saved: {e}')
+
+
+def _company_key(company: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', (company or '').lower())
+
+
+def _remember_board(company: str, link: str) -> None:
+    """Every origin-board result Google ever shows teaches which board a company uses, so an
+    aggregator copy of that company's next job needs no search to find its board. Free."""
+    bs = _board_slug(link)
+    key = _company_key(company)
+    if not bs or not key:
+        return
+    boards = _load_boards().setdefault(key, [])
+    if list(bs) not in boards:
+        boards.append(list(bs))
+
+
+def _known_boards(company: str) -> list:
+    return [tuple(b) for b in _load_boards().get(_company_key(company), [])]
+
+
 def _board_postings(board: str, slug: str) -> list:
     """[(title, url)] from the board's own public postings API; [] on any failure. Free, no key."""
     try:
@@ -187,7 +228,14 @@ def _find_origin(title: str, company: str):
     company ("[Job - 29399] AI Solutions Architect") does not reach it when a job id is present."""
     core = _core_title(title)
     want = _title_tokens(core)
-    if not core or not want or not (BRIGHTDATA_API_TOKEN and BRIGHTDATA_ZONE):
+    if not core or not want:
+        return None
+    for board, slug in _known_boards(company):          # boards this company was seen on: free
+        found = _best_match(want, _board_postings(board, slug))
+        if found:
+            log.info(f'  origin via remembered {board} board "{slug}": {found[0]}')
+            return found
+    if not (BRIGHTDATA_API_TOKEN and BRIGHTDATA_ZONE):
         return None
     plain = ' '.join(w for w in re.findall(r'[A-Za-z0-9]+', core) if w.lower() in want)   # "[Job - 32354]" as words: brackets break the query
     q = f'{plain} {company or ""} {JOB_BOARD_SITES}'.strip()
@@ -203,6 +251,8 @@ def _find_origin(title: str, company: str):
     on_boards = [((it.get('title') or '').strip(), (it.get('link') or it.get('url') or '').strip())
                  for it in organic]
     on_boards = [(t, l) for t, l in on_boards if l and _is_origin_host(l)]
+    for _t, l in on_boards:
+        _remember_board(company, l)
     direct = _best_match(want, on_boards)
     if direct:
         return direct
@@ -226,6 +276,7 @@ def _find_origin(title: str, company: str):
 OUTREACH_URL = (_env.get('CTO_AIPA_WEBHOOK_URL') or os.environ.get('CTO_AIPA_WEBHOOK_URL') or 'https://webhook.aideazz.xyz/cto').rstrip('/')
 OUTREACH_SECRET = _env.get('OUTREACH_SECRET') or os.environ.get('OUTREACH_SECRET', '')
 STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
+BOARDS_FILE  = Path(__file__).parent / 'origin_boards.json'   # company -> [[board, slug]] learned from results
 
 # ─── BORDERLINE ALERT (added 2026-08-14) — PURELY ADDITIVE ───────────────────
 # A gate-vs-judge DISAGREEMENT must never die silently.
@@ -659,9 +710,12 @@ def fetch_google_jobs(query: str) -> list:
                 continue
             # 2026-10-06: a company field on the result, if Bright Data's parser ever supplies one.
             hint = it.get('company') or it.get('company_name') or ''
+            company = _extract_company(title, link, hint if isinstance(hint, str) else '')
+            if _is_origin_host(link):
+                _remember_board(company, link)       # 2026-10-24: learn the company's board, see ORIGIN_HOSTS
             jobs.append({
                 'title':         title,
-                'company_name':  _extract_company(title, link, hint if isinstance(hint, str) else ''),
+                'company_name':  company,
                 'location':      '',
                 'description':   snippet,
                 'related_links': [{'link': link}],
@@ -1093,6 +1147,7 @@ def ingest_once() -> None:
         time.sleep(2)  # 1 API call per query, be polite
 
     save_seen(seen)
+    _save_boards()
     log.info(f'Done — new jobs: {new_jobs}, client prospects: {client_prospects}')
 
 

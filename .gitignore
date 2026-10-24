@@ -121,3 +121,7 @@ cto_aipa_updates/pending_tech_updates.json
 # (AUTO_APPLY_ENABLED=false). Backed up on the server before untracking.
 autonomous_data/resumes/*.pdf
 /elena_resume_updated_*.pdf
+
+# Bright Data door state (per machine, never committed)
+src/search/serpapi_jobs_seen.json
+src/search/origin_boards.json
