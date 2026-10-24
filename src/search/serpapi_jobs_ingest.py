@@ -120,17 +120,77 @@ def _title_tokens(t: str) -> set:
     return {w for w in re.findall(r'[a-z0-9]+', (t or '').lower()) if len(w) >= 2 and w not in _TITLE_STOP}
 
 
+def _board_slug(link: str):
+    """(board, slug) for a posting or board-index URL on an origin board, else None.
+    jobs.lever.co/<slug>/…, <slug>.lever.co, boards|job-boards.greenhouse.io/<slug>/…,
+    jobs.ashbyhq.com/<slug>/…. Wellfound has no public postings API and is left to the search."""
+    try:
+        u = up.urlparse(link or '')
+        host = u.netloc.lower().split(':')[0]
+        path = [up.unquote(x) for x in u.path.split('/') if x]
+        if host.endswith('.lever.co'):
+            sub = host[:-len('.lever.co')].split('.')[-1]
+            slug = sub if sub and sub not in ('jobs', 'eu', 'www') else (path[0] if path else '')
+            return ('lever', slug.lower()) if slug else None
+        if host.endswith('greenhouse.io') and path:
+            slug = path[0]
+            if slug.lower() == 'embed':
+                slug = (up.parse_qs(u.query).get('for') or [''])[0]
+            return ('greenhouse', slug.lower()) if slug else None
+        if host.endswith('ashbyhq.com') and path:
+            return ('ashby', path[0].lower())
+    except Exception:
+        pass
+    return None
+
+
+def _board_postings(board: str, slug: str) -> list:
+    """[(title, url)] from the board's own public postings API; [] on any failure. Free, no key."""
+    try:
+        if board == 'lever':
+            r = requests.get(f'https://api.lever.co/v0/postings/{slug}?mode=json&limit=500', timeout=20)
+            return [(j.get('text') or '', j.get('hostedUrl') or '') for j in r.json()] if r.ok else []
+        if board == 'greenhouse':
+            r = requests.get(f'https://boards-api.greenhouse.io/v1/boards/{slug}/jobs', timeout=20)
+            return [(j.get('title') or '', j.get('absolute_url') or '') for j in r.json().get('jobs', [])] if r.ok else []
+        if board == 'ashby':
+            r = requests.get(f'https://api.ashbyhq.com/posting-api/job-board/{slug}', timeout=20)
+            return [(j.get('title') or '', j.get('jobUrl') or '') for j in r.json().get('jobs', [])] if r.ok else []
+    except Exception as e:
+        log.debug(f'board api {board}/{slug}: {e}')
+    return []
+
+
+def _best_match(want: set, candidates):
+    """(url, title) of the candidate whose title carries the most of `want`, if ≥ ORIGIN_TITLE_MATCH."""
+    best, best_score = None, 0.0
+    for ctitle, curl in candidates:
+        if not ctitle or not curl:
+            continue
+        score = len(want & _title_tokens(ctitle)) / len(want)
+        if score > best_score:
+            best, best_score = (curl, ctitle), score
+    return best if best_score >= ORIGIN_TITLE_MATCH else None
+
+
 def _find_origin(title: str, company: str):
     """(origin_url, origin_title) for the same posting on an origin board, or None.
 
-    One paid Bright Data search: the core title in quotes + the company, restricted to the origin
-    boards. The first origin-board result whose title carries ORIGIN_TITLE_MATCH of the core title's
-    words is the origin; anything else (another role at the same company) is not."""
+    1. One paid Bright Data search — the core title's words + the company, "restricted" to the
+       origin boards. Measured 24 Oct on CI&T 32354: Google ignores the site: group almost entirely
+       (Workday, Builtin, LinkedIn in the top 10) and the Lever page itself was not there — but the
+       company's Lever board index was. So a result on an origin board is taken when its title is
+       the same posting, and otherwise it tells us WHICH board the company uses.
+    2. That board's own public postings API (free, no key) — Lever, Greenhouse, Ashby — read in
+       full and matched on the title. A slug guessed from the company name is tried too.
+    The match is ORIGIN_TITLE_MATCH of the core title's words; a different role at the same
+    company ("[Job - 29399] AI Solutions Architect") does not reach it when a job id is present."""
     core = _core_title(title)
     want = _title_tokens(core)
     if not core or not want or not (BRIGHTDATA_API_TOKEN and BRIGHTDATA_ZONE):
         return None
-    q = f'"{core}" {company or ""} {JOB_BOARD_SITES}'.strip()
+    plain = ' '.join(w for w in re.findall(r'[A-Za-z0-9]+', core) if w.lower() in want)   # "[Job - 32354]" as words: brackets break the query
+    q = f'{plain} {company or ""} {JOB_BOARD_SITES}'.strip()
     url = 'https://www.google.com/search?' + up.urlencode({
         'q': q, 'hl': 'en', 'gl': 'us', 'num': '10', 'brd_json': '1',
     })
@@ -139,15 +199,27 @@ def _find_origin(title: str, company: str):
     except Exception as e:
         log.warning(f'origin search failed ({core}): {e}')
         return None
-    if not isinstance(data, dict):
-        return None
-    for it in (data.get('organic') or data.get('organic_results') or []):
-        link = (it.get('link') or it.get('url') or '').strip()
-        rtitle = (it.get('title') or '').strip()
-        if not link or not rtitle or not _is_origin_host(link):
-            continue
-        if len(want & _title_tokens(rtitle)) / len(want) >= ORIGIN_TITLE_MATCH:
-            return link, rtitle
+    organic = (data.get('organic') or data.get('organic_results') or []) if isinstance(data, dict) else []
+    on_boards = [((it.get('title') or '').strip(), (it.get('link') or it.get('url') or '').strip())
+                 for it in organic]
+    on_boards = [(t, l) for t, l in on_boards if l and _is_origin_host(l)]
+    direct = _best_match(want, on_boards)
+    if direct:
+        return direct
+    slugs = []
+    for _t, l in on_boards:
+        bs = _board_slug(l)
+        if bs and bs not in slugs:
+            slugs.append(bs)
+    guess = re.sub(r'[^a-z0-9]', '', (company or '').lower())
+    for board in ('lever', 'greenhouse', 'ashby'):
+        if guess and (board, guess) not in slugs:
+            slugs.append((board, guess))
+    for board, slug in slugs:
+        found = _best_match(want, _board_postings(board, slug))
+        if found:
+            log.info(f'  origin via {board} board "{slug}": {found[0]}')
+            return found
     return None
 
 

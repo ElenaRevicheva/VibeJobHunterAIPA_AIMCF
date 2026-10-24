@@ -83,7 +83,19 @@ def bd(monkeypatch):
     monkeypatch.setattr(door, "BRIGHTDATA_ZONE", "z")
 
 
-def test_origin_is_the_same_posting_on_a_board(bd, monkeypatch):
+@pytest.fixture
+def boards(monkeypatch):
+    """The boards' public APIs, replaced: {(board, slug): [(title, url)]}; records every call."""
+    table, calls = {}, []
+
+    def postings(board, slug):
+        calls.append((board, slug))
+        return table.get((board, slug), [])
+    monkeypatch.setattr(door, "_board_postings", postings)
+    return table, calls
+
+
+def test_origin_is_the_same_posting_on_a_board(bd, boards, monkeypatch):
     s = _Search([
         {"title": "[Job - 32354] AI Solution Architect, Brazil - DailyRemote", "link": DAILYREMOTE},
         {"title": "[Job-00024] Senior AI Architect, Brazil", "link": "https://jobs.lever.co/ciandt/208c24f9"},
@@ -91,12 +103,47 @@ def test_origin_is_the_same_posting_on_a_board(bd, monkeypatch):
     ])
     monkeypatch.setattr(door, "_bd_search", s)
     assert door._find_origin(COPY_TITLE, "CI&T") == (LEVER, ORIGIN_TITLE)
-    assert len(s.calls) == 1                                        # exactly one paid search
-    assert "%22%5BJob+-+32354%5D+AI+Solution+Architect%22" in s.calls[0]   # the core title, quoted
-    assert "site%3Alever.co" in s.calls[0]                          # restricted to the origin boards
+    assert len(s.calls) == 1 and boards[1] == []                    # one paid search, no API needed
+    assert "q=32354+AI+Solution+Architect+CI%26T" in s.calls[0]      # the title as words, no brackets; "job" is a stop word
+    assert "site%3Alever.co" in s.calls[0]                          # "restricted" to the origin boards
 
 
-def test_another_role_at_the_same_company_is_not_the_origin(bd, monkeypatch):
+def test_the_board_index_leads_to_the_boards_own_api(bd, boards, monkeypatch):
+    # Measured 24 Oct: Google's top 10 for this job had Workday, Builtin, LinkedIn and the CI&T Lever
+    # board INDEX — not the Lever posting. The index names the board; the board's API has the posting.
+    table, calls = boards
+    table[("lever", "ciandt")] = [
+        ("[Job-00024] Senior AI Architect, Brazil", "https://jobs.lever.co/ciandt/208c24f9"),
+        ("[Job - 29399] AI Solutions Architect, Brazil", "https://jobs.lever.co/ciandt/c9b74739"),
+        (ORIGIN_TITLE, LEVER),
+    ]
+    monkeypatch.setattr(door, "_bd_search", _Search([
+        {"title": "[Job - 32354] AI Solution Architect, Colombia - CI&T", "link": "https://builtin.com/job/job-32354"},
+        {"title": "Open positions | CI&T", "link": "https://ciandt.com/us/en-us/careers/open-positions"},
+        {"title": "CI&T", "link": "https://jobs.lever.co/ciandt"},
+        {"title": "AI Solution Architect, Brazil en CI&T — Colombia", "link": "https://co.linkedin.com/jobs/view/1"},
+    ]))
+    assert door._find_origin(COPY_TITLE, "CI&T") == (LEVER, ORIGIN_TITLE)
+    assert calls[0] == ("lever", "ciandt")                           # the board Google showed, first
+
+
+def test_a_guessed_slug_is_tried_when_google_shows_no_board(bd, boards, monkeypatch):
+    table, calls = boards
+    table[("greenhouse", "coderoad")] = [("Agentic AI Engineer", "https://job-boards.greenhouse.io/coderoad/jobs/4414020009")]
+    monkeypatch.setattr(door, "_bd_search", _Search([
+        {"title": "Agentic AI Engineer at CodeRoad", "link": "https://www.remoterocketship.com/x/1"},
+    ]))
+    assert door._find_origin("Agentic AI Engineer at CodeRoad", "CodeRoad") == \
+        ("https://job-boards.greenhouse.io/coderoad/jobs/4414020009", "Agentic AI Engineer")
+    assert calls == [("lever", "coderoad"), ("greenhouse", "coderoad")]   # stops at the first hit
+
+
+def test_another_role_at_the_same_company_is_not_the_origin(bd, boards, monkeypatch):
+    table, _ = boards
+    table[("lever", "ciandt")] = [
+        ("[Job-23029] Solutions Architect, Brazil", "https://jobs.lever.co/ciandt/00e82872"),
+        ("[Job - 29399] AI Solutions Architect, Brazil", "https://jobs.lever.co/ciandt/c9b74739"),
+    ]
     monkeypatch.setattr(door, "_bd_search", _Search([
         {"title": "[Job-23029] Solutions Architect, Brazil", "link": "https://jobs.lever.co/ciandt/00e82872"},
         {"title": "[Job-30896] System Architect, Brazil", "link": "https://jobs.lever.co/ciandt/e65c5314"},
@@ -104,12 +151,48 @@ def test_another_role_at_the_same_company_is_not_the_origin(bd, monkeypatch):
     assert door._find_origin(COPY_TITLE, "CI&T") is None
 
 
-def test_an_aggregator_in_the_answer_is_never_the_origin(bd, monkeypatch):
+def test_an_aggregator_in_the_answer_is_never_the_origin(bd, boards, monkeypatch):
     monkeypatch.setattr(door, "_bd_search", _Search([
         {"title": COPY_TITLE, "link": DAILYREMOTE},
         {"title": COPY_TITLE, "link": "https://www.remoterocketship.com/x/1"},
     ]))
     assert door._find_origin(COPY_TITLE, "CI&T") is None
+
+
+@pytest.mark.parametrize("link, expected", [
+    (LEVER, ("lever", "ciandt")),
+    ("https://jobs.lever.co/ciandt", ("lever", "ciandt")),
+    ("https://jobs.eu.lever.co/deuna/1", ("lever", "deuna")),
+    ("https://acme.lever.co/1", ("lever", "acme")),
+    ("https://job-boards.greenhouse.io/coderoad/jobs/4414020009", ("greenhouse", "coderoad")),
+    ("https://boards.greenhouse.io/embed/job_app?for=minted&token=1", ("greenhouse", "minted")),
+    ("https://jobs.ashbyhq.com/n8n/abc", ("ashby", "n8n")),
+    ("https://wellfound.com/company/testfyra/jobs/1", None),         # no public API
+    (DAILYREMOTE, None),
+])
+def test_board_slug(link, expected):
+    assert door._board_slug(link) == expected
+
+
+def test_board_apis_are_read_and_a_failure_is_empty(monkeypatch):
+    class R:
+        ok = True
+        def __init__(self, body): self._b = body
+        def json(self): return self._b
+    seen = []
+
+    def get(url, timeout):
+        seen.append(url)
+        if "lever" in url:
+            return R([{"text": ORIGIN_TITLE, "hostedUrl": LEVER}])
+        if "greenhouse" in url:
+            return R({"jobs": [{"title": "Agentic AI Engineer", "absolute_url": "https://g/1"}]})
+        raise RuntimeError("down")
+    monkeypatch.setattr(door.requests, "get", get)
+    assert door._board_postings("lever", "ciandt") == [(ORIGIN_TITLE, LEVER)]
+    assert door._board_postings("greenhouse", "coderoad") == [("Agentic AI Engineer", "https://g/1")]
+    assert door._board_postings("ashby", "n8n") == []
+    assert seen[0] == "https://api.lever.co/v0/postings/ciandt?mode=json&limit=500"
 
 
 def test_no_search_without_bright_data(monkeypatch):
