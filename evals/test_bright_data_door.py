@@ -355,6 +355,9 @@ def ingest(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(door, "JOBS_QUERIES", ["q"])
     monkeypatch.setattr(door, "_GATE_AVAILABLE", False)
     monkeypatch.setattr(door, "_read_full_posting", lambda t, u, d: (d, False))
+    # 2026-10-24: every URL here is treated as an origin board, so these tests keep exercising the
+    # path they were written for. The origin resolution has its own tests in test_origin_board.py.
+    monkeypatch.setattr(door, "_is_origin_host", lambda u: True)
     monkeypatch.setattr(door, "_salary_verdict", lambda *a, **k: ("unknown", None, ""))
     monkeypatch.setattr(door, "record_judged_posting", lambda *a, **k: False)
     monkeypatch.setattr(door, "_borderline_check", lambda *a, **k: (False, ""))

@@ -66,6 +66,91 @@ BRIGHTDATA_ZONE      = _env.get('BRIGHTDATA_ZONE') or os.environ.get('BRIGHTDATA
 BD_API = 'https://api.brightdata.com/request'
 JOB_BOARD_SITES = ('(site:wellfound.com OR site:lever.co OR site:greenhouse.io '
                    'OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:ashbyhq.com)')
+# ─── ORIGIN BOARDS (added 2026-10-24) — a copy on an aggregator is a pointer, not a posting ──
+# Elena, 24 Oct 2026: "if VJH finds a job at a paywalled aggregator he should dig the true initial
+# board where the job is posted and inspect this job on the criteria VJH has".
+# Earned from CI&T job 32354. JOB_BOARD_SITES restricts the Google query to four ATS domains, but
+# Google treats a (site:a OR site:b) group as a hint: on 23 Oct it returned dailyremote.com, a paid
+# aggregator whose copy hid the employer, said "Brazil" (the origin says Colombia) and sent every
+# Apply button to its own $14.95 checkout. That copy passed the gate and the judge and got a full
+# apply kit; the origin on jobs.lever.co, found the next day, was parked (Colombia, fluent Spanish).
+# Measured 1-24 Oct: 13 of the 41 postings this door read came from hosts outside the four boards.
+# So a result from any other host is resolved to its ORIGIN first (one paid search, on-lane titles
+# only): the origin's text is what the gate and the judge read, and the origin's URL is what the
+# deal carries. No origin found = no deal (logged with the URL), never a paywall link in I Act TODAY.
+# A leak that is the employer's own site (stripe.com for Stripe) is already the origin and is kept.
+ORIGIN_HOSTS = ('lever.co', 'greenhouse.io', 'ashbyhq.com', 'wellfound.com')
+ORIGIN_TITLE_MATCH = 0.7      # share of the core title's words the origin's title must carry
+_TITLE_STOP = frozenset({'at', 'in', 'of', 'the', 'and', 'or', 'for', 'to', 'a', 'an', 'remote', 'job'})
+
+
+def _host(url: str) -> str:
+    try:
+        h = up.urlparse(url or '').netloc.lower().split(':')[0]
+        return h[4:] if h.startswith('www.') else h
+    except Exception:
+        return ''
+
+
+def _is_origin_host(url: str) -> bool:
+    h = _host(url)
+    return bool(h) and any(h == o or h.endswith('.' + o) for o in ORIGIN_HOSTS)
+
+
+def _is_company_domain(url: str, company: str) -> bool:
+    """The employer's own careers site is an origin too: a company word (4+ letters) is in the host."""
+    h = _host(url)
+    words = [w for w in re.findall(r'[a-z0-9]+', (company or '').lower())
+             if len(w) >= 4 and w not in _GENERIC_COMPANY_WORDS]
+    return bool(h) and any(w in h for w in words)
+
+
+def _core_title(title: str) -> str:
+    """The posting's own title: drop " at Company", "• Location", " | …" and a trailing ", Place"."""
+    t = re.split(r'\s+(?:at|@)\s+|\s[•|]\s', title or '', maxsplit=1)[0]
+    m = re.search(r',\s*([^,]{1,30})$', t)
+    # ", Brazil" goes; ", Engineering" (a role word) stays, and so does a tail whose removal would
+    # leave a single word ("Director, Engineering"): one word would match any role at the company.
+    if m and not _ROLE_WORD.search(m.group(1)) and len(_title_tokens(t[:m.start()])) >= 2:
+        t = t[:m.start()]
+    return t.strip(' -—|·,')
+
+
+def _title_tokens(t: str) -> set:
+    return {w for w in re.findall(r'[a-z0-9]+', (t or '').lower()) if len(w) >= 2 and w not in _TITLE_STOP}
+
+
+def _find_origin(title: str, company: str):
+    """(origin_url, origin_title) for the same posting on an origin board, or None.
+
+    One paid Bright Data search: the core title in quotes + the company, restricted to the origin
+    boards. The first origin-board result whose title carries ORIGIN_TITLE_MATCH of the core title's
+    words is the origin; anything else (another role at the same company) is not."""
+    core = _core_title(title)
+    want = _title_tokens(core)
+    if not core or not want or not (BRIGHTDATA_API_TOKEN and BRIGHTDATA_ZONE):
+        return None
+    q = f'"{core}" {company or ""} {JOB_BOARD_SITES}'.strip()
+    url = 'https://www.google.com/search?' + up.urlencode({
+        'q': q, 'hl': 'en', 'gl': 'us', 'num': '10', 'brd_json': '1',
+    })
+    try:
+        data = _bd_search(f'origin of {core}', url)
+    except Exception as e:
+        log.warning(f'origin search failed ({core}): {e}')
+        return None
+    if not isinstance(data, dict):
+        return None
+    for it in (data.get('organic') or data.get('organic_results') or []):
+        link = (it.get('link') or it.get('url') or '').strip()
+        rtitle = (it.get('title') or '').strip()
+        if not link or not rtitle or not _is_origin_host(link):
+            continue
+        if len(want & _title_tokens(rtitle)) / len(want) >= ORIGIN_TITLE_MATCH:
+            return link, rtitle
+    return None
+
+
 OUTREACH_URL = (_env.get('CTO_AIPA_WEBHOOK_URL') or os.environ.get('CTO_AIPA_WEBHOOK_URL') or 'https://webhook.aideazz.xyz/cto').rstrip('/')
 OUTREACH_SECRET = _env.get('OUTREACH_SECRET') or os.environ.get('OUTREACH_SECRET', '')
 STATE_FILE   = Path(__file__).parent / 'serpapi_jobs_seen.json'
@@ -751,6 +836,26 @@ def ingest_once() -> None:
                     log.warning(f'  ⚠ gate error (allow-through): {e}')
 
             log.info(f'  + {title} @ {company} ({location})')
+
+            # ── ORIGIN BOARD (2026-10-24): a result from outside the origin boards is a POINTER.
+            # Resolve it to the employer's posting; the gate, the judge and the deal use the origin.
+            # Off-lane titles cost no search (same rule as reading the posting) and are not pushed
+            # from a copy either. See ORIGIN_HOSTS above for why.
+            if job_url and not _is_origin_host(job_url) and not _is_company_domain(job_url, company):
+                if not title_on_lane(title):
+                    log.info(f'  aggregator {_host(job_url)}, off-lane — skipped: {title} @ {company}')
+                    continue
+                _o = _find_origin(title, company)
+                if not _o:
+                    log.info(f'  aggregator {_host(job_url)}, origin not found — skipped: {title} @ {company} ({job_url})')
+                    continue
+                _ourl, _otitle = _o
+                log.info(f'  aggregator {_host(job_url)} -> origin {_ourl}: {title} @ {company}')
+                job_url = _ourl
+                title = _otitle or title
+                company = (company or '').strip() or _extract_company(title, job_url)
+                desc_full = desc = ''          # the copy's text is not evidence — read the origin
+                mark_seen(seen, job_id({'title': title, 'company_name': company, 'location': location}))
 
             # ── IRON-CLAD FIT GATE: only fully-remote + LATAM/global + AI-augmented
             # roles reach Elena's actionable "I Act TODAY"; the rest are parked in

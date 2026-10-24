@@ -64,6 +64,7 @@ def door_run(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(door, "JOBS_QUERIES", ["q"])
     monkeypatch.setattr(door, "_GATE_AVAILABLE", False)
     monkeypatch.setattr(door, "_read_full_posting", lambda t, u, d: (d, False))
+    monkeypatch.setattr(door, "_is_origin_host", lambda u: True)   # 2026-10-24: see test_origin_board.py
     monkeypatch.setattr(door, "_salary_verdict", lambda *a, **k: ("unknown", None, ""))
     monkeypatch.setattr(door, "record_judged_posting", lambda *a, **k: False)
     monkeypatch.setattr(door, "iron_clad_fit", lambda t, l, d: False)          # the gate said NO
