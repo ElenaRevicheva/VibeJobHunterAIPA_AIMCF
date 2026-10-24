@@ -80,7 +80,8 @@ JOB_BOARD_SITES = ('(site:wellfound.com OR site:lever.co OR site:greenhouse.io '
 # deal carries. No origin found = no deal (logged with the URL), never a paywall link in I Act TODAY.
 # A leak that is the employer's own site (stripe.com for Stripe) is already the origin and is kept.
 ORIGIN_HOSTS = ('lever.co', 'greenhouse.io', 'ashbyhq.com', 'wellfound.com')
-ORIGIN_TITLE_MATCH = 0.7      # share of the core title's words the origin's title must carry
+ORIGIN_TITLE_MATCH = 0.8      # share of the core title's words the origin's title must carry (0.7 let
+                              # "AI Implementation & Automation Engineer" match Databricks' "AI Automation Engineer")
 _TITLE_STOP = frozenset({'at', 'in', 'of', 'the', 'and', 'or', 'for', 'to', 'a', 'an', 'remote', 'job'})
 
 
@@ -105,13 +106,15 @@ def _is_company_domain(url: str, company: str) -> bool:
     return bool(h) and any(w in h for w in words)
 
 
-def _core_title(title: str) -> str:
-    """The posting's own title: drop " at Company", "• Location", " | …" and a trailing ", Place"."""
-    t = re.split(r'\s+(?:at|@)\s+|\s[•|]\s', title or '', maxsplit=1)[0]
+def _core_title(title: str, keep_tail: bool = False) -> str:
+    """The posting's own title. "Role at Company • Place", "Company | Role", "Role @ Company | Remote":
+    the first segment that reads as a role (the first segment when none does). A trailing ", Place"
+    goes unless keep_tail — ", Engineering" (a role word) stays, and so does a tail whose removal
+    would leave one word ("Director, Engineering"): one word would match any role at the company."""
+    segs = [x.strip(' -—|·,') for x in re.split(r'\s+(?:at|@)\s+|\s[•|]\s', title or '') if x.strip(' -—|·,')]
+    t = next((x for x in segs if _ROLE_WORD.search(x)), segs[0] if segs else '')
     m = re.search(r',\s*([^,]{1,30})$', t)
-    # ", Brazil" goes; ", Engineering" (a role word) stays, and so does a tail whose removal would
-    # leave a single word ("Director, Engineering"): one word would match any role at the company.
-    if m and not _ROLE_WORD.search(m.group(1)) and len(_title_tokens(t[:m.start()])) >= 2:
+    if m and not keep_tail and not _ROLE_WORD.search(m.group(1)) and len(_title_tokens(t[:m.start()])) >= 2:
         t = t[:m.start()]
     return t.strip(' -—|·,')
 
@@ -185,6 +188,26 @@ def _known_boards(company: str) -> list:
     return [tuple(b) for b in _load_boards().get(_company_key(company), [])]
 
 
+def _is_posting_url(link: str) -> bool:
+    """A single posting on an origin board, not the board's index. Live 24 Oct: Google answered
+    job-boards.greenhouse.io/stripe?error=true with the posting's title and it was taken as the origin."""
+    bs = _board_slug(link)
+    host = _host(link)
+    try:
+        path = [x for x in up.urlparse(link or '').path.split('/') if x]
+    except Exception:
+        return False
+    if not bs:
+        return _is_origin_host(link) and len(path) >= 2 and path[0] == 'jobs'   # wellfound.com/jobs/<id>-…
+    board = bs[0]
+    if board == 'greenhouse':
+        return 'jobs' in path and len(path) >= 3                                 # <slug>/jobs/<id>
+    if board == 'lever':
+        sub = host[:-len('.lever.co')]
+        return len(path) >= (2 if sub in ('jobs', 'jobs.eu') else 1)           # jobs.lever.co/<slug>/<id>, <slug>.lever.co/<id>
+    return len(path) >= 2                                                        # jobs.ashbyhq.com/<slug>/<id>
+
+
 def _board_postings(board: str, slug: str) -> list:
     """[(title, url)] from the board's own public postings API; [] on any failure. Free, no key."""
     try:
@@ -202,16 +225,20 @@ def _board_postings(board: str, slug: str) -> list:
     return []
 
 
-def _best_match(want: set, candidates):
-    """(url, title) of the candidate whose title carries the most of `want`, if ≥ ORIGIN_TITLE_MATCH."""
-    best, best_score = None, 0.0
+def _best_match(want: set, candidates, want_full: set = None):
+    """(url, title) of the candidate whose title carries the most of `want` (≥ ORIGIN_TITLE_MATCH);
+    `want_full` (the title with its ", Place" tail) breaks ties, so "Solutions Architect, AI" beats
+    "Solutions Architect, Payments" when both are on the board."""
+    best, best_key = None, (0.0, 0.0)
     for ctitle, curl in candidates:
         if not ctitle or not curl:
             continue
-        score = len(want & _title_tokens(ctitle)) / len(want)
-        if score > best_score:
-            best, best_score = (curl, ctitle), score
-    return best if best_score >= ORIGIN_TITLE_MATCH else None
+        have = _title_tokens(ctitle)
+        score = len(want & have) / len(want)
+        full = len((want_full or want) & have) / len(want_full or want)
+        if (score, full) > best_key:
+            best, best_key = (curl, ctitle), (score, full)
+    return best if best_key[0] >= ORIGIN_TITLE_MATCH else None
 
 
 def _find_origin(title: str, company: str):
@@ -228,10 +255,15 @@ def _find_origin(title: str, company: str):
     company ("[Job - 29399] AI Solutions Architect") does not reach it when a job id is present."""
     core = _core_title(title)
     want = _title_tokens(core)
+    want_full = _title_tokens(_core_title(title, keep_tail=True))
     if not core or not want:
         return None
+    if not (company or '').strip():
+        # Live 24 Oct: a title-only search tied "AI Implementation & Automation Engineer" (no company)
+        # to Databricks' "AI Automation Engineer". Without an employer nothing proves it is the same job.
+        return None
     for board, slug in _known_boards(company):          # boards this company was seen on: free
-        found = _best_match(want, _board_postings(board, slug))
+        found = _best_match(want, _board_postings(board, slug), want_full)
         if found:
             log.info(f'  origin via remembered {board} board "{slug}": {found[0]}')
             return found
@@ -253,7 +285,7 @@ def _find_origin(title: str, company: str):
     on_boards = [(t, l) for t, l in on_boards if l and _is_origin_host(l)]
     for _t, l in on_boards:
         _remember_board(company, l)
-    direct = _best_match(want, on_boards)
+    direct = _best_match(want, [(t, l) for t, l in on_boards if _is_posting_url(l)], want_full)
     if direct:
         return direct
     slugs = []
@@ -266,7 +298,7 @@ def _find_origin(title: str, company: str):
         if guess and (board, guess) not in slugs:
             slugs.append((board, guess))
     for board, slug in slugs:
-        found = _best_match(want, _board_postings(board, slug))
+        found = _best_match(want, _board_postings(board, slug), want_full)
         if found:
             log.info(f'  origin via {board} board "{slug}": {found[0]}')
             return found

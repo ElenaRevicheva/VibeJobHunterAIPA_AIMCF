@@ -59,9 +59,18 @@ def test_the_employers_own_site_is_an_origin():
     ("AI Automation Specialist @ LanceMart | Remote", "AI Automation Specialist"),
     ("Director, Engineering", "Director, Engineering"),            # the comma part is a role, kept
     ("Product Head of AI", "Product Head of AI"),
+    ("Stripe Careers | Solutions Architect, AI", "Solutions Architect"),   # "Company | Role": the role side
+    ("CI&T - [Job - 32354] AI Solution Architect, Colombia", "CI&T - [Job - 32354] AI Solution Architect"),
 ])
 def test_core_title(title, core):
     assert door._core_title(title) == core
+
+
+def test_the_tail_breaks_ties_between_two_postings():
+    want, full = door._title_tokens("Solutions Architect"), door._title_tokens("Solutions Architect, AI")
+    both = [("Solutions Architect, Payments", "https://g/pay"), ("Solutions Architect, AI", "https://g/ai")]
+    assert door._best_match(want, both, full) == ("https://g/ai", "Solutions Architect, AI")
+    assert door._best_match(want, both[:1], full) == ("https://g/pay", "Solutions Architect, Payments")
 
 
 # ─── finding the origin: one search, the right result ───
@@ -363,3 +372,41 @@ def test_google_results_teach_boards_and_the_memory_persists(monkeypatch, tmp_pa
 def test_a_broken_memory_file_is_empty_not_a_crash(tmp_path):
     (tmp_path / "origin_boards.json").write_text("{not json")
     assert door._known_boards("CodeRoad") == []
+
+
+# ─── live 24 Oct, first run after deploy: two matches that were not the same posting ───
+
+def test_no_company_means_no_origin_search(bd, boards, monkeypatch):
+    # gowithpurple.com copy "AI Implementation & Automation Engineer (Remote | LATAM …" with no company
+    # was tied to Databricks' "AI Automation Engineer". Nothing proves a title-only match is the same job.
+    s = _Search([{"title": "AI Automation Engineer", "link": "https://job-boards.greenhouse.io/databricks/jobs/8829033002"}])
+    monkeypatch.setattr(door, "_bd_search", s)
+    assert door._find_origin("AI Implementation & Automation Engineer (Remote | LATAM ...", "") is None
+    assert s.calls == [] and boards[1] == []
+
+
+def test_a_near_title_is_not_the_same_posting(bd, boards, monkeypatch):
+    monkeypatch.setattr(door, "_bd_search", _Search([
+        {"title": "AI Automation Engineer", "link": "https://job-boards.greenhouse.io/databricks/jobs/8829033002"}]))
+    assert door._find_origin("AI Implementation & Automation Engineer (Remote | LATAM ...", "Purple") is None
+
+
+def test_a_board_index_is_not_a_posting_but_names_the_board(bd, boards, monkeypatch):
+    # Google answered job-boards.greenhouse.io/stripe?error=true WITH the posting's title.
+    table, calls = boards
+    table[("greenhouse", "stripe")] = [("Solutions Architect, AI", "https://job-boards.greenhouse.io/stripe/jobs/7100")]
+    monkeypatch.setattr(door, "_bd_search", _Search([
+        {"title": "Stripe Careers | Solutions Architect, AI", "link": "https://job-boards.greenhouse.io/stripe?error=true"}]))
+    assert door._find_origin("Stripe Careers | Solutions Architect, AI", "Stripe") ==         ("https://job-boards.greenhouse.io/stripe/jobs/7100", "Solutions Architect, AI")
+    assert calls == [("greenhouse", "stripe")]
+
+
+@pytest.mark.parametrize("link, posting", [
+    (LEVER, True), ("https://acme.lever.co/abc", True), ("https://jobs.lever.co/ciandt", False),
+    ("https://job-boards.greenhouse.io/stripe/jobs/7100", True), ("https://job-boards.greenhouse.io/stripe?error=true", False),
+    ("https://boards.greenhouse.io/stripe", False), ("https://jobs.ashbyhq.com/n8n/abc", True), ("https://jobs.ashbyhq.com/n8n", False),
+    ("https://wellfound.com/jobs/4271025-platform-engineer", True), ("https://wellfound.com/company/testfyra", False),
+    (DAILYREMOTE, False),
+])
+def test_posting_url(link, posting):
+    assert door._is_posting_url(link) is posting
