@@ -248,14 +248,16 @@ def test_chain_survives_losing_its_first_three_providers():
     import os
 
     complete, quality, _ = _chain()
-    saved = {k: os.environ.get(k) for k in ("OPENAI_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY")}
+    # 25 Oct 2026: break whatever the chain's FIRST THREE are (the order changed when OpenAI moved back), and end with
+    # Claude the way real callers do (Claude, then PROFILE_QUALITY) — the old fixed key list stopped testing the head.
+    saved = {KEY_FOR[p]: os.environ.get(KEY_FOR[p]) for p in quality[:3]}
     for k in saved:
         os.environ[k] = "broken-on-purpose"
     try:
         text, errors = complete(
             [{"role": "user", "content": "Reply with the single word: ok"}],
             max_tokens=200,
-            order=quality,
+            order=(*quality, "claude"),
         )
     finally:
         for k, v in saved.items():
