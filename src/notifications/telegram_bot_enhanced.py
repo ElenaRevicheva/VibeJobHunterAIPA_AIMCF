@@ -3042,29 +3042,35 @@ You have *{len(outreach)}* message(s) to send:
         """VJH-4 voice reply. Called only AFTER the text answer went out and fully inside try/except, so a TTS failure
         never touches the text. Off switch: VJH_SPEAK_REPLIES=0.
         25 Oct 2026: it was OpenAI tts-1 only — out of credit since 23 Oct, so every voice reply failed silently (a
-        warning in the log). Now the fleet's free voice first (scripts/speak-free.py in cto-aipa: Microsoft Edge in
-        sentence chunks, Google gTTS if Edge fails — the same one PrepClaw and CTO AIPA speak with), OpenAI second."""
+        warning in the log). Now OpenAI first, then the fleet's free voice (scripts/speak-free.py in cto-aipa: Microsoft Edge in
+        sentence chunks, Google gTTS if Edge fails — the same one PrepClaw and CTO AIPA speak with)."""
         try:
             if os.getenv("VJH_SPEAK_REPLIES", "1").strip() == "0":
                 return
             speech = _for_speech(text)
             if not speech:
                 return
-            audio, by = await self._free_voice_opus(speech), "free"
+            audio, by = None, "openai"
             api_key = os.getenv("OPENAI_API_KEY")
-            if not audio and api_key:
-                from openai import AsyncOpenAI
-                # "async with" closes the client's connection pool after each reply (a long-running process).
-                async with AsyncOpenAI(api_key=api_key, timeout=30, max_retries=1) as client:
-                    # The SDK timeout covers the response headers, not the audio body, so the whole call has its own
-                    # limit.
-                    resp = await asyncio.wait_for(
-                        client.audio.speech.create(model="tts-1", voice="nova", input=speech, response_format="opus"),
-                        timeout=45)
-                    audio = getattr(resp, "content", None)
-                    if not isinstance(audio, (bytes, bytearray)):
-                        audio = await resp.aread()
-                by = "openai"
+            if api_key:   # OpenAI first — wired, never removed (Elena, 25 Oct); without credit it fails fast
+                try:
+                    from openai import AsyncOpenAI
+                    # "async with" closes the client's connection pool after each reply (a long-running process).
+                    async with AsyncOpenAI(api_key=api_key, timeout=30, max_retries=1) as client:
+                        # The SDK timeout covers the response headers, not the audio body, so the whole call has its
+                        # own limit.
+                        resp = await asyncio.wait_for(
+                            client.audio.speech.create(model="tts-1", voice="nova", input=speech,
+                                                       response_format="opus"),
+                            timeout=45)
+                        audio = getattr(resp, "content", None)
+                        if not isinstance(audio, (bytes, bytearray)):
+                            audio = await resp.aread()
+                except Exception as e:
+                    logger.info(f"🔊 OpenAI voice unavailable ({str(e)[:80]}) — free voice instead")
+                    audio = None
+            if not audio:
+                audio, by = await self._free_voice_opus(speech), "free"
             if not audio:
                 return
             from telegram import InputFile
