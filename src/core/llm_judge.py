@@ -386,7 +386,7 @@ def _key(name: str) -> str:
 
 def _call_llm(prompt: str, max_tokens: int = None):
     """
-    OpenAI (reliable) → Groq (free).
+    Gemini → Groq → Grok (free first) → OpenAI → Claude (paid, last — 25 Oct 2026).
 
     Returns (text, errors). `errors` records why each provider failed — a missing
     key is as much a reason as an HTTP 400, and both used to vanish into a bare
@@ -396,18 +396,6 @@ def _call_llm(prompt: str, max_tokens: int = None):
     None = _MAX_TOKENS (JUDGE_MAX_TOKENS, 300), so every judge call is byte-identical.
     """
     errors = []
-
-    ok = _key("OPENAI_API_KEY")
-    if not ok:
-        errors.append("openai: no API key configured")
-    else:
-        try:
-            text = _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {}, max_tokens=max_tokens)
-            if text:
-                return text, errors
-            errors.append("openai: empty response")
-        except Exception as e:
-            errors.append(f"openai: {str(e)[:140]}")
 
     gem = _key("GEMINI_API_KEY")
     if not gem:
@@ -445,6 +433,20 @@ def _call_llm(prompt: str, max_tokens: int = None):
             errors.append("grok: empty response")
         except Exception as e:
             errors.append(f"grok: {str(e)[:140]}")
+
+    # OpenAI after the free providers (25 Oct 2026): out of credit since 23 Oct and not being topped up; first in line
+    # it failed on every judge call before Gemini answered. It serves again from here when credit returns.
+    ok = _key("OPENAI_API_KEY")
+    if not ok:
+        errors.append("openai: no API key configured")
+    else:
+        try:
+            text = _post(_OPENAI_URL, ok, _OPENAI_MODEL, prompt, {}, max_tokens=max_tokens)
+            if text:
+                return text, errors
+            errors.append("openai: empty response")
+        except Exception as e:
+            errors.append(f"openai: {str(e)[:140]}")
 
     # Claude LAST on purpose: it is the most reliable and the most expensive, and
     # the judge is the highest-volume caller in the fleet. Reaching this line means

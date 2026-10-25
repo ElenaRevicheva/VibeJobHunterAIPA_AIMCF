@@ -2877,32 +2877,25 @@ You have *{len(outreach)}* message(s) to send:
 
     async def _translate_to_english(self, text: str, source_lang: str) -> str:
         """
-        Translate ES/RU → EN using OpenAI if available.
-        Falls back to original text on any error.
+        Translate ES/RU → EN through the shared provider chain (Gemini → Groq → Grok → OpenAI).
+        25 Oct 2026: it was OpenAI-only, and with OpenAI out of credit since 23 Oct every Spanish or Russian question
+        was silently passed on untranslated. Falls back to the original text only if every provider fails.
         """
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key or not text:
-            return text
-        # If already English, skip
-        if source_lang == "en":
+        if not text or source_lang == "en":
             return text
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
+            from src.utils.llm_chain import PROFILE_QUALITY, complete
             prompt = (
                 "Translate the following user question into natural English, keeping all job-search-specific details. "
                 "Return ONLY the translated English text, no explanations.\n\n"
                 f"Original ({source_lang}): {text}"
             )
             # off the event loop: the bot shares it with the hourly job hunt (orchestrator.py create_task)
-            resp = await asyncio.to_thread(
-                client.chat.completions.create,
-                model=os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini"),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-            )
-            translated = resp.choices[0].message.content.strip()
-            return translated or text
+            translated, errors = await asyncio.to_thread(
+                complete, [{"role": "user", "content": prompt}], 600, PROFILE_QUALITY)
+            if not translated:
+                logger.warning(f"Translation failed on every provider, using original text: {'; '.join(errors)[:200]}")
+            return (translated or "").strip() or text
         except Exception as e:
             logger.warning(f"Translation failed, using original text. Error: {e}")
             return text
@@ -3046,33 +3039,71 @@ You have *{len(outreach)}* message(s) to send:
             return False
 
     async def _speak_reply(self, update: Update, text: str):
-        """VJH-4 voice reply: tts-1 / nova / opus — the voice OpenClaw speaks. Called only AFTER the text answer went
-        out and fully inside try/except, so a TTS failure never touches the text. Off switch: VJH_SPEAK_REPLIES=0."""
+        """VJH-4 voice reply. Called only AFTER the text answer went out and fully inside try/except, so a TTS failure
+        never touches the text. Off switch: VJH_SPEAK_REPLIES=0.
+        25 Oct 2026: it was OpenAI tts-1 only — out of credit since 23 Oct, so every voice reply failed silently (a
+        warning in the log). Now the fleet's free voice first (scripts/speak-free.py in cto-aipa: Microsoft Edge in
+        sentence chunks, Google gTTS if Edge fails — the same one PrepClaw and CTO AIPA speak with), OpenAI second."""
         try:
             if os.getenv("VJH_SPEAK_REPLIES", "1").strip() == "0":
                 return
-            api_key = os.getenv("OPENAI_API_KEY")
             speech = _for_speech(text)
-            if not api_key or not speech:
+            if not speech:
                 return
-            from openai import AsyncOpenAI
-            # "async with" closes the client's connection pool after each reply (a long-running process).
-            async with AsyncOpenAI(api_key=api_key, timeout=30, max_retries=1) as client:
-                # The SDK timeout covers the response headers, not the audio body, so the whole call has its own
-                # limit.
-                resp = await asyncio.wait_for(
-                    client.audio.speech.create(model="tts-1", voice="nova", input=speech, response_format="opus"),
-                    timeout=45)
-                audio = getattr(resp, "content", None)
-                if not isinstance(audio, (bytes, bytearray)):
-                    audio = await resp.aread()
+            audio, by = await self._free_voice_opus(speech), "free"
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not audio and api_key:
+                from openai import AsyncOpenAI
+                # "async with" closes the client's connection pool after each reply (a long-running process).
+                async with AsyncOpenAI(api_key=api_key, timeout=30, max_retries=1) as client:
+                    # The SDK timeout covers the response headers, not the audio body, so the whole call has its own
+                    # limit.
+                    resp = await asyncio.wait_for(
+                        client.audio.speech.create(model="tts-1", voice="nova", input=speech, response_format="opus"),
+                        timeout=45)
+                    audio = getattr(resp, "content", None)
+                    if not isinstance(audio, (bytes, bytearray)):
+                        audio = await resp.aread()
+                by = "openai"
             if not audio:
                 return
             from telegram import InputFile
             await update.message.reply_voice(voice=InputFile(bytes(audio), filename="reply.ogg"))
-            logger.info(f"🔊 Voice reply sent ({len(speech)} characters spoken)")
+            logger.info(f"🔊 Voice reply sent ({len(speech)} characters spoken, {by} voice)")
         except Exception as e:
             logger.warning(f"🔊 Voice reply failed (the text answer already went out): {e}")
+
+    async def _free_voice_opus(self, speech: str):
+        """Ogg/Opus bytes from the fleet's free voice script, or None. Never raises."""
+        import tempfile
+        home = os.path.expanduser("~")
+        py = os.getenv("EDGE_TTS_PY") or os.path.join(home, ".openclaw", "edge-tts-venv", "bin", "python")
+        script = os.getenv("SPEAK_FREE") or os.path.join(home, "cto-aipa", "scripts", "speak-free.py")
+        if not (os.path.exists(py) and os.path.exists(script)):
+            return None
+        try:
+            with tempfile.TemporaryDirectory(prefix="vjh-voice-") as d:
+                txt, mp3, ogg = os.path.join(d, "in.txt"), os.path.join(d, "out.mp3"), os.path.join(d, "out.ogg")
+                with open(txt, "w", encoding="utf-8") as f:
+                    f.write(speech)
+                voice = os.getenv("VJH_FREE_VOICE", "en-US-AvaMultilingualNeural")
+                p = await asyncio.create_subprocess_exec(py, script, "--in", txt, "--out", mp3, "--voice", voice,
+                                                         "--rate=-5%", stdout=asyncio.subprocess.DEVNULL,
+                                                         stderr=asyncio.subprocess.PIPE)
+                _, err = await asyncio.wait_for(p.communicate(), timeout=150)
+                if p.returncode != 0 or not os.path.exists(mp3):
+                    logger.warning(f"🔊 Free voice failed: {(err or b'').decode(errors='replace')[-160:]}")
+                    return None
+                q = await asyncio.create_subprocess_exec("ffmpeg", "-y", "-loglevel", "error", "-i", mp3, "-c:a",
+                                                         "libopus", "-b:a", "48k", "-ac", "1", ogg)
+                await asyncio.wait_for(q.wait(), timeout=60)
+                if q.returncode != 0 or not os.path.exists(ogg):
+                    return None
+                with open(ogg, "rb") as f:
+                    return f.read()
+        except Exception as e:
+            logger.warning(f"🔊 Free voice failed: {e}")
+            return None
 
     # ─────────────────────────────────────────────────────────────────────────
     # A DOCUMENT ON REQUEST (18 Oct 2026) — the recogniser is _document_formats, the file is _render_document.

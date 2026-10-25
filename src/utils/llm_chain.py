@@ -44,9 +44,12 @@ _XAI_URL = "https://api.x.ai/v1/chat/completions"
 _ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 # After Claude, for work a human will read: quality first, then free, then credits.
-PROFILE_QUALITY: Tuple[str, ...] = ("openai", "gemini", "groq", "grok")
+# 25 Oct 2026: OpenAI moved from first to last-but-Claude in all three profiles — out of credit since 23 Oct (429) and
+# Elena has no budget to top it up; first in line it cost a guaranteed-failing round trip on every call. When credit
+# returns it serves from the back without a code change (same reasoning as Claude's place in PROFILE_SCORING below).
+PROFILE_QUALITY: Tuple[str, ...] = ("gemini", "groq", "grok", "openai")
 # For high-volume structured work: cheap plain models first, Claude last.
-PROFILE_CLASSIFY: Tuple[str, ...] = ("openai", "gemini", "groq", "grok", "claude")
+PROFILE_CLASSIFY: Tuple[str, ...] = ("gemini", "groq", "grok", "openai", "claude")
 # Job SCORING (job_matcher._ai_deep_analysis). Added 2026-08-18.
 #
 # This decides whether a job ever reaches Elena, so a missing opinion costs a real
@@ -60,7 +63,7 @@ PROFILE_CLASSIFY: Tuple[str, ...] = ("openai", "gemini", "groq", "grok", "claude
 # costs a guaranteed-failing round trip on EVERY scored job. When credits return it
 # resumes serving from the back without a code change. Same lesson the whitespace
 # repo learned when a retired Groq model sat at tier 2.
-PROFILE_SCORING: Tuple[str, ...] = ("openai", "gemini", "groq", "grok", "claude")
+PROFILE_SCORING: Tuple[str, ...] = ("gemini", "groq", "grok", "openai", "claude")
 
 
 def _model(provider: str) -> str:
