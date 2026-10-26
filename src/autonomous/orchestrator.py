@@ -1028,7 +1028,7 @@ class AutonomousOrchestrator:
         This runs AFTER each cycle completes (safe, won't break main flow).
         """
         try:
-            from .response_detector import ResponseDetector, ResponseType, save_response_to_db, _sender_is_blocked, push_response_to_hubspot
+            from .response_detector import ResponseDetector, ResponseType, save_response_to_db, _sender_is_blocked, push_response_to_hubspot, _next_step_signal
 
             logger.info("🧠 Step 5: Checking for responses (AI-powered)...")
 
@@ -1062,7 +1062,13 @@ class AutonomousOrchestrator:
                     _txt = (str(lead.subject) + ' ' + str(getattr(lead, 'body_preview', '') or '')).lower()
                     # A booking-link interview request skips this: the link is the proof it is not a bare
                     # auto-reply ("Thank you for your interest… pick a slot: calendly…", HireLatam 23 Apr).
-                    if lead.response_type != ResponseType.INTERVIEW_REQUEST and any(p in _txt for p in (
+                    # 2026-10-26: so does any mail that names a NEXT STEP — WON.ai's video screen ("Thank you for
+                    # applying… As a next step, this role includes a video screen… will expire 5 days") was
+                    # dropped here as an auto-reply after the classifier scored it 1.0. See NEXT_STEP_SIGNALS.
+                    _next = _next_step_signal(_txt)
+                    if _next:
+                        logger.info(f"   next step named ({_next}) — not an auto-reply: {str(lead.subject)[:45]}")
+                    if lead.response_type != ResponseType.INTERVIEW_REQUEST and not _next and any(p in _txt for p in (
                         'complete your application', 'thank you for applying', 'thank you for your interest',
                         'thanks for your interest', 'application received', 'we received your application',
                         'received your resume', 'your application has been received', 'application has been received')):

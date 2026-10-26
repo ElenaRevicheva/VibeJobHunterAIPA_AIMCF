@@ -205,11 +205,44 @@ BLOCKED_SENDER_DOMAINS = (
 )
 
 
+# 2026-10-26 — senders the blocklist must NOT swallow. Turing's recruiters write from the platform's no-reply address
+# ("This is Sushmita, and I am a Recruiter at Turing… Review Job Description and Submit Job Interest"); the
+# generic "no-reply" pattern dropped it with "blocked sender, NOT alerting/pushing" while the classifier had
+# scored it positive 0.95. Elena has real Turing deals (contractsent, 2026-08/09): a platform she earns on
+# is not newsletter noise. Checked before the blocklist; everything else is as it was.
+BLOCKED_SENDER_EXCEPTIONS = (
+    "@turing.com",
+)
+
+# 2026-10-26 — words that make a mail a NEXT STEP, whatever boilerplate it also carries. WON.ai's video-screen
+# invitation ("As a next step, this role includes a video screen… will expire 5 days after receiving this
+# email") opens with "Thank you for applying", so the orchestrator's auto-reply guard dropped it after the
+# classifier had scored it positive 1.0 — no HubSpot note, no Telegram alert, a 5-day clock running unseen.
+# Deliberately NOT "next steps": Ashby's plain confirmation says "get back to you with next steps".
+NEXT_STEP_SIGNALS = (
+    "video screen", "video assessment", "video interview", "one-way interview", "recorded interview",
+    "will expire", "expires in", "expire 5 days", "complete the assessment", "take-home", "take home assignment",
+    "case study", "schedule a call", "book a time", "pick a time", "interview invitation", "invite you to",
+    "we'd like to invite", "would like to invite", "next step is", "as a next step",
+)
+
+
+def _next_step_signal(text):
+    """The phrase that makes `text` a next step (video screen, assessment, booking…), or '' when there is none."""
+    t = (text or "").lower()
+    for p in NEXT_STEP_SIGNALS:
+        if p in t:
+            return p
+    return ""
+
+
 def _sender_is_blocked(from_email):
-    """Return True if sender matches the blocklist (platform/newsletter noise)."""
+    """Return True if sender matches the blocklist (platform/newsletter noise). Exceptions first (Turing)."""
     if not from_email:
         return False
     s = from_email.lower()
+    if any(x in s for x in BLOCKED_SENDER_EXCEPTIONS):
+        return False
     return any(pattern in s for pattern in BLOCKED_SENDER_DOMAINS)
 
 
