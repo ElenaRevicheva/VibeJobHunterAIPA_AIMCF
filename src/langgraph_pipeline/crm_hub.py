@@ -22,6 +22,28 @@ def _crm_url() -> str:
     return _CRM_URL
 
 
+def _resolve_origin_url(job_title: str, company: str, job_url: str):
+    """(url, note_line): the posting's origin-board url when `job_url` is an aggregator copy, else unchanged.
+    Reuses the Bright Data door's resolver (src/search/serpapi_jobs_ingest.py: remembered boards -> the board's
+    public API -> one paid search). Never raises."""
+    try:
+        if not job_url or not (company or "").strip():
+            return job_url, ""
+        from src.search import serpapi_jobs_ingest as door
+        if door._is_origin_host(job_url) or door._is_company_domain(job_url, company):
+            return job_url, ""
+        found = door._find_origin(job_title, company)
+        if not found:
+            logger.info(f"[crm_hub] aggregator {door._host(job_url)}, origin not found — deal keeps the copy's url: {job_title} @ {company}")
+            return job_url, f"\u26a0\ufe0f Found on an aggregator ({door._host(job_url)}); the employer's own posting was not found — look for it before applying."
+        origin, _otitle = found
+        logger.info(f"[crm_hub] aggregator {door._host(job_url)} -> origin {origin}: {job_title} @ {company}")
+        return origin, f"\U0001f517 Origin posting: {origin} (first seen on {door._host(job_url)})"
+    except Exception as e:
+        logger.debug(f"[crm_hub] origin resolution unavailable ({e}); url unchanged")
+        return job_url, ""
+
+
 def push_application_to_crm(
     *,
     job_title: str,
@@ -48,6 +70,16 @@ def push_application_to_crm(
     if not secret:
         logger.debug("[crm_hub] OUTREACH_SECRET not set — skipping CRM push")
         return False
+
+    # 2026-10-26 (Elena): "if VJH finds a job presented by a paid aggregator it will automatically head to its
+    # original job board, wire the original link inside the deal note, with the kit prepared from the original
+    # source". The Bright Data door does this since 24 Oct; this door (Tailscale via weworkremotely, Clara via
+    # remotefront) did not. Same resolver, same rule: the deal carries the ORIGIN url, so the apply kit (which
+    # reads the posting url from the deal's note) builds the CV, letter and defenses from the employer's own
+    # posting. Fails open: any failure leaves the url exactly as it came.
+    job_url, origin_line = _resolve_origin_url(job_title, company, job_url)
+    if origin_line:
+        notes = (notes + "\n" if notes else "") + origin_line
 
     # Build rich notes so every HubSpot card is actionable
     if not notes:

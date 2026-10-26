@@ -225,6 +225,11 @@ def _board_postings(board: str, slug: str) -> list:
     return []
 
 
+def _https(url: str) -> str:
+    """Google sometimes hands back http:// for a board page (Tailscale, 26 Oct); the boards serve https."""
+    return 'https://' + url[len('http://'):] if url.startswith('http://') else url
+
+
 def _best_match(want: set, candidates, want_full: set = None):
     """(url, title) of the candidate whose title carries the most of `want` (≥ ORIGIN_TITLE_MATCH);
     `want_full` (the title with its ", Place" tail) breaks ties, so "Solutions Architect, AI" beats
@@ -238,7 +243,7 @@ def _best_match(want: set, candidates, want_full: set = None):
         full = len((want_full or want) & have) / len(want_full or want)
         if (score, full) > best_key:
             best, best_key = (curl, ctitle), (score, full)
-    return best if best_key[0] >= ORIGIN_TITLE_MATCH else None
+    return (_https(best[0]), best[1]) if best and best_key[0] >= ORIGIN_TITLE_MATCH else None
 
 
 def _find_origin(title: str, company: str):
