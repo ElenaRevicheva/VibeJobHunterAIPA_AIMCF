@@ -1073,6 +1073,23 @@ class AutonomousOrchestrator:
                         'thanks for your interest', 'application received', 'we received your application',
                         'received your resume', 'your application has been received', 'application has been received')):
                         logger.info(f"   auto-reply (not an interview), NOT alerting: {str(lead.subject)[:45]}")
+                        # 2026-10-26 (Elena: "such silent no-reminder issues will not happen again"): a mail the
+                        # classifier scored positive and this guard then dropped is never silent. One quiet line,
+                        # no 🔥, so she can overrule the guard with her eyes in two seconds. Blocklist drops
+                        # (Torre bot, newsletters) stay silent — they are noise by measurement.
+                        if self.telegram and float(getattr(lead, 'confidence', 0) or 0) >= 0.8:
+                            try:
+                                _conf = float(lead.confidence)
+                                _notice = (
+                                    '\u2139\ufe0f <b>Looked like an auto-reply, not alerted</b> '
+                                    f'(classifier said positive {_conf:.2f})' + '\n'
+                                    + '<b>From:</b> ' + _html_escape(str(lead.from_email or '')) + '\n'
+                                    + '<b>Subject:</b> ' + _html_escape(str(lead.subject or '')) + '\n'
+                                    + 'If this is a real next step, open it now: it was not written to HubSpot.'
+                                )
+                                await self.telegram.send_message(_notice)
+                            except Exception as _te:
+                                logger.debug(f"   auto-reply notice not sent ({_te})")
                         continue
                     # Platform/newsletter noise (Torre.ai bot, calendar reminders, etc.) — never a
                     # real recruiter. Was already excluded from check_for_responses_and_alert() but
