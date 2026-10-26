@@ -47,7 +47,8 @@ _ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 # 25 Oct 2026: OpenAI moved from first to last-but-Claude in all three profiles — out of credit since 23 Oct (429) and
 # Elena has no budget to top it up; first in line it cost a guaranteed-failing round trip on every call. When credit
 # returns it serves from the back without a code change (same reasoning as Claude's place in PROFILE_SCORING below).
-PROFILE_QUALITY: Tuple[str, ...] = ("gemini", "groq", "grok", "openai")
+# 26 Oct 2026: Claude added at the end — all five wired in every profile (Elena); it serves when it has credit.
+PROFILE_QUALITY: Tuple[str, ...] = ("gemini", "groq", "grok", "openai", "claude")
 # For high-volume structured work: cheap plain models first, Claude last.
 PROFILE_CLASSIFY: Tuple[str, ...] = ("gemini", "groq", "grok", "openai", "claude")
 # Job SCORING (job_matcher._ai_deep_analysis). Added 2026-08-18.
