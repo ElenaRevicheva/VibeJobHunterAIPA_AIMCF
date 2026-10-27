@@ -1121,10 +1121,16 @@ class AutonomousOrchestrator:
                     # to HubSpot, so once the Telegram message scrolled away there was no record.
                     # push_response_to_hubspot() moves the matching [HIRING-VJH] deal to
                     # recruiter_responded ("💬 They replied — I act"). Non-fatal on failure.
-                    try:
-                        push_response_to_hubspot(lead)
-                    except Exception as e:
-                        logger.warning(f"   HubSpot push failed (non-fatal): {e}")
+                    # 27 Oct 2026: a LinkedIn/Workable "X messaged you" notice names the PLATFORM, not the employer —
+                    # it alerts Elena but never becomes (or moves) a HubSpot deal for a company called "Linkedin".
+                    from .response_detector import PERSON_MESSAGE_SENDERS as _PMS
+                    if any(p in str(lead.from_email or '').lower() for p in _PMS):
+                        logger.info(f"   platform message notice — Telegram only, no HubSpot: {lead.from_email}")
+                    else:
+                        try:
+                            push_response_to_hubspot(lead)
+                        except Exception as e:
+                            logger.warning(f"   HubSpot push failed (non-fatal): {e}")
 
                     # Send Telegram alert for interview requests
                     if self.telegram and lead.response_type in (ResponseType.POSITIVE, ResponseType.INTERVIEW_REQUEST):
