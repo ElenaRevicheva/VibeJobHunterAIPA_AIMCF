@@ -239,7 +239,7 @@ MAILBOX_FOLDERS = {
 # processed_email_ids.txt and be skipped unread. A UID never changes (keyed with UIDVALIDITY). For INBOX mail
 # that arrived BEFORE this cutover, the old sequence key still counts as processed, so the switch does not
 # re-alert the last 24 h; nothing after the cutover is ever matched by position.
-UID_CUTOVER = datetime(2026, 10, 27, 13, 0, 0)  # UTC; set at deploy time
+UID_CUTOVER = datetime(2026, 10, 27, 13, 30, 0)  # UTC; deployed 27 Oct 2026 ~13:31 (last old-code scan 12:39)
 
 # 2026-10-26 — words that make a mail a NEXT STEP, whatever boilerplate it also carries. WON.ai's video-screen
 # invitation ("As a next step, this role includes a video screen… will expire 5 days after receiving this
