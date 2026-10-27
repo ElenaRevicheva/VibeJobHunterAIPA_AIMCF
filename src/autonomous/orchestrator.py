@@ -1028,9 +1028,10 @@ class AutonomousOrchestrator:
         This runs AFTER each cycle completes (safe, won't break main flow).
         """
         try:
-            from .response_detector import ResponseDetector, ResponseType, save_response_to_db, _sender_is_blocked, push_response_to_hubspot, _next_step_signal
+            from .response_detector import ResponseDetector, ResponseType, save_response_to_db, _sender_is_blocked, _blocked_by_name, push_response_to_hubspot, _next_step_signal
 
             logger.info("🧠 Step 5: Checking for responses (AI-powered)...")
+            await self._flush_pending_alerts()
 
             detector = ResponseDetector()
             # 27 Oct 2026: 72 h, not 24 — an outage of a day must not age a reply out of the window unjudged.
@@ -1108,8 +1109,13 @@ class AutonomousOrchestrator:
                     # this orchestrator path (the one actually wired to the live cycle) had no such
                     # guard, so bot noise drowned out real signal in Telegram. Found July 16 2026.
                     if _sender_is_blocked(lead.from_email):
-                        logger.info(f"   blocked sender, NOT alerting/pushing: {lead.from_email}")
-                        continue
+                        # 27 Oct 2026: blocked only for SAYING no-reply, and the classifier is sure → alert anyway.
+                        if (not _blocked_by_name(lead.from_email)
+                                and float(getattr(lead, 'confidence', 0) or 0) >= 0.8):
+                            logger.info(f"   no-reply sender but classifier sure ({lead.confidence}) — alerting: {lead.from_email}")
+                        else:
+                            logger.info(f"   blocked sender, NOT alerting/pushing: {lead.from_email}")
+                            continue
 
                     # Durable CRM trail — this orchestrator path alerted Telegram but never wrote
                     # to HubSpot, so once the Telegram message scrolled away there was no record.
@@ -1135,19 +1141,19 @@ class AutonomousOrchestrator:
 <b>Action:</b> {_html_escape(str(lead.suggested_action or ''))}
 
 ⚡ <b>RESPOND WITHIN 24 HOURS!</b>"""
-                        await self.telegram.send_message(alert)
+                        await self._deliver_alert(alert)
                     
                     elif self.telegram and lead.response_type == ResponseType.QUESTION:
                         alert = f"""❓ <b>Question from Recruiter</b>
 
-<b>From:</b> {lead.from_name}
-<b>Company:</b> {lead.company_name or 'Unknown'}
-<b>Subject:</b> {lead.subject}
+<b>From:</b> {_html_escape(str(lead.from_name or ''))} &lt;{_html_escape(str(lead.from_email or ''))}&gt;
+<b>Company:</b> {_html_escape(str(lead.company_name or 'Unknown'))}
+<b>Subject:</b> {_html_escape(str(lead.subject or ''))}
 
-<b>AI Analysis:</b> {lead.ai_analysis}
+<b>AI Analysis:</b> {_html_escape(str(lead.ai_analysis or ''))}
 
-<b>Action:</b> {lead.suggested_action}"""
-                        await self.telegram.send_message(alert)
+<b>Action:</b> {_html_escape(str(lead.suggested_action or ''))}"""
+                        await self._deliver_alert(alert)
             
             # Also save rejections for learning
             rejections = [r for r in responses if r.response_type == ResponseType.REJECTION]
@@ -1176,6 +1182,51 @@ class AutonomousOrchestrator:
                     await self.telegram.send_message(f"⚠️ Mail watch FAILED this cycle — employer/client replies were not checked: {str(e)[:200]}")
                 except Exception:
                     pass
+
+    # 27 Oct 2026 — an employer/client alert is DELIVERED or it is kept. The detector records "alerted" before the
+    # send, so a Telegram hiccup used to lose the alert for good. Now: 3 tries, then plain text (an HTML parse error
+    # cannot eat it), then a queue in autonomous_data/pending_alerts.json resent at the start of every cycle.
+    _PENDING_ALERTS = Path("autonomous_data/pending_alerts.json")
+
+    async def _deliver_alert(self, text: str, queue: bool = True) -> bool:
+        if not self.telegram:
+            return False
+        for attempt in range(3):
+            if await self.telegram.send_message(text):
+                return True
+            await asyncio.sleep(5 * (attempt + 1))
+        import re as _re
+        if await self.telegram.send_message(_re.sub(r"<[^>]+>", "", text).replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&"), parse_mode=None):
+            return True
+        if queue:
+            import json as _json
+            try:
+                items = _json.loads(self._PENDING_ALERTS.read_text(encoding="utf-8")) if self._PENDING_ALERTS.exists() else []
+            except Exception:
+                items = []
+            items.append({"at": datetime.utcnow().isoformat(), "text": text})
+            self._PENDING_ALERTS.parent.mkdir(parents=True, exist_ok=True)
+            self._PENDING_ALERTS.write_text(_json.dumps(items, ensure_ascii=False), encoding="utf-8")
+            logger.error("🚨 ALERT NOT DELIVERED — queued for next cycle (%d pending)", len(items))
+        return False
+
+    async def _flush_pending_alerts(self):
+        if not self.telegram or not self._PENDING_ALERTS.exists():
+            return
+        import json as _json
+        try:
+            items = _json.loads(self._PENDING_ALERTS.read_text(encoding="utf-8"))
+        except Exception:
+            items = []
+        left = []
+        for it in items:
+            if not await self._deliver_alert("⏰ (delayed) " + it.get("text", ""), queue=False):
+                left.append(it)
+        if left:
+            self._PENDING_ALERTS.write_text(_json.dumps(left, ensure_ascii=False), encoding="utf-8")
+        else:
+            self._PENDING_ALERTS.unlink(missing_ok=True)
+        logger.info("[alerts] pending resent: %d delivered, %d still queued", len(items) - len(left), len(left))
 
     # ─────────────────────────────────────────────────────
     # FOLLOW-UP ENGINE (added 2026-02-08)

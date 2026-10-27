@@ -202,7 +202,13 @@ BLOCKED_SENDER_DOMAINS = (
     # intro, "Re:" and calendar invite became a NEW [HIRING-VJH-LEAD] deal + cover letter (17 by 7 Oct), and
     # reply-radar then re-noted all of them, so the morning brief showed them as "NEW" daily. Not employers.
     "boardy.ai",
+    "github.com",            # 27 Oct 2026: repo notifications, scored "unknown 1.00" — noise by name
 )
+
+# 27 Oct 2026 — words that block a sender only because it SAYS no-reply. Employers send from those addresses too:
+# in 30 days the blocklist silently dropped 14 Valce Talent + 2 Sumsub + 2 ioet (all Teamtailor ATS relays) and 4
+# CI&T hiring mails the classifier had scored hot. A hot mail blocked ONLY by one of these still alerts.
+GENERIC_BLOCK_PATTERNS = ("noreply", "no-reply", "newsletter", "automated@", "notifications@")
 
 
 # 2026-10-26 — senders the blocklist must NOT swallow. Turing's recruiters write from the platform's no-reply address
@@ -261,6 +267,14 @@ def _next_step_signal(text):
         if p in t:
             return p
     return ""
+
+
+def _blocked_by_name(from_email):
+    """True when a NAMED noise source blocks the sender (Torre, Substack, Boardy, our own domain…), not a generic word."""
+    s = (from_email or "").lower()
+    if any(x in s for x in BLOCKED_SENDER_EXCEPTIONS):
+        return False
+    return any(p in s for p in BLOCKED_SENDER_DOMAINS if p not in GENERIC_BLOCK_PATTERNS)
 
 
 def _sender_is_blocked(from_email):
