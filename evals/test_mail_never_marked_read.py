@@ -132,3 +132,12 @@ def test_person_messages_pass_both_noreply_filters():
               "noreply@" "candidates.workablemail.com"):
         assert not rd._sender_is_blocked(s), s
     assert rd._sender_is_blocked("noreply@" "tradingview.com")        # real noise still blocked
+
+
+def test_an_unreadable_folder_is_reported_not_silent():
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _detector(tmp)
+        d.mail_failures = []
+        d.imap_connection = FakeIMAP({"INBOX": []})          # Gmail Spam folder missing
+        asyncio.run(d._scan_current_mailbox(72))
+        assert any("[Gmail]/Spam" in f for f in d.mail_failures), d.mail_failures

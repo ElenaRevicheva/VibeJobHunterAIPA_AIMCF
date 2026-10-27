@@ -1033,7 +1033,19 @@ class AutonomousOrchestrator:
             logger.info("🧠 Step 5: Checking for responses (AI-powered)...")
 
             detector = ResponseDetector()
-            responses = await detector.scan_for_responses(hours_back=24)
+            # 27 Oct 2026: 72 h, not 24 — an outage of a day must not age a reply out of the window unjudged.
+            # Dedupe by UID means already-judged mail costs nothing.
+            responses = await detector.scan_for_responses(hours_back=72)
+
+            # 27 Oct 2026: a mailbox that could not be opened, or a folder that could not be read, is said aloud.
+            _mail_fail = getattr(detector, "mail_failures", [])
+            if _mail_fail and self.telegram:
+                try:
+                    await self.telegram.send_message(
+                        "⚠️ Mail watch could NOT read: " + "; ".join(_mail_fail)[:600]
+                        + "\nReplies in that mailbox are not being checked until this is fixed.")
+                except Exception as _me:
+                    logger.warning(f"mail-failure alert not sent: {_me}")
 
             # Process hot leads (positive responses and questions)
             # 15 Oct 2026: an interview invite WITH a scheduling link was dropped here (0 interview_request rows
@@ -1158,6 +1170,12 @@ class AutonomousOrchestrator:
             logger.debug("Response detector not available - skipping")
         except Exception as e:
             logger.warning(f"⚠️ Response detection error (non-fatal): {e}")
+            # 27 Oct 2026: a mail-watch crash is never silent — the cycle survives, Elena is told.
+            if self.telegram:
+                try:
+                    await self.telegram.send_message(f"⚠️ Mail watch FAILED this cycle — employer/client replies were not checked: {str(e)[:200]}")
+                except Exception:
+                    pass
 
     # ─────────────────────────────────────────────────────
     # FOLLOW-UP ENGINE (added 2026-02-08)

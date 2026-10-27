@@ -419,11 +419,13 @@ class ResponseDetector:
     def _open_mailboxes(self):
         """Open every configured mailbox. Missing password = skipped, not fatal."""
         opened = []
+        self.mail_failures = []  # 27 Oct 2026: surfaced to Telegram by the orchestrator, never only logged
         for mb in MAILBOXES:
             pwd = os.getenv(mb["pass_env"], "").strip()
             user = os.getenv(mb["user_env"], mb["default_user"]).strip()
             if not pwd or not user:
-                logger.debug("[mail] %s not configured - skipping", mb["name"])
+                logger.error("[mail] %s not configured - skipping", mb["name"])
+                self.mail_failures.append(f"{mb['name']}: no login configured")
                 continue
             try:
                 conn = imaplib.IMAP4_SSL(mb["host"], mb["port"], timeout=60)  # 16 Oct 2026: never hang the shared loop (bot + CMO)
@@ -433,6 +435,7 @@ class ResponseDetector:
             except Exception as e:
                 # One dead mailbox must never stop the others being scanned.
                 logger.error("[mail] %s connection failed: %s", mb["name"], e)
+                self.mail_failures.append(f"{mb['name']}: login failed ({str(e)[:80]})")
         if not opened:
             logger.error("[mail] no mailbox could be opened")
         return opened
@@ -711,6 +714,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     all_responses.extend(found)
                 except Exception as e:
                     logger.error("[mail] %s scan failed: %s", name, e)
+                    self.mail_failures.append(f"{name}: scan failed ({str(e)[:80]})")
         finally:
             for _name, conn in opened:
                 try:
@@ -738,6 +742,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             except Exception as e:
                 # One unreadable folder never stops the others.
                 logger.error("[mail] %s/%s scan failed: %s", name, folder, e)
+                getattr(self, "mail_failures", []).append(f"{name}/{folder}: scan failed ({str(e)[:80]})")
         return found
 
     def _uid_key(self, folder, uidvalidity, uid) -> str:
@@ -781,6 +786,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             status, _ = self.imap_connection.select(f'"{folder}"', readonly=True)
             if status != "OK":
                 logger.warning("[mail] %s: folder %s not found", name, folder)
+                getattr(self, "mail_failures", []).append(f"{name}/{folder}: folder not found")
                 return []
             uidvalidity = (self.imap_connection.response("UIDVALIDITY")[1] or [b"0"])[0] or b"0"
 
@@ -907,7 +913,9 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                         logger.info(f"📭 Rejection from {company or from_name}")
                     
                 except Exception as e:
-                    logger.debug(f"Error processing email {email_id}: {e}")
+                    # 27 Oct 2026: not processed, so it is retried next cycle; and said aloud, never debug-only.
+                    logger.warning(f"[mail] could not judge {email_id}: {e}")
+                    getattr(self, "mail_failures", []).append(f"{email_id}: could not be judged ({str(e)[:60]}), retrying")
                     continue
             
             # Summary
@@ -924,7 +932,8 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             
         except Exception as e:
             logger.error(f"❌ Error scanning inbox: {e}")
-            return []
+            getattr(self, "mail_failures", []).append(f"{getattr(self, '_mailbox_name', '?')}/{folder}: scan crashed ({str(e)[:80]})")
+            return responses
     
     async def get_hot_leads(self, hours_back: int = 24) -> List[DetectedResponse]:
         """Get only positive responses and questions (hot leads)"""
