@@ -306,7 +306,7 @@ class GreenhouseEmailVerifier:
             
             for folder in folders_to_check:
                 try:
-                    status, _ = self.imap_connection.select(folder)
+                    status, _ = self.imap_connection.select(folder, readonly=True)  # 27 Oct 2026: never mark her mail read
                     if status != "OK":
                         continue
                     
@@ -348,8 +348,8 @@ class GreenhouseEmailVerifier:
             # Check emails from newest to oldest
             for folder, email_id in reversed(unique_emails[-10:]):
                 try:
-                    self.imap_connection.select(folder)
-                    status, msg_data = self.imap_connection.fetch(email_id, "(RFC822)")
+                    self.imap_connection.select(folder, readonly=True)
+                    status, msg_data = self.imap_connection.fetch(email_id, "(BODY.PEEK[])")
                     
                     if status != "OK":
                         continue

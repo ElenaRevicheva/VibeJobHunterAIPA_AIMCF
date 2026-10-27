@@ -214,6 +214,33 @@ BLOCKED_SENDER_EXCEPTIONS = (
     "@turing.com",
 )
 
+# 2026-10-27 — no-reply addresses that carry a MESSAGE FROM A PERSON. A read-only audit of 14 days found 8
+# "Paul / Sofia / Montserrat / Alexandra / Ahmed just messaged you" LinkedIn mails and a "Sofia I sent you a
+# message 3 days ago" that the "noreply@" calendar skip dropped BEFORE classification, and the blocklist's
+# "noreply" pattern would have dropped AFTER it. Workable relays recruiters from a no-reply address too. These
+# skip neither filter; the classifier decides (profile-view counts and digests still come back SPAM).
+PERSON_MESSAGE_SENDERS = (
+    "messaging-digest-noreply@" "linkedin.com",
+    "messages-noreply@" "linkedin.com",
+    "inmail-hit-reply@" "linkedin.com",
+    "@candidates.workablemail.com",
+)
+BLOCKED_SENDER_EXCEPTIONS = BLOCKED_SENDER_EXCEPTIONS + PERSON_MESSAGE_SENDERS
+
+# 2026-10-27 — every folder an employer's mail can land in. Gmail filed 8 LinkedIn person-messages and a micro1
+# recruiter mail in Spam in 14 days; the detector read INBOX only, so they were never judged.
+MAILBOX_FOLDERS = {
+    "zoho": ("INBOX", "Spam"),
+    "gmail": ("INBOX", "[Gmail]/Spam"),
+}
+
+# 2026-10-27 — dedupe moved from IMAP SEQUENCE numbers to UIDs. A sequence number is a position: archive or
+# delete one mail and every later mail renumbers, so a NEW employer mail could land on a number already in
+# processed_email_ids.txt and be skipped unread. A UID never changes (keyed with UIDVALIDITY). For INBOX mail
+# that arrived BEFORE this cutover, the old sequence key still counts as processed, so the switch does not
+# re-alert the last 24 h; nothing after the cutover is ever matched by position.
+UID_CUTOVER = datetime(2026, 10, 27, 13, 0, 0)  # UTC; set at deploy time
+
 # 2026-10-26 — words that make a mail a NEXT STEP, whatever boilerplate it also carries. WON.ai's video-screen
 # invitation ("As a next step, this role includes a video screen… will expire 5 days after receiving this
 # email") opens with "Thank you for applying", so the orchestrator's auto-reply guard dropped it after the
@@ -351,7 +378,9 @@ class ResponseDetector:
         try:
             if os.path.exists(self._processed_ids_path):
                 with open(self._processed_ids_path, 'r') as f:
-                    ids = set(line.strip().encode() for line in f if line.strip())
+                    # 27 Oct 2026: str, not bytes. Every lookup uses a str key, and b"1206" != "1206", so the
+                    # whole file was invisible after each restart and the window was re-judged from scratch.
+                    ids = set(line.strip() for line in f if line.strip())
                     logger.info(f"[ResponseDetector] Loaded {len(ids)} processed email IDs from disk")
                     return ids
         except Exception as e:
@@ -698,47 +727,101 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
         This is the original scan body; scan_for_responses now drives it once
         per mailbox.
         """
-        logger.info(f"🔍 Scanning inbox for responses (last {hours_back} hours)...")
-        
         if not self.imap_connection:
             if not self.connect():
                 return []
-        
-        responses = []
-        
+        name = getattr(self, "_mailbox_name", "zoho")
+        found = []
+        for folder in MAILBOX_FOLDERS.get(name, ("INBOX",)):
+            try:
+                found.extend(await self._scan_folder(folder, hours_back))
+            except Exception as e:
+                # One unreadable folder never stops the others.
+                logger.error("[mail] %s/%s scan failed: %s", name, folder, e)
+        return found
+
+    def _uid_key(self, folder, uidvalidity, uid) -> str:
+        """Stable dedupe key: mailbox + folder + UIDVALIDITY + UID. Never a position."""
+        name = getattr(self, "_mailbox_name", "zoho")
+        tag = "inbox" if folder.upper() == "INBOX" else "spam"
+        v = uidvalidity.decode() if isinstance(uidvalidity, bytes) else str(uidvalidity)
+        u = uid.decode() if isinstance(uid, bytes) else str(uid)
+        return f"{name}:{tag}:{v}:uid{u}"
+
+    def _seen_before_cutover(self, uid) -> bool:
+        """INBOX mail that arrived before UID_CUTOVER and that the old code already handled by sequence key."""
         try:
-            # Check INBOX
-            self.imap_connection.select("INBOX")
-            
+            status, data = self.imap_connection.uid("FETCH", uid, "(INTERNALDATE)")
+            if status != "OK" or not data or not data[0]:
+                return False
+            head = data[0] if isinstance(data[0], bytes) else data[0][0]
+            seq = re.match(rb"\s*(\d+)\s", head)
+            when = imaplib.Internaldate2tuple(head)
+            if not seq or not when:
+                return False
+            import time as _time
+            arrived = datetime(1970, 1, 1) + timedelta(seconds=_time.mktime(when))  # UTC, naive
+            if arrived >= UID_CUTOVER:
+                return False
+            return self._dedupe_key(seq.group(1)) in self.processed_email_ids
+        except Exception:
+            return False
+
+    async def _scan_folder(self, folder: str, hours_back: int = 24) -> List[DetectedResponse]:
+        """One folder of the current mailbox. READ-ONLY: never sets \\Seen on her mail."""
+        name = getattr(self, "_mailbox_name", "zoho")
+        logger.info(f"🔍 Scanning {name}/{folder} for responses (last {hours_back} hours)...")
+
+        responses = []
+
+        try:
+            # 2026-10-27 — readonly=True + BODY.PEEK[]. The old select("INBOX") + fetch(RFC822) marked every
+            # mail in both mailboxes as READ within the hour (14-day audit: 425/425 inbox mails read, 166/166
+            # spam mails unread), so Elena opened Gmail and Zoho to find nothing new.
+            status, _ = self.imap_connection.select(f'"{folder}"', readonly=True)
+            if status != "OK":
+                logger.warning("[mail] %s: folder %s not found", name, folder)
+                return []
+            uidvalidity = (self.imap_connection.response("UIDVALIDITY")[1] or [b"0"])[0] or b"0"
+
             # Search for recent emails
             since_date = (datetime.now() - timedelta(hours=hours_back)).strftime("%d-%b-%Y")
-            status, message_ids = self.imap_connection.search(None, f'(SINCE "{since_date}")')
-            
-            if status != "OK" or not message_ids[0]:
-                logger.info("📭 No recent emails found")
+            status, message_ids = self.imap_connection.uid("SEARCH", f'(SINCE "{since_date}")')
+
+            if status != "OK" or not message_ids or not message_ids[0]:
+                logger.info(f"📭 No recent emails in {name}/{folder}")
                 return []
-            
+
             email_ids = message_ids[0].split()
-            logger.info(f"📧 Found {len(email_ids)} recent emails to analyze")
-            
+            logger.info(f"📧 Found {len(email_ids)} recent emails to analyze in {name}/{folder}")
+            # No 50-mail cap any more: a busy day of newsletters pushed older replies past it. A runaway
+            # folder is still bounded, and the log says so instead of dropping mail silently.
+            if len(email_ids) > 400:
+                logger.warning(f"[mail] {name}/{folder}: {len(email_ids)} mails in window, judging newest 400")
+
             # Process each email (newest first)
-            for email_id in reversed(email_ids[-50:]):  # Limit to 50 most recent
+            for uid in reversed(email_ids[-400:]):
+                key = self._uid_key(folder, uidvalidity, uid)
+                email_id = key
                 # Skip if already processed
-                if self._dedupe_key(email_id) in self.processed_email_ids:
+                if key in self.processed_email_ids:
                     continue
-                
+                if folder.upper() == "INBOX" and self._seen_before_cutover(uid):
+                    self.processed_email_ids.add(key)
+                    continue
+
                 try:
-                    status, msg_data = self.imap_connection.fetch(email_id, "(RFC822)")
-                    if status != "OK":
+                    status, msg_data = self.imap_connection.uid("FETCH", uid, "(BODY.PEEK[])")
+                    if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                         continue
-                    
+
                     msg = email.message_from_bytes(msg_data[0][1])
                     from_name, from_email, subject, body, received_at = self._parse_email(msg)
                     
                     # Skip Greenhouse verification emails
                     if "security code" in subject.lower() or "greenhouse" in from_email.lower():
                         if "security code" in subject.lower():
-                            self.processed_email_ids.add(self._dedupe_key(email_id))
+                            self.processed_email_ids.add(key)
                             continue
 
                     # Skip calendar reminders and automated notifications
@@ -749,9 +832,10 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                         "event reminder", "you have been invited",
                     ]
                     CALENDAR_SENDERS = ["zohocalendar", "calendar-notification", "noreply@"]
-                    if (any(subject_lower.startswith(s) for s in CALENDAR_SKIP) or
+                    person_msg = any(s in from_lower for s in PERSON_MESSAGE_SENDERS)
+                    if not person_msg and (any(subject_lower.startswith(s) for s in CALENDAR_SKIP) or
                             any(s in from_lower for s in CALENDAR_SENDERS)):
-                        self.processed_email_ids.add(self._dedupe_key(email_id))
+                        self.processed_email_ids.add(key)
                         self._save_processed_ids()
                         logger.debug(f"[ResponseDetector] Skipping calendar/auto email: {subject[:60]}")
                         continue
@@ -770,7 +854,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     
                     # Skip spam and low-confidence unknowns
                     if response_type == ResponseType.SPAM:
-                        self.processed_email_ids.add(self._dedupe_key(email_id))
+                        self.processed_email_ids.add(key)
                         continue
                     
                     # ── Did they hand her a calendar? ───────────────────────
@@ -812,7 +896,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
                     )
                     
                     responses.append(detected)
-                    self.processed_email_ids.add(self._dedupe_key(email_id))
+                    self.processed_email_ids.add(key)
                     
                     # Log significant responses
                     if response_type == ResponseType.POSITIVE:
