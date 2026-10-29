@@ -202,6 +202,10 @@ def test_location_excludes_her_reads_what_the_posting_states():
     assert not location_excludes_her("x", "Remote - Worldwide", "")
     assert not location_excludes_her("x", "Remote", "")                                  # silence ≠ exclusion
     assert not location_excludes_her("x", "Remote - LATAM", "Core hours GMT-6 to GMT-3.")
+    # 2026-10-29 Scale Army: the recruiter's "Egypt" tag with a body sentence opening the role to LATAM.
+    assert not location_excludes_her("x", "Remote — Egypt / Argentina / Ethiopia",
+                                     "This role is open to candidates based in LATAM, Africa, and Eastern Europe.")
+    assert location_excludes_her("x", "Remote — Egypt / Argentina / Ethiopia", "")      # the tag alone still parks
 
 
 def test_pay_veto_without_stated_pay_is_overruled():

@@ -360,6 +360,8 @@ def location_excludes_her(title: str, location: str, desc: str) -> bool:
         return True
     if any(k in blob for k in _US_ONLY_PHRASES) or _tz_range_excludes_panama(blob):
         return True
+    if residency_includes_home(desc or ''):
+        return False   # 2026-10-29: the SAME reading as iron_clad_fit — the body sentence outranks the tag
     return any(t in loc for t in COUNTRY_LOCK) and not any(t in loc for t in LATAM_OK)
 
 
