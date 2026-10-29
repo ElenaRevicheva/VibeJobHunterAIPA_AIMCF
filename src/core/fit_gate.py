@@ -172,6 +172,41 @@ def residency_excludes_home(text: str) -> bool:
     return False
 
 
+# ── RESIDENCY STATED IN PROSE THAT INCLUDES HOME (added 2026-10-29) ──────────
+# The mirror of residency_excludes_home(), and the same lesson one more time:
+# the SPECIFIC statement beats the general label, wherever it is written.
+#
+# Scale Army (a Cairo-based nearshore recruiter) publishes every posting on Ashby
+# with the location field "Egypt" plus Argentina/Ethiopia/South Africa/Nigeria as
+# secondary locations, and opens every body with "This role is open to candidates
+# based in LATAM, Africa, and Eastern Europe." Measured 2026-10-29 on all 77 of
+# their open roles: 2 passed iron_clad_fit (the two whose FIRST tag happened to be
+# a LATAM country) and 75 were parked on COUNTRY_LOCK('egypt') — among them the
+# "AI Native Senior SEO & GEO Operator" (published 1 Sep, Elena's own lane, found
+# by hand 58 days later) and the "AI Workflow Specialist" a Scale Army recruiter
+# had invited her to apply for by email on Aug 14. The Aug 14 analysis read the
+# country ROSTER ("Panama really is absent") and never the sentence above it.
+#
+# Deliberately as narrow as the exclusion rule: the same residency anchors
+# ("open to candidates", "based in", "eligible to work in" …) and the same
+# 220-char window must name a REGION that covers Panama (or Panama itself).
+# A passing "LATAM" in a company blurb does not qualify — that is the 2026-07-31
+# StatusNeo failure class, and it stays excluded.
+def residency_includes_home(text: str) -> bool:
+    """
+    True when the BODY states a residency rule in so many words and that rule
+    names a region Panama belongs to (or Panama itself).
+    """
+    blob = _deaccent((text or "").lower())
+    for m in _RESIDENCY_ANCHOR.finditer(blob):
+        window = blob[m.start():m.start() + 220]
+        if any(r in window for r in _REGION_COVERS_HOME):
+            return True
+        if _deaccent(HOME_COUNTRY) in window:
+            return True
+    return False
+
+
 def _deaccent(s: str) -> str:
     """Fold diacritics so 'Panamá' == 'panama' and 'México' == 'mexico'."""
     import unicodedata
@@ -382,6 +417,11 @@ def iron_clad_fit(title: str, location: str, desc: str) -> bool:
     # "Uruguay, Colombia, Peru, or Paraguay" is what the employer means.
     if roster_excludes_home(loc) or residency_excludes_home(desc_l):
         latam = False
+    elif residency_includes_home(desc_l):
+        # 2026-10-29: "open to candidates based in LATAM …" in the body outranks a
+        # COUNTRY_LOCK tag that is really the recruiter's own address (Scale Army:
+        # "Egypt"). Exclusions above still win — a roster without Panama parks it.
+        latam = True
     elif any(t in loc for t in LATAM_OK):
         latam = True
     elif any(t in loc for t in COUNTRY_LOCK):

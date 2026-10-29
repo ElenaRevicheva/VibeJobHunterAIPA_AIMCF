@@ -216,7 +216,17 @@ def test_outlook_fit_lines_are_her_words():
 
 
 def test_iron_clad_still_rejects_us_only():
-    assert not iron_clad_fit("AI Product Manager", "Remote — United States", NEUTRAL_DESC)
+    # 2026-10-29: NEUTRAL_DESC carries "open to candidates anywhere in Latin America",
+    # a residency sentence that now (rightly) outranks a country tag — see the Scale
+    # Army tests below. A US tag with no such sentence in the body is still parked.
+    desc = NEUTRAL_DESC.replace("open to candidates anywhere in Latin America", "")
+    assert "open to candidates" not in desc
+    assert not iron_clad_fit("AI Product Manager", "Remote — United States", desc)
+
+
+def test_iron_clad_us_tag_with_latam_residency_sentence_passes():
+    # The body says in so many words that LATAM residents may apply; the tag is a label.
+    assert iron_clad_fit("AI Product Manager", "Remote — United States", NEUTRAL_DESC)
 
 
 def test_research_scientist_not_on_lane():
@@ -249,3 +259,35 @@ def test_feedback_strips_cover_letter_template():
     assert mod._rejection_reason([{"body": bot_only}], "AI Solutions Architect") == ""
     hers = "Not a fit: they want a Java engineer who writes code by hand all day."
     assert mod._rejection_reason([{"body": hers}], "AI Engineer").startswith("her reason")
+
+
+# 2026-10-29 — Scale Army: the body says "open to candidates based in LATAM, Africa,
+# and Eastern Europe" while Ashby's location field carries the recruiter's own
+# address, "Egypt" (a COUNTRY_LOCK word). Measured on their 77 open roles: 2 passed,
+# 75 parked — the SEO & GEO Operator among them. The specific residency sentence
+# must outrank the general tag, exactly as the exclusion rule already does.
+SCALE_ARMY_DESC = (
+    "This role is open to candidates based in LATAM, Africa, and Eastern Europe. "
+    "Please note that as this role supports U.S.-based clients, candidates must be "
+    "available to work during U.S. business hours. Fully Remote | 9AM - 5PM PST. "
+    "Comfortable using AI tools such as Claude Code as part of production workflows."
+)
+
+
+def test_residency_sentence_including_latam_outranks_recruiter_country_tag():
+    assert iron_clad_fit("AI Native Senior SEO & GEO Operator",
+                         "Egypt / Argentina / Ethiopia", SCALE_ARMY_DESC)
+
+
+def test_residency_roster_without_panama_still_parks():
+    # A roster in the body that names countries and not Panama keeps winning.
+    desc = ("Location: Remote — Uruguay, Colombia, Peru, or Paraguay preferred. "
+            "You will work with Claude and Cursor on automation for founders.")
+    assert not iron_clad_fit("AI Workflow Specialist", "Remote — Worldwide / LATAM", desc)
+
+
+def test_latam_as_a_market_is_not_a_residency_statement():
+    # 2026-07-31 StatusNeo class: a region named as a MARKET must not open the gate.
+    desc = ("We are a global company with retail partners across LATAM and the US. "
+            "You will work with Claude and Cursor on automation for founders.")
+    assert not iron_clad_fit("AI Workflow Specialist", "Remote — India", desc)

@@ -286,6 +286,14 @@ ASHBY_COMPANIES = [
     # Prepended for the same [:max_companies] slicing reason as Greenhouse.
     # All VERIFIED LIVE 2026-07-30 against api.ashbyhq.com/posting-api/job-board.
     # ═══════════════════════════════════════════════════════════════
+    # 2026-10-29: Scale Army's board. The slug really has spaces (Ashby accepts it
+    # URL-encoded: /posting-api/job-board/Scale%20Army%20Careers → 200, 77 jobs).
+    # VJH had met 14 Scale Army roles through Google Jobs since Aug 5 — every one an
+    # automation-engineer title — and never once their "AI Native Senior SEO & GEO
+    # Operator" (published 1 Sep) or "SEO & GEO Specialist", Elena's own lane; she
+    # found the first by hand on the careers page. Google Jobs only shows what the
+    # search terms ask for; the board shows everything they have open.
+    "Scale Army Careers",  # 77 jobs — nearshore recruiter, every posting "open to LATAM"
     "truelogic",      # 182 jobs — LATAM nearshore, AND THEY ALREADY REPLIED TO ELENA
     "n8n",            # 40 jobs — workflow-automation platform, exactly Elena's lane
     "oyster",         # 21 jobs — global-remote employer of record
@@ -862,15 +870,34 @@ class ATSScraper:
         # Handle secondary locations
         secondary = job_data.get("secondaryLocations", [])
         if secondary:
-            sec_names = [loc.get("locationName", "") or loc.get("name", "") for loc in secondary[:2]]
+            # 2026-10-29: the posting API writes each entry as {"location": "Argentina",
+            # "address": {...}} — the key is `location`. Only `locationName`/`name` were
+            # read, so every secondary location was "" and a Scale Army posting listing
+            # Egypt + Argentina + Ethiopia + South Africa + Nigeria reached the gate as
+            # plain "Egypt". The old keys stay as fallbacks.
+            sec_names = [loc.get("location", "") or loc.get("locationName", "") or loc.get("name", "")
+                         for loc in secondary[:2] if isinstance(loc, dict)]
             if any(sec_names):
                 location += " / " + " / ".join(filter(None, sec_names))
-        
+
         job_id = job_data.get('id', '') or job_data.get('jobId', '')
         trace_id = f"{company_slug}:{job_id}"
-        
-        # Check if remote
-        remote = "remote" in str(location).lower() or "anywhere" in str(location).lower()
+
+        # Check if remote. 2026-10-29: Ashby states it structurally (`isRemote`,
+        # `workplaceType: "Remote"`) while `location` is a country name, so a fully
+        # remote posting tagged "Egypt" was read as on-site. Trust the structured flag.
+        remote = (
+            "remote" in str(location).lower() or "anywhere" in str(location).lower()
+            or job_data.get("isRemote") is True
+            or str(job_data.get("workplaceType", "")).lower() == "remote"
+        )
+        # The gates read TEXT, never the remote_allowed flag, and the description is
+        # cut at 1,500 chars below — Scale Army's "Fully Remote | 9AM - 5PM PST" sits
+        # past that cut, so a remote posting tagged "Egypt" failed the gate's own
+        # `remote` test. Say it where the gate looks, in the convention the other
+        # sources already use ("Remote — Worldwide / LATAM").
+        if remote and "remote" not in str(location).lower():
+            location = f"Remote — {location}"
         
         # Build description from available fields
         description_parts = []
