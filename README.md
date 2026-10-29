@@ -40,7 +40,7 @@ Oracle Cloud (24/7 systemd service)
 │   │   ├── ATS APIs: 218 companies (Greenhouse, Lever, Ashby, Workable)
 │   │   ├── Bright Data SERP: job-board search (Wellfound/Lever/
 │   │   │   Greenhouse/Ashby) — replaced exhausted SerpAPI
-│   │   ├── YC Work at a Startup (Algolia search)
+│   │   ├── YC Work at a Startup — OFF on purpose (YC ToS forbids extraction); YC coverage = yc-oss dataset + each company's own ATS board
 │   │   ├── RemoteOK, WWR, AI Jobs, HN + more (11 sources)
 │   │   └── ~2,000 jobs evaluated per cycle
 │   │
