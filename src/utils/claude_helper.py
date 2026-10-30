@@ -16,7 +16,7 @@ from typing import Optional, Any, Set
 
 import anthropic
 
-from .model_config import sonnet_model
+from .model_config import sonnet_model, free_tier
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +233,8 @@ def get_cached_model(client) -> str:
 
 def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
     """Synchronous Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
+    if free_tier():  # 30 Oct 2026: free mode = the waterfall answers, Claude last
+        return call_llm_fallback(kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
     for attempt in range(retries):
         try:
             return client.messages.create(**kwargs)
@@ -256,6 +258,8 @@ def call_claude_sync(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
 
 async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
     """Async Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
+    if free_tier():  # 30 Oct 2026: free mode = the waterfall answers, Claude last
+        return await asyncio.to_thread(call_llm_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
     for attempt in range(retries):
         try:
             return await asyncio.to_thread(client.messages.create, **kwargs)
@@ -279,6 +283,8 @@ async def call_claude_async(client, *, retries: int = MAX_RETRIES, **kwargs) -> 
 
 async def acall_claude(client, *, retries: int = MAX_RETRIES, **kwargs) -> Any:
     """Native async Claude call with retry on 529/503/429. Groq→OpenAI fallback on 400."""
+    if free_tier():  # 30 Oct 2026: free mode = the waterfall answers, Claude last
+        return await asyncio.to_thread(call_llm_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
     for attempt in range(retries):
         try:
             return await client.messages.create(**kwargs)

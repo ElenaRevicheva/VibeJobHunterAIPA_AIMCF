@@ -28,7 +28,7 @@ MAX_RETRIES = 3
 RETRY_CODES = {529, 503, 429}
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-from ..utils.model_config import groq_model, sonnet_model  # THE one Groq model switch (GROQ_MODEL env)
+from ..utils.model_config import groq_model, sonnet_model, free_tier  # THE one Groq model switch (GROQ_MODEL env)
 
 
 class _GroqTextBlock:
@@ -82,6 +82,8 @@ class MessageGenerator:
 
     async def _call_claude(self, **kwargs) -> Optional[Any]:
         """Call Claude with retry on 529/503/429. Groq fallback on 400."""
+        if free_tier():  # 30 Oct 2026: free mode = the provider chain answers, Claude last
+            return await asyncio.to_thread(_groq_fallback, kwargs.get("messages", []), kwargs.get("max_tokens", 4096))
         for attempt in range(MAX_RETRIES):
             try:
                 return await asyncio.to_thread(

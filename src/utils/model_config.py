@@ -56,3 +56,20 @@ def sonnet_model() -> str:
     except Exception:
         v = ""
     return v or _DEFAULT_SONNET_MODEL
+
+
+def free_tier() -> bool:
+    """True while MODEL_TIER=free: Claude goes LAST, after the free providers (30 Oct 2026).
+
+    cto-aipa's scripts/model-tier.cjs writes MODEL_TIER into this repo's .env from Elena's Anthropic billing
+    mail (credit added -> claude, API access turned off -> free). Read from the FILE on every call, so a
+    top-up takes effect without a restart. Same rule as cto-aipa freeTier().
+    """
+    try:
+        from dotenv import dotenv_values
+        from pathlib import Path
+
+        v = (dotenv_values(Path(__file__).resolve().parents[2] / ".env").get("MODEL_TIER") or "").strip()
+    except Exception:
+        v = ""
+    return (v or os.environ.get("MODEL_TIER", "")).strip() == "free"

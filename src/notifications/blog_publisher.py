@@ -26,6 +26,7 @@ from typing import Any, Dict, Optional
 import aiohttp
 from anthropic import AsyncAnthropic
 from src.utils.model_config import sonnet_model
+from src.utils.claude_helper import acall_claude
 
 logger = logging.getLogger("src.notifications.blog_publisher")
 
@@ -120,7 +121,7 @@ Write the article now:"""
 
     try:
         client = AsyncAnthropic(api_key=api_key or ANTHROPIC_API_KEY)
-        resp = await client.messages.create(
+        resp = await acall_claude(client,
             model=sonnet_model(),
             max_tokens=1200,
             temperature=0.7,

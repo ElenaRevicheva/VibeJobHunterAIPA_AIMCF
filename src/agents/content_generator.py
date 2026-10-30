@@ -9,7 +9,7 @@ from anthropic import Anthropic
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
 from ..utils.claude_helper import call_groq_fallback
-from ..utils.model_config import sonnet_model
+from ..utils.model_config import sonnet_model, free_tier
 
 
 class ContentGenerator:
@@ -26,6 +26,8 @@ class ContentGenerator:
         self.cover_letters_dir.mkdir(exist_ok=True)
 
     def _call_claude(self, **kwargs):
+        if free_tier():  # 30 Oct 2026: free mode = the waterfall answers, Claude last
+            return call_groq_fallback(kwargs["messages"], kwargs.get("max_tokens", 4096))
         try:
             return self.ai.messages.create(**kwargs)
         except Exception as e:

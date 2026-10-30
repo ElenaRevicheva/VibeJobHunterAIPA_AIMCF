@@ -9,7 +9,7 @@ from anthropic import Anthropic
 
 from .models import Profile
 from .config import get_settings
-from ..utils.claude_helper import call_groq_fallback
+from ..utils.claude_helper import call_groq_fallback, call_claude_sync
 from ..utils.model_config import sonnet_model
 
 
@@ -64,7 +64,7 @@ Return only valid JSON, no other text."""
         try:
             messages = [{"role": "user", "content": prompt}]
             try:
-                response = self.ai.messages.create(
+                response = call_claude_sync(self.ai,
                     model=sonnet_model(),
                     max_tokens=4096,
                     messages=messages,

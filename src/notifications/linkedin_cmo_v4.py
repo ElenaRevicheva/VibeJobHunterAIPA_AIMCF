@@ -30,6 +30,7 @@ import os
 import anthropic
 from anthropic import AsyncAnthropic
 from src.utils.model_config import sonnet_model
+from src.utils.claude_helper import acall_claude
 
 # ── Blog cross-posting (additive — safe if module unavailable) ────────────────
 try:
@@ -824,7 +825,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
         last_err: Optional[Exception] = None
         for attempt in range(1, 3):
             try:
-                response = await client.messages.create(
+                response = await acall_claude(client,
                     model=sonnet_model(),
                     max_tokens=max_tokens,
                     temperature=0.78,
@@ -891,7 +892,7 @@ Write fresh prose each time—same facts allowed, different angle and cadence.""
                 if self.use_ai_generation:
                     try:
                         client = AsyncAnthropic(api_key=self.anthropic_api_key)
-                        response = await client.messages.create(
+                        response = await acall_claude(client,
                             model=sonnet_model(),
                             max_tokens=600,
                             temperature=0.8,
@@ -1335,7 +1336,7 @@ Second line: one sentence WHY (grounded in CAREER_FOCUS).
 {context}
 """
 
-            response = await client.messages.create(
+            response = await acall_claude(client,
                 model=sonnet_model(),  # Current production model
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}]
@@ -1391,7 +1392,7 @@ List 3 trends, each on new line, format:
 
 Be specific and actionable."""
 
-            response = await client.messages.create(
+            response = await acall_claude(client,
                 model=sonnet_model(),  # Current production model
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
