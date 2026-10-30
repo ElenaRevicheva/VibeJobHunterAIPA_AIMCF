@@ -16,6 +16,8 @@ from typing import Optional, Any, Set
 
 import anthropic
 
+from .model_config import sonnet_model
+
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
@@ -150,7 +152,7 @@ def call_llm_fallback(messages: list, max_tokens: int = 4096) -> "_GroqResponse"
 
 # Model selection priority (tries in order)
 CLAUDE_MODELS = [
-    "claude-sonnet-4-5-20250929",   # Latest Sonnet (current, verified live)
+    sonnet_model(),                 # CLAUDE_SONNET_MODEL (.env) — the one Sonnet switch
     "claude-sonnet-4-6",            # Newer Sonnet
     "claude-opus-4-8",              # Opus (highest quality)
     "claude-haiku-4-5-20251001",    # Haiku (fast/cheap, most reliable fallback)
@@ -211,8 +213,8 @@ def get_best_available_model(client, preferred_model: Optional[str] = None) -> s
     
     # If all else fails, return the most reliable one
     # (Anthropic will error if it's not available, which is fine)
-    logger.warning("⚠️ Could not verify model availability, using claude-sonnet-4-5-20250929")
-    return "claude-sonnet-4-5-20250929"
+    logger.warning(f"⚠️ Could not verify model availability, using {sonnet_model()}")
+    return sonnet_model()
 
 
 # Cached model (determined once per session)

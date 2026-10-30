@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple
 from enum import Enum
 
-from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
+from ..utils.model_config import groq_model, sonnet_model  # THE one Groq model switch (GROQ_MODEL env)
 from dataclasses import dataclass
 import imaplib
 import email
@@ -574,7 +574,7 @@ Be accurate. POSITIVE means they want to talk. ACKNOWLEDGMENT is just receipt co
             if not use_claude:
                 raise _ClaudeSkipped()
             response = self.anthropic_client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=500,
                 messages=[{"role": "user", "content": prompt}]
             )

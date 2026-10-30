@@ -11,6 +11,7 @@ from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
 from ..utils import retry_sync, ResponseCache, RateLimiter, get_logger, APICallTracker
 from ..utils.claude_helper import call_claude_sync  # Groq fallback on credit exhaustion
+from ..utils.model_config import sonnet_model
 from src.core.contact import CONTACT_EMAIL
 
 
@@ -41,7 +42,7 @@ class ContentGeneratorV2:
         prompt = self._build_resume_prompt(profile, job)
         
         # Check cache first
-        cached = self.cache.get(prompt, "claude-sonnet-4-5-20250929")
+        cached = self.cache.get(prompt, sonnet_model())
         if cached:
             self.logger.info("Using cached resume")
             return cached
@@ -52,7 +53,7 @@ class ContentGeneratorV2:
         try:
             response = call_claude_sync(
                 self.ai,
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -67,7 +68,7 @@ class ContentGeneratorV2:
             tailored_resume = response.content[0].text
             
             # Cache response
-            self.cache.set(prompt, "claude-sonnet-4-5-20250929", tailored_resume)
+            self.cache.set(prompt, sonnet_model(), tailored_resume)
             
             # Save to file
             self._save_resume(tailored_resume, job)
@@ -87,7 +88,7 @@ class ContentGeneratorV2:
         prompt = self._build_cover_letter_prompt(profile, job)
         
         # Check cache
-        cached = self.cache.get(prompt, "claude-sonnet-4-5-20250929")
+        cached = self.cache.get(prompt, sonnet_model())
         if cached:
             self.logger.info("Using cached cover letter")
             return cached
@@ -98,7 +99,7 @@ class ContentGeneratorV2:
         try:
             response = call_claude_sync(
                 self.ai,
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -113,7 +114,7 @@ class ContentGeneratorV2:
             cover_letter = response.content[0].text
             
             # Cache response
-            self.cache.set(prompt, "claude-sonnet-4-5-20250929", cover_letter)
+            self.cache.set(prompt, sonnet_model(), cover_letter)
             
             # Save to file
             self._save_cover_letter(cover_letter, job)

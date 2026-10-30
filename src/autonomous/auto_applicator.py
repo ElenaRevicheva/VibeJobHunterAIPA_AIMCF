@@ -23,6 +23,7 @@ from .email_service import validate_email_for_resend
 
 from anthropic import AsyncAnthropic
 from ..utils.claude_helper import acall_claude
+from ..utils.model_config import sonnet_model
 from src.core.contact import CONTACT_EMAIL
 
 # Database tracking
@@ -165,7 +166,7 @@ Write the cover letter now:"""
         try:
             response = await acall_claude(
                 self.claude,
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=2000,
                 messages=[{"role": "user", "content": prompt}]
             )

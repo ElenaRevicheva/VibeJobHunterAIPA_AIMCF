@@ -34,3 +34,25 @@ def groq_model() -> str:
     except Exception:
         v = ""
     return v or _DEFAULT_GROQ_MODEL
+
+
+_DEFAULT_SONNET_MODEL = "claude-sonnet-4-6"
+
+
+def sonnet_model() -> str:
+    """Resolve Claude's quality-tier id: CLAUDE_SONNET_MODEL env → repo .env → current default.
+
+    Same rule as groq_model(), for Claude (30 Oct 2026): Anthropic retires claude-sonnet-4-5
+    on 30 Nov 2026, and ~20 VJH call sites named it directly. Matches cto-aipa sonnetModel().
+    """
+    v = os.environ.get("CLAUDE_SONNET_MODEL", "").strip()
+    if v:
+        return v
+    try:
+        from dotenv import dotenv_values
+        from pathlib import Path
+
+        v = (dotenv_values(Path(__file__).resolve().parents[2] / ".env").get("CLAUDE_SONNET_MODEL") or "").strip()
+    except Exception:
+        v = ""
+    return v or _DEFAULT_SONNET_MODEL

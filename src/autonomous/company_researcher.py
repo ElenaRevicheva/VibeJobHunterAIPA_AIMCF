@@ -16,6 +16,7 @@ from ..core.config import settings
 from ..utils.logger import setup_logger
 from ..utils.cache import ResponseCache
 from ..utils.claude_helper import call_claude_async
+from ..utils.model_config import sonnet_model
 
 logger = setup_logger(__name__)
 
@@ -170,7 +171,7 @@ Tech Stack: {', '.join(intel.get('tech_stack', {}).get('detected_technologies', 
 """
             message = await call_claude_async(
                 self.client,
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=1000,
                 messages=[{
                     "role": "user",

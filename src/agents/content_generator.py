@@ -9,6 +9,7 @@ from anthropic import Anthropic
 from ..core.models import Profile, JobPosting
 from ..core.config import get_settings
 from ..utils.claude_helper import call_groq_fallback
+from ..utils.model_config import sonnet_model
 
 
 class ContentGenerator:
@@ -79,7 +80,7 @@ Format: Professional markdown suitable for conversion to PDF.
 
         try:
             response = self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -140,7 +141,7 @@ Be specific, avoid generic phrases, and show you understand what the company doe
 
         try:
             response = self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -187,7 +188,7 @@ Keep it conversational and human.
 
         try:
             response = self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=512,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -256,7 +257,7 @@ Focus on technical questions for AI/ML roles and behavioral questions for cultur
 
         try:
             response = self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=3072,
                 messages=[{"role": "user", "content": prompt}]
             )

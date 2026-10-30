@@ -10,6 +10,7 @@ from anthropic import Anthropic
 from .models import Profile
 from .config import get_settings
 from ..utils.claude_helper import call_groq_fallback
+from ..utils.model_config import sonnet_model
 
 
 class ProfileManager:
@@ -64,7 +65,7 @@ Return only valid JSON, no other text."""
             messages = [{"role": "user", "content": prompt}]
             try:
                 response = self.ai.messages.create(
-                    model="claude-sonnet-4-5-20250929",
+                    model=sonnet_model(),
                     max_tokens=4096,
                     messages=messages,
                 )

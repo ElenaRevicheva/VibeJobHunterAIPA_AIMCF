@@ -28,7 +28,7 @@ MAX_RETRIES = 3
 RETRY_CODES = {529, 503, 429}
 
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-from ..utils.model_config import groq_model  # THE one Groq model switch (GROQ_MODEL env)
+from ..utils.model_config import groq_model, sonnet_model  # THE one Groq model switch (GROQ_MODEL env)
 
 
 class _GroqTextBlock:
@@ -222,7 +222,7 @@ CRITICAL: Make it feel personally researched and founder-to-founder, not applica
 
         try:
             message = await self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=800,
                 temperature=0.7,
                 messages=[{"role": "user", "content": prompt}]
@@ -447,7 +447,7 @@ Write ONLY the message, no subject line."""
 
         try:
             message = await self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -510,7 +510,7 @@ Write the complete email (subject + body)."""
 
         try:
             message = await self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=600,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -562,7 +562,7 @@ Write ONLY the DM text."""
 
         try:
             message = await self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=200,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -668,7 +668,7 @@ Write ONLY the follow-up message."""
 
         try:
             message = await self._call_claude(
-                model="claude-sonnet-4-5-20250929",
+                model=sonnet_model(),
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
