@@ -185,6 +185,18 @@ def board_says_closed(url):
     return ""
 
 
+def page_gone(url):
+    """410 Gone is the server SAYING the posting was removed (30 Oct 2026: a Teamtailor job sat in
+    I Act TODAY answering 410). Only 410 — a 404/403/429 can be a bot wall, never proof."""
+    try:
+        urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=30)
+    except urllib.error.HTTPError as e:
+        return e.code == 410
+    except Exception:
+        pass
+    return False
+
+
 keep, reject, gate_only = [], [], []
 for d in deals:
     name = d["properties"]["dealname"]
@@ -212,9 +224,14 @@ for d in deals:
     # residency roster from the stored location
     elif location and roster_excludes_home(location):
         verdict = "INELIGIBLE (roster excludes Panama)"
+    elif url and page_gone(url):
+        verdict = "DEAD (posting closed: HTTP 410 Gone)"
     elif url:
         try:
-            text, closed = enrich_with_state(url, desc)
+            # force=True (30 Oct 2026): without it a deal with a long stored description is never
+            # fetched, so the closed check never ran — 4 Puente Talent pages saying "This role is no
+            # longer accepting applications." sat in I Act TODAY (and her CRM) for 24 days.
+            text, closed = enrich_with_state(url, desc, force=True)
         except Exception:
             text, closed = desc, False
         if closed:

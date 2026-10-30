@@ -26,3 +26,17 @@ def test_sweep_never_sends_the_hubspot_key_to_a_job_board():
 def test_prose_is_not_closed():
     assert not looks_closed("We build closed-loop systems and post updates on our blog.")
     assert not looks_closed("<p>Remote (anywhere). Apply now.</p>")
+
+
+def test_puente_talent_role_closed_banner():
+    """30 Oct 2026: 4 Puente Talent jobs sat in I Act TODAY 24 days with this live wording (Next.js
+    payload). The marker matched all along — the sweep just never fetched pages with a long stored
+    description; it now passes force=True."""
+    assert looks_closed('{"children":"Role closed"}],["$","h1",null,{"children":"This role is no longer accepting applications."}]')
+
+
+def test_sweep_fetches_every_page_and_reads_410():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "sweep_i_act_today.py").read_text(encoding="utf-8")
+    assert "enrich_with_state(url, desc, force=True)" in src
+    assert "e.code == 410" in src
