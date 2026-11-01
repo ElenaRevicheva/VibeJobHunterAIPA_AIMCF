@@ -431,6 +431,26 @@ def _vision_gemini(gk: str, mime: str, b64: str, prompt: str = None, max_tokens:
     return (parts[0].get("text") or "").strip()
 
 
+def _vision_compat(url: str, model: str):
+    """An OpenAI-compatible vision reader (Groq, xAI). 1 Nov 2026: OpenAI answered 429 (no credit) and the
+    shared Gemini key 402 (prepaid balance spent), so every screenshot failed and the loop was blind.
+    Measured on the Devsu screenshot: both read "Remote (Colombia)"."""
+    def fn(k: str, mime: str, b64: str) -> str:
+        payload = json.dumps({
+            "model": model, "max_tokens": 400, "temperature": 0,
+            "messages": [{"role": "user", "content": [
+                {"type": "text", "text": _VISION_PROMPT},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+            ]}],
+        }).encode()
+        req = urllib.request.Request(url, data=payload, method="POST", headers={
+            "Content-Type": "application/json", "Authorization": "Bearer " + k, "User-Agent": "Mozilla/5.0"})
+        out = json.loads(urllib.request.urlopen(req, timeout=90).read())
+        txt = out["choices"][0]["message"]["content"] or ""
+        return re.sub(r"(?s)<think>.*?</think>", "", txt).strip()
+    return fn
+
+
 def _read_screenshot(key: str, file_ids, cache: dict) -> str:
     """What her attached screenshots say (location, closed, pay, demands), every image joined. '' when unavailable.
 
@@ -440,20 +460,31 @@ def _read_screenshot(key: str, file_ids, cache: dict) -> str:
     import base64
     ok = _read_env_file(REPO / ".env", "OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
     gk = _read_env_file(REPO / ".env", "GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+    qk = _read_env_file(REPO / ".env", "GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", "")
+    xk = _read_env_file(REPO / ".env", "XAI_API_KEY") or os.environ.get("XAI_API_KEY", "")
+    # Free first (the fleet waterfall): Gemini -> Groq -> Grok -> OpenAI.
+    readers = (
+        ("gemini", _vision_gemini, gk),
+        ("groq", _vision_compat("https://api.groq.com/openai/v1/chat/completions",
+                                os.environ.get("GROQ_VISION_MODEL", "").strip() or "qwen/qwen3.8-27b"), qk),
+        ("grok", _vision_compat("https://api.x.ai/v1/chat/completions",
+                                os.environ.get("XAI_VISION_MODEL", "").strip() or "grok-4.3"), xk),
+        ("openai", _vision_openai, ok),
+    )
     found = []
     for fid in list(dict.fromkeys(file_ids))[:4]:
         if fid in cache:                       # already paid for — never re-read
             if cache[fid]:
                 found.append(cache[fid])
             continue
-        if not ok and not gk:
+        if not any(k for _, _, k in readers):
             break
         raw, mime = _file_bytes(key, fid)
         if not raw:
             continue                           # not an image (a PDF) — try the next file
         b64 = base64.b64encode(raw).decode()
         txt, errs, said_none = "", [], False
-        for name, fn, k in (("openai", _vision_openai, ok), ("gemini", _vision_gemini, gk)):
+        for name, fn, k in readers:
             if not k:
                 continue
             try:
