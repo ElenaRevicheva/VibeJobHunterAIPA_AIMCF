@@ -293,6 +293,7 @@ _VISION_PROMPT = (
 #   Now: only her notes' images, up to 4, all readings joined; NONE only when every provider says so.
 _VISION_PROMPT_VERSION = 5
 _SHOT_MAX = 240
+_INLINE_IMG = re.compile(r"<img[^>]+/files/(\d+)/signed-url-redirect")
 _scope_warned = []
 
 
@@ -762,6 +763,10 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
         why = _rejection_reason(ns, e["title"])
         # Only HER notes' files: the kit attaches the CV PDF to its 🛡️ and ✅ READY notes on every deal.
         shots = [f for n in ns if not _KIT_NOTE.search(n.get("body") or "") for f in n.get("attachments", [])]
+        # 1 Nov 2026 (Devsu, "look" + a pasted image): a screenshot PASTED into the note body is an <img> in
+        # hs_note_body, not an attachment, so it was never read. Its file id is in the src.
+        shots += [f for n in ns if not _KIT_NOTE.search(n.get("body") or "")
+                  for f in _INLINE_IMG.findall(n.get("body") or "") if f not in shots]
         if shots:
             shot = _read_screenshot(key, shots, shot_cache)
             if shot:
