@@ -121,13 +121,14 @@ def _alert_ai_outage(company: str, title: str) -> None:
                 pass  # unreadable state → alert anyway
 
         msg = (
-            "⛔ <b>VJH: AI deep analysis is DOWN</b>\n\n"
-            "Claude + the Groq fallback both failed, so jobs are being held back "
+            "⛔ <b>VJH: no AI opinion on a job</b>\n\n"
+            "Every provider in the scoring chain (Gemini → Groq → Grok → OpenAI → "
+            "Claude) failed or answered unreadably, so this job is held back "
             f"(capped at {AI_OUTAGE_SCORE_CAP:.0f}) instead of surfacing on keyword "
             "score alone.\n\n"
-            f"First blocked this window: <b>{company}</b> — {title[:70]}\n\n"
-            "Lead flow stays paused until an AI opinion is available again — "
-            "top up Anthropic credit or reset the Groq TPD quota."
+            f"First held this window: <b>{company}</b> — {title[:70]}\n\n"
+            "Each later job is tried again; the journal line "
+            "'AI analysis error' / 'JSON parse error' names the cause."
         )
         data = urllib.parse.urlencode({
             "chat_id": chat_id, "text": msg, "parse_mode": "HTML",
@@ -927,6 +928,7 @@ class JobMatcher:
         if not getattr(self, 'ai_enabled', True):
             return None
 
+        result_text = ""
         try:
             title = getattr(job, 'title', '') or ''
             company = getattr(job, 'company', '') or ''
@@ -1032,7 +1034,9 @@ Return ONLY valid JSON (no markdown):
 
             result_text, _chain_errors = _chain_complete(
                 [{"role": "user", "content": prompt}],
-                max_tokens=500,
+                # 500 cut a reply mid-string on 2026-11-01 (Discord, first answer in the
+                # chain): a thinking model spends part of the budget before the JSON.
+                max_tokens=1000,
                 order=PROFILE_SCORING,
             )
             result_text = (result_text or "").strip()
@@ -1083,7 +1087,21 @@ Return ONLY valid JSON (no markdown):
             }
             
         except json.JSONDecodeError as e:
-            logger.warning(f"AI analysis JSON parse error: {e}")
+            # 2026-11-01: a provider ANSWERED but its JSON was cut off, and returning None
+            # here sent "AI deep analysis is DOWN" — an outage that was not one. "score"
+            # is the first field, so a cut-off reply usually still carries it: keep it.
+            m = re.search(r'"score"\s*:\s*(\d{1,3}(?:\.\d+)?)', result_text or "")
+            if m:
+                rec_m = re.search(r'"recommendation"\s*:\s*"(apply|maybe|skip)"', result_text)
+                rec = rec_m.group(1) if rec_m else 'maybe'
+                label = {"apply": "Strong fit - APPLY", "skip": "Poor fit"}.get(rec, "Moderate fit")
+                logger.warning(f"AI analysis reply was cut off ({e}); its score {m.group(1)} kept")
+                return {
+                    'score': min(float(m.group(1)), 100.0),
+                    'reasons': [f"🤖 AI: {label}", "AI reply was cut off; its score was kept"],
+                    'recommendation': rec,
+                }
+            logger.warning(f"AI analysis JSON parse error (unreadable reply, not an outage): {e}")
             return None
         except Exception as e:
             logger.warning(f"AI analysis error: {e}")
