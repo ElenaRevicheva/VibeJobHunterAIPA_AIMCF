@@ -293,6 +293,7 @@ _VISION_PROMPT = (
 #   Now: only her notes' images, up to 4, all readings joined; NONE only when every provider says so.
 _VISION_PROMPT_VERSION = 5
 _SHOT_MAX = 240
+_REREAD_SHOTS = "--reread-shots" in sys.argv
 _INLINE_IMG = re.compile(r"<img[^>]+/files/(\d+)/signed-url-redirect")
 _scope_warned = []
 
@@ -460,15 +461,18 @@ def _read_screenshot(key: str, file_ids, cache: dict) -> str:
     import base64
     ok = _read_env_file(REPO / ".env", "OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
     gk = _read_env_file(REPO / ".env", "GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+    # Elena's FREE-tier key (no billing project). The fleet GEMINI_API_KEY is prepaid and answers 402 when spent.
+    fk = _read_env_file(REPO / ".env", "GEMINI_FREE_API_KEY") or os.environ.get("GEMINI_FREE_API_KEY", "")
     qk = _read_env_file(REPO / ".env", "GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", "")
     xk = _read_env_file(REPO / ".env", "XAI_API_KEY") or os.environ.get("XAI_API_KEY", "")
-    # Free first (the fleet waterfall): Gemini -> Groq -> Grok -> OpenAI.
+    # Free first (the fleet waterfall): free Gemini -> Groq -> Grok -> prepaid Gemini -> OpenAI.
     readers = (
-        ("gemini", _vision_gemini, gk),
+        ("gemini-free", _vision_gemini, fk),
         ("groq", _vision_compat("https://api.groq.com/openai/v1/chat/completions",
                                 os.environ.get("GROQ_VISION_MODEL", "").strip() or "qwen/qwen3.8-27b"), qk),
         ("grok", _vision_compat("https://api.x.ai/v1/chat/completions",
                                 os.environ.get("XAI_VISION_MODEL", "").strip() or "grok-4.3"), xk),
+        ("gemini", _vision_gemini, gk),
         ("openai", _vision_openai, ok),
     )
     found = []
@@ -766,7 +770,10 @@ def _update_ledger(key: str, deals: list, old: dict, shot_cache: dict) -> tuple:
             # 15 Oct 2026: a recent rejection with no reason yet gets its notes read again — a screenshot
             # that failed or was misread once used to stay unread forever (Pursuit), as the deal never changed.
             # A cached reason that came from an agent's note (now matched by _KIT_NOTE) is re-derived too.
-            if stage in NEGATIVE_STAGES and ((not e.get("why") and _recent(e.get("first_decided"), days=14))
+            # 1 Nov 2026: --reread-shots re-reads every rejection once, so screenshots that failed
+            # (both paid readers out of credit) or sat pasted in the note body get read.
+            if stage in NEGATIVE_STAGES and (_REREAD_SHOTS
+                                             or (not e.get("why") and _recent(e.get("first_decided"), days=14))
                                              or _KIT_NOTE.search(e.get("why") or "")
                                              or _cut_at_old_limit(e)):
                 todo.append(did)
