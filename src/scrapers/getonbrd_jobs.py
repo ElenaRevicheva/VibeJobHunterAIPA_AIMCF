@@ -35,6 +35,8 @@ import logging
 import re
 from typing import Dict, List
 
+from src.core.fit_gate import residency_includes_home
+
 logger = logging.getLogger(__name__)
 
 _BASE = "https://www.getonbrd.com/api/v0"
@@ -131,6 +133,32 @@ def _location(countries: List[str]) -> str:
     return f"Remote — LATAM ({blob})"
 
 
+# 1 Nov 2026 (Devsu, "Remote (Colombia)"): the API says countries ["Remote"] for a job only
+# residents of ONE country may take — the restriction is in remote_modality "remote_local" plus
+# tenant ids the API never names. 55 of 100 remote search results were remote_local, and all of
+# them reached Elena as "Remote — Worldwide". The job PAGE says it in words ("candidates must
+# reside in Colombia."), so read that and let fit_gate's residency rule decide. Cached per job.
+_RESIDE = re.compile(r'title="(Position is 100% remote, but candidates must reside in [^"]{1,600})"')
+_reside_cache: Dict[str, str] = {}
+
+
+def _residency_sentence(url: str) -> str:
+    """The page's "candidates must reside in …" sentence, '' if absent, None if unreadable."""
+    if url in _reside_cache:
+        return _reside_cache[url]
+    import requests
+    try:
+        r = requests.get(url, timeout=20,
+                         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130"})
+        if r.status_code != 200:
+            return None
+    except Exception:
+        return None
+    m = _RESIDE.search(r.text)
+    _reside_cache[url] = m.group(1) if m else ""
+    return _reside_cache[url]
+
+
 def _to_job(rec: Dict) -> Dict:
     attrs = rec.get("attributes") or {}
     if not attrs.get("remote"):
@@ -180,6 +208,7 @@ def _fetch_sync(timeout_seconds: int) -> List[Dict]:
 
     jobs: List[Dict] = []
     seen = set()
+    local_dropped = 0
     feeds = [f"{_BASE}/categories/{c}/jobs" for c in _CATEGORIES]
     feeds += [f"{_BASE}/search/jobs?query={requests.utils.quote(t)}" for t in _SEARCH_TERMS]
 
@@ -200,9 +229,23 @@ def _fetch_sync(timeout_seconds: int) -> List[Dict]:
                 break
             for rec in data:
                 job = _to_job(rec)
+                local = (rec.get("attributes") or {}).get("remote_modality") == "remote_local"
+                if job and job["id"] not in seen and local:
+                    seen.add(job["id"])               # one page read per job per cycle
+                    rule = _residency_sentence(job["url"])
+                    if rule is None or (rule and not residency_includes_home(rule)):
+                        local_dropped += 1            # unreadable = not proven open to Panama
+                        continue
+                    if rule:
+                        job["location"] = "Remote — " + rule.split("must reside in", 1)[1].strip(" .")
+                        job["description"] = f"{rule}\n\n{job['description']}"[:6000]
+                    jobs.append(job)
+                    continue
                 if job and job["id"] not in seen:
                     seen.add(job["id"])
                     jobs.append(job)
+    if local_dropped:
+        logger.info(f"[getonbrd] {local_dropped} remote_local jobs dropped: residents of other countries only")
     return jobs
 
 
