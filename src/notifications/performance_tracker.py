@@ -12,6 +12,7 @@ This closes the feedback loop for AI Co-Founder learning!
 """
 
 import os
+import re
 import json
 import asyncio
 from datetime import datetime, timedelta
@@ -21,6 +22,13 @@ import aiohttp
 import logging
 
 logger = logging.getLogger(__name__)
+
+# The links a post may carry that we tag: one whole URL per match, path included, trailing punctuation excluded.
+_TRACKED_URL = re.compile(
+    r"(?<![\w./@-])(?:https?://)?"
+    r"(?:wa\.me/50766623757|aideazz\.xyz|espaluz-ai-language-tutor\.lovable\.app|atuona\.xyz)"
+    r"(?:[/?][^\s<>\"')\]]*[^\s<>\"')\].,;:!?])?"
+)
 
 # Google Analytics imports (optional - graceful fallback if not installed)
 try:
@@ -165,23 +173,19 @@ class PerformanceTracker:
         """
         Replace all URLs in post content with UTM-tracked versions
         """
-        # URLs to track
-        urls_to_track = {
-            "wa.me/50766623757": "wa.me/50766623757",
-            "aideazz.xyz": "https://aideazz.xyz",
-            "aideazz.xyz/card": "https://aideazz.xyz/card",
-            "espaluz-ai-language-tutor.lovable.app": "https://espaluz-ai-language-tutor.lovable.app",
-            "atuona.xyz": "https://atuona.xyz",
-        }
-        
-        enhanced_content = content
-        
-        for url_text, full_url in urls_to_track.items():
-            if url_text in content:
-                tracked_url = self.add_utm_parameters(full_url, post_id, post_type)
-                enhanced_content = enhanced_content.replace(url_text, tracked_url)
-        
-        return enhanced_content
+        # 2 Nov 2026: this used plain str.replace("aideazz.xyz", ...), which also hit the
+        # "aideazz.xyz" inside https://aideazz.xyz/portfolio and shipped
+        # https://https://aideazz.xyz?utm_...=ai_cofounder/portfolio in live posts.
+        # Now each whole URL is matched once, its path kept, and the tags go at the end.
+        # Subdomains (webhook.aideazz.xyz image links) and already-tagged URLs are left alone.
+        def tag(match: "re.Match") -> str:
+            url = match.group(0)
+            if "utm_" in url:
+                return url
+            full = url if url.startswith("http") else f"https://{url}"
+            return self.add_utm_parameters(full, post_id, post_type)
+
+        return _TRACKED_URL.sub(tag, content)
     
     # ==================== BUFFER API ====================
     

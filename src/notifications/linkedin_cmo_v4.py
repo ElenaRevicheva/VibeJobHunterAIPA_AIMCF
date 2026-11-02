@@ -516,7 +516,7 @@ Lo que he demostrado:
 • linkedin.com/in/elenarevicheva - ¡Co-Fundadora AI de Marketing publicando!
 
 🌐 Productos AI - Explora 100% GRATIS:
-• espaluz-ai-language-tutor.lovable.app - Primer Coach de Idiomas AI Emocionalmente Inteligente para Familias
+• aideazz.xyz/espaluz?utm_source=linkedin - EspaLuz: tutor de español e inglés con IA para toda la familia (web, WhatsApp, Telegram)
 • aideazz.xyz - Showroom de Asistentes Personales AI Emocionalmente Inteligentes
 • aideazz.xyz/card - Portfolio de la Fundadora
 • atuona.xyz - Galería NFT de Poesía Rusa Underground
@@ -810,7 +810,7 @@ REQUIREMENTS:
   * x.com/reviceva - ALGOM Alpha
   * t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
   * linkedin.com/in/elenarevicheva
-  * espaluz-ai-language-tutor.lovable.app - EspaLuz app
+  * aideazz.xyz/espaluz?utm_source=linkedin - EspaLuz page (families: web, WhatsApp, Telegram; 14 days free) — the one EspaLuz link to use
   * aideazz.xyz - AIdeazz showroom
   * aideazz.xyz/card - Portfolio card
   * aideazz.xyz/portfolio - Canonical portfolio (preferred single link for capability signal)
