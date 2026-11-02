@@ -318,7 +318,7 @@ What I'm actually open to:
 
 If you're a founder who needs someone who can **design, build, and translate** to non-technical stakeholders in the same week—reach out with a **concrete brief**, not a generic InMail. If your pipeline only reads "Staff+" titles, we're not a match; I'll save us both the time.
 
-Live systems: wa.me/50766623757 · aideazz.xyz · aideazz.xyz/card
+Live systems: wa.me/50766623757 · aideazz.xyz/sop-ai-ops.html · aideazz.xyz/card
 
 #ExecutiveTurnedBuilder #AppliedAI #Fractional #BuildInPublic #FounderHiring""",
             "hashtags": "#ExecutiveTurnedBuilder #AppliedAI #Fractional #BuildInPublic #FounderHiring"
@@ -373,7 +373,7 @@ Early commercial signals exist; they are **small, auditable, and reported withou
 
 Allocation, if we partner, stays boring on purpose: **compounding distribution**, **first hire who inherits runbooks**, **infra margin**—so scale does not become an outage story.
 
-Public artifacts: **aideazz.xyz**, org on GitHub, **aideazz.xyz/card**. If your mandate intersects this thesis, diligence is welcome. If it does not, we part professionally and without noise.
+Public artifacts: **aideazz.xyz/sop-ai-ops.html** (the live lab), **aideazz.xyz/Elena_Revicheva_Professional_Outlook_2026.pdf** (Professional Outlook), org on GitHub, **aideazz.xyz/card**. If your mandate intersects this thesis, diligence is welcome. If it does not, we part professionally and without noise.
 
 #PreSeed #AIStartup #TechnicalFounder #DueDiligence #BuildInPublic""",
             "hashtags": "#PreSeed #AIStartup #TechnicalFounder #DueDiligence #BuildInPublic"
@@ -517,7 +517,8 @@ Lo que he demostrado:
 
 🌐 Productos AI - Explora 100% GRATIS:
 • aideazz.xyz/espaluz?utm_source=linkedin - EspaLuz: vive tu nuevo país en español — confianza, pertenencia e independencia para familias internacionales en Latinoamérica
-• aideazz.xyz - Showroom de Asistentes Personales AI Emocionalmente Inteligentes
+• aideazz.xyz/sop-ai-ops-es.html - AIdeazz AI Lab: operaciones y motor de marketing en vivo
+• aideazz.xyz/Elena_Revicheva_Professional_Outlook_2026_ES.pdf - Perspectiva profesional de Elena (PDF)
 • aideazz.xyz/card - Portfolio de la Fundadora
 • atuona.xyz - Galería NFT de Poesía Rusa Underground
 
@@ -811,7 +812,8 @@ REQUIREMENTS:
   * t.me/Influencer_EspaLuz_bot - EspaLuz SMM AIPA
   * linkedin.com/in/elenarevicheva
   * aideazz.xyz/espaluz?utm_source=linkedin - EspaLuz: live your new country in Spanish — confidence, belonging and independence for international families in Latin America (never call it a language app or AI tutor) — the one EspaLuz link to use
-  * aideazz.xyz - AIdeazz showroom
+  * aideazz.xyz/sop-ai-ops.html - AIdeazz AI Lab, live operations + marketing engine (use this, NEVER the bare homepage aideazz.xyz)
+  * aideazz.xyz/Elena_Revicheva_Professional_Outlook_2026.pdf - Elena's Professional Outlook (PDF) — for hiring, fractional and services posts
   * aideazz.xyz/card - Portfolio card
   * aideazz.xyz/portfolio - Canonical portfolio (preferred single link for capability signal)
   * atuona.xyz - Atuona
